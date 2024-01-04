@@ -8,7 +8,6 @@ import pandas as pd
 
 from mesa_frames.agent import AgentDF
 
-
 class ModelDF:
     def __new__(cls, *args, **kwargs):
         """Create a new model object and instantiate its RNG automatically
@@ -45,7 +44,7 @@ class ModelDF:
 
         # Initialize optional parameters
         if not unique_id:
-            self.unique_id = self.random.random.randint(
+            self.unique_id = np.random.randint(
                 low=-9223372036854775808, high=9223372036854775807, dtype="int64"
             )
         else:
