@@ -739,13 +739,14 @@
 start the model. Always start with super().__init__() to initialize the
 model object properly.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>unique_id : int | None
-    The unique_id of the model.
-    If None, a random unique_id is assigned using a 64-bit random integer.
-space
-    The space where the agents will be placed. Can be None if model does not have a space.</p>
+<ul>
+<li><strong>unique_id</strong> (int | None):
+The unique_id of the model.
+If None, a random unique_id is assigned using a 64-bit random integer.</li>
+<li><strong>space</strong>: The space where the agents will be placed. Can be None if model does not have a space.</li>
+</ul>
 </div>
 
 
@@ -834,10 +835,12 @@ space
 
             <div class="docstring"><p>Returns a boolean mask of the agents dataframe of the model which corresponds to the agent_type.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>agent_type : type[AgentDF]
-    The agent_type to get the mask for.</p>
+<ul>
+<li><strong>agent_type</strong> (type[AgentDF]):
+The agent_type to get the mask for.</li>
+</ul>
 </div>
 
 
@@ -884,16 +887,18 @@ space
             <div class="docstring"><p>If n_steps are specified, executes model.step() until n_steps are reached.
 Otherwise, until self.running is false (as the default mesa.Model.run_model).</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>n_steps : int | None
-    The number of steps which the model will execute.
-    Can be None if a running condition turning false is used.
-merged_mro: bool
-    If False, the model will execute one step for each class in p_agent. This is the default behaviour.
-    If True, the model will execute one step for each inherited agent type in the order of a "merged" MRO.
-    This may increase performance if there are multiple and complex inheritance as each agent_type (even if parents of different classes),
-    will be executed only once. Not a viable option if the behavior of a class depends on another.</p>
+<ul>
+<li><strong>n_steps</strong> (int | None):
+The number of steps which the model will execute.
+Can be None if a running condition turning false is used.</li>
+<li><strong>merged_mro</strong> (bool):
+If False, the model will execute one step for each class in p_agent. This is the default behaviour.
+If True, the model will execute one step for each inherited agent type in the order of a "merged" MRO.
+This may increase performance if there are multiple and complex inheritance as each agent_type (even if parents of different classes),
+will be executed only once. Not a viable option if the behavior of a class depends on another.</li>
+</ul>
 </div>
 
 
@@ -935,13 +940,15 @@ merged_mro: bool
 
             <div class="docstring"><p>Executes one step of the model.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>merged_mro: bool
-    If False, the model will execute one step for each class in p_agent. This is the default behaviour.
-    If True, the model will execute one step for each inherited agent type in the order of a "merged" MRO.
-    This may increase performance if there are multiple and complex inheritance as each agent_type (even if parents of different classes),
-    will be executed only once. Not a viable option if the behavior of a class depends on another.</p>
+<ul>
+<li><strong>merged_mro</strong> (bool):
+If False, the model will execute one step for each class in p_agent. This is the default behaviour.
+If True, the model will execute one step for each inherited agent type in the order of a "merged" MRO.
+This may increase performance if there are multiple and complex inheritance as each agent_type (even if parents of different classes),
+will be executed only once. Not a viable option if the behavior of a class depends on another.</li>
+</ul>
 </div>
 
 
@@ -1115,13 +1122,15 @@ merged_mro: bool
 
             <div class="docstring"><p>Populate the self.agents dataframe.</p>
 
-<h2 id="parameters">Parameters</h2>
+<h6 id="parameters">Parameters</h6>
 
-<p>n_agents : int | None
-    The number of agents which the model will create.
-p_agents : dict[type[AgentDF], float]
-    The dictionary of agents to create. The keys are the types of agents,
-    the values are the percentages of each agent type. The sum of the values should be 1.</p>
+<ul>
+<li><strong>n_agents</strong> (int | None):
+The number of agents which the model will create.</li>
+<li><strong>p_agents</strong> (dict[type[AgentDF], float]):
+The dictionary of agents to create. The keys are the types of agents,
+the values are the percentages of each agent type. The sum of the values should be 1.</li>
+</ul>
 </div>
 
 
