@@ -2,8 +2,10 @@
  `mesa-frames` is an extension of the [`mesa`](https://github.com/projectmesa/mesa) designed for complex simulations with thousands of agents. By storing agents in a Pandas dataframe, `mesa-frames` significantly enhances the performance and scalability of `mesa`, while mantaining a similar syntax.  `mesa-frames` allows for the use of [vectorized functions](https://vegibit.com/what-is-a-vectorized-operation-in-pandas/) whenever simultaneous activation of agents is possible.
 
 ## Why Pandas?
-[Pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. Pandas it's known both for its ease of use, allowing for declarative programming and performance. The following is a performance graph showing execution time using `mesa` and `mesa-frames` for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html). 
+[Pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. Pandas it's known both for its ease of use, allowing for declarative programming and performance. The following is a performance graph showing execution time using `mesa` and `mesa-frames` for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
+
 ![](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot.png)
+
 (The script used to generate the graph can be found [here](https://github.com/adamamer20/mesa_frames/blob/main/docs/scripts/readme_plot.py))
 
 ## Installation
@@ -45,6 +47,8 @@ pip install -e .
 
 ## Usage
 NOTE: `mesa-frames` is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
+
+You can find the API documentation [here](https://adamamer20.github.io/mesa-frames/api)
 
 ### Creation of the model
 
