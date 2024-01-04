@@ -5,6 +5,7 @@
 [Pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. Pandas it's known both for its ease of use, allowing for declarative programming and performance. The following is a performance graph showing execution time using `mesa` and `mesa-frames` for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
 
 ![](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot.png)
+
 (The script used to generate the graph can be found [here](https://github.com/adamamer20/mesa_frames/blob/main/docs/scripts/readme_plot.py))
 
 ## Installation
