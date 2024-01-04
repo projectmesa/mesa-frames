@@ -52,7 +52,7 @@ Creation of the model is fairly similar to the process in `mesa`.
 A new method [`create_agents`](https://github.com/adamamer20/mesa_frames/blob/main/mesa_frames/model.py#L131) is introduced which substitutes the addition of agents to the scheduler.
 The [`run_model`](https://github.com/adamamer20/mesa_frames/blob/main/mesa_frames/model.py#L71) method also accepts the number of steps which the model has run.
 
-```
+```python
 from mesa_frames.model import ModelDF
 from mesa_frames.agent import AgentDF
 
@@ -68,7 +68,7 @@ The agent implementation differs from base `mesa`. Agents are only defined at th
 The `dtypes` dictionary attribute defines the name and data types of the new columns that will be added to the MyModel.agents dataframe during the execution `create_agents`.
 All methods of an `AgentDF` should be class methods and every operation within class methods should operate on the `cls.model.agents` DataFrame, filtering by the class's mask initialized during the execution of `create_agents`. The step method is defined for the entire class.
 
-```
+```python
 from mesa_frames.agent import AgentDF
 
 class MyAgent(AgentDF):
