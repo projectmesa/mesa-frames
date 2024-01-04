@@ -47,6 +47,7 @@ pip install -e .
 
 ## Usage
 NOTE: `mesa-frames` is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
+
 You can find the API documentation [here](https://adamamer20.github.io/mesa-frames/api)
 
 ### Creation of the model
