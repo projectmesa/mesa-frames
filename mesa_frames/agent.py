@@ -1,6 +1,11 @@
 import pandas as pd
 from numpy.random import randint
-from mesa_frames.model import ModelDF
+from typing import TYPE_CHECKING, Optional
+import numpy as np
+
+if TYPE_CHECKING:
+    from mesa_frames.model import ModelDF
+    
 
 class AgentDF:
     """The AgentDF class is the base class for other agents.
@@ -31,10 +36,10 @@ class AgentDF:
     """
 
     dtypes: dict[str, str] = {
-        "id": "int64",
+        "unique_id": "int64",
         "type": "str",
     }
-    model: ModelDF | None = None
+    model: Optional['ModelDF'] = None
     mask: pd.Series | None = None
 
     @classmethod
@@ -46,7 +51,7 @@ class AgentDF:
             raise ValueError(
                 "The Agent classes have not been initialized. Please use the model.create_agents() method to initialize the mask."
             )
-        cls.model.agents.loc[cls.mask, "id"] = randint(
+        cls.model.agents.loc[cls.mask, "id"] = np.random.randint(
             low=-9223372036854775808,
             high=9223372036854775807,
             size=cls.mask.sum(),
