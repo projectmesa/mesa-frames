@@ -12,7 +12,7 @@ class AgentDF:
     """The AgentDF class is the base class for other agents.
     It should be used as inherited class for new agents classes.
 
-    Attributes:
+    Attributes
     ----------
     dtypes : dict[str, str]
         The attributes of the Agent as a dictionary of columns and data types. It contains:
@@ -62,7 +62,7 @@ class GeoAgentDF(AgentDF):
     """The GeoAgentDF extends the AgentDF class to include a geometry attribute.
     The agents will be stored in a GeoDataFrame.
 
-    Attributes:
+    Attributes
     ----------
     dtypes : dict[str, str]
         The attributes of the Agent as a dictionary of columns and data types. It contains:

@@ -10,6 +10,25 @@ from mesa_frames.agent import AgentDF
 
 
 class ModelDF:
+    """The base class for all models
+
+    Attributes
+    ----------
+    unique_id : int
+        The unique_id of the model.
+    running : bool
+        Indicates if the model is running or not.
+    agents : pd.DataFrame | gpd.GeoDataFrame | None
+        The dataframe containing the agents of the model.
+    agent_types : list[tuple[type[AgentDF], float]] | None
+        The list of agent types and their proportions.
+    p_agents : dict[type[AgentDF], float] | None
+        The dictionary of agents to create. The keys are the types of agents,
+        the values are the percentages of each agent type. The sum of the values should be 1.
+    space
+        The space where the agents will be placed. Can be None if model does not have a space.
+    """
+
     def __new__(cls, *args, **kwargs):
         """Create a new model object and instantiate its RNG automatically
         (adds supports to numpy with respect to base model)."""
@@ -33,22 +52,6 @@ class ModelDF:
         unique_id : int | None
             The unique_id of the model.
             If None, a random unique_id is assigned using a 64-bit random integer.
-        space
-            The space where the agents will be placed. Can be None if model does not have a space.
-
-        Attributes
-        ----------
-        unique_id : int
-            The unique_id of the model.
-        running : bool
-            Indicates if the model is running or not.
-        agents : pd.DataFrame | gpd.GeoDataFrame | None
-            The dataframe containing the agents of the model.
-        agent_types : list[tuple[type[AgentDF], float]] | None
-            The list of agent types and their proportions.
-        p_agents : dict[type[AgentDF], float] | None
-            The dictionary of agents to create. The keys are the types of agents,
-            the values are the percentages of each agent type. The sum of the values should be 1.
         space
             The space where the agents will be placed. Can be None if model does not have a space.
         """
@@ -116,7 +119,7 @@ class ModelDF:
 
         Parameters
         ----------
-        merged_mro: bool
+        merged_mro : bool
             If False, the model will execute one step for each class in p_agent. This is the default behaviour.
             If True, the model will execute one step for each inherited agent type in the order of a "merged" MRO.
             This may increase performance if there are multiple and complex inheritance as each agent_type (even if parents of different classes),
@@ -136,9 +139,10 @@ class ModelDF:
     def reset_randomizer(self, seed: int | None = None) -> None:
         """Reset the model random number generator.
 
-        Parameters:
+        Parameters
         ----------
-            seed: A new seed for the RNG; if None, reset using the current seed
+        seed : int | None
+            A new seed for the RNG; if None, reset using the current seed
         """
         if seed is None:
             seed = self._seed
@@ -264,29 +268,6 @@ class ModelDF:
 
         print("Created agents: " + "--- %s seconds ---" % (time() - start_time))
 
-    # TODO: implement different data collection frequencies (xw, xd, xh, weekly, daily, hourly, per every step):
-    """def initialize_data_collector(
-        self,
-        model_reporters=None,
-        agent_reporters=None,
-        tables=None,
-    ) -> None:
-        if not hasattr(self, "schedule") or self.schedule is None:
-            raise RuntimeError(
-                "You must initialize the scheduler (self.schedule) before initializing the data collector."
-            )
-        if self.schedule.get_agent_count() == 0:
-            raise RuntimeError(
-                "You must add agents to the scheduler before initializing the data collector."
-            )
-        self.datacollector = DataCollector(
-            model_reporters=model_reporters,
-            agent_reporters=agent_reporters,
-            tables=tables,
-        )
-        # Collect data for the first time during initialization.
-        self.datacollector.collect(self)"""
-
     def _initialize_data_collection(self, how="2d") -> None:
         """Initializes the data collection of the model.
 
@@ -309,3 +290,26 @@ class ModelDF:
             )
         for agent_type in self.agent_types:
             agent_type[0].mask = self.get_agents_of_type(agent_type[0])
+
+    # TODO: implement different data collection frequencies (xw, xd, xh, weekly, daily, hourly, per every step):
+    """def initialize_data_collector(
+        self,
+        model_reporters=None,
+        agent_reporters=None,
+        tables=None,
+    ) -> None:
+        if not hasattr(self, "schedule") or self.schedule is None:
+            raise RuntimeError(
+                "You must initialize the scheduler (self.schedule) before initializing the data collector."
+            )
+        if self.schedule.get_agent_count() == 0:
+            raise RuntimeError(
+                "You must add agents to the scheduler before initializing the data collector."
+            )
+        self.datacollector = DataCollector(
+            model_reporters=model_reporters,
+            agent_reporters=agent_reporters,
+            tables=tables,
+        )
+        # Collect data for the first time during initialization.
+        self.datacollector.collect(self)"""
