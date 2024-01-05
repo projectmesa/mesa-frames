@@ -64,7 +64,7 @@ class AgentDF:
         """The step method of the Agent class.
         It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.
         """
-        raise NotImplementedError
+        pass
 
 
 class GeoAgentDF(AgentDF):
@@ -84,4 +84,4 @@ class GeoAgentDF(AgentDF):
         """The step method of the GeoAgentDF class.
         It should act on the mask portion of the agents dataframe of the model.
         """
-        raise NotImplementedError
+        pass
