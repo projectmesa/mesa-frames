@@ -16,11 +16,13 @@
     <nav class="pdoc">
         <label id="navtoggle" for="togglestate" class="pdoc-button"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path stroke-linecap='round' stroke="currentColor" stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/></svg></label>
         <input id="togglestate" type="checkbox" aria-hidden="true" tabindex="-1">
-        <div>            <a class="pdoc-button module-list-button" href="../mesa_frames.html">
+        <div>            <a class="pdoc-button module-list-button" href="../index.html">
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-in-left" viewBox="0 0 16 16">
   <path fill-rule="evenodd" d="M10 3.5a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 9.5 14h-8A1.5 1.5 0 0 1 0 12.5v-9A1.5 1.5 0 0 1 1.5 2h8A1.5 1.5 0 0 1 11 3.5v2a.5.5 0 0 1-1 0v-2z"/>
   <path fill-rule="evenodd" d="M4.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H14.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"/>
-</svg>                &nbsp;mesa_frames</a>
+</svg>                &nbsp;
+                Module Index
+            </a>
 
 
             <input type="search" placeholder="Search..." role="searchbox" aria-label="search"
@@ -37,15 +39,6 @@
                                 <a class="function" href="#AgentDF.__init__">AgentDF</a>
                         </li>
                         <li>
-                                <a class="variable" href="#AgentDF.dtypes">dtypes</a>
-                        </li>
-                        <li>
-                                <a class="variable" href="#AgentDF.model">model</a>
-                        </li>
-                        <li>
-                                <a class="variable" href="#AgentDF.mask">mask</a>
-                        </li>
-                        <li>
                                 <a class="function" href="#AgentDF.step">step</a>
                         </li>
                 </ul>
@@ -54,9 +47,6 @@
             <li>
                     <a class="class" href="#GeoAgentDF">GeoAgentDF</a>
                             <ul class="memberlist">
-                        <li>
-                                <a class="variable" href="#GeoAgentDF.dtypes">dtypes</a>
-                        </li>
                         <li>
                                 <a class="function" href="#GeoAgentDF.step">step</a>
                         </li>
@@ -77,84 +67,84 @@
     <main class="pdoc">
             <section class="module-info">
                     <h1 class="modulename">
-<a href="./../mesa_frames.html">mesa_frames</a><wbr>.agent    </h1>
+mesa_frames<wbr>.agent    </h1>
 
                 
                         <input id="mod-agent-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 
                         <label class="view-source-button" for="mod-agent-view-source"><span>View Source</span></label>
 
-                        <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos"> 1</span></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-</span><span id="L-2"><a href="#L-2"><span class="linenos"> 2</span></a><span class="kn">from</span> <span class="nn">numpy.random</span> <span class="kn">import</span> <span class="n">randint</span>
-</span><span id="L-3"><a href="#L-3"><span class="linenos"> 3</span></a><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Optional</span>
-</span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a>
-</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>    <span class="kn">from</span> <span class="nn">mesa_frames.model</span> <span class="kn">import</span> <span class="n">ModelDF</span>
-</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a>    
+                        <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos"> 1</span></a><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Optional</span>
+</span><span id="L-2"><a href="#L-2"><span class="linenos"> 2</span></a>
+</span><span id="L-3"><a href="#L-3"><span class="linenos"> 3</span></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+</span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a><span class="kn">from</span> <span class="nn">numpy.random</span> <span class="kn">import</span> <span class="n">randint</span>
+</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a>
+</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a>    <span class="kn">from</span> <span class="nn">mesa_frames.model</span> <span class="kn">import</span> <span class="n">ModelDF</span>
 </span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a>
-</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a><span class="k">class</span> <span class="nc">AgentDF</span><span class="p">:</span>
-</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The AgentDF class is the base class for other agents.</span>
-</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a><span class="sd">    It should be used as inherited class for new agents classes.</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>
-</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a><span class="sd">    Attributes:</span>
-</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a><span class="sd">    ----------</span>
-</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a><span class="sd">    dtypes : dict[str, str]</span>
-</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a><span class="sd">        The data types of the attributes of the Agent. Default: {&#39;id&#39; : &#39;int64&#39;, &#39;type&#39; : &#39;str&#39;}</span>
-</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a><span class="sd">    model : Model</span>
-</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a><span class="sd">        The model of the simulation where the Agent is used. See src/model.py. Default: None</span>
-</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="sd">    mask : pd.Series</span>
-</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a><span class="sd">        The mask of the agents dataframe in the model which corresponds to the Agent class.</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a><span class="sd">        Initialized when model is created. Default: None</span>
-</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a>
-</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a><span class="sd">    Methods:</span>
-</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a><span class="sd">    --------</span>
-</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a><span class="sd">    Methods should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
-</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a>
-</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a><span class="sd">    __init__():</span>
-</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a><span class="sd">        Initializes the Agent class.</span>
-</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a><span class="sd">        Assigns a 64-bit random id to each agent in the model.</span>
-</span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a>
-</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a><span class="sd">    step():</span>
-</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a><span class="sd">        The step method of the Agent class.</span>
-</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a><span class="sd">        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
-</span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a>
-</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a>
-</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a>    <span class="n">dtypes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a>        <span class="s2">&quot;unique_id&quot;</span><span class="p">:</span> <span class="s2">&quot;int64&quot;</span><span class="p">,</span>
-</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">,</span>
-</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a>    <span class="p">}</span>
-</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a>    <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;ModelDF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a>
-</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a>    <span class="nd">@classmethod</span>
-</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-</span><span id="L-47"><a href="#L-47"><span class="linenos">47</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the Agent class.</span>
-</span><span id="L-48"><a href="#L-48"><span class="linenos">48</span></a><span class="sd">        Assigns a 64-bit random id to each agent in the model.</span>
-</span><span id="L-49"><a href="#L-49"><span class="linenos">49</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="L-50"><a href="#L-50"><span class="linenos">50</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-51"><a href="#L-51"><span class="linenos">51</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="L-52"><a href="#L-52"><span class="linenos">52</span></a>                <span class="s2">&quot;The Agent classes have not been initialized. Please use the model.create_agents() method to initialize the mask.&quot;</span>
-</span><span id="L-53"><a href="#L-53"><span class="linenos">53</span></a>            <span class="p">)</span>
-</span><span id="L-54"><a href="#L-54"><span class="linenos">54</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
-</span><span id="L-55"><a href="#L-55"><span class="linenos">55</span></a>            <span class="n">low</span><span class="o">=-</span><span class="mi">9223372036854775808</span><span class="p">,</span>
-</span><span id="L-56"><a href="#L-56"><span class="linenos">56</span></a>            <span class="n">high</span><span class="o">=</span><span class="mi">9223372036854775807</span><span class="p">,</span>
-</span><span id="L-57"><a href="#L-57"><span class="linenos">57</span></a>            <span class="n">size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
-</span><span id="L-58"><a href="#L-58"><span class="linenos">58</span></a>            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span>
-</span><span id="L-59"><a href="#L-59"><span class="linenos">59</span></a>        <span class="p">)</span>
+</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a>
+</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a><span class="k">class</span> <span class="nc">AgentDF</span><span class="p">:</span>
+</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The AgentDF class is the base class for other agents.</span>
+</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a><span class="sd">    It should be used as inherited class for new agents classes.</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a>
+</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a><span class="sd">    Attributes</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a><span class="sd">    ----------</span>
+</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a><span class="sd">    dtypes : dict[str, str]</span>
+</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a><span class="sd">        The attributes of the Agent as a dictionary of columns and data types. It contains:</span>
+</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a><span class="sd">        - id : int64</span>
+</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="sd">            -- The unique id of the Agent.</span>
+</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a><span class="sd">        - type : str</span>
+</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a><span class="sd">            -- The type of the Agent.</span>
+</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a><span class="sd">    model : Optional[&#39;ModelDF&#39;]</span>
+</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a><span class="sd">        The model of the simulation where the Agent is used. See src/model.py. Default: None</span>
+</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a><span class="sd">    mask : pd.Series | None</span>
+</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a><span class="sd">        The mask of the agents dataframe in the model which corresponds to the Agent class.</span>
+</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a><span class="sd">        Initialized when model is created. Default: None</span>
+</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a>
+</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a>    <span class="n">dtypes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a>        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;int64&quot;</span><span class="p">,</span>
+</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">,</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a>    <span class="p">}</span>
+</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a>    <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;ModelDF&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a>
+</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a>    <span class="nd">@classmethod</span>
+</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the Agent class.</span>
+</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a><span class="sd">        Assigns a 64-bit random id to each agent in the model.</span>
+</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a>                <span class="s2">&quot;The Agent classes have not been initialized. Please use the model.create_agents() method to initialize the mask.&quot;</span>
+</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a>            <span class="p">)</span>
+</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+</span><span id="L-47"><a href="#L-47"><span class="linenos">47</span></a>            <span class="n">low</span><span class="o">=-</span><span class="mi">9223372036854775808</span><span class="p">,</span>
+</span><span id="L-48"><a href="#L-48"><span class="linenos">48</span></a>            <span class="n">high</span><span class="o">=</span><span class="mi">9223372036854775807</span><span class="p">,</span>
+</span><span id="L-49"><a href="#L-49"><span class="linenos">49</span></a>            <span class="n">size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+</span><span id="L-50"><a href="#L-50"><span class="linenos">50</span></a>            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span>
+</span><span id="L-51"><a href="#L-51"><span class="linenos">51</span></a>        <span class="p">)</span>
+</span><span id="L-52"><a href="#L-52"><span class="linenos">52</span></a>
+</span><span id="L-53"><a href="#L-53"><span class="linenos">53</span></a>    <span class="nd">@classmethod</span>
+</span><span id="L-54"><a href="#L-54"><span class="linenos">54</span></a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+</span><span id="L-55"><a href="#L-55"><span class="linenos">55</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the Agent class.</span>
+</span><span id="L-56"><a href="#L-56"><span class="linenos">56</span></a><span class="sd">        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
+</span><span id="L-57"><a href="#L-57"><span class="linenos">57</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-58"><a href="#L-58"><span class="linenos">58</span></a>        <span class="k">pass</span>
+</span><span id="L-59"><a href="#L-59"><span class="linenos">59</span></a>
 </span><span id="L-60"><a href="#L-60"><span class="linenos">60</span></a>
-</span><span id="L-61"><a href="#L-61"><span class="linenos">61</span></a>    <span class="nd">@classmethod</span>
-</span><span id="L-62"><a href="#L-62"><span class="linenos">62</span></a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-</span><span id="L-63"><a href="#L-63"><span class="linenos">63</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the Agent class.</span>
-</span><span id="L-64"><a href="#L-64"><span class="linenos">64</span></a><span class="sd">        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
-</span><span id="L-65"><a href="#L-65"><span class="linenos">65</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="L-66"><a href="#L-66"><span class="linenos">66</span></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-</span><span id="L-67"><a href="#L-67"><span class="linenos">67</span></a>
-</span><span id="L-68"><a href="#L-68"><span class="linenos">68</span></a>
-</span><span id="L-69"><a href="#L-69"><span class="linenos">69</span></a><span class="k">class</span> <span class="nc">GeoAgentDF</span><span class="p">(</span><span class="n">AgentDF</span><span class="p">):</span>
-</span><span id="L-70"><a href="#L-70"><span class="linenos">70</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The GeoAgentDF extends the AgentDF class to include a geometry attribute.</span>
-</span><span id="L-71"><a href="#L-71"><span class="linenos">71</span></a><span class="sd">    The agents will be stored in a GeoDataFrame.&quot;&quot;&quot;</span>
+</span><span id="L-61"><a href="#L-61"><span class="linenos">61</span></a><span class="k">class</span> <span class="nc">GeoAgentDF</span><span class="p">(</span><span class="n">AgentDF</span><span class="p">):</span>
+</span><span id="L-62"><a href="#L-62"><span class="linenos">62</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The GeoAgentDF extends the AgentDF class to include a geometry attribute.</span>
+</span><span id="L-63"><a href="#L-63"><span class="linenos">63</span></a><span class="sd">    The agents will be stored in a GeoDataFrame.</span>
+</span><span id="L-64"><a href="#L-64"><span class="linenos">64</span></a>
+</span><span id="L-65"><a href="#L-65"><span class="linenos">65</span></a><span class="sd">    Attributes</span>
+</span><span id="L-66"><a href="#L-66"><span class="linenos">66</span></a><span class="sd">    ----------</span>
+</span><span id="L-67"><a href="#L-67"><span class="linenos">67</span></a><span class="sd">    dtypes : dict[str, str]</span>
+</span><span id="L-68"><a href="#L-68"><span class="linenos">68</span></a><span class="sd">        The attributes of the Agent as a dictionary of columns and data types. It contains:</span>
+</span><span id="L-69"><a href="#L-69"><span class="linenos">69</span></a><span class="sd">        - geometry : geometry</span>
+</span><span id="L-70"><a href="#L-70"><span class="linenos">70</span></a><span class="sd">            -- The geometry of the Agent.</span>
+</span><span id="L-71"><a href="#L-71"><span class="linenos">71</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="L-72"><a href="#L-72"><span class="linenos">72</span></a>
 </span><span id="L-73"><a href="#L-73"><span class="linenos">73</span></a>    <span class="n">dtypes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;geometry&quot;</span><span class="p">}</span>
 </span><span id="L-74"><a href="#L-74"><span class="linenos">74</span></a>
@@ -163,7 +153,7 @@
 </span><span id="L-77"><a href="#L-77"><span class="linenos">77</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the GeoAgentDF class.</span>
 </span><span id="L-78"><a href="#L-78"><span class="linenos">78</span></a><span class="sd">        It should act on the mask portion of the agents dataframe of the model.</span>
 </span><span id="L-79"><a href="#L-79"><span class="linenos">79</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="L-80"><a href="#L-80"><span class="linenos">80</span></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</span><span id="L-80"><a href="#L-80"><span class="linenos">80</span></a>        <span class="k">pass</span>
 </span></pre></div>
 
 
@@ -179,90 +169,77 @@
 
     </div>
     <a class="headerlink" href="#AgentDF"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="AgentDF-11"><a href="#AgentDF-11"><span class="linenos">11</span></a><span class="k">class</span> <span class="nc">AgentDF</span><span class="p">:</span>
-</span><span id="AgentDF-12"><a href="#AgentDF-12"><span class="linenos">12</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The AgentDF class is the base class for other agents.</span>
-</span><span id="AgentDF-13"><a href="#AgentDF-13"><span class="linenos">13</span></a><span class="sd">    It should be used as inherited class for new agents classes.</span>
-</span><span id="AgentDF-14"><a href="#AgentDF-14"><span class="linenos">14</span></a>
-</span><span id="AgentDF-15"><a href="#AgentDF-15"><span class="linenos">15</span></a><span class="sd">    Attributes:</span>
-</span><span id="AgentDF-16"><a href="#AgentDF-16"><span class="linenos">16</span></a><span class="sd">    ----------</span>
-</span><span id="AgentDF-17"><a href="#AgentDF-17"><span class="linenos">17</span></a><span class="sd">    dtypes : dict[str, str]</span>
-</span><span id="AgentDF-18"><a href="#AgentDF-18"><span class="linenos">18</span></a><span class="sd">        The data types of the attributes of the Agent. Default: {&#39;id&#39; : &#39;int64&#39;, &#39;type&#39; : &#39;str&#39;}</span>
-</span><span id="AgentDF-19"><a href="#AgentDF-19"><span class="linenos">19</span></a><span class="sd">    model : Model</span>
-</span><span id="AgentDF-20"><a href="#AgentDF-20"><span class="linenos">20</span></a><span class="sd">        The model of the simulation where the Agent is used. See src/model.py. Default: None</span>
-</span><span id="AgentDF-21"><a href="#AgentDF-21"><span class="linenos">21</span></a><span class="sd">    mask : pd.Series</span>
-</span><span id="AgentDF-22"><a href="#AgentDF-22"><span class="linenos">22</span></a><span class="sd">        The mask of the agents dataframe in the model which corresponds to the Agent class.</span>
-</span><span id="AgentDF-23"><a href="#AgentDF-23"><span class="linenos">23</span></a><span class="sd">        Initialized when model is created. Default: None</span>
-</span><span id="AgentDF-24"><a href="#AgentDF-24"><span class="linenos">24</span></a>
-</span><span id="AgentDF-25"><a href="#AgentDF-25"><span class="linenos">25</span></a><span class="sd">    Methods:</span>
-</span><span id="AgentDF-26"><a href="#AgentDF-26"><span class="linenos">26</span></a><span class="sd">    --------</span>
-</span><span id="AgentDF-27"><a href="#AgentDF-27"><span class="linenos">27</span></a><span class="sd">    Methods should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
-</span><span id="AgentDF-28"><a href="#AgentDF-28"><span class="linenos">28</span></a>
-</span><span id="AgentDF-29"><a href="#AgentDF-29"><span class="linenos">29</span></a><span class="sd">    __init__():</span>
-</span><span id="AgentDF-30"><a href="#AgentDF-30"><span class="linenos">30</span></a><span class="sd">        Initializes the Agent class.</span>
-</span><span id="AgentDF-31"><a href="#AgentDF-31"><span class="linenos">31</span></a><span class="sd">        Assigns a 64-bit random id to each agent in the model.</span>
-</span><span id="AgentDF-32"><a href="#AgentDF-32"><span class="linenos">32</span></a>
-</span><span id="AgentDF-33"><a href="#AgentDF-33"><span class="linenos">33</span></a><span class="sd">    step():</span>
-</span><span id="AgentDF-34"><a href="#AgentDF-34"><span class="linenos">34</span></a><span class="sd">        The step method of the Agent class.</span>
-</span><span id="AgentDF-35"><a href="#AgentDF-35"><span class="linenos">35</span></a><span class="sd">        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
-</span><span id="AgentDF-36"><a href="#AgentDF-36"><span class="linenos">36</span></a>
-</span><span id="AgentDF-37"><a href="#AgentDF-37"><span class="linenos">37</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="AgentDF-38"><a href="#AgentDF-38"><span class="linenos">38</span></a>
-</span><span id="AgentDF-39"><a href="#AgentDF-39"><span class="linenos">39</span></a>    <span class="n">dtypes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="AgentDF-40"><a href="#AgentDF-40"><span class="linenos">40</span></a>        <span class="s2">&quot;unique_id&quot;</span><span class="p">:</span> <span class="s2">&quot;int64&quot;</span><span class="p">,</span>
-</span><span id="AgentDF-41"><a href="#AgentDF-41"><span class="linenos">41</span></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">,</span>
-</span><span id="AgentDF-42"><a href="#AgentDF-42"><span class="linenos">42</span></a>    <span class="p">}</span>
-</span><span id="AgentDF-43"><a href="#AgentDF-43"><span class="linenos">43</span></a>    <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;ModelDF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="AgentDF-44"><a href="#AgentDF-44"><span class="linenos">44</span></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="AgentDF-45"><a href="#AgentDF-45"><span class="linenos">45</span></a>
-</span><span id="AgentDF-46"><a href="#AgentDF-46"><span class="linenos">46</span></a>    <span class="nd">@classmethod</span>
-</span><span id="AgentDF-47"><a href="#AgentDF-47"><span class="linenos">47</span></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-</span><span id="AgentDF-48"><a href="#AgentDF-48"><span class="linenos">48</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the Agent class.</span>
-</span><span id="AgentDF-49"><a href="#AgentDF-49"><span class="linenos">49</span></a><span class="sd">        Assigns a 64-bit random id to each agent in the model.</span>
-</span><span id="AgentDF-50"><a href="#AgentDF-50"><span class="linenos">50</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="AgentDF-51"><a href="#AgentDF-51"><span class="linenos">51</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="AgentDF-52"><a href="#AgentDF-52"><span class="linenos">52</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="AgentDF-53"><a href="#AgentDF-53"><span class="linenos">53</span></a>                <span class="s2">&quot;The Agent classes have not been initialized. Please use the model.create_agents() method to initialize the mask.&quot;</span>
-</span><span id="AgentDF-54"><a href="#AgentDF-54"><span class="linenos">54</span></a>            <span class="p">)</span>
-</span><span id="AgentDF-55"><a href="#AgentDF-55"><span class="linenos">55</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
-</span><span id="AgentDF-56"><a href="#AgentDF-56"><span class="linenos">56</span></a>            <span class="n">low</span><span class="o">=-</span><span class="mi">9223372036854775808</span><span class="p">,</span>
-</span><span id="AgentDF-57"><a href="#AgentDF-57"><span class="linenos">57</span></a>            <span class="n">high</span><span class="o">=</span><span class="mi">9223372036854775807</span><span class="p">,</span>
-</span><span id="AgentDF-58"><a href="#AgentDF-58"><span class="linenos">58</span></a>            <span class="n">size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
-</span><span id="AgentDF-59"><a href="#AgentDF-59"><span class="linenos">59</span></a>            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span>
-</span><span id="AgentDF-60"><a href="#AgentDF-60"><span class="linenos">60</span></a>        <span class="p">)</span>
-</span><span id="AgentDF-61"><a href="#AgentDF-61"><span class="linenos">61</span></a>
-</span><span id="AgentDF-62"><a href="#AgentDF-62"><span class="linenos">62</span></a>    <span class="nd">@classmethod</span>
-</span><span id="AgentDF-63"><a href="#AgentDF-63"><span class="linenos">63</span></a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-</span><span id="AgentDF-64"><a href="#AgentDF-64"><span class="linenos">64</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the Agent class.</span>
-</span><span id="AgentDF-65"><a href="#AgentDF-65"><span class="linenos">65</span></a><span class="sd">        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
-</span><span id="AgentDF-66"><a href="#AgentDF-66"><span class="linenos">66</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="AgentDF-67"><a href="#AgentDF-67"><span class="linenos">67</span></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="AgentDF-12"><a href="#AgentDF-12"><span class="linenos">12</span></a><span class="k">class</span> <span class="nc">AgentDF</span><span class="p">:</span>
+</span><span id="AgentDF-13"><a href="#AgentDF-13"><span class="linenos">13</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The AgentDF class is the base class for other agents.</span>
+</span><span id="AgentDF-14"><a href="#AgentDF-14"><span class="linenos">14</span></a><span class="sd">    It should be used as inherited class for new agents classes.</span>
+</span><span id="AgentDF-15"><a href="#AgentDF-15"><span class="linenos">15</span></a>
+</span><span id="AgentDF-16"><a href="#AgentDF-16"><span class="linenos">16</span></a><span class="sd">    Attributes</span>
+</span><span id="AgentDF-17"><a href="#AgentDF-17"><span class="linenos">17</span></a><span class="sd">    ----------</span>
+</span><span id="AgentDF-18"><a href="#AgentDF-18"><span class="linenos">18</span></a><span class="sd">    dtypes : dict[str, str]</span>
+</span><span id="AgentDF-19"><a href="#AgentDF-19"><span class="linenos">19</span></a><span class="sd">        The attributes of the Agent as a dictionary of columns and data types. It contains:</span>
+</span><span id="AgentDF-20"><a href="#AgentDF-20"><span class="linenos">20</span></a><span class="sd">        - id : int64</span>
+</span><span id="AgentDF-21"><a href="#AgentDF-21"><span class="linenos">21</span></a><span class="sd">            -- The unique id of the Agent.</span>
+</span><span id="AgentDF-22"><a href="#AgentDF-22"><span class="linenos">22</span></a><span class="sd">        - type : str</span>
+</span><span id="AgentDF-23"><a href="#AgentDF-23"><span class="linenos">23</span></a><span class="sd">            -- The type of the Agent.</span>
+</span><span id="AgentDF-24"><a href="#AgentDF-24"><span class="linenos">24</span></a><span class="sd">    model : Optional[&#39;ModelDF&#39;]</span>
+</span><span id="AgentDF-25"><a href="#AgentDF-25"><span class="linenos">25</span></a><span class="sd">        The model of the simulation where the Agent is used. See src/model.py. Default: None</span>
+</span><span id="AgentDF-26"><a href="#AgentDF-26"><span class="linenos">26</span></a><span class="sd">    mask : pd.Series | None</span>
+</span><span id="AgentDF-27"><a href="#AgentDF-27"><span class="linenos">27</span></a><span class="sd">        The mask of the agents dataframe in the model which corresponds to the Agent class.</span>
+</span><span id="AgentDF-28"><a href="#AgentDF-28"><span class="linenos">28</span></a><span class="sd">        Initialized when model is created. Default: None</span>
+</span><span id="AgentDF-29"><a href="#AgentDF-29"><span class="linenos">29</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="AgentDF-30"><a href="#AgentDF-30"><span class="linenos">30</span></a>
+</span><span id="AgentDF-31"><a href="#AgentDF-31"><span class="linenos">31</span></a>    <span class="n">dtypes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="AgentDF-32"><a href="#AgentDF-32"><span class="linenos">32</span></a>        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;int64&quot;</span><span class="p">,</span>
+</span><span id="AgentDF-33"><a href="#AgentDF-33"><span class="linenos">33</span></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">,</span>
+</span><span id="AgentDF-34"><a href="#AgentDF-34"><span class="linenos">34</span></a>    <span class="p">}</span>
+</span><span id="AgentDF-35"><a href="#AgentDF-35"><span class="linenos">35</span></a>    <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;ModelDF&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="AgentDF-36"><a href="#AgentDF-36"><span class="linenos">36</span></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="AgentDF-37"><a href="#AgentDF-37"><span class="linenos">37</span></a>
+</span><span id="AgentDF-38"><a href="#AgentDF-38"><span class="linenos">38</span></a>    <span class="nd">@classmethod</span>
+</span><span id="AgentDF-39"><a href="#AgentDF-39"><span class="linenos">39</span></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+</span><span id="AgentDF-40"><a href="#AgentDF-40"><span class="linenos">40</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the Agent class.</span>
+</span><span id="AgentDF-41"><a href="#AgentDF-41"><span class="linenos">41</span></a><span class="sd">        Assigns a 64-bit random id to each agent in the model.</span>
+</span><span id="AgentDF-42"><a href="#AgentDF-42"><span class="linenos">42</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="AgentDF-43"><a href="#AgentDF-43"><span class="linenos">43</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="AgentDF-44"><a href="#AgentDF-44"><span class="linenos">44</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="AgentDF-45"><a href="#AgentDF-45"><span class="linenos">45</span></a>                <span class="s2">&quot;The Agent classes have not been initialized. Please use the model.create_agents() method to initialize the mask.&quot;</span>
+</span><span id="AgentDF-46"><a href="#AgentDF-46"><span class="linenos">46</span></a>            <span class="p">)</span>
+</span><span id="AgentDF-47"><a href="#AgentDF-47"><span class="linenos">47</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+</span><span id="AgentDF-48"><a href="#AgentDF-48"><span class="linenos">48</span></a>            <span class="n">low</span><span class="o">=-</span><span class="mi">9223372036854775808</span><span class="p">,</span>
+</span><span id="AgentDF-49"><a href="#AgentDF-49"><span class="linenos">49</span></a>            <span class="n">high</span><span class="o">=</span><span class="mi">9223372036854775807</span><span class="p">,</span>
+</span><span id="AgentDF-50"><a href="#AgentDF-50"><span class="linenos">50</span></a>            <span class="n">size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+</span><span id="AgentDF-51"><a href="#AgentDF-51"><span class="linenos">51</span></a>            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span>
+</span><span id="AgentDF-52"><a href="#AgentDF-52"><span class="linenos">52</span></a>        <span class="p">)</span>
+</span><span id="AgentDF-53"><a href="#AgentDF-53"><span class="linenos">53</span></a>
+</span><span id="AgentDF-54"><a href="#AgentDF-54"><span class="linenos">54</span></a>    <span class="nd">@classmethod</span>
+</span><span id="AgentDF-55"><a href="#AgentDF-55"><span class="linenos">55</span></a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+</span><span id="AgentDF-56"><a href="#AgentDF-56"><span class="linenos">56</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the Agent class.</span>
+</span><span id="AgentDF-57"><a href="#AgentDF-57"><span class="linenos">57</span></a><span class="sd">        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
+</span><span id="AgentDF-58"><a href="#AgentDF-58"><span class="linenos">58</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="AgentDF-59"><a href="#AgentDF-59"><span class="linenos">59</span></a>        <span class="k">pass</span>
 </span></pre></div>
 
 
             <div class="docstring"><p>The AgentDF class is the base class for other agents.
 It should be used as inherited class for new agents classes.</p>
 
-<h2 id="attributes">Attributes:</h2>
+<h6 id="attributes">Attributes</h6>
 
-<p>dtypes : dict[str, str]
-    The data types of the attributes of the Agent. Default: {'id' : 'int64', 'type' : 'str'}
-model : Model
-    The model of the simulation where the Agent is used. See src/model.py. Default: None
-mask : pd.Series
-    The mask of the agents dataframe in the model which corresponds to the Agent class.
-    Initialized when model is created. Default: None</p>
-
-<h2 id="methods">Methods:</h2>
-
-<p>Methods should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</p>
-
-<p>__init__():
-    Initializes the Agent class.
-    Assigns a 64-bit random id to each agent in the model.</p>
-
-<p>step():
-    The step method of the Agent class.
-    It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</p>
+<ul>
+<li><strong>dtypes</strong> (dict[str, str]):
+The attributes of the Agent as a dictionary of columns and data types. It contains:
+<ul>
+<li>id : int64
+-- The unique id of the Agent.</li>
+<li>type : str
+-- The type of the Agent.</li>
+</ul></li>
+<li><strong>model</strong> (Optional['ModelDF']):
+The model of the simulation where the Agent is used. See src/model.py. Default: None</li>
+<li><strong>mask</strong> (pd.Series | None):
+The mask of the agents dataframe in the model which corresponds to the Agent class.
+Initialized when model is created. Default: None</li>
+</ul>
 </div>
 
 
@@ -277,21 +254,21 @@ mask : pd.Series
 
     </div>
     <a class="headerlink" href="#AgentDF.__init__"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="AgentDF.__init__-46"><a href="#AgentDF.__init__-46"><span class="linenos">46</span></a>    <span class="nd">@classmethod</span>
-</span><span id="AgentDF.__init__-47"><a href="#AgentDF.__init__-47"><span class="linenos">47</span></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-</span><span id="AgentDF.__init__-48"><a href="#AgentDF.__init__-48"><span class="linenos">48</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the Agent class.</span>
-</span><span id="AgentDF.__init__-49"><a href="#AgentDF.__init__-49"><span class="linenos">49</span></a><span class="sd">        Assigns a 64-bit random id to each agent in the model.</span>
-</span><span id="AgentDF.__init__-50"><a href="#AgentDF.__init__-50"><span class="linenos">50</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="AgentDF.__init__-51"><a href="#AgentDF.__init__-51"><span class="linenos">51</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="AgentDF.__init__-52"><a href="#AgentDF.__init__-52"><span class="linenos">52</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="AgentDF.__init__-53"><a href="#AgentDF.__init__-53"><span class="linenos">53</span></a>                <span class="s2">&quot;The Agent classes have not been initialized. Please use the model.create_agents() method to initialize the mask.&quot;</span>
-</span><span id="AgentDF.__init__-54"><a href="#AgentDF.__init__-54"><span class="linenos">54</span></a>            <span class="p">)</span>
-</span><span id="AgentDF.__init__-55"><a href="#AgentDF.__init__-55"><span class="linenos">55</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
-</span><span id="AgentDF.__init__-56"><a href="#AgentDF.__init__-56"><span class="linenos">56</span></a>            <span class="n">low</span><span class="o">=-</span><span class="mi">9223372036854775808</span><span class="p">,</span>
-</span><span id="AgentDF.__init__-57"><a href="#AgentDF.__init__-57"><span class="linenos">57</span></a>            <span class="n">high</span><span class="o">=</span><span class="mi">9223372036854775807</span><span class="p">,</span>
-</span><span id="AgentDF.__init__-58"><a href="#AgentDF.__init__-58"><span class="linenos">58</span></a>            <span class="n">size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
-</span><span id="AgentDF.__init__-59"><a href="#AgentDF.__init__-59"><span class="linenos">59</span></a>            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span>
-</span><span id="AgentDF.__init__-60"><a href="#AgentDF.__init__-60"><span class="linenos">60</span></a>        <span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="AgentDF.__init__-38"><a href="#AgentDF.__init__-38"><span class="linenos">38</span></a>    <span class="nd">@classmethod</span>
+</span><span id="AgentDF.__init__-39"><a href="#AgentDF.__init__-39"><span class="linenos">39</span></a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+</span><span id="AgentDF.__init__-40"><a href="#AgentDF.__init__-40"><span class="linenos">40</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the Agent class.</span>
+</span><span id="AgentDF.__init__-41"><a href="#AgentDF.__init__-41"><span class="linenos">41</span></a><span class="sd">        Assigns a 64-bit random id to each agent in the model.</span>
+</span><span id="AgentDF.__init__-42"><a href="#AgentDF.__init__-42"><span class="linenos">42</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="AgentDF.__init__-43"><a href="#AgentDF.__init__-43"><span class="linenos">43</span></a>        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="AgentDF.__init__-44"><a href="#AgentDF.__init__-44"><span class="linenos">44</span></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="AgentDF.__init__-45"><a href="#AgentDF.__init__-45"><span class="linenos">45</span></a>                <span class="s2">&quot;The Agent classes have not been initialized. Please use the model.create_agents() method to initialize the mask.&quot;</span>
+</span><span id="AgentDF.__init__-46"><a href="#AgentDF.__init__-46"><span class="linenos">46</span></a>            <span class="p">)</span>
+</span><span id="AgentDF.__init__-47"><a href="#AgentDF.__init__-47"><span class="linenos">47</span></a>        <span class="bp">cls</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">agents</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+</span><span id="AgentDF.__init__-48"><a href="#AgentDF.__init__-48"><span class="linenos">48</span></a>            <span class="n">low</span><span class="o">=-</span><span class="mi">9223372036854775808</span><span class="p">,</span>
+</span><span id="AgentDF.__init__-49"><a href="#AgentDF.__init__-49"><span class="linenos">49</span></a>            <span class="n">high</span><span class="o">=</span><span class="mi">9223372036854775807</span><span class="p">,</span>
+</span><span id="AgentDF.__init__-50"><a href="#AgentDF.__init__-50"><span class="linenos">50</span></a>            <span class="n">size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span>
+</span><span id="AgentDF.__init__-51"><a href="#AgentDF.__init__-51"><span class="linenos">51</span></a>            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span>
+</span><span id="AgentDF.__init__-52"><a href="#AgentDF.__init__-52"><span class="linenos">52</span></a>        <span class="p">)</span>
 </span></pre></div>
 
 
@@ -299,42 +276,6 @@ mask : pd.Series
 Assigns a 64-bit random id to each agent in the model.</p>
 </div>
 
-
-                            </div>
-                            <div id="AgentDF.dtypes" class="classattr">
-                                <div class="attr variable">
-            <span class="name">dtypes</span><span class="annotation">: dict[str, str]</span>        =
-<span class="default_value">{&#39;unique_id&#39;: &#39;int64&#39;, &#39;type&#39;: &#39;str&#39;}</span>
-
-        
-    </div>
-    <a class="headerlink" href="#AgentDF.dtypes"></a>
-    
-    
-
-                            </div>
-                            <div id="AgentDF.model" class="classattr">
-                                <div class="attr variable">
-            <span class="name">model</span><span class="annotation">: Optional[<a href="model.html#ModelDF">mesa_frames.model.ModelDF</a>]</span>        =
-<span class="default_value">None</span>
-
-        
-    </div>
-    <a class="headerlink" href="#AgentDF.model"></a>
-    
-    
-
-                            </div>
-                            <div id="AgentDF.mask" class="classattr">
-                                <div class="attr variable">
-            <span class="name">mask</span><span class="annotation">: pandas.core.series.Series | None</span>        =
-<span class="default_value">None</span>
-
-        
-    </div>
-    <a class="headerlink" href="#AgentDF.mask"></a>
-    
-    
 
                             </div>
                             <div id="AgentDF.step" class="classattr">
@@ -349,12 +290,12 @@ Assigns a 64-bit random id to each agent in the model.</p>
 
     </div>
     <a class="headerlink" href="#AgentDF.step"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="AgentDF.step-62"><a href="#AgentDF.step-62"><span class="linenos">62</span></a>    <span class="nd">@classmethod</span>
-</span><span id="AgentDF.step-63"><a href="#AgentDF.step-63"><span class="linenos">63</span></a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-</span><span id="AgentDF.step-64"><a href="#AgentDF.step-64"><span class="linenos">64</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the Agent class.</span>
-</span><span id="AgentDF.step-65"><a href="#AgentDF.step-65"><span class="linenos">65</span></a><span class="sd">        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
-</span><span id="AgentDF.step-66"><a href="#AgentDF.step-66"><span class="linenos">66</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="AgentDF.step-67"><a href="#AgentDF.step-67"><span class="linenos">67</span></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="AgentDF.step-54"><a href="#AgentDF.step-54"><span class="linenos">54</span></a>    <span class="nd">@classmethod</span>
+</span><span id="AgentDF.step-55"><a href="#AgentDF.step-55"><span class="linenos">55</span></a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+</span><span id="AgentDF.step-56"><a href="#AgentDF.step-56"><span class="linenos">56</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the Agent class.</span>
+</span><span id="AgentDF.step-57"><a href="#AgentDF.step-57"><span class="linenos">57</span></a><span class="sd">        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.</span>
+</span><span id="AgentDF.step-58"><a href="#AgentDF.step-58"><span class="linenos">58</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="AgentDF.step-59"><a href="#AgentDF.step-59"><span class="linenos">59</span></a>        <span class="k">pass</span>
 </span></pre></div>
 
 
@@ -376,9 +317,17 @@ It should be decorated as @classmethod and should act on the mask portion of the
 
     </div>
     <a class="headerlink" href="#GeoAgentDF"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="GeoAgentDF-70"><a href="#GeoAgentDF-70"><span class="linenos">70</span></a><span class="k">class</span> <span class="nc">GeoAgentDF</span><span class="p">(</span><span class="n">AgentDF</span><span class="p">):</span>
-</span><span id="GeoAgentDF-71"><a href="#GeoAgentDF-71"><span class="linenos">71</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The GeoAgentDF extends the AgentDF class to include a geometry attribute.</span>
-</span><span id="GeoAgentDF-72"><a href="#GeoAgentDF-72"><span class="linenos">72</span></a><span class="sd">    The agents will be stored in a GeoDataFrame.&quot;&quot;&quot;</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="GeoAgentDF-62"><a href="#GeoAgentDF-62"><span class="linenos">62</span></a><span class="k">class</span> <span class="nc">GeoAgentDF</span><span class="p">(</span><span class="n">AgentDF</span><span class="p">):</span>
+</span><span id="GeoAgentDF-63"><a href="#GeoAgentDF-63"><span class="linenos">63</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The GeoAgentDF extends the AgentDF class to include a geometry attribute.</span>
+</span><span id="GeoAgentDF-64"><a href="#GeoAgentDF-64"><span class="linenos">64</span></a><span class="sd">    The agents will be stored in a GeoDataFrame.</span>
+</span><span id="GeoAgentDF-65"><a href="#GeoAgentDF-65"><span class="linenos">65</span></a>
+</span><span id="GeoAgentDF-66"><a href="#GeoAgentDF-66"><span class="linenos">66</span></a><span class="sd">    Attributes</span>
+</span><span id="GeoAgentDF-67"><a href="#GeoAgentDF-67"><span class="linenos">67</span></a><span class="sd">    ----------</span>
+</span><span id="GeoAgentDF-68"><a href="#GeoAgentDF-68"><span class="linenos">68</span></a><span class="sd">    dtypes : dict[str, str]</span>
+</span><span id="GeoAgentDF-69"><a href="#GeoAgentDF-69"><span class="linenos">69</span></a><span class="sd">        The attributes of the Agent as a dictionary of columns and data types. It contains:</span>
+</span><span id="GeoAgentDF-70"><a href="#GeoAgentDF-70"><span class="linenos">70</span></a><span class="sd">        - geometry : geometry</span>
+</span><span id="GeoAgentDF-71"><a href="#GeoAgentDF-71"><span class="linenos">71</span></a><span class="sd">            -- The geometry of the Agent.</span>
+</span><span id="GeoAgentDF-72"><a href="#GeoAgentDF-72"><span class="linenos">72</span></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="GeoAgentDF-73"><a href="#GeoAgentDF-73"><span class="linenos">73</span></a>
 </span><span id="GeoAgentDF-74"><a href="#GeoAgentDF-74"><span class="linenos">74</span></a>    <span class="n">dtypes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="s2">&quot;geometry&quot;</span><span class="p">}</span>
 </span><span id="GeoAgentDF-75"><a href="#GeoAgentDF-75"><span class="linenos">75</span></a>
@@ -387,27 +336,26 @@ It should be decorated as @classmethod and should act on the mask portion of the
 </span><span id="GeoAgentDF-78"><a href="#GeoAgentDF-78"><span class="linenos">78</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the GeoAgentDF class.</span>
 </span><span id="GeoAgentDF-79"><a href="#GeoAgentDF-79"><span class="linenos">79</span></a><span class="sd">        It should act on the mask portion of the agents dataframe of the model.</span>
 </span><span id="GeoAgentDF-80"><a href="#GeoAgentDF-80"><span class="linenos">80</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="GeoAgentDF-81"><a href="#GeoAgentDF-81"><span class="linenos">81</span></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</span><span id="GeoAgentDF-81"><a href="#GeoAgentDF-81"><span class="linenos">81</span></a>        <span class="k">pass</span>
 </span></pre></div>
 
 
             <div class="docstring"><p>The GeoAgentDF extends the AgentDF class to include a geometry attribute.
 The agents will be stored in a GeoDataFrame.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>dtypes</strong> (dict[str, str]):
+The attributes of the Agent as a dictionary of columns and data types. It contains:
+<ul>
+<li>geometry : geometry
+-- The geometry of the Agent.</li>
+</ul></li>
+</ul>
 </div>
 
 
-                            <div id="GeoAgentDF.dtypes" class="classattr">
-                                <div class="attr variable">
-            <span class="name">dtypes</span><span class="annotation">: dict[str, str]</span>        =
-<span class="default_value">{&#39;geometry&#39;: &#39;geometry&#39;}</span>
-
-        
-    </div>
-    <a class="headerlink" href="#GeoAgentDF.dtypes"></a>
-    
-    
-
-                            </div>
                             <div id="GeoAgentDF.step" class="classattr">
                                         <input id="GeoAgentDF.step-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
@@ -425,7 +373,7 @@ The agents will be stored in a GeoDataFrame.</p>
 </span><span id="GeoAgentDF.step-78"><a href="#GeoAgentDF.step-78"><span class="linenos">78</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The step method of the GeoAgentDF class.</span>
 </span><span id="GeoAgentDF.step-79"><a href="#GeoAgentDF.step-79"><span class="linenos">79</span></a><span class="sd">        It should act on the mask portion of the agents dataframe of the model.</span>
 </span><span id="GeoAgentDF.step-80"><a href="#GeoAgentDF.step-80"><span class="linenos">80</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="GeoAgentDF.step-81"><a href="#GeoAgentDF.step-81"><span class="linenos">81</span></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</span><span id="GeoAgentDF.step-81"><a href="#GeoAgentDF.step-81"><span class="linenos">81</span></a>        <span class="k">pass</span>
 </span></pre></div>
 
 
@@ -440,8 +388,6 @@ It should act on the mask portion of the agents dataframe of the model.</p>
                                 <dl>
                                     <div><dt><a href="#AgentDF">AgentDF</a></dt>
                                 <dd id="GeoAgentDF.__init__" class="function"><a href="#AgentDF.__init__">AgentDF</a></dd>
-                <dd id="GeoAgentDF.model" class="variable"><a href="#AgentDF.model">model</a></dd>
-                <dd id="GeoAgentDF.mask" class="variable"><a href="#AgentDF.mask">mask</a></dd>
 
             </div>
                                 </dl>
