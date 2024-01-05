@@ -34,6 +34,22 @@ class ModelDF:
             If None, a random unique_id is assigned using a 64-bit random integer.
         space
             The space where the agents will be placed. Can be None if model does not have a space.
+        
+        Attributes
+        ----------
+        unique_id : int
+            The unique_id of the model.
+        running : bool
+            Indicates if the model is running or not.
+        agents : pd.DataFrame | gpd.GeoDataFrame | None
+            The dataframe containing the agents of the model.
+        agent_types : list[tuple[type[AgentDF], float]] | None
+            The list of agent types and their proportions.
+        p_agents : dict[type[AgentDF], float] | None
+            The dictionary of agents to create. The keys are the types of agents,
+            the values are the percentages of each agent type. The sum of the values should be 1.
+        space 
+            The space where the agents will be placed. Can be None if model does not have a space.
         """
         # Initialize default attributes
         self.running: bool = True

@@ -1,11 +1,12 @@
+from typing import TYPE_CHECKING, Optional
+
+import numpy as np
 import pandas as pd
 from numpy.random import randint
-from typing import TYPE_CHECKING, Optional
-import numpy as np
 
 if TYPE_CHECKING:
     from mesa_frames.model import ModelDF
-    
+
 
 class AgentDF:
     """The AgentDF class is the base class for other agents.
@@ -15,9 +16,9 @@ class AgentDF:
     ----------
     dtypes : dict[str, str]
         The data types of the attributes of the Agent. Default: {'id' : 'int64', 'type' : 'str'}
-    model : Model
+    model : Optional['ModelDF']
         The model of the simulation where the Agent is used. See src/model.py. Default: None
-    mask : pd.Series
+    mask : pd.Series | None
         The mask of the agents dataframe in the model which corresponds to the Agent class.
         Initialized when model is created. Default: None
 
@@ -39,7 +40,7 @@ class AgentDF:
         "unique_id": "int64",
         "type": "str",
     }
-    model: Optional['ModelDF'] = None
+    model: Optional["ModelDF"] = None
     mask: pd.Series | None = None
 
     @classmethod
@@ -68,7 +69,13 @@ class AgentDF:
 
 class GeoAgentDF(AgentDF):
     """The GeoAgentDF extends the AgentDF class to include a geometry attribute.
-    The agents will be stored in a GeoDataFrame."""
+    The agents will be stored in a GeoDataFrame.
+
+    Attributes:
+    ----------
+    dtypes : dict[str, str]
+        The data types of the attributes of the Agent. Default: {'geometry' : 'geometry'}
+    """
 
     dtypes: dict[str, str] = {"geometry": "geometry"}
 
