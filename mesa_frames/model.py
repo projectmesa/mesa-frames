@@ -8,6 +8,7 @@ import pandas as pd
 
 from mesa_frames.agent import AgentDF
 
+
 class ModelDF:
     def __new__(cls, *args, **kwargs):
         """Create a new model object and instantiate its RNG automatically
@@ -34,7 +35,7 @@ class ModelDF:
             If None, a random unique_id is assigned using a 64-bit random integer.
         space
             The space where the agents will be placed. Can be None if model does not have a space.
-        
+
         Attributes
         ----------
         unique_id : int
@@ -48,7 +49,7 @@ class ModelDF:
         p_agents : dict[type[AgentDF], float] | None
             The dictionary of agents to create. The keys are the types of agents,
             the values are the percentages of each agent type. The sum of the values should be 1.
-        space 
+        space
             The space where the agents will be placed. Can be None if model does not have a space.
         """
         # Initialize default attributes
@@ -207,7 +208,7 @@ class ModelDF:
             # If there wasn't any good head, there is an inconsistent hierarchy
             if not candunique_idate_added:
                 raise ValueError("Inconsistent hierarchy")
-        self.agent_types = list(reversed(agent_types))
+        self.agent_types = list(agent_types)
 
         # Create a single DF using vars and values for every class
         columns: set[str] = set()
@@ -258,7 +259,7 @@ class ModelDF:
         self.agents = self.agents.astype(dtypes)
 
         # Set agents' unique_id as index (Have to reassign masks because index changed)
-        self.agents.set_index("unique_id", inplace=True)
+        self.agents.set_index("id", inplace=True)
         self.update_agents_masks()
 
         print("Created agents: " + "--- %s seconds ---" % (time() - start_time))

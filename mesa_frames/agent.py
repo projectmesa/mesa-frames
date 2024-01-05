@@ -15,29 +15,20 @@ class AgentDF:
     Attributes:
     ----------
     dtypes : dict[str, str]
-        The data types of the attributes of the Agent. Default: {'id' : 'int64', 'type' : 'str'}
+        The attributes of the Agent as a dictionary of columns and data types. It contains:
+        - id : int64
+            -- The unique id of the Agent.
+        - type : str
+            -- The type of the Agent.
     model : Optional['ModelDF']
         The model of the simulation where the Agent is used. See src/model.py. Default: None
     mask : pd.Series | None
         The mask of the agents dataframe in the model which corresponds to the Agent class.
         Initialized when model is created. Default: None
-
-    Methods:
-    --------
-    Methods should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.
-
-    __init__():
-        Initializes the Agent class.
-        Assigns a 64-bit random id to each agent in the model.
-
-    step():
-        The step method of the Agent class.
-        It should be decorated as @classmethod and should act on the mask portion of the agents dataframe of the model.
-
     """
 
     dtypes: dict[str, str] = {
-        "unique_id": "int64",
+        "id": "int64",
         "type": "str",
     }
     model: Optional["ModelDF"] = None
@@ -74,7 +65,9 @@ class GeoAgentDF(AgentDF):
     Attributes:
     ----------
     dtypes : dict[str, str]
-        The data types of the attributes of the Agent. Default: {'geometry' : 'geometry'}
+        The attributes of the Agent as a dictionary of columns and data types. It contains:
+        - geometry : geometry
+            -- The geometry of the Agent.
     """
 
     dtypes: dict[str, str] = {"geometry": "geometry"}
