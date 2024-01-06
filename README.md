@@ -88,8 +88,7 @@ class MyAgent(AgentDF):
     def step(cls):
         wealthy_agents = cls.model.agents.loc[cls.mask, "wealth"] > 0
         if wealthy_agents.any():
-            #The next line finds the mask of a random sample of agents which ù
-            is of the same length as wealthy agents
+            #The next line finds the mask of a random sample of agents which is of the same length as wealthy agents
             other_agents = cls.model.agents.index.isin(
                 cls.model.agents.sample(n=wealthy_agents.sum()).index
             )
