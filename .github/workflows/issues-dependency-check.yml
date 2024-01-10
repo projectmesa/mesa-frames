@@ -1,0 +1,57 @@
+name: Issues Dependency Check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check for unresolved dependencies
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Updated regex to match multiple issue numbers
+          const issueRegex = /depends on #(\d+(?:\s+#\d+)*)/ig;
+
+          async function run() {
+              const token = core.getInput('github-token', { required: true });
+              const octokit = github.getOctokit(token);
+              const { context } = github;
+
+              // Get the PR description
+              const { data: pullRequest } = await octokit.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+              });
+
+              const description = pullRequest.body;
+              let match;
+              let blockingIssues = [];
+
+              // Find issues mentioned in the description
+              while ((match = issueRegex.exec(description)) !== null) {
+                  const issues = match[1].split(/\s+#/);
+                  for (const issueNumber of issues) {
+                      const { data: issue } = await octokit.rest.issues.get({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: parseInt(issueNumber),
+                      });
+
+                      if (issue.state === 'open') {
+                          blockingIssues.push(issueNumber);
+                      }
+                  }
+              }
+
+              if (blockingIssues.length > 0) {
+                  core.setFailed(`Cannot merge PR because these issues are not resolved: #${blockingIssues.join(', #')}`);
+              }
+          }
+
+          run().catch(error => core.setFailed(error.message));
+
+          
