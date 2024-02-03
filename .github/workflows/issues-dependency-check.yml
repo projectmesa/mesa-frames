@@ -13,31 +13,19 @@ jobs:
       with:
         script: |
           // Updated regex to match multiple issue numbers
-          const issueRegex = /depends on #(\d+(?:\s+#\d+)*)/ig;
+          const issueRegex = /depends on #(\\d+(?:\\s+#\\d+)*)/ig;
 
           async function run() {
-              const token = core.getInput('github-token', { required: true });
-              const octokit = github.getOctokit(token);
-              const { context } = github;
-
-              // Get the PR description
-              const { data: pullRequest } = await octokit.rest.pulls.get({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: context.issue.number,
-              });
-
-              const description = pullRequest.body;
               let match;
               let blockingIssues = [];
 
               // Find issues mentioned in the description
-              while ((match = issueRegex.exec(description)) !== null) {
-                  const issues = match[1].split(/\s+#/);
+              while ((match = issueRegex.exec(context.payload.body)) !== null) {
+                  const issues = match[1].split(/\\s+#/);
                   for (const issueNumber of issues) {
-                      const { data: issue } = await octokit.rest.issues.get({
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
+                      const { data: issue } = await github.rest.issues.get({
+                          owner: adamamer20,
+                          repo: mesa_frames,
                           issue_number: parseInt(issueNumber),
                       });
 
@@ -53,5 +41,3 @@ jobs:
           }
 
           run().catch(error => core.setFailed(error.message));
-
-          
