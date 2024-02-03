@@ -1,3 +1,2 @@
-from .agent import AgentSetPandas, AgentDF
-from .datacollection import DataCollectorDF
+from .agent import AgentsDF, AgentSetDF
 from .model import ModelDF

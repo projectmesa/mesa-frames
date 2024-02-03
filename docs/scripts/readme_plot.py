@@ -1,9 +1,13 @@
+from hmac import new
+from random import seed
+from typing import TYPE_CHECKING
+
 import mesa
 import numpy as np
+import pandas as pd
 import perfplot
 
-from mesa_frames.agent import AgentDF
-from mesa_frames.model import ModelDF
+from mesa_frames import AgentSetDF, ModelDF
 
 
 # Mesa implementation
@@ -57,6 +61,14 @@ class MoneyModel(mesa.Model):
             self.step()
 
 
+"""def compute_gini(model):
+    agent_wealths = model.agents.get("wealth")
+    x = sorted(agent_wealths)
+    N = model.num_agents
+    B = sum(xi * (N - i) for i, xi in enumerate(x)) / (N * sum(x))
+    return 1 + (1 / N) - 2 * B"""
+
+
 # Mesa Frames implementation
 def mesa_frames_implementation(n_agents: int) -> None:
     model = MoneyModelDF(n_agents)
@@ -67,45 +79,48 @@ class MoneyModelDF(ModelDF):
     def __init__(self, N):
         super().__init__()
         self.num_agents = N
-        self.create_agents(N, {MoneyAgentDF: 1})
+        self.agents = self.agents.add(MoneyAgentsDF(N, model=self))
 
-    def step(self, merged_mro=True):
-        self.agents = self.agents.sample(frac=1)
-        self.update_agents_masks()
-        super().step(merged_mro)
+    def step(self):
+        self.agents = self.agents.do("step")
+
+    def run_model(self, n):
+        for _ in range(n):
+            self.step()
 
 
-class MoneyAgentDF(AgentDF):
-    dtypes: dict[str, str] = {"wealth": "int64"}
+class MoneyAgentsDF(AgentSetDF):
+    def __init__(self, n: int, model: MoneyModelDF):
+        super().__init__(model=model)
+        self.add(n, data={"wealth": np.ones(n)})
 
-    @classmethod
-    def __init__(cls):
-        super().__init__()
-        cls.model.agents.loc[cls.mask, "wealth"] = 1
+    def step(self):
+        wealthy_agents = self.agents["wealth"] > 0
+        self.select(wealthy_agents).do("give_money")
 
-    @classmethod
-    def step(cls):
-        wealthy_agents = cls.model.agents.loc[cls.mask, "wealth"] > 0
-        if wealthy_agents.any():
-            other_agents = cls.model.agents.index.isin(
-                cls.model.agents.sample(n=wealthy_agents.sum()).index
-            )
-            cls.model.agents.loc[wealthy_agents, "wealth"] -= 1
-            cls.model.agents.loc[other_agents, "wealth"] += 1
+    def give_money(self):
+        other_agents = self.agents.sample(len(self.active_agents), replace=True)
+        new_wealth = (
+            other_agents.index.value_counts()
+            .reindex(self.active_agents.index)
+            .fillna(-1)
+        )
+        self.set_attribute("wealth", self.get_attribute("wealth") + new_wealth)
 
 
 def main():
+    mesa_frames_implementation(100)
     out = perfplot.bench(
         setup=lambda n: n,
         kernels=[mesa_implementation, mesa_frames_implementation],
         labels=["mesa", "mesa-frames"],
-        n_range=[k for k in range(10, 10000, 100)],
+        n_range=[k for k in range(100, 1000, 100)],
         xlabel="Number of agents",
         equality_check=None,
         title="100 steps of the Boltzmann Wealth model",
     )
     out.show()
-    out.save("docs/images/readme_plot.png")
+    # out.save("docs/images/readme_plot.png")
 
 
 if __name__ == "__main__":

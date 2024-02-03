@@ -1,13 +1,82 @@
-from copy import deepcopy
-from time import time
-from warnings import warn
+from typing import TYPE_CHECKING, Any
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 
-from mesa_frames.agent import AgentDF
+from .agent import AgentsDF, AgentSetDF
 
+
+class ModelDF:
+    random: np.random.Generator
+    _seed: int
+    running: bool
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> Any:
+        """Create a new model object and instantiate its RNG automatically."""
+        obj = object.__new__(cls)
+        if "seed" in kwargs:
+            obj._seed = kwargs["seed"]
+        else:
+            obj._seed = np.random.SeedSequence().entropy  # type: ignore
+        obj.random = np.random.default_rng(seed=obj._seed)
+        return obj
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Create a new model. Overload this method with the actual code to
+        start the model. Always start with super().__init__() to initialize the
+        model object properly.
+        """
+        self.running: bool = True
+        # self._agents: AgentsDF = AgentsDF([])
+        self.agents: AgentsDF = AgentsDF(self)
+
+    def get_agents_of_type(self, agent_type: type) -> AgentSetDF:
+        """Retrieve the AgentSetDF of a specified type.
+
+        Parameters
+        ----------
+        agent_type : type
+            The type of AgentSetDF to retrieve.
+
+        Returns
+        -------
+        AgentSetDF
+            The AgentSetDF of the specified type.
+        """
+        return self.agents.get_agents_of_type(agent_type)
+
+    def next_id(self) -> int:
+        raise NotImplementedError("next_id() method not implemented for ModelDF")
+
+    def reset_randomizer(self, seed: int | None = None) -> None:
+        """Reset the model random number generator.
+
+        Parameters:
+        ----------
+        seed : int | None
+            A new seed for the RNG; if None, reset using the current seed
+        """
+
+        self._seed = np.random.SeedSequence(seed=seed).entropy  # type: ignore
+
+    """'def initialize_data_collector(
+        self, model_reporters=None, agent_reporters=None, tables=None
+    ) -> None:
+        if not self._agents:
+            raise RuntimeError(
+                "You must create agents before initializing the data collector."
+            )
+        self.datacollector = DataCollectorDF(
+            model_reporters=model_reporters,
+            agent_reporters=agent_reporters,
+            tables=tables,
+        )
+        self.datacollector.collect(self)"""
+
+
+'''
+OLD IMPLEMENTATION (HAS TO BE DELETED)
 
 class ModelDF:
     """The base class for all models
@@ -39,7 +108,7 @@ class ModelDF:
             # advance.
             obj._seed = np.random.SeedSequence().entropy
         # Use default_rng to get a new Generator instance
-        obj.random = np.random.default_rng(obj._seed)
+        obj.random = np.random.default_rng(seed = obj._seed)
         return obj
 
     def __init__(self, unique_id: int | None = None, space=None):
@@ -312,4 +381,4 @@ class ModelDF:
             tables=tables,
         )
         # Collect data for the first time during initialization.
-        self.datacollector.collect(self)"""
+        self.datacollector.collect(self)'''
