@@ -31,6 +31,8 @@ if TYPE_CHECKING:
 
 
 class AgentsDF:
+    agentsets: list[AgentSetDF]
+    model: ModelDF
     """A collection of AgentSetDFs. All agents of the model are stored here."""
 
     def __init__(self, model: ModelDF):
@@ -48,8 +50,8 @@ class AgentsDF:
         model : ModelDF
             The model to which the AgentSetDF belongs.
         """
-        self.agentsets: list[AgentSetDF] = []
-        self.model: ModelDF = model
+        self.agentsets = []
+        self.model = model
 
     @property
     def active_agents(self) -> pd.DataFrame:
@@ -348,6 +350,9 @@ class AgentsDF:
 
 
 class AgentSetDF:
+    model: ModelDF
+    agents: pd.DataFrame
+    _mask: pd.Series[bool]
     """A DataFrame-based implementation of the AgentSet."""
 
     def __init__(self, model: ModelDF):
@@ -365,9 +370,9 @@ class AgentSetDF:
         model : ModelDF
             The model to which the AgentSetDF belongs.
         """
-        self.agents: pd.DataFrame = pd.DataFrame()
-        self.model: ModelDF = model
-        self._mask: pd.Series[bool] = pd.Series(True, index=self.agents.index)
+        self.agents = pd.DataFrame()
+        self.model = model
+        self._mask = pd.Series(True, index=self.agents.index)
 
     @property
     def active_agents(self) -> pd.DataFrame:
