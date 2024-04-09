@@ -1,8 +1,7 @@
-from typing import TYPE_CHECKING, Any
+from logging import warn
+from typing import Any
 
-import geopandas as gpd
 import numpy as np
-import pandas as pd
 
 from .agent import AgentsDF, AgentSetDF
 
@@ -11,14 +10,14 @@ class ModelDF:
     random: np.random.Generator
     _seed: int
     running: bool
+    _agents: AgentsDF | None
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> Any:
+    def __new__(cls, seed: int = 0, *args: Any, **kwargs: Any) -> Any:
         """Create a new model object and instantiate its RNG automatically."""
         obj = object.__new__(cls)
-        if "seed" in kwargs:
-            obj._seed = kwargs["seed"]
-        else:
-            obj._seed = np.random.SeedSequence().entropy  # type: ignore
+        if seed == 0:
+            seed = np.random.SeedSequence().entropy  # type: ignore
+        obj._seed = seed
         obj.random = np.random.default_rng(seed=obj._seed)
         return obj
 
@@ -28,8 +27,22 @@ class ModelDF:
         model object properly.
         """
         self.running: bool = True
-        # self._agents: AgentsDF = AgentsDF([])
-        self.agents: AgentsDF = AgentsDF(self)
+        self._agents: AgentsDF | None = None
+
+    @property
+    def agents(self) -> AgentsDF | None:
+        return self._agents
+
+    @agents.setter
+    def agents(self, agents: AgentsDF) -> None:
+        if not isinstance(agents, AgentsDF):
+            raise TypeError("agents must be an instance of AgentsDF")
+        if type(agents) != type(self._agents):
+            warn(
+                f"Changing the backend from {type(self._agents)} to {type(agents)}",
+                RuntimeWarning,
+            )
+        self._agents = agents
 
     def get_agents_of_type(self, agent_type: type) -> AgentSetDF:
         """Retrieve the AgentSetDF of a specified type.
