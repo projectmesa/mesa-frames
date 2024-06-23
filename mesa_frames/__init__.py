@@ -1,2 +1,4 @@
-from mesa_frames.agent import AgentSetPandas, AgentSetPolars, AgentsPandas, AgentsPolars
-from mesa_frames.model import ModelDF
+from mesa_frames.concrete.agents import AgentsDF
+from mesa_frames.concrete.agentset_pandas import AgentSetPandas
+from mesa_frames.concrete.agentset_polars import AgentSetPolars
+from mesa_frames.concrete.model import ModelDF
