@@ -1,36 +1,52 @@
 # mesa-frames
- `mesa-frames` is an extension of the [`mesa`](https://github.com/projectmesa/mesa) designed for complex simulations with thousands of agents. By storing agents in a Pandas dataframe, `mesa-frames` significantly enhances the performance and scalability of `mesa`, while mantaining a similar syntax.  `mesa-frames` allows for the use of [vectorized functions](https://vegibit.com/what-is-a-vectorized-operation-in-pandas/) whenever simultaneous activation of agents is possible.
 
-## Why Pandas?
-[Pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. Pandas it's known both for its ease of use, allowing for declarative programming and performance. The following is a performance graph showing execution time using `mesa` and `mesa-frames` for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
+mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax. mesa-frames allows for the use of [vectorized functions](https://vegibit.com/what-is-a-vectorized-operation-in-pandas/) whenever simultaneous activation of agents is possible.
 
-![](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot.png)
+## Why DataFrames?
+
+DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). At the moment, mesa-frames supports the use of two main libraries: Pandas and Polars.
+
+- [Pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. Pandas is known for its ease of use, allowing for declarative programming and high performance.
+- [Polars](https://pola.rs/) is a new DataFrame library with a syntax similar to Pandas but with several innovations, including a backend implemented in Rust, the Apache Arrow memory format, query optimization, and support for larger-than-memory DataFrames.
+
+The following is a performance graph showing execution time using mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
+
+![Performance Graph](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot.png)
 
 (The script used to generate the graph can be found [here](https://github.com/adamamer20/mesa_frames/blob/main/docs/scripts/readme_plot.py))
 
 ## Installation
 
 ### Cloning the Repository
-To get started with `mesa-frames`, first clone the repository from GitHub:
+
+To get started with mesa-frames, first clone the repository from GitHub:
+
 ```bash
 git clone https://github.com/adamamer20/mesa_frames.git
-cd mesa_frame
+cd mesa_frames
 ```
-- ### Installing in a conda environment
+
+### Installing in a Conda Environment
+
 If you want to install it into a new environment:
+
 ```bash
 conda create -n myenv -f requirements.txt
 pip install -e .
 ```
+
 If you want to install it into an existing environment:
+
 ```bash
 conda activate myenv
 conda install -f requirements.txt
 pip install -e .
 ```
 
-- ### Installing in a Python virtual environment
-If you want to install into a new environment:
+### Installing in a Python Virtual Environment
+
+If you want to install it into a new environment:
+
 ```bash
 python3 -m venv myenv
 source myenv/bin/activate  # On Windows, use `myenv\Scripts\activate`
@@ -38,7 +54,8 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-If you want to install into an existing environment:
+If you want to install it into an existing environment:
+
 ```bash
 source myenv/bin/activate  # On Windows, use `myenv\Scripts\activate`
 pip install -r requirements.txt
@@ -46,65 +63,82 @@ pip install -e .
 ```
 
 ## Usage
-NOTE: `mesa-frames` is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
 
-You can find the API documentation [here](https://adamamer20.github.io/mesa-frames/api)
+**Note:** mesa-frames is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
 
-### Creation of the model
+You can find the API documentation [here](https://adamamer20.github.io/mesa-frames/api).
 
-Creation of the model is fairly similar to the process in `mesa`. 
-A new method [`create_agents`](https://github.com/adamamer20/mesa_frames/blob/main/mesa_frames/model.py#L131) is introduced which substitutes the addition of agents to the scheduler.
-The [`run_model`](https://github.com/adamamer20/mesa_frames/blob/main/mesa_frames/model.py#L71) method also accepts the number of steps which the model has run.
+### Creation of an Agent
 
-```python
-from mesa_frames.model import ModelDF
-from mesa_frames.agent import AgentDF
-
-class MyModel(ModelDF):
-    def __init__(self, N):
-        super().__init__()
-        self.num_agents = N
-        self.create_agents(N, {MyAgent: 1})
-```
-
-### Creation of an agent
-The agent implementation differs from base `mesa`. Agents are only defined at the class level.
-The `dtypes` dictionary attribute defines the name and data types of the new columns that will be added to the MyModel.agents dataframe during the execution `create_agents`.
-All methods of an `AgentDF` should be class methods and every operation within class methods should operate on the `cls.model.agents` DataFrame, filtering by the class's mask initialized during the execution of `create_agents`. The step method is defined for the entire class.
+The agent implementation differs from base mesa. Agents are only defined at the AgentSet level. You can import either `AgentSetPandas` or `AgentSetPolars`. As in mesa, you subclass and make sure to call `super().__init__(model)`. You can use the `add` method or the `+=` operator to add agents to the AgentSet. Most methods mirror the functionality of `mesa.AgentSet`. Additionally, `mesa-frames.AgentSet` implements many dunder methods such as `AgentSet[mask, attr]` to get and set items intuitively. All operations are by default inplace, but if you'd like to use functional programming, mesa-frames implements a fast copy method which aims to reduce memory usage, relying on reference-only and native copy methods.
 
 ```python
-from mesa_frames.agent import AgentDF
+from mesa-frames import AgentSetPolars
 
-class MyAgent(AgentDF):
-    dtypes: dict[str, str] = {"wealth": "int64"}
+class MoneyAgentPolars(AgentSetPolars):
+    def __init__(self, n: int, model: ModelDF):
+        super().__init__(model)
+        # Adding the agents to the agent set
+        self += pl.DataFrame(
+            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
+        )
 
-    @classmethod
-    def __init__(cls):
-        super().__init__()
-        #The next line sets the wealth attribute of all agents that are type MyAgent to 1
-        cls.model.agents.loc[cls.mask, "wealth"] = 1
+    def step(self) -> None:
+        # The give_money method is called
+        self.do("give_money")
 
-    @classmethod
-    def step(cls):
-        wealthy_agents = cls.model.agents.loc[cls.mask, "wealth"] > 0
-        if wealthy_agents.any():
-            #The next line finds the mask of a random sample of agents which is of the same length as wealthy agents
-            other_agents = cls.model.agents.index.isin(
-                cls.model.agents.sample(n=wealthy_agents.sum()).index
-            )
-            cls.model.agents.loc[wealthy_agents, "wealth"] -= 1
-            cls.model.agents.loc[other_agents, "wealth"] += 1
+    def give_money(self):
+        # Active agents are changed to wealthy agents
+        self.select(self.wealth > 0)
 
+        # Receiving agents are sampled (only native expressions currently supported)
+        other_agents = self.agents.sample(
+            n=len(self.active_agents), with_replacement=True
+        )
+
+        # Wealth of wealthy is decreased by 1
+        self["active", "wealth"] -= 1
+
+        # Compute the income of the other agents (only native expressions currently supported)
+        new_wealth = other_agents.group_by("unique_id").len()
+
+        # Add the income to the other agents
+        self[new_wealth, "wealth"] += new_wealth["len"]
 ```
+
+### Creation of the Model
+
+Creation of the model is fairly similar to the process in mesa. You subclass `ModelDF` and call `super().__init__()`. The `model.agents` attribute has the same interface as `mesa-frames.AgentSet`. You can use `+=` or `self.agents.add` with a `mesa-frames.AgentSet` (or a list of `AgentSet`) to add agents to the model.
+
+```python
+from mesa-frames import ModelDF
+
+class MoneyModelDF(ModelDF):
+    def __init__(self, N: int, agents_cls):
+        super().__init__()
+        self.n_agents = N
+        self.agents += MoneyAgentPolars(N, self)
+
+    def step(self):
+        # Executes the step method for every agentset in self.agents
+        self.agents.do("step")
+
+    def run_model(self, n):
+        for _ in range(n):
+            self.step()
+```
+
 ## What's Next?
-- Refine the API to make it more understandable for someone who is already familiar with the `mesa` package. The goal is to provide a seamless experience for users transitioning to or incorporating `mesa-frames`.
-- Adding support for default `mesa` functions, ensure that the standard mesa functionality is preserved.
-- Adding support for or shifting to `polars` instead of pandas. This change aims to boost performance and decrease memory consumption, which is crucial for models with milions of agents.
+
+- Refine the API to make it more understandable for someone who is already familiar with the mesa package. The goal is to provide a seamless experience for users transitioning to or incorporating mesa-frames.
+- Adding support for default mesa functions to ensure that the standard mesa functionality is preserved.
+- Adding GPU functionality (cuDF and Rapids).
 - Creating a decorator that will automatically vectorize an existing mesa model. This feature will allow users to easily tap into the performance enhancements that mesa-frames offers without significant code alterations.
+- Creating a unique class for AgentSet, independent of the backend implementation.
 
 ## License
 
-`mesa-frames` is made available under the MIT License. This license allows you to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, subject to the following conditions:
+mesa-frames is made available under the MIT License. This license allows you to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, subject to the following conditions:
 
 - The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 - The software is provided "as is", without warranty of any kind.
