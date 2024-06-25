@@ -1,7 +1,12 @@
+from operator import ne
 from typing import Any, Callable, Iterable, Iterator, Literal, Self, Sequence, overload
 
+import polars as pl
+
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF, Collection, Hashable
-from mesa_frames.types import BoolSeries, DataFrame, MaskLike, Series
+from mesa_frames.concrete.agentset_pandas import AgentSetPandas
+from mesa_frames.concrete.agentset_polars import AgentSetPolars
+from mesa_frames.types import BoolSeries, DataFrame, IdsLike, MaskLike, Series
 
 
 class AgentsDF(AgentContainer):
@@ -10,6 +15,7 @@ class AgentsDF(AgentContainer):
         "_agentsets": ("copy", []),
     }
     _backend: str
+    _ids: pl.Series
     """A collection of AgentSetDFs. All agents of the model are stored here.
 
     Attributes
@@ -38,19 +44,19 @@ class AgentsDF(AgentContainer):
     -------
     __init__(self) -> None
         Initialize a new AgentsDF.
-    add(self, other: AgentSetDF | list[AgentSetDF], inplace: bool = True) -> Self
+    add(self, other: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True) -> Self
         Add agents to the AgentsDF.
-    contains(self, ids: Hashable | Collection[Hashable]) -> bool | dict[str, pd.Series]
+    contains(self, ids: IdsLike) -> bool | pl.Series
         Check if agents with the specified IDs are in the AgentsDF.
     copy(self, deep: bool = False, memo: dict | None = None) -> Self
         Create a copy of the AgentsDF.
-    discard(self, ids: MaskLike, inplace: bool = True) -> Self
+    discard(self, ids: IdsLike, inplace: bool = True) -> Self
         Remove an agent from the AgentsDF. Does not raise an error if the agent is not found.
     do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
         Invoke a method on the AgentsDF.
-    get(self, attr_names: str | Collection[str] | None = None, mask: MaskLike = None) -> dict[str, pd.Series] | dict[str, pd.DataFrame]
+    get(self, attr_names: str | Collection[str] | None = None, mask: MaskLike = None) -> dict[str, Series] | dict[str, DataFrame]
         Retrieve the value of a specified attribute for each agent in the AgentsDF.
-    remove(self, ids: MaskLike, inplace: bool = True) -> Self
+    remove(self, ids: IdsLike, inplace: bool = True) -> Self
         Remove agents from the AgentsDF.
     select(self, mask: MaskLike = None, filter_func: Callable[[Self], MaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentsDF based on the given criteria.
@@ -60,8 +66,14 @@ class AgentsDF(AgentContainer):
         Shuffle the order of agents in the AgentsDF.
     sort(self, by: str | Sequence[str], ascending: bool | Sequence[bool] = True, inplace: bool = True, **kwargs) -> Self
         Sort the agents in the AgentsDF based on the given criteria.
+    _check_ids(self, other: AgentSetDF | Iterable[AgentSetDF]) -> None
+        Check if the IDs of the agents to be added are unique.
+    __add__(self, other: AgentSetDF | Iterable[AgentSetDF]) -> Self
+        Add AgentSetDFs to a new AgentsDF through the + operator.
     __getattr__(self, key: str) -> Any
         Retrieve an attribute of the underlying agent sets.
+    __iadd__(self, other: AgentSetDF | Iterable[AgentSetDF]) -> Self
+        Add AgentSetDFs to the AgentsDF through the += operator.
     __iter__(self) -> Iterator
         Get an iterator for the agents in the AgentsDF.
     __len__(self) -> int
@@ -76,8 +88,11 @@ class AgentsDF(AgentContainer):
 
     def __init__(self) -> None:
         self._agentsets = []
+        self._ids = pl.Series(name="unique_id", dtype=pl.Int64)
 
-    def add(self, other: AgentSetDF | list[AgentSetDF], inplace: bool = True) -> Self:
+    def add(
+        self, other: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True
+    ) -> Self:
         """Add an AgentSetDF to the AgentsDF.
 
         Parameters
@@ -93,23 +108,24 @@ class AgentsDF(AgentContainer):
             The updated AgentsDF.
         """
         obj = self._get_obj(inplace)
-        if isinstance(other, list):
+        self._check_ids(other)
+        if isinstance(other, Iterable):
             obj._agentsets += other
         else:
             obj._agentsets.append(other)
         return self
 
     @overload
-    def contains(self, ids: Collection[Hashable]) -> BoolSeries: ...
+    def contains(self, ids: int) -> bool: ...
 
     @overload
-    def contains(self, ids: Hashable) -> bool: ...
+    def contains(self, ids: IdsLike) -> pl.Series: ...
 
-    def contains(self, ids: Hashable | Collection[Hashable]) -> bool | BoolSeries:
-        bool_series = self._agentsets[0].contains(ids)
-        for agentset in self._agentsets[1:]:
-            bool_series = bool_series | agentset.contains(ids)
-        return bool_series
+    def contains(self, ids: IdsLike) -> bool | pl.Series:
+        if isinstance(ids, int):
+            return ids in self._ids
+        else:
+            return pl.Series(ids).is_in(self._ids)
 
     @overload
     def do(
@@ -174,7 +190,7 @@ class AgentsDF(AgentContainer):
             for agentset in self._agentsets
         }
 
-    def remove(self, ids: MaskLike, inplace: bool = True) -> Self:
+    def remove(self, ids: IdsLike, inplace: bool = True) -> Self:
         obj = self._get_obj(inplace)
         deleted = 0
         for agentset in obj._agentsets:
@@ -204,7 +220,7 @@ class AgentsDF(AgentContainer):
     def select(
         self,
         mask: MaskLike | None = None,
-        filter_func: Callable[[DataFrame], MaskLike] | None = None,
+        filter_func: Callable[[AgentSetDF], MaskLike] | None = None,
         n: int | None = None,
         inplace: bool = True,
         negate: bool = False,
@@ -237,12 +253,35 @@ class AgentsDF(AgentContainer):
         ]
         return obj
 
-    def __add__(self, other: AgentSetDF | list[AgentSetDF]) -> Self:
+    def _check_ids(self, other: AgentSetDF | Iterable[AgentSetDF]) -> None:
+        """Check if the IDs of the agents to be added are unique.
+
+        Parameters
+        ----------
+        other : AgentSetDF | Iterable[AgentSetDF]
+            The AgentSetDFs to check.
+
+        Raises
+        ------
+        ValueError
+            If the agent set contains IDs already present in agents.
+        """
+        for agentset in other if isinstance(other, Iterable) else [other]:
+            if isinstance(agentset, AgentSetPandas):
+                new_ids = pl.Series(agentset._agents.index)
+            elif isinstance(agentset, AgentSetPolars):
+                new_ids = agentset._agents["unique_id"]
+            if new_ids.is_in(self._ids).any():
+                raise ValueError(
+                    "The agent set contains IDs already present in agents."
+                )
+
+    def __add__(self, other: AgentSetDF | Iterable[AgentSetDF]) -> Self:
         """Add AgentSetDFs to a new AgentsDF through the + operator.
 
         Parameters
         ----------
-        other : AgentSetDF | list[AgentSetDF]
+        other : AgentSetDF | Iterable[AgentSetDF]
             The AgentSetDFs to add.
 
         Returns
@@ -258,12 +297,12 @@ class AgentsDF(AgentContainer):
             for agentset in self._agentsets
         }
 
-    def __iadd__(self, other: AgentSetDF | list[AgentSetDF]) -> Self:
+    def __iadd__(self, other: AgentSetDF | Iterable[AgentSetDF]) -> Self:
         """Add AgentSetDFs to the AgentsDF through the += operator.
 
         Parameters
         ----------
-        other : Self | AgentSetDF | list[AgentSetDF]
+        other : Self | AgentSetDF | Iterable[AgentSetDF]
             The AgentSetDFs to add.
 
         Returns

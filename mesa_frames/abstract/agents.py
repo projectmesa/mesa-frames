@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations  # PEP 563: postponed evaluation of type annotations
 
 from abc import ABC, abstractmethod
@@ -20,7 +18,7 @@ from typing import (
 
 from numpy.random import Generator
 
-from mesa_frames.types import BoolSeries, DataFrame, MaskLike, Series
+from mesa_frames.types import BoolSeries, DataFrame, IdsLike, MaskLike, Series
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
@@ -42,17 +40,17 @@ class AgentContainer(ABC):
     -------
     copy(deep: bool = False, memo: dict | None = None) -> Self
         Create a copy of the AgentContainer.
-    discard(ids: MaskLike, inplace: bool = True) -> Self
+    discard(ids: IdsLike, inplace: bool = True) -> Self
         Removes an agent from the AgentContainer. Does not raise an error if the agent is not found.
     add(other: Any, inplace: bool = True) -> Self
         Add agents to the AgentContainer.
-    contains(ids: Hashable | Collection[Hashable]) -> bool | BoolSeries
+    contains(ids: IdsLike) -> bool | BoolSeries
         Check if agents with the specified IDs are in the AgentContainer.
     do(method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any | dict[str, Any]
         Invoke a method on the AgentContainer.
     get(attr_names: str | Collection[str] | None = None, mask: MaskLike | None = None) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]
         Retrieve the value of a specified attribute for each agent in the AgentContainer.
-    remove(ids: MaskLike, inplace: bool = True) -> Self
+    remove(ids: IdsLike, inplace: bool = True) -> Self
         Removes an agent from the AgentContainer.
     select(mask: MaskLike | None = None, filter_func: Callable[[Self], MaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentContainer based on the given criteria.
@@ -144,7 +142,7 @@ class AgentContainer(ABC):
 
         return obj
 
-    def discard(self, ids: MaskLike, inplace: bool = True) -> Self:
+    def discard(self, ids: IdsLike, inplace: bool = True) -> Self:
         """Removes an agent from the AgentContainer. Does not raise an error if the agent is not found.
 
         Parameters
@@ -182,19 +180,19 @@ class AgentContainer(ABC):
 
     @overload
     @abstractmethod
-    def contains(self, ids: Collection[Hashable]) -> BoolSeries: ...
+    def contains(self, ids: int) -> bool: ...
 
     @overload
     @abstractmethod
-    def contains(self, ids: Hashable) -> bool: ...
+    def contains(self, ids: IdsLike) -> BoolSeries: ...
 
     @abstractmethod
-    def contains(self, ids: Hashable | Collection[Hashable]) -> bool | BoolSeries:
+    def contains(self, ids: IdsLike) -> bool | BoolSeries:
         """Check if agents with the specified IDs are in the AgentContainer.
 
         Parameters
         ----------
-        ids : Hashable | Collection[Any]
+        ids : IdsLike
             The ID(s) to check for.
 
         Returns
@@ -283,7 +281,7 @@ class AgentContainer(ABC):
         ...
 
     @abstractmethod
-    def remove(self, ids: MaskLike, inplace: bool = True) -> Self:
+    def remove(self, ids: IdsLike, inplace: bool = True) -> Self:
         """Removes an agent from the AgentContainer.
 
         Parameters
@@ -446,7 +444,7 @@ class AgentContainer(ABC):
     def __add__(self, other) -> Self:
         return self.add(other=other, inplace=False)
 
-    def __contains__(self, id: Hashable) -> bool:
+    def __contains__(self, id: int) -> bool:
         """Check if an agent is in the AgentContainer.
 
         Parameters
@@ -459,13 +457,9 @@ class AgentContainer(ABC):
         bool
             True if the agent is in the AgentContainer, False otherwise.
         """
-        bool_series = self.contains(ids=id)
-        if isinstance(bool_series, bool):
-            return bool_series
-        elif len(bool_series) == 1:
-            return bool_series[0].value
-        else:
-            raise ValueError("The in operator can only be used with a single ID.")
+        if not isinstance(id, int):
+            raise TypeError("id must be an integer")
+        return self.contains(ids=id)
 
     def __copy__(self) -> Self:
         """Create a shallow copy of the AgentContainer.
@@ -543,7 +537,7 @@ class AgentContainer(ABC):
         """
         return self.add(other=other, inplace=True)
 
-    def __isub__(self, other: MaskLike) -> Self:
+    def __isub__(self, other: IdsLike) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
 
         Parameters
@@ -558,7 +552,7 @@ class AgentContainer(ABC):
         """
         return self.discard(other, inplace=True)
 
-    def __sub__(self, other: MaskLike) -> Self:
+    def __sub__(self, other: IdsLike) -> Self:
         """Remove agents from a new AgentContainer through the - operator.
 
         Parameters

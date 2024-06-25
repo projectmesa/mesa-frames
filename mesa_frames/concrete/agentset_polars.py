@@ -16,7 +16,7 @@ import polars as pl
 from polars.type_aliases import IntoExpr
 
 from mesa_frames.abstract.agents import AgentSetDF
-from mesa_frames.types import PolarsMaskLike
+from mesa_frames.types import PolarsIdsLike, PolarsMaskLike
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.agentset_pandas import AgentSetPandas
@@ -70,17 +70,17 @@ class AgentSetPolars(AgentSetDF):
         Initialize a new AgentSetPolars.
     add(self, other: pl.DataFrame | Sequence[Any] | dict[str, Any], inplace: bool = True) -> Self
         Add agents to the AgentSetPolars.
-    contains(self, ids: Hashable | Collection[Hashable]) -> bool | pl.Series
+    contains(self, ids: PolarsIdsLike) -> bool | pl.Series
         Check if agents with the specified IDs are in the AgentSetPolars.
     copy(self, deep: bool = False, memo: dict | None = None) -> Self
         Create a copy of the AgentSetPolars.
-    discard(self, ids: PolarsMaskLike, inplace: bool = True) -> Self
+    discard(self, ids: PolarsIdsLike, inplace: bool = True) -> Self
         Remove an agent from the AgentSetPolars. Does not raise an error if the agent is not found.
     do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
         Invoke a method on the AgentSetPolars.
     get(self, attr_names: IntoExpr | Iterable[IntoExpr] | None, mask: PolarsMaskLike = None) -> pl.Series | pl.DataFrame
         Retrieve the value of a specified attribute for each agent in the AgentSetPolars.
-    remove(self, ids: PolarsMaskLike, inplace: bool = True) -> Self
+    remove(self, ids: PolarsIdsLike, inplace: bool = True) -> Self
         Remove agents from the AgentSetPolars.
     select(self, mask: PolarsMaskLike = None, filter_func: Callable[[Self], PolarsMaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentSetPolars based on the given criteria.
@@ -165,14 +165,14 @@ class AgentSetPolars(AgentSetDF):
         return obj
 
     @overload
-    def contains(self, ids: Collection[Hashable]) -> pl.Series: ...
+    def contains(self, ids: int) -> bool: ...
 
     @overload
-    def contains(self, ids: Hashable) -> bool: ...
+    def contains(self, ids: PolarsIdsLike) -> pl.Series: ...
 
     def contains(
         self,
-        ids: Hashable | Collection[Hashable],
+        ids: PolarsIdsLike,
     ) -> bool | pl.Series:
         if isinstance(ids, pl.Series):
             return ids.is_in(self._agents["unique_id"])
@@ -181,7 +181,7 @@ class AgentSetPolars(AgentSetDF):
         else:
             return ids in self._agents["unique_id"]
 
-    def discard(self, ids: PolarsMaskLike, inplace: bool = True) -> Self:
+    def discard(self, ids: PolarsIdsLike, inplace: bool = True) -> Self:
         """Remove an agent from the AgentSetPolars. Does not raise an error if the agent is not found.
 
         Parameters

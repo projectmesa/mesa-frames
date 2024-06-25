@@ -15,7 +15,7 @@ import polars as pl
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.agentset_polars import AgentSetPolars
 from mesa_frames.concrete.model import ModelDF
-from mesa_frames.types import PandasMaskLike
+from mesa_frames.types import PandasIdsLike, PandasMaskLike
 
 
 class AgentSetPandas(AgentSetDF):
@@ -62,17 +62,17 @@ class AgentSetPandas(AgentSetDF):
         Initialize a new AgentSetPandas.
     add(self, other: pd.DataFrame | Sequence[Any] | dict[str, Any], inplace: bool = True) -> Self
         Add agents to the AgentSetPandas.
-    contains(self, ids: Hashable | Collection[Hashable]) -> bool | pd.Series
+    contains(self, ids: PandasIdsLike) -> bool | pd.Series
         Check if agents with the specified IDs are in the AgentSetPandas.
     copy(self, deep: bool = False, memo: dict | None = None) -> Self
         Create a copy of the AgentSetPandas.
-    discard(self, ids: PandasMaskLike, inplace: bool = True) -> Self
+    discard(self, ids: PandasIdsLike, inplace: bool = True) -> Self
         Remove an agent from the AgentSetPandas. Does not raise an error if the agent is not found.
     do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
         Invoke a method on the AgentSetPandas.
     get(self, attr_names: str | Collection[str] | None, mask: PandasMaskLike = None) -> pd.Series | pd.DataFrame
         Retrieve the value of a specified attribute for each agent in the AgentSetPandas.
-    remove(self, ids: PandasMaskLike, inplace: bool = True) -> Self
+    remove(self, ids: PandasIdsLike, inplace: bool = True) -> Self
         Remove agents from the AgentSetPandas.
     select(self, mask: PandasMaskLike = None, filter_func: Callable[[Self], PandasMaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentSetPandas based on the given criteria.
@@ -104,8 +104,10 @@ class AgentSetPandas(AgentSetDF):
 
     def __init__(self, model: ModelDF) -> None:
         self._model = model
-        self._agents = pd.DataFrame(columns=["unique_id"]).set_index("unique_id")
-        self._mask = pd.Series(True, index=self._agents.index)
+        self._agents = pd.DataFrame(
+            columns=["unique_id"], dtype={"unique_id": pd.Int64Dtype}
+        ).set_index("unique_id")
+        self._mask = pd.Series(True, index=self._agents.index, dtype=pd.BooleanDtype)
 
     def add(
         self,
@@ -140,17 +142,21 @@ class AgentSetPandas(AgentSetDF):
         return obj
 
     @overload
-    def contains(self, ids: Collection[Hashable]) -> pd.Series: ...
+    def contains(self, ids: int) -> bool: ...
 
     @overload
-    def contains(self, ids: Hashable) -> bool: ...
+    def contains(self, ids: PandasIdsLike) -> pd.Series: ...
 
     def contains(
         self,
-        ids: Hashable | Collection[Hashable],
+        ids: int | Collection[int] | pd.Series[int] | pd.Index,
     ) -> bool | pd.Series:
         if isinstance(ids, pd.Series):
             return ids.isin(self._agents.index)
+        elif isinstance(ids, pd.Index):
+            return pd.Series(
+                ids.isin(self._agents.index), index=ids, dtype=pd.BooleanDtype
+            )
         elif isinstance(ids, Collection):
             return pd.Series(list(ids), index=list(ids)).isin(self._agents.index)
         else:
@@ -172,7 +178,7 @@ class AgentSetPandas(AgentSetDF):
 
     def remove(
         self,
-        ids: PandasMaskLike,
+        ids: PandasIdsLike,
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
