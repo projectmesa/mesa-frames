@@ -142,7 +142,7 @@ class AgentContainer(ABC):
 
         return obj
 
-    def discard(self, ids: IdsLike, inplace: bool = True) -> Self:
+    def discard(self, agents: "AgentSetDF" | IdsLike, inplace: bool = True) -> Self:
         """Removes an agent from the AgentContainer. Does not raise an error if the agent is not found.
 
         Parameters
@@ -157,7 +157,7 @@ class AgentContainer(ABC):
         Self
         """
         with suppress(KeyError):
-            return self.remove(ids, inplace=inplace)
+            return self.remove(agents, inplace=inplace)
         return self._get_obj(inplace)
 
     @abstractmethod
@@ -180,19 +180,19 @@ class AgentContainer(ABC):
 
     @overload
     @abstractmethod
-    def contains(self, ids: int) -> bool: ...
+    def contains(self, agents: int) -> bool: ...
 
     @overload
     @abstractmethod
-    def contains(self, ids: IdsLike) -> BoolSeries: ...
+    def contains(self, agents: "AgentSetDF" | IdsLike) -> BoolSeries: ...
 
     @abstractmethod
-    def contains(self, ids: IdsLike) -> bool | BoolSeries:
+    def contains(self, agents: IdsLike) -> bool | BoolSeries:
         """Check if agents with the specified IDs are in the AgentContainer.
 
         Parameters
         ----------
-        ids : IdsLike
+        agents : IdsLike
             The ID(s) to check for.
 
         Returns
@@ -281,12 +281,12 @@ class AgentContainer(ABC):
         ...
 
     @abstractmethod
-    def remove(self, ids: IdsLike, inplace: bool = True) -> Self:
+    def remove(self, agents: IdsLike, inplace: bool = True) -> Self:
         """Removes an agent from the AgentContainer.
 
         Parameters
         ----------
-        id : MaskLike
+        agents : MaskLike
             The ID of the agent to remove.
         inplace : bool
             Whether to remove the agent in place.
@@ -459,7 +459,7 @@ class AgentContainer(ABC):
         """
         if not isinstance(id, int):
             raise TypeError("id must be an integer")
-        return self.contains(ids=id)
+        return self.contains(agents=id)
 
     def __copy__(self) -> Self:
         """Create a shallow copy of the AgentContainer.
@@ -537,7 +537,7 @@ class AgentContainer(ABC):
         """
         return self.add(other=other, inplace=True)
 
-    def __isub__(self, other: IdsLike) -> Self:
+    def __isub__(self, other: "AgentSetDF" | IdsLike) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
 
         Parameters
@@ -552,7 +552,7 @@ class AgentContainer(ABC):
         """
         return self.discard(other, inplace=True)
 
-    def __sub__(self, other: IdsLike) -> Self:
+    def __sub__(self, other: "AgentSetDF" | IdsLike) -> Self:
         """Remove agents from a new AgentContainer through the - operator.
 
         Parameters
@@ -1003,10 +1003,10 @@ class AgentSetDF(AgentContainer):
         return iter(self._agents)
 
     def __repr__(self) -> str:
-        return repr(self._agents)
+        return f"{self.__class__.__name__}\n {str(self._agents)}"
 
     def __str__(self) -> str:
-        return str(self._agents)
+        return f"{self.__class__.__name__}\n {str(self._agents)}"
 
     def __reversed__(self) -> Iterator:
         return reversed(self._agents)

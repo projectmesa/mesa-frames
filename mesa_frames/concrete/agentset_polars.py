@@ -30,7 +30,6 @@ class AgentSetPolars(AgentSetDF):
     }
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
-    _model: "ModelDF"
 
     """A polars-based implementation of the AgentSet.
     
@@ -161,6 +160,10 @@ class AgentSetPolars(AgentSetDF):
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
             new_agents = pl.DataFrame([other], schema=obj._agents.schema)
+
+        if new_agents["unique_id"].dtype != pl.Int64:
+            raise TypeError("unique_id column must be of type int64.")
+
         obj._agents = pl.concat([obj._agents, new_agents], how="diagonal_relaxed")
         return obj
 
@@ -457,14 +460,8 @@ class AgentSetPolars(AgentSetDF):
     def __len__(self) -> int:
         return len(self._agents)
 
-    def __repr__(self) -> str:
-        return repr(self._agents)
-
     def __reversed__(self) -> Iterator:
         return reversed(iter(self._agents.iter_rows(named=True)))
-
-    def __str__(self) -> str:
-        return str(self._agents)
 
     @property
     def agents(self) -> pl.DataFrame:
