@@ -11,7 +11,7 @@ from numpy import ndarray
 ArrayLike = pd.api.extensions.ExtensionArray | ndarray
 AnyArrayLike = ArrayLike | pd.Index | pd.Series
 PandasMaskLike = AgnosticMask | pd.Series | pd.DataFrame | AnyArrayLike
-PandasIdsLike = AgnosticIds | pd.Series[int] | pd.Index
+PandasIdsLike = AgnosticIds | pd.Series | pd.Index
 
 ###----- Polars Types -----###
 import polars as pl
@@ -25,4 +25,4 @@ DataFrame = pd.DataFrame | pl.DataFrame
 Series = pd.Series | pl.Series
 BoolSeries = pd.Series | pl.Series
 MaskLike = AgnosticMask | PandasMaskLike | PolarsMaskLike
-IdsLike = AgnosticIds | pd.Series[int] | pd.Index | pl.Series
+IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike

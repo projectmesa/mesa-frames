@@ -1,8 +1,8 @@
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Collection,
-    Hashable,
     Iterator,
     Self,
     Sequence,
@@ -14,8 +14,10 @@ import polars as pl
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.agentset_polars import AgentSetPolars
-from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types import PandasIdsLike, PandasMaskLike
+
+if TYPE_CHECKING:
+    from mesa_frames.concrete.model import ModelDF
 
 
 class AgentSetPandas(AgentSetDF):
@@ -102,12 +104,14 @@ class AgentSetPandas(AgentSetDF):
         Get the string representation of the AgentSetPandas.
     """
 
-    def __init__(self, model: ModelDF) -> None:
+    def __init__(self, model: "ModelDF") -> None:
         self._model = model
-        self._agents = pd.DataFrame(
-            columns=["unique_id"], dtype={"unique_id": pd.Int64Dtype}
-        ).set_index("unique_id")
-        self._mask = pd.Series(True, index=self._agents.index, dtype=pd.BooleanDtype)
+        self._agents = (
+            pd.DataFrame(columns=["unique_id"])
+            .astype({"unique_id": "int64"})
+            .set_index("unique_id")
+        )
+        self._mask = pd.Series(True, index=self._agents.index, dtype=pd.BooleanDtype())
 
     def add(
         self,
@@ -138,6 +142,10 @@ class AgentSetPandas(AgentSetDF):
             new_agents = pd.DataFrame([other], columns=columns).set_index(
                 "unique_id", drop=True
             )
+
+        if new_agents.index.dtype != "int64":
+            raise TypeError("unique_id must be of type int64.")
+
         obj._agents = pd.concat([obj._agents, new_agents])
         return obj
 
@@ -149,13 +157,13 @@ class AgentSetPandas(AgentSetDF):
 
     def contains(
         self,
-        ids: int | Collection[int] | pd.Series[int] | pd.Index,
+        ids: PandasIdsLike,
     ) -> bool | pd.Series:
         if isinstance(ids, pd.Series):
             return ids.isin(self._agents.index)
         elif isinstance(ids, pd.Index):
             return pd.Series(
-                ids.isin(self._agents.index), index=ids, dtype=pd.BooleanDtype
+                ids.isin(self._agents.index), index=ids, dtype=pd.BooleanDtype()
             )
         elif isinstance(ids, Collection):
             return pd.Series(list(ids), index=list(ids)).isin(self._agents.index)
@@ -341,14 +349,8 @@ class AgentSetPandas(AgentSetDF):
     def __len__(self) -> int:
         return len(self._agents)
 
-    def __repr__(self) -> str:
-        return repr(self._agents)
-
     def __reversed__(self) -> Iterator:
         return iter(self._agents[::-1].iterrows())
-
-    def __str__(self) -> str:
-        return str(self._agents)
 
     @property
     def agents(self) -> pd.DataFrame:
