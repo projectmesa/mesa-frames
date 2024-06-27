@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "mesa_frames"
@@ -9,7 +9,7 @@ description = "An extension to the Mesa framework which uses pandas/Polars DataF
 authors = [
     { name = "Adam Amer" },
 ]
-license = { text = "MIT License" }
+license = { text = "MIT" }
 
-[tool.setuptools.packages.find]
-where = ["mesa_frames"]
+[tool.hatch.build.targets.wheel]
+packages = ["mesa_frames"]
