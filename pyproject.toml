@@ -10,6 +10,19 @@ authors = [
     { name = "Adam Amer" },
 ]
 license = { text = "MIT" }
+dependencies = [
+  "numpy~=1.26",
+]
+
+[project.optional-dependencies]
+pandas = [
+    "pandas~=2.2",
+    "geopandas",
+    "pyarrow",
+]
+polars = [
+    "polars",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["mesa_frames"]
