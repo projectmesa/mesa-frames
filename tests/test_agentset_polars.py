@@ -118,9 +118,18 @@ class Test_AgentSetPolars:
 
     def test_do(self, fix1_AgentSetPolars: ExampleAgentSet):
         agents = fix1_AgentSetPolars
+
+        # Test with no return_results, no mask
         agents.do("add_wealth", 1)
         assert agents.agents["wealth"].to_list() == [2, 3, 4, 5]
+
+        # Test with return_results=True, no mask
         assert agents.do("add_wealth", 1, return_results=True) is None
+        assert agents.agents["wealth"].to_list() == [3, 4, 5, 6]
+
+        # Test with a mask
+        agents.do("add_wealth", 1, mask=agents["wealth"] > 3)
+        assert agents.agents["wealth"].to_list() == [3, 5, 6, 7]
 
     def test_get(self, fix1_AgentSetPolars: ExampleAgentSet):
         agents = fix1_AgentSetPolars

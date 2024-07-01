@@ -3,6 +3,7 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Iterable,
     Iterator,
     Self,
     Sequence,
@@ -11,9 +12,11 @@ from typing import (
 
 import pandas as pd
 import polars as pl
+from networkx import intersection
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.agentset_polars import AgentSetPolars
+from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types import PandasIdsLike, PandasMaskLike
 
 if TYPE_CHECKING:
@@ -115,38 +118,46 @@ class AgentSetPandas(AgentSetDF):
 
     def add(
         self,
-        other: pd.DataFrame | Sequence[Any] | dict[str, Any],
+        agents: pd.DataFrame | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
-        if isinstance(other, pd.DataFrame):
-            new_agents = other
-            if "unique_id" != other.index.name:
+        if isinstance(agents, pd.DataFrame):
+            new_agents = agents
+            if "unique_id" != agents.index.name:
                 try:
                     new_agents.set_index("unique_id", inplace=True, drop=True)
                 except KeyError:
                     raise KeyError("DataFrame must have a unique_id column/index.")
-        elif isinstance(other, dict):
-            if "unique_id" not in other:
+        elif isinstance(agents, dict):
+            if "unique_id" not in agents:
                 raise KeyError("Dictionary must have a unique_id key.")
-            index = other.pop("unique_id")
+            index = agents.pop("unique_id")
             if not isinstance(index, list):
                 index = [index]
-            new_agents = pd.DataFrame(other, index=pd.Index(index, name="unique_id"))
+            new_agents = pd.DataFrame(agents, index=pd.Index(index, name="unique_id"))
         else:
-            if len(other) != len(obj._agents.columns) + 1:
+            if len(agents) != len(obj._agents.columns) + 1:
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
             columns = pd.Index(["unique_id"]).append(obj._agents.columns.copy())
-            new_agents = pd.DataFrame([other], columns=columns).set_index(
+            new_agents = pd.DataFrame([agents], columns=columns).set_index(
                 "unique_id", drop=True
             )
 
         if new_agents.index.dtype != "int64":
             raise TypeError("unique_id must be of type int64.")
 
+        if not obj._agents.index.intersection(new_agents.index).empty:
+            raise KeyError("Some IDs already exist in the agent set.")
+
+        original_active_indices = obj._mask.index[obj._mask].copy()
+
         obj._agents = pd.concat([obj._agents, new_agents])
+
+        obj._update_mask(original_active_indices, new_agents.index)
+
         return obj
 
     @overload
@@ -155,10 +166,7 @@ class AgentSetPandas(AgentSetDF):
     @overload
     def contains(self, ids: PandasIdsLike) -> pd.Series: ...
 
-    def contains(
-        self,
-        ids: PandasIdsLike,
-    ) -> bool | pd.Series:
+    def contains(self, ids: PandasIdsLike) -> bool | pd.Series:
         if isinstance(ids, pd.Series):
             return ids.isin(self._agents.index)
         elif isinstance(ids, pd.Index):
@@ -174,11 +182,13 @@ class AgentSetPandas(AgentSetDF):
         self,
         attr_names: str | Collection[str] | None = None,
         mask: PandasMaskLike = None,
-    ) -> pd.Series | pd.DataFrame:
+    ) -> pd.Index | pd.Series | pd.DataFrame:
         mask = self._get_bool_mask(mask)
         if attr_names is None:
             return self._agents.loc[mask]
         else:
+            if attr_names == "unique_id":
+                return self._agents.loc[mask].index
             if isinstance(attr_names, str):
                 return self._agents.loc[mask, attr_names]
             if isinstance(attr_names, Collection):
@@ -193,9 +203,12 @@ class AgentSetPandas(AgentSetDF):
         initial_len = len(obj._agents)
         mask = obj._get_bool_mask(ids)
         remove_ids = obj._agents[mask].index
+        original_active_indices = obj._mask.index[obj._mask].copy()
         obj._agents.drop(remove_ids, inplace=True)
         if len(obj._agents) == initial_len:
-            raise KeyError(f"IDs {ids} not found in agent set.")
+            raise KeyError(f"Some IDs were not found in agent set.")
+
+        self._update_mask(original_active_indices)
         return obj
 
     def set(
@@ -281,6 +294,36 @@ class AgentSetPandas(AgentSetDF):
         new_obj._mask = pl.Series(self._mask)
         return new_obj
 
+    def _concatenate_agentsets(
+        self,
+        agentsets: Iterable[Self],
+        duplicates_allowed: bool = True,
+        keep_first_only: bool = True,
+        original_masked_index: pd.Index | None = None,
+    ) -> Self:
+        if not duplicates_allowed:
+            indices = [self._agents.index.to_series()] + [
+                agentset._agents.index.to_series() for agentset in agentsets
+            ]
+            pd.concat(indices, verify_integrity=True)
+        if duplicates_allowed & keep_first_only:
+            final_df = self._agents.copy()
+            final_mask = self._mask.copy()
+            for obj in iter(agentsets):
+                final_df = final_df.combine_first(obj._agents)
+                final_mask = final_mask.combine_first(obj._mask)
+        else:
+            final_df = pd.concat([obj._agents for obj in agentsets])
+            final_mask = pd.concat([obj._mask for obj in agentsets])
+        new_obj = self._get_obj(inplace=False)
+        new_obj._agents = final_df
+        new_obj._mask = final_mask
+        if not isinstance(original_masked_index, type(None)):
+            ids_to_remove = original_masked_index.difference(self._agents.index)
+            if not ids_to_remove.empty:
+                new_obj.remove(ids_to_remove, inplace=True)
+        return new_obj
+
     def _get_bool_mask(
         self,
         mask: PandasMaskLike = None,
@@ -339,6 +382,33 @@ class AgentSetPandas(AgentSetDF):
             mask_df = mask_series.to_frame("unique_id").set_index("unique_id")
             return mask_df.join(self._agents, on="unique_id", how="left")
 
+    @overload
+    def _get_obj_copy(self, obj: pd.Series) -> pd.Series: ...
+
+    @overload
+    def _get_obj_copy(self, obj: pd.DataFrame) -> pd.DataFrame: ...
+
+    @overload
+    def _get_obj_copy(self, obj: pd.Index) -> pd.Index: ...
+
+    def _get_obj_copy(
+        self, obj: pd.Series | pd.DataFrame | pd.Index
+    ) -> pd.Series | pd.DataFrame | pd.Index:
+        return obj.copy()
+
+    def _update_mask(
+        self,
+        original_active_indices: pd.Index,
+        new_active_indices: pd.Index | None = None,
+    ) -> None:
+        # Update the mask with the old active agents and the new agents
+        self._mask = pd.Series(
+            self._agents.index.isin(original_active_indices)
+            | self._agents.index.isin(new_active_indices),
+            index=self._agents.index,
+            dtype=pd.BooleanDtype(),
+        )
+
     def __getattr__(self, name: str) -> Any:
         super().__getattr__(name)
         return getattr(self._agents, name)
@@ -377,3 +447,7 @@ class AgentSetPandas(AgentSetDF):
     @property
     def inactive_agents(self) -> pd.DataFrame:
         return self._agents.loc[~self._mask]
+
+    @property
+    def index(self) -> pd.Index:
+        return self._agents.index

@@ -123,9 +123,17 @@ class Test_AgentSetPandas:
 
     def test_do(self, fix1_AgentSetPandas: ExampleAgentSet):
         agents = fix1_AgentSetPandas
+        
+        # Test with no_mask
         agents.do("add_wealth", 1)
         assert agents.agents.wealth.tolist() == [2, 3, 4, 5]
         assert agents.do("add_wealth", 1, return_results=True) == None
+        assert agents.agents.wealth.tolist() == [3, 4, 5, 6]
+        
+        # Test with a mask
+        agents.do("add_wealth", 1, mask=agents["wealth"] > 3)
+        assert agents.agents.wealth.tolist() == [3, 5, 6, 7]
+        
 
     def test_get(self, fix1_AgentSetPandas: ExampleAgentSet):
         agents = fix1_AgentSetPandas
@@ -149,7 +157,6 @@ class Test_AgentSetPandas:
         assert agents.agents.index.tolist() == [2, 3]
         with pytest.raises(KeyError) as e:
             agents.remove([1])
-        assert "1" in str(e)
 
     def test_select(self, fix1_AgentSetPandas: ExampleAgentSet):
         agents = fix1_AgentSetPandas

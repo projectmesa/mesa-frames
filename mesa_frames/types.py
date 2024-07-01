@@ -23,6 +23,8 @@ PolarsIdsLike = AgnosticIds | pl.Series
 
 DataFrame = pd.DataFrame | pl.DataFrame
 Series = pd.Series | pl.Series
+Index = pd.Index | pl.Series
 BoolSeries = pd.Series | pl.Series
 MaskLike = AgnosticMask | PandasMaskLike | PolarsMaskLike
 IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike
+TimeT = float | int
