@@ -1,18 +1,13 @@
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Collection,
-    Iterable,
-    Iterator,
     Self,
-    Sequence,
     overload,
 )
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 
 import pandas as pd
 import polars as pl
-from networkx import intersection
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.agentset_polars import AgentSetPolars
@@ -206,7 +201,7 @@ class AgentSetPandas(AgentSetDF):
         original_active_indices = obj._mask.index[obj._mask].copy()
         obj._agents.drop(remove_ids, inplace=True)
         if len(obj._agents) == initial_len:
-            raise KeyError(f"Some IDs were not found in agent set.")
+            raise KeyError("Some IDs were not found in agent set.")
 
         self._update_mask(original_active_indices)
         return obj
@@ -218,7 +213,6 @@ class AgentSetPandas(AgentSetDF):
         mask: PandasMaskLike = None,
         inplace: bool = True,
     ) -> Self:
-
         obj = self._get_obj(inplace)
         b_mask = obj._get_bool_mask(mask)
         masked_df = obj._get_masked_df(mask)

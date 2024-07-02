@@ -1,4 +1,5 @@
-from typing import Collection, Hashable, Literal
+from typing import Literal
+from collections.abc import Collection, Hashable
 
 ####----- Agnostic Types -----####
 AgnosticMask = Literal["all", "active"] | Hashable | None

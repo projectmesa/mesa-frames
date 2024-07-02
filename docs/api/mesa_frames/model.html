@@ -75,7 +75,7 @@
                     <h1 class="modulename">
 mesa_frames<wbr>.model    </h1>
 
-                
+
                         <input id="mod-model-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 
                         <label class="view-source-button" for="mod-model-view-source"><span>View Source</span></label>
@@ -402,7 +402,7 @@ mesa_frames<wbr>.model    </h1>
                 <section id="ModelDF">
                             <input id="ModelDF-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">ModelDF</span>:
 
@@ -741,7 +741,7 @@ the values are the percentages of each agent type. The sum of the values should 
                             <div id="ModelDF.__init__" class="classattr">
                                         <input id="ModelDF.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">ModelDF</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">unique_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>, </span><span class="param"><span class="n">space</span><span class="o">=</span><span class="kc">None</span></span>)</span>
 
                 <label class="view-source-button" for="ModelDF.__init__-view-source"><span>View Source</span></label>
@@ -801,7 +801,7 @@ If None, a random unique_id is assigned using a 64-bit random integer.</li>
                             <div id="ModelDF.get_agents_of_type" class="classattr">
                                         <input id="ModelDF.get_agents_of_type-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_agents_of_type</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">agent_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n"><a href="agent.html#AgentDF">mesa_frames.agent.AgentDF</a></span><span class="p">]</span></span><span class="return-annotation">) -> <span class="n">pandas</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">series</span><span class="o">.</span><span class="n">Series</span>:</span></span>
 
@@ -840,7 +840,7 @@ The agent_type to get the mask for.</li>
                             <div id="ModelDF.run_model" class="classattr">
                                         <input id="ModelDF.run_model-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">run_model</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>, </span><span class="param"><span class="n">merged_mro</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -898,7 +898,7 @@ will be executed only once. Not a viable option if the behavior of a class depen
                             <div id="ModelDF.step" class="classattr">
                                         <input id="ModelDF.step-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">step</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">merged_mro</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -948,7 +948,7 @@ will be executed only once. Not a viable option if the behavior of a class depen
                             <div id="ModelDF.reset_randomizer" class="classattr">
                                         <input id="ModelDF.reset_randomizer-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">reset_randomizer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -986,7 +986,7 @@ A new seed for the RNG; if None, reset using the current seed</li>
                             <div id="ModelDF.create_agents" class="classattr">
                                         <input id="ModelDF.create_agents-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_agents</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">n_agents</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">p_agents</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n"><a href="agent.html#AgentDF">mesa_frames.agent.AgentDF</a></span><span class="p">],</span> <span class="nb">float</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -1133,7 +1133,7 @@ the values are the percentages of each agent type. The sum of the values should 
                             <div id="ModelDF.update_agents_masks" class="classattr">
                                         <input id="ModelDF.update_agents_masks-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">update_agents_masks</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 

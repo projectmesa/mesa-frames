@@ -1,14 +1,10 @@
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Collection,
-    Iterable,
-    Iterator,
     Self,
-    Sequence,
     overload,
 )
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 
 import polars as pl
 from polars.type_aliases import IntoExpr
@@ -30,7 +26,7 @@ class AgentSetPolars(AgentSetDF):
     _mask: pl.Expr | pl.Series
 
     """A polars-based implementation of the AgentSet.
-    
+
     Attributes
     ----------
     _agents : pl.DataFrame
@@ -46,7 +42,7 @@ class AgentSetPolars(AgentSetDF):
         The model to which the AgentSet belongs.
     _mask : pl.Series
         A boolean mask indicating which agents are active.
-        
+
     Properties
     ----------
     active_agents(self) -> pl.DataFrame
@@ -229,7 +225,6 @@ class AgentSetPolars(AgentSetDF):
         mask: PolarsMaskLike = None,
         inplace: bool = True,
     ) -> Self:
-
         obj = self._get_obj(inplace)
         b_mask = obj._get_bool_mask(mask)
         masked_df = obj._get_masked_df(mask)
@@ -389,7 +384,6 @@ class AgentSetPolars(AgentSetDF):
         self,
         mask: PolarsMaskLike = None,
     ) -> pl.Series | pl.Expr:
-
         def bool_mask_from_series(mask: pl.Series) -> pl.Series:
             if (
                 isinstance(mask, pl.Series)

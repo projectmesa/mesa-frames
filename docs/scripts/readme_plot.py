@@ -226,7 +226,6 @@ def mesa_frames_pandas(n_agents: int) -> None:
 
 
 def main():
-
     sns.set_theme(style="whitegrid")
 
     out = perfplot.bench(

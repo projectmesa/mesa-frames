@@ -5,15 +5,11 @@ from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Collection,
-    Iterable,
-    Iterator,
     Literal,
     Self,
-    Sequence,
     overload,
 )
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 
 from numpy.random import Generator
 
@@ -122,7 +118,7 @@ class AgentContainer(CopyMixin):
 
     @overload
     @abstractmethod
-    def contains(self, agents: "AgentSetDF" | IdsLike) -> BoolSeries: ...
+    def contains(self, agents: AgentSetDF | IdsLike) -> BoolSeries: ...
 
     @abstractmethod
     def contains(self, agents: IdsLike) -> bool | BoolSeries:
@@ -161,7 +157,7 @@ class AgentContainer(CopyMixin):
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs,
-    ) -> Any | dict["AgentSetDF", Any]: ...
+    ) -> Any | dict[AgentSetDF, Any]: ...
 
     @abstractmethod
     def do(
@@ -172,7 +168,7 @@ class AgentContainer(CopyMixin):
         return_results: bool = False,
         inplace: bool = True,
         **kwargs,
-    ) -> Self | Any | dict["AgentSetDF", Any]:
+    ) -> Self | Any | dict[AgentSetDF, Any]:
         """Invoke a method on the AgentContainer.
 
         Parameters
@@ -439,7 +435,7 @@ class AgentContainer(CopyMixin):
         """
         return self.add(agents=other, inplace=True)
 
-    def __isub__(self, other: "AgentSetDF" | IdsLike) -> Self:
+    def __isub__(self, other: AgentSetDF | IdsLike) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
 
         Parameters
@@ -454,7 +450,7 @@ class AgentContainer(CopyMixin):
         """
         return self.discard(other, inplace=True)
 
-    def __sub__(self, other: "AgentSetDF" | IdsLike) -> Self:
+    def __sub__(self, other: AgentSetDF | IdsLike) -> Self:
         """Remove agents from a new AgentContainer through the - operator.
 
         Parameters
@@ -604,7 +600,7 @@ class AgentContainer(CopyMixin):
 
     @agents.setter
     @abstractmethod
-    def agents(self, agents: DataFrame | list["AgentSetDF"]) -> None:
+    def agents(self, agents: DataFrame | list[AgentSetDF]) -> None:
         """Set the agents in the AgentContainer.
 
         Parameters
