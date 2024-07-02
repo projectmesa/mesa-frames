@@ -248,15 +248,15 @@ class AgentSetPandas(AgentSetDF):
     ) -> Self:
         obj = self._get_obj(inplace)
         bool_mask = obj._get_bool_mask(mask)
+        if filter_func:
+            bool_mask = bool_mask & obj._get_bool_mask(filter_func(obj))
+        if negate:
+            bool_mask = ~bool_mask
         if n is not None:
             bool_mask = pd.Series(
                 obj._agents.index.isin(obj._agents[bool_mask].sample(n).index),
                 index=obj._agents.index,
             )
-        if filter_func:
-            bool_mask = bool_mask & obj._get_bool_mask(filter_func(obj))
-        if negate:
-            bool_mask = ~bool_mask
         obj._mask = bool_mask
         return obj
 
