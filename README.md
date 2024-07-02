@@ -31,16 +31,21 @@ cd mesa_frames
 If you want to install it into a new environment:
 
 ```bash
-conda create -n myenv -f requirements.txt
-pip install -e .
+conda create -n myenv
 ```
 
 If you want to install it into an existing environment:
 
 ```bash
 conda activate myenv
-conda install -f requirements.txt
-pip install -e .
+```
+
+Then, to install mesa-frames itself:
+```bash
+# For pandas backend
+pip install -e .[pandas]
+# Alternatively, for Polars backend
+pip install -e .[polars]
 ```
 
 ### Installing in a Python Virtual Environment
@@ -50,17 +55,22 @@ If you want to install it into a new environment:
 ```bash
 python3 -m venv myenv
 source myenv/bin/activate  # On Windows, use `myenv\Scripts\activate`
-pip install -r requirements.txt
-pip install -e .
 ```
 
 If you want to install it into an existing environment:
 
 ```bash
 source myenv/bin/activate  # On Windows, use `myenv\Scripts\activate`
-pip install -r requirements.txt
-pip install -e .
 ```
+
+Then, to install mesa-frames itself:
+```bash
+# For pandas backend
+pip install -e .[pandas]
+# Alternatively, for Polars backend
+pip install -e .[polars]
+```
+
 
 ## Usage
 
