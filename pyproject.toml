@@ -7,7 +7,7 @@ name = "mesa_frames"
 version = "0.1.0-alpha1"
 description = "An extension to the Mesa framework which uses pandas/Polars DataFrames for enhanced performance"
 authors = [
-    { name = "Adam Amer" },
+  { name = "Adam Amer" },
 ]
 license = { text = "MIT" }
 dependencies = [
@@ -16,12 +16,17 @@ dependencies = [
 
 [project.optional-dependencies]
 pandas = [
-    "pandas~=2.2",
-    "geopandas",
-    "pyarrow",
+  "pandas~=2.2",
+  "geopandas",
+  "pyarrow",
 ]
 polars = [
-    "polars",
+  "polars",
+]
+dev = [
+  "mesa_frames[pandas,polars]",
+  "pytest",
+  "pytest-cov",
 ]
 
 [tool.hatch.build.targets.wheel]
