@@ -303,14 +303,13 @@ class AgentSetPandas(AgentSetDF):
         else:
             final_df = pd.concat([obj._agents for obj in agentsets])
             final_mask = pd.concat([obj._mask for obj in agentsets])
-        new_obj = self._get_obj(inplace=False)
-        new_obj._agents = final_df
-        new_obj._mask = final_mask
+        self._agents = final_df
+        self._mask = final_mask
         if not isinstance(original_masked_index, type(None)):
             ids_to_remove = original_masked_index.difference(self._agents.index)
             if not ids_to_remove.empty:
-                new_obj.remove(ids_to_remove, inplace=True)
-        return new_obj
+                self.remove(ids_to_remove, inplace=True)
+        return self
 
     def _get_bool_mask(
         self,
@@ -390,12 +389,19 @@ class AgentSetPandas(AgentSetDF):
         new_active_indices: pd.Index | None = None,
     ) -> None:
         # Update the mask with the old active agents and the new agents
-        self._mask = pd.Series(
-            self._agents.index.isin(original_active_indices)
-            | self._agents.index.isin(new_active_indices),
-            index=self._agents.index,
-            dtype=pd.BooleanDtype(),
-        )
+        if new_active_indices is None:
+            self._mask = pd.Series(
+                self._agents.index.isin(original_active_indices),
+                index=self._agents.index,
+                dtype=pd.BooleanDtype(),
+            )
+        else:
+            self._mask = pd.Series(
+                self._agents.index.isin(original_active_indices)
+                | self._agents.index.isin(new_active_indices),
+                index=self._agents.index,
+                dtype=pd.BooleanDtype(),
+            )
 
     def __getattr__(self, name: str) -> Any:
         super().__getattr__(name)

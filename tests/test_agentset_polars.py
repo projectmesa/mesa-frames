@@ -46,7 +46,7 @@ class Test_AgentSetPolars:
         assert agents.model == model
         assert isinstance(agents.agents, pl.DataFrame)
         assert agents.agents["unique_id"].to_list() == [0, 1, 2, 3]
-        assert isinstance(agents._mask, pl.Expr)
+        assert isinstance(agents._mask, pl.Series)
         assert isinstance(agents.random, Generator)
         assert agents.starting_wealth.to_list() == [1, 2, 3, 4]
 

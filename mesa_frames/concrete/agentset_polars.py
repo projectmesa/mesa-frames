@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Self, overload
 import polars as pl
 from polars.type_aliases import IntoExpr
 
-from mesa_frames import AgentSetDF
+from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.types import PolarsIdsLike, PolarsMaskLike
 
 if TYPE_CHECKING:
@@ -209,7 +209,7 @@ class AgentSetPolars(AgentSetDF):
         if len(obj._agents) == initial_len:
             raise KeyError(f"IDs {ids} not found in agent set.")
 
-        if isinstance(obj.mask, pl.Series):
+        if isinstance(obj._mask, pl.Series):
             obj._update_mask(original_active_indices)
         return obj
 

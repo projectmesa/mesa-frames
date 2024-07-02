@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, Any, Literal, Self, overload
 from numpy.random import Generator
 
 from mesa_frames.abstract.mixin import CopyMixin
-from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types import BoolSeries, DataFrame, IdsLike, Index, MaskLike, Series
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.agents import AgentSetDF
+    from mesa_frames.concrete.model import ModelDF
 
 
 class AgentContainer(CopyMixin):
