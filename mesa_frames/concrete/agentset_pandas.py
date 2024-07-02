@@ -1,17 +1,11 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Self,
-    overload,
-)
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING, Any, Self, overload
 
 import pandas as pd
 import polars as pl
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.agentset_polars import AgentSetPolars
-from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types import PandasIdsLike, PandasMaskLike
 
 if TYPE_CHECKING:
@@ -254,7 +248,7 @@ class AgentSetPandas(AgentSetDF):
     ) -> Self:
         obj = self._get_obj(inplace)
         bool_mask = obj._get_bool_mask(mask)
-        if n != None:
+        if n is not None:
             bool_mask = pd.Series(
                 obj._agents.index.isin(obj._agents[bool_mask].sample(n).index),
                 index=obj._agents.index,

@@ -1,13 +1,15 @@
-from typing import Literal
 from collections.abc import Collection, Hashable
+from typing import Literal
+
+import pandas as pd
+import polars as pl
+from numpy import ndarray
 
 ####----- Agnostic Types -----####
 AgnosticMask = Literal["all", "active"] | Hashable | None
 AgnosticIds = int | Collection[int]
 
 ###----- Pandas Types -----###
-import pandas as pd
-from numpy import ndarray
 
 ArrayLike = pd.api.extensions.ExtensionArray | ndarray
 AnyArrayLike = ArrayLike | pd.Index | pd.Series
@@ -15,7 +17,6 @@ PandasMaskLike = AgnosticMask | pd.Series | pd.DataFrame | AnyArrayLike
 PandasIdsLike = AgnosticIds | pd.Series | pd.Index
 
 ###----- Polars Types -----###
-import polars as pl
 
 PolarsMaskLike = AgnosticMask | pl.Expr | pl.Series | pl.DataFrame | Collection[int]
 PolarsIdsLike = AgnosticIds | pl.Series

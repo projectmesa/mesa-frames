@@ -1,24 +1,18 @@
 from __future__ import annotations  # PEP 563: postponed evaluation of type annotations
 
 from abc import abstractmethod
-from contextlib import suppress
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    Self,
-    overload,
-)
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from numpy.random import Generator
 
 from mesa_frames.abstract.mixin import CopyMixin
+from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types import BoolSeries, DataFrame, IdsLike, Index, MaskLike, Series
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.agents import AgentSetDF
-    from mesa_frames.concrete.model import ModelDF
 
 
 class AgentContainer(CopyMixin):
@@ -417,7 +411,7 @@ class AgentContainer(CopyMixin):
         else:
             try:
                 return self.get(attr_names=key)
-            except:
+            except KeyError:
                 return self.get(mask=key)
 
     def __iadd__(self, other) -> Self:
@@ -494,7 +488,7 @@ class AgentContainer(CopyMixin):
             ):
                 try:
                     self.set(attr_names=key, values=values)
-                except:  # key=MaskLike
+                except KeyError:  # key=MaskLike
                     self.set(attr_names=None, mask=key, values=values)
             else:
                 self.set(attr_names=None, mask=key, values=values)
@@ -811,14 +805,16 @@ class AgentSetDF(AgentContainer):
             original_masked_index = obj._get_obj_copy(obj.index)
             method = getattr(obj, method_name)
             result = method(*args, **kwargs)
-            obj = obj._concatenate_agentsets(
+            obj._concatenate_agentsets(
                 [self],
                 duplicates_allowed=True,
                 keep_first_only=True,
                 original_masked_index=original_masked_index,
             )
-            self._agents = obj._agents
-            self._mask = obj._mask
+            if inplace:
+                for key, value in obj.__dict__.items():
+                    setattr(self, key, value)
+                obj = self
         if return_results:
             return result
         else:

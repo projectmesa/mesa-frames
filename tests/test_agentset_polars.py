@@ -15,7 +15,7 @@ class ExampleAgentSet(AgentSetPolars):
         self.starting_wealth = pl.Series("wealth", [1, 2, 3, 4])
 
     def add_wealth(self, amount: int) -> None:
-        self.agents += amount
+        self["wealth"] += amount
 
 
 @pytest.fixture
@@ -151,7 +151,7 @@ class Test_AgentSetPolars:
         agents = fix1_AgentSetPolars
         agents.remove([0, 1])
         assert agents.agents["unique_id"].to_list() == [2, 3]
-        with pytest.raises(KeyError) as e:
+        with pytest.raises(KeyError):
             agents.remove([1])
 
     def test_select(self, fix1_AgentSetPolars: ExampleAgentSet):

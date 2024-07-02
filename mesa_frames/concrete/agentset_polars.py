@@ -1,15 +1,10 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Self,
-    overload,
-)
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING, Any, Self, overload
 
 import polars as pl
 from polars.type_aliases import IntoExpr
 
-from mesa_frames.abstract.agents import AgentSetDF
+from mesa_frames import AgentSetDF
 from mesa_frames.types import PolarsIdsLike, PolarsMaskLike
 
 if TYPE_CHECKING:
@@ -283,7 +278,7 @@ class AgentSetPolars(AgentSetDF):
         mask = obj._get_bool_mask(mask)
         if filter_func:
             mask = mask & filter_func(obj)
-        if n != None:
+        if n is not None:
             mask = (obj._agents["unique_id"]).is_in(
                 obj._agents.filter(mask).sample(n)["unique_id"]
             )
@@ -344,6 +339,11 @@ class AgentSetPolars(AgentSetDF):
                     "Some ids are duplicated in the AgentSetDFs that are trying to be concatenated"
                 )
         if duplicates_allowed & keep_first_only:
+            # Find the original_index list (ie longest index list), to sort correctly the rows after concatenation
+            max_length = max(len(agentset) for agentset in agentsets)
+            for agentset in agentsets:
+                if len(agentset) == max_length:
+                    original_index = agentset._agents["unique_id"]
             final_dfs = [self._agents]
             final_active_indices = [self._agents["unique_id"]]
             final_indices = self._agents["unique_id"].clone()
@@ -356,10 +356,15 @@ class AgentSetPolars(AgentSetDF):
                 final_active_indices.append(obj._agents.filter(obj._mask)["unique_id"])
                 # Update the indices of the agents in the final DataFrame
                 final_indices = pl.concat(
-                    [final_indices, obj._agents["unique_id"]], how="vertical"
+                    [final_indices, final_dfs[-1]["unique_id"]], how="vertical"
                 )
-            final_df = pl.concat(final_dfs, how="diagonal_relaxed")
+            # Left-join original index with concatenated dfs to keep original ids order
+            final_df = original_index.to_frame().join(
+                pl.concat(final_dfs, how="diagonal_relaxed"), on="unique_id", how="left"
+            )
+            #
             final_active_index = pl.concat(final_active_indices, how="vertical")
+
         else:
             final_df = pl.concat(
                 [obj._agents for obj in agentsets], how="diagonal_relaxed"
@@ -367,18 +372,17 @@ class AgentSetPolars(AgentSetDF):
             final_active_index = pl.concat(
                 [obj._agents.filter(obj._mask)["unique_id"] for obj in agentsets]
             )
-        final_df = final_df.sort("unique_id")
         final_mask = final_df["unique_id"].is_in(final_active_index)
-        new_obj = self._get_obj(inplace=False)
-        new_obj._agents = final_df
-        new_obj._mask = final_mask
+        self._agents = final_df
+        self._mask = final_mask
+        # If some ids were removed in the do-method, we need to remove them also from final_df
         if not isinstance(original_masked_index, type(None)):
             ids_to_remove = original_masked_index.filter(
-                original_masked_index.is_in(new_obj._agents["unique_id"]).not_()
+                original_masked_index.is_in(self._agents["unique_id"]).not_()
             )
             if not ids_to_remove.is_empty():
-                new_obj.remove(ids_to_remove, inplace=True)
-        return new_obj
+                self.remove(ids_to_remove, inplace=True)
+        return self
 
     def _get_bool_mask(
         self,
