@@ -27,6 +27,8 @@ dev = [
   "mesa_frames[pandas,polars]",
   "pytest",
   "pytest-cov",
+  "typeguard",
+  "mesa",
 ]
 
 [tool.hatch.build.targets.wheel]
