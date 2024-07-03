@@ -1,9 +1,9 @@
 from collections.abc import Collection, Hashable
-from typing import Literal
 
 import pandas as pd
 import polars as pl
 from numpy import ndarray
+from typing import Literal
 
 ####----- Agnostic Types -----####
 AgnosticMask = Literal["all", "active"] | Hashable | None

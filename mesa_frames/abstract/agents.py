@@ -3,9 +3,11 @@ from __future__ import annotations  # PEP 563: postponed evaluation of type anno
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
 from numpy.random import Generator
+from typing_extensions import Any, Self, overload
+
+from typing import TYPE_CHECKING, Literal
 
 from mesa_frames.abstract.mixin import CopyMixin
 from mesa_frames.types import BoolSeries, DataFrame, IdsLike, Index, MaskLike, Series

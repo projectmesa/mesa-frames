@@ -1,7 +1,9 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
 
 import numpy as np
+from typing_extensions import Any
+
+from typing import TYPE_CHECKING
 
 from mesa_frames.concrete.agents import AgentsDF
 

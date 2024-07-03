@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from copy import copy, deepcopy
-from typing import Self
+
+from typing_extensions import Self
 
 
 class CopyMixin(ABC):

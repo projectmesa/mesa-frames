@@ -1,10 +1,10 @@
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Iterator, Sequence
-from typing import Any, Literal, Self, cast, overload
-
-from collections.abc import Collection
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 
 import polars as pl
+from typing_extensions import Any, Self, overload
+
+from typing import Literal, cast
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.types import DataFrame, IdsLike, MaskLike, Series

@@ -12,6 +12,7 @@ authors = [
 license = { text = "MIT" }
 dependencies = [
   "numpy~=1.26",
+  "typing-extensions>=4.9"
 ]
 
 [project.optional-dependencies]

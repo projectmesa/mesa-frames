@@ -1,8 +1,10 @@
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Self, overload
 
 import pandas as pd
 import polars as pl
+from typing_extensions import Any, Self, overload
+
+from typing import TYPE_CHECKING
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.agentset_polars import AgentSetPolars
