@@ -1,10 +1,9 @@
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from typing import Literal, cast
 
 import polars as pl
 from typing_extensions import Any, Self, overload
-
-from typing import Literal, cast
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.types import DataFrame, IdsLike, MaskLike, Series
@@ -151,6 +150,7 @@ class AgentsDF(AgentContainer):
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
         **kwargs,
@@ -161,6 +161,7 @@ class AgentsDF(AgentContainer):
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs,
@@ -170,6 +171,7 @@ class AgentsDF(AgentContainer):
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: bool = False,
         inplace: bool = True,
         **kwargs,
@@ -180,6 +182,7 @@ class AgentsDF(AgentContainer):
                 agentset: agentset.do(
                     method_name,
                     *args,
+                    mask=mask,
                     return_results=return_results,
                     **kwargs,
                     inplace=inplace,
@@ -191,6 +194,7 @@ class AgentsDF(AgentContainer):
                 agentset.do(
                     method_name,
                     *args,
+                    mask=mask,
                     return_results=return_results,
                     **kwargs,
                     inplace=inplace,
