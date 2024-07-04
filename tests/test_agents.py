@@ -331,7 +331,7 @@ class Test_AgentsDF:
         assert active_agents_dict.keys() == agents_dict.keys()
         # Using assert to compare all DataFrames in the dictionaries
         assert (
-            (list(active_agents_dict.values()) == list(agents_dict.values())[0])
+            (list(active_agents_dict.values())[0] == list(agents_dict.values())[0])
             .all()
             .all()
         )
