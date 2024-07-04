@@ -324,28 +324,16 @@ class Test_AgentsDF:
     def test_select(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
 
-        def compare_dataframes(df1, df2):
-            if isinstance(df1, pd.DataFrame) and isinstance(df2, pd.DataFrame):
-                # For pandas DataFrames
-                return df1.equals(df2)
-            elif isinstance(df1, pl.DataFrame) and isinstance(df2, pl.DataFrame):
-                # For polars DataFrames
-                return df1.frame_equal(df2)
-            else:
-                # If the types are not the same, they are not equal
-                return False
-
         # Test with default arguments. Should select all agents
         selected = agents.select(inplace=False)
         active_agents_dict = selected.active_agents
         agents_dict = selected.agents
         assert active_agents_dict.keys() == agents_dict.keys()
         # Using assert to compare all DataFrames in the dictionaries
+        assert (active_agents_dict.values()[0] == agents_dict.values()[0]).all().all()
         assert all(
-            compare_dataframes(df_active, df_all)
-            for df_active, df_all in zip(
-                active_agents_dict.values(), agents_dict.values()
-            )
+            series.all()
+            for series in (active_agents_dict.values()[1] == agents_dict.values()[1])
         )
 
         # Test with a mask
