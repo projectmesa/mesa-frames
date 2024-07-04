@@ -330,10 +330,16 @@ class Test_AgentsDF:
         agents_dict = selected.agents
         assert active_agents_dict.keys() == agents_dict.keys()
         # Using assert to compare all DataFrames in the dictionaries
-        assert (active_agents_dict.values()[0] == agents_dict.values()[0]).all().all()
+        assert (
+            (list(active_agents_dict.values()) == list(agents_dict.values())[0])
+            .all()
+            .all()
+        )
         assert all(
             series.all()
-            for series in (active_agents_dict.values()[1] == agents_dict.values()[1])
+            for series in (
+                list(active_agents_dict.values())[1] == list(agents_dict.values())[1]
+            )
         )
 
         # Test with a mask
