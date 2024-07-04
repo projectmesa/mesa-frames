@@ -966,9 +966,13 @@ class Test_AgentsDF:
         assert isinstance(result[agents1._agentsets[0]], pd.DataFrame)
         assert isinstance(result[agents1._agentsets[1]], pl.DataFrame)
         assert (
-            result[agents1._agentsets[0]]
-            == agents1._agentsets[0].select(mask0, negate=True).active_agents
-        ).all().all()
+            (
+                result[agents1._agentsets[0]]
+                == agents1._agentsets[0].select(mask0, negate=True).active_agents
+            )
+            .all()
+            .all()
+        )
         assert all(
             series.all()
             for series in (
