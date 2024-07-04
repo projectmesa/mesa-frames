@@ -1,9 +1,8 @@
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import numpy as np
 from typing_extensions import Any
-
-from typing import TYPE_CHECKING
 
 from mesa_frames.concrete.agents import AgentsDF
 
@@ -77,7 +76,7 @@ class ModelDF:
         self.running = True
         self.schedule = None
         self.current_id = 0
-        self._agents = AgentsDF()
+        self._agents = AgentsDF(self)
 
     def get_agents_of_type(self, agent_type: type) -> "AgentSetDF":
         """Retrieve the AgentSetDF of a specified type.

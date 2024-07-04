@@ -1,12 +1,12 @@
-from collections.abc import Collection, Hashable
+from collections.abc import Collection
+from typing import Literal
 
 import pandas as pd
 import polars as pl
 from numpy import ndarray
-from typing import Literal
 
 ####----- Agnostic Types -----####
-AgnosticMask = Literal["all", "active"] | Hashable | None
+AgnosticMask = Literal["all", "active"] | None
 AgnosticIds = int | Collection[int]
 
 ###----- Pandas Types -----###

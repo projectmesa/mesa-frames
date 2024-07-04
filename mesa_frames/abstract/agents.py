@@ -3,11 +3,10 @@ from __future__ import annotations  # PEP 563: postponed evaluation of type anno
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
+from typing import TYPE_CHECKING, Literal
 
 from numpy.random import Generator
 from typing_extensions import Any, Self, overload
-
-from typing import TYPE_CHECKING, Literal
 
 from mesa_frames.abstract.mixin import CopyMixin
 from mesa_frames.types import BoolSeries, DataFrame, IdsLike, Index, MaskLike, Series
@@ -86,7 +85,7 @@ class AgentContainer(CopyMixin):
         ----------
         Self
         """
-        with suppress(KeyError):
+        with suppress(KeyError, ValueError):
             return self.remove(agents, inplace=inplace)
         return self._get_obj(inplace)
 
@@ -363,22 +362,20 @@ class AgentContainer(CopyMixin):
     def __add__(self, other) -> Self:
         return self.add(agents=other, inplace=False)
 
-    def __contains__(self, id: int) -> bool:
+    def __contains__(self, agents: int | IdsLike | AgentSetDF) -> bool:
         """Check if an agent is in the AgentContainer.
 
         Parameters
         ----------
-        id : Hashable
-            The ID(s) to check for.
+        id : int | IdsLike | AgentSetDF
+            The ID(s) or AgentSetDF to check for.
 
         Returns
         -------
         bool
             True if the agent is in the AgentContainer, False otherwise.
         """
-        if not isinstance(id, int):
-            raise TypeError("id must be an integer")
-        return self.contains(ids=id)
+        return self.contains(agents=agents)
 
     def __getitem__(
         self,
@@ -511,7 +508,7 @@ class AgentContainer(CopyMixin):
         """
 
     @abstractmethod
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         """Iterate over the agents in the AgentContainer.
 
         Returns
@@ -973,14 +970,11 @@ class AgentSetDF(AgentContainer):
         ),
     ) -> Series | DataFrame:
         attr = super().__getitem__(key)
-        assert isinstance(attr, (Series, DataFrame))
+        assert isinstance(attr, (Series, DataFrame, Index))
         return attr
 
     def __len__(self) -> int:
         return len(self._agents)
-
-    def __iter__(self) -> Iterator:
-        return iter(self._agents)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}\n {str(self._agents)}"

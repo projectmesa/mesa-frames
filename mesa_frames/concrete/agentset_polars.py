@@ -1,10 +1,9 @@
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING
 
 import polars as pl
 from polars.type_aliases import IntoExpr
 from typing_extensions import Any, Self, overload
-
-from typing import TYPE_CHECKING
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.types import PolarsIdsLike, PolarsMaskLike
@@ -169,21 +168,21 @@ class AgentSetPolars(AgentSetDF):
         return obj
 
     @overload
-    def contains(self, ids: int) -> bool: ...
+    def contains(self, agents: int) -> bool: ...
 
     @overload
-    def contains(self, ids: PolarsIdsLike) -> pl.Series: ...
+    def contains(self, agents: PolarsIdsLike) -> pl.Series: ...
 
     def contains(
         self,
-        ids: PolarsIdsLike,
+        agents: PolarsIdsLike,
     ) -> bool | pl.Series:
-        if isinstance(ids, pl.Series):
-            return ids.is_in(self._agents["unique_id"])
-        elif isinstance(ids, Collection):
-            return pl.Series(ids).is_in(self._agents["unique_id"])
+        if isinstance(agents, pl.Series):
+            return agents.is_in(self._agents["unique_id"])
+        elif isinstance(agents, Collection):
+            return pl.Series(agents).is_in(self._agents["unique_id"])
         else:
-            return ids in self._agents["unique_id"]
+            return agents in self._agents["unique_id"]
 
     def get(
         self,
@@ -397,11 +396,6 @@ class AgentSetPolars(AgentSetDF):
                 and len(mask) == len(self._agents)
             ):
                 return mask
-            else:
-                if not mask.is_in(self._agents["unique_id"]).all():
-                    raise KeyError(
-                        "Some 'unique_ids' of mask are not present in DataFrame 'unique_id'."
-                    )
             return self._agents["unique_id"].is_in(mask)
 
         if isinstance(mask, pl.Expr):
@@ -524,7 +518,7 @@ class AgentSetPolars(AgentSetDF):
         assert isinstance(attr, (pl.Series, pl.DataFrame))
         return attr
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         return iter(self._agents.iter_rows(named=True))
 
     def __len__(self) -> int:

@@ -1,10 +1,9 @@
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING
 
 import pandas as pd
 import polars as pl
 from typing_extensions import Any, Self, overload
-
-from typing import TYPE_CHECKING
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.agentset_polars import AgentSetPolars
@@ -152,22 +151,22 @@ class AgentSetPandas(AgentSetDF):
         return obj
 
     @overload
-    def contains(self, ids: int) -> bool: ...
+    def contains(self, agents: int) -> bool: ...
 
     @overload
-    def contains(self, ids: PandasIdsLike) -> pd.Series: ...
+    def contains(self, agents: PandasIdsLike) -> pd.Series: ...
 
-    def contains(self, ids: PandasIdsLike) -> bool | pd.Series:
-        if isinstance(ids, pd.Series):
-            return ids.isin(self._agents.index)
-        elif isinstance(ids, pd.Index):
+    def contains(self, agents: PandasIdsLike) -> bool | pd.Series:
+        if isinstance(agents, pd.Series):
+            return agents.isin(self._agents.index)
+        elif isinstance(agents, pd.Index):
             return pd.Series(
-                ids.isin(self._agents.index), index=ids, dtype=pd.BooleanDtype()
+                agents.isin(self._agents.index), index=agents, dtype=pd.BooleanDtype()
             )
-        elif isinstance(ids, Collection):
-            return pd.Series(list(ids), index=list(ids)).isin(self._agents.index)
+        elif isinstance(agents, Collection):
+            return pd.Series(list(agents), index=list(agents)).isin(self._agents.index)
         else:
-            return ids in self._agents.index
+            return agents in self._agents.index
 
     def get(
         self,
@@ -339,10 +338,6 @@ class AgentSetPandas(AgentSetDF):
         if isinstance(mask, pd.Series) and mask.dtype == bool:
             return self._agents.loc[mask]
         elif isinstance(mask, pd.DataFrame):
-            if not mask.index.isin(self._agents.index).all():
-                raise KeyError(
-                    "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
-                )
             if mask.index.name != "unique_id":
                 if "unique_id" in mask.columns:
                     mask.set_index("unique_id", inplace=True, drop=True)
@@ -352,10 +347,6 @@ class AgentSetPandas(AgentSetDF):
                 self._agents, on="unique_id", how="left"
             )
         elif isinstance(mask, pd.Series):
-            if not mask.isin(self._agents.index).all():
-                raise KeyError(
-                    "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
-                )
             mask_df = mask.to_frame("unique_id").set_index("unique_id")
             return mask_df.join(self._agents, on="unique_id", how="left")
         elif mask is None or mask == "all":
@@ -364,10 +355,6 @@ class AgentSetPandas(AgentSetDF):
             return self._agents.loc[self._mask]
         else:
             mask_series = pd.Series(mask)
-            if not mask_series.isin(self._agents.index).all():
-                raise KeyError(
-                    "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
-                )
             mask_df = mask_series.to_frame("unique_id").set_index("unique_id")
             return mask_df.join(self._agents, on="unique_id", how="left")
 
@@ -409,8 +396,11 @@ class AgentSetPandas(AgentSetDF):
         super().__getattr__(name)
         return getattr(self._agents, name)
 
-    def __iter__(self) -> Iterator:
-        return iter(self._agents.iterrows())
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        for index, row in self._agents.iterrows():
+            row_dict = row.to_dict()
+            row_dict["unique_id"] = index
+            yield row_dict
 
     def __len__(self) -> int:
         return len(self._agents)

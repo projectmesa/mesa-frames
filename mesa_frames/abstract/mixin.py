@@ -26,7 +26,7 @@ class CopyMixin(ABC):
         _description_
     """
 
-    _copy_with_method: dict[str, tuple[str, list[str]]]
+    _copy_with_method: dict[str, tuple[str, list[str]]] = {}
     _copy_only_reference: list[str] = [
         "_model",
     ]
@@ -38,6 +38,7 @@ class CopyMixin(ABC):
         self,
         deep: bool = False,
         memo: dict | None = None,
+        skip: list[str] | None = None,
     ) -> Self:
         """Create a copy of the Class.
 
@@ -48,9 +49,11 @@ class CopyMixin(ABC):
             If True, all attributes of the AgentContainer will be recursively copied (except attributes in self._copy_reference_only).
             If False, only the top-level attributes will be copied.
             Defaults to False.
-
         memo : dict | None, optional
             A dictionary used to track already copied objects during deep copy.
+            Defaults to None.
+        skip : list[str] | None, optional
+            A list of attribute names to skip during the copy process.
             Defaults to None.
 
         Returns
@@ -60,6 +63,9 @@ class CopyMixin(ABC):
         """
         cls = self.__class__
         obj = cls.__new__(cls)
+
+        if skip is None:
+            skip = []
 
         if deep:
             if not memo:
@@ -71,6 +77,7 @@ class CopyMixin(ABC):
                 for k, v in attributes.items()
                 if k not in self._copy_with_method
                 and k not in self._copy_only_reference
+                and k not in skip
             ]
         else:
             [
@@ -78,6 +85,7 @@ class CopyMixin(ABC):
                 for k, v in self.__dict__.items()
                 if k not in self._copy_with_method
                 and k not in self._copy_only_reference
+                and k not in skip
             ]
 
         # Copy attributes with a reference only
