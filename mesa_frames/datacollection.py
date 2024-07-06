@@ -34,6 +34,7 @@ The default DataCollector here makes several assumptions:
     * The schedule has an agent list called agents
     * For collecting agent-level variables, agents must have a unique_id
 """
+
 import contextlib
 import itertools
 import types

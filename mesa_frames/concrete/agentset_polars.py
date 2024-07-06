@@ -1,21 +1,11 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Collection,
-    Hashable,
-    Iterable,
-    Iterator,
-    Literal,
-    Self,
-    Sequence,
-    overload,
-)
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING
 
 import polars as pl
-from polars.type_aliases import IntoExpr
+from polars._typing import IntoExpr
+from typing_extensions import Any, Self, overload
 
-from mesa_frames.abstract.agents import AgentSetDF
+from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.types import PolarsIdsLike, PolarsMaskLike
 
 if TYPE_CHECKING:
@@ -32,7 +22,7 @@ class AgentSetPolars(AgentSetDF):
     _mask: pl.Expr | pl.Series
 
     """A polars-based implementation of the AgentSet.
-    
+
     Attributes
     ----------
     _agents : pl.DataFrame
@@ -48,7 +38,7 @@ class AgentSetPolars(AgentSetDF):
         The model to which the AgentSet belongs.
     _mask : pl.Series
         A boolean mask indicating which agents are active.
-        
+
     Properties
     ----------
     active_agents(self) -> pl.DataFrame
@@ -124,11 +114,11 @@ class AgentSetPolars(AgentSetDF):
         """
         self._model = model
         self._agents = pl.DataFrame(schema={"unique_id": pl.Int64})
-        self._mask = pl.repeat(True, len(self._agents))
+        self._mask = pl.repeat(True, len(self._agents), dtype=pl.Boolean, eager=True)
 
     def add(
         self,
-        other: pl.DataFrame | Sequence[Any] | dict[str, Any],
+        agents: pl.DataFrame | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
     ) -> Self:
         """Add agents to the AgentSetPolars.
@@ -146,60 +136,53 @@ class AgentSetPolars(AgentSetDF):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
-        if isinstance(other, pl.DataFrame):
-            if "unique_id" not in other.columns:
+        if isinstance(agents, pl.DataFrame):
+            if "unique_id" not in agents.columns:
                 raise KeyError("DataFrame must have a unique_id column.")
-            new_agents = other
-        elif isinstance(other, dict):
-            if "unique_id" not in other:
+            new_agents = agents
+        elif isinstance(agents, dict):
+            if "unique_id" not in agents:
                 raise KeyError("Dictionary must have a unique_id key.")
-            new_agents = pl.DataFrame(other)
+            new_agents = pl.DataFrame(agents)
         else:
-            if len(other) != len(obj._agents.columns):
+            if len(agents) != len(obj._agents.columns):
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
-            new_agents = pl.DataFrame([other], schema=obj._agents.schema)
+            new_agents = pl.DataFrame([agents], schema=obj._agents.schema)
 
         if new_agents["unique_id"].dtype != pl.Int64:
             raise TypeError("unique_id column must be of type int64.")
 
+        # If self._mask is pl.Expr, then new mask is the same.
+        # If self._mask is pl.Series[bool], then new mask has to be updated.
+
+        if isinstance(obj._mask, pl.Series):
+            original_active_indices = obj._agents.filter(obj._mask)["unique_id"]
+
         obj._agents = pl.concat([obj._agents, new_agents], how="diagonal_relaxed")
+
+        if isinstance(obj._mask, pl.Series):
+            obj._update_mask(original_active_indices, new_agents["unique_id"])
+
         return obj
 
     @overload
-    def contains(self, ids: int) -> bool: ...
+    def contains(self, agents: int) -> bool: ...
 
     @overload
-    def contains(self, ids: PolarsIdsLike) -> pl.Series: ...
+    def contains(self, agents: PolarsIdsLike) -> pl.Series: ...
 
     def contains(
         self,
-        ids: PolarsIdsLike,
+        agents: PolarsIdsLike,
     ) -> bool | pl.Series:
-        if isinstance(ids, pl.Series):
-            return ids.is_in(self._agents["unique_id"])
-        elif isinstance(ids, Collection):
-            return pl.Series(ids).is_in(self._agents["unique_id"])
+        if isinstance(agents, pl.Series):
+            return agents.is_in(self._agents["unique_id"])
+        elif isinstance(agents, Collection):
+            return pl.Series(agents).is_in(self._agents["unique_id"])
         else:
-            return ids in self._agents["unique_id"]
-
-    def discard(self, ids: PolarsIdsLike, inplace: bool = True) -> Self:
-        """Remove an agent from the AgentSetPolars. Does not raise an error if the agent is not found.
-
-        Parameters
-        ----------
-        ids : PolarsMaskLike
-            The mask of agents to remove.
-        inplace : bool, optional
-            Whether to remove the agents in place, by default True.
-
-        Returns
-        -------
-        Self
-            The updated AgentSetPolars.
-        """
-        return super().discard(ids=ids, inplace=inplace)
+            return agents in self._agents["unique_id"]
 
     def get(
         self,
@@ -215,13 +198,20 @@ class AgentSetPolars(AgentSetDF):
             return masked_df[masked_df.columns[0]]
         return masked_df
 
-    def remove(self, ids: PolarsMaskLike, inplace: bool = True) -> Self:
+    def remove(self, ids: PolarsIdsLike, inplace: bool = True) -> Self:
         obj = self._get_obj(inplace=inplace)
         initial_len = len(obj._agents)
         mask = obj._get_bool_mask(ids)
+
+        if isinstance(obj._mask, pl.Series):
+            original_active_indices = obj._agents.filter(obj._mask)["unique_id"]
+
         obj._agents = obj._agents.filter(mask.not_())
         if len(obj._agents) == initial_len:
             raise KeyError(f"IDs {ids} not found in agent set.")
+
+        if isinstance(obj._mask, pl.Series):
+            obj._update_mask(original_active_indices)
         return obj
 
     def set(
@@ -231,7 +221,6 @@ class AgentSetPolars(AgentSetDF):
         mask: PolarsMaskLike = None,
         inplace: bool = True,
     ) -> Self:
-
         obj = self._get_obj(inplace)
         b_mask = obj._get_bool_mask(mask)
         masked_df = obj._get_masked_df(mask)
@@ -290,7 +279,7 @@ class AgentSetPolars(AgentSetDF):
         mask = obj._get_bool_mask(mask)
         if filter_func:
             mask = mask & filter_func(obj)
-        if n != None:
+        if n is not None:
             mask = (obj._agents["unique_id"]).is_in(
                 obj._agents.filter(mask).sample(n)["unique_id"]
             )
@@ -334,11 +323,72 @@ class AgentSetPolars(AgentSetDF):
             )
         return new_obj
 
+    def _concatenate_agentsets(
+        self,
+        agentsets: Iterable[Self],
+        duplicates_allowed: bool = True,
+        keep_first_only: bool = True,
+        original_masked_index: pl.Series | None = None,
+    ) -> Self:
+        if not duplicates_allowed:
+            indices_list = [self._agents["unique_id"]] + [
+                agentset._agents["unique_id"] for agentset in agentsets
+            ]
+            all_indices = pl.concat(indices_list)
+            if all_indices.is_duplicated().any():
+                raise ValueError(
+                    "Some ids are duplicated in the AgentSetDFs that are trying to be concatenated"
+                )
+        if duplicates_allowed & keep_first_only:
+            # Find the original_index list (ie longest index list), to sort correctly the rows after concatenation
+            max_length = max(len(agentset) for agentset in agentsets)
+            for agentset in agentsets:
+                if len(agentset) == max_length:
+                    original_index = agentset._agents["unique_id"]
+            final_dfs = [self._agents]
+            final_active_indices = [self._agents["unique_id"]]
+            final_indices = self._agents["unique_id"].clone()
+            for obj in iter(agentsets):
+                # Remove agents that are already in the final DataFrame
+                final_dfs.append(
+                    obj._agents.filter(pl.col("unique_id").is_in(final_indices).not_())
+                )
+                # Add the indices of the active agents of current AgentSet
+                final_active_indices.append(obj._agents.filter(obj._mask)["unique_id"])
+                # Update the indices of the agents in the final DataFrame
+                final_indices = pl.concat(
+                    [final_indices, final_dfs[-1]["unique_id"]], how="vertical"
+                )
+            # Left-join original index with concatenated dfs to keep original ids order
+            final_df = original_index.to_frame().join(
+                pl.concat(final_dfs, how="diagonal_relaxed"), on="unique_id", how="left"
+            )
+            #
+            final_active_index = pl.concat(final_active_indices, how="vertical")
+
+        else:
+            final_df = pl.concat(
+                [obj._agents for obj in agentsets], how="diagonal_relaxed"
+            )
+            final_active_index = pl.concat(
+                [obj._agents.filter(obj._mask)["unique_id"] for obj in agentsets]
+            )
+        final_mask = final_df["unique_id"].is_in(final_active_index)
+        self._agents = final_df
+        self._mask = final_mask
+        # If some ids were removed in the do-method, we need to remove them also from final_df
+        if not isinstance(original_masked_index, type(None)):
+            ids_to_remove = original_masked_index.filter(
+                original_masked_index.is_in(self._agents["unique_id"]).not_()
+            )
+            if not ids_to_remove.is_empty():
+                self.remove(ids_to_remove, inplace=True)
+        return self
+
     def _get_bool_mask(
         self,
         mask: PolarsMaskLike = None,
     ) -> pl.Series | pl.Expr:
-
         def bool_mask_from_series(mask: pl.Series) -> pl.Series:
             if (
                 isinstance(mask, pl.Series)
@@ -346,11 +396,6 @@ class AgentSetPolars(AgentSetDF):
                 and len(mask) == len(self._agents)
             ):
                 return mask
-            else:
-                if not mask.is_in(self._agents["unique_id"]).all():
-                    raise KeyError(
-                        "Some 'unique_ids' of mask are not present in DataFrame 'unique_id'."
-                    )
             return self._agents["unique_id"].is_in(mask)
 
         if isinstance(mask, pl.Expr):
@@ -379,7 +424,7 @@ class AgentSetPolars(AgentSetDF):
         self,
         mask: PolarsMaskLike = None,
     ) -> pl.DataFrame:
-        if (isinstance(mask, pl.Series) and mask.dtype == bool) or isinstance(
+        if (isinstance(mask, pl.Series) and mask.dtype == pl.Boolean) or isinstance(
             mask, pl.Expr
         ):
             return self._agents.filter(mask)
@@ -413,6 +458,25 @@ class AgentSetPolars(AgentSetDF):
                 )
             mask_df = mask_series.to_frame("unique_id")
             return mask_df.join(self._agents, on="unique_id", how="left")
+
+    @overload
+    def _get_obj_copy(self, obj: pl.Series) -> pl.Series: ...
+
+    @overload
+    def _get_obj_copy(self, obj: pl.DataFrame) -> pl.DataFrame: ...
+
+    def _get_obj_copy(self, obj: pl.Series | pl.DataFrame) -> pl.Series | pl.DataFrame:
+        return obj.clone()
+
+    def _update_mask(
+        self, original_active_indices: pl.Series, new_indices: pl.Series | None = None
+    ) -> None:
+        if new_indices is not None:
+            self._mask = self._agents["unique_id"].is_in(
+                original_active_indices
+            ) | self._agents["unique_id"].is_in(new_indices)
+        else:
+            self._mask = self._agents["unique_id"].is_in(original_active_indices)
 
     def __getattr__(self, key: str) -> pl.Series:
         super().__getattr__(key)
@@ -454,7 +518,7 @@ class AgentSetPolars(AgentSetDF):
         assert isinstance(attr, (pl.Series, pl.DataFrame))
         return attr
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         return iter(self._agents.iter_rows(named=True))
 
     def __len__(self) -> int:
@@ -484,3 +548,7 @@ class AgentSetPolars(AgentSetDF):
     @property
     def inactive_agents(self) -> pl.DataFrame:
         return self.agents.filter(~self._mask)
+
+    @property
+    def index(self) -> pl.Series:
+        return self._agents["unique_id"]

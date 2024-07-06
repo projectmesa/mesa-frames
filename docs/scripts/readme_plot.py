@@ -75,7 +75,7 @@ class MoneyAgentPolars(AgentSetPolars):
     def __init__(self, n: int, model: ModelDF):
         super().__init__(model)
         ## Adding the agents to the agent set
-        # 1. Changing the agents attribute directly (not reccomended, if other agents were added before, they will be lost)
+        # 1. Changing the agents attribute directly (not recommended, if other agents were added before, they will be lost)
         """self.agents = pl.DataFrame(
             {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
         )"""
@@ -150,7 +150,7 @@ class MoneyAgentPandas(AgentSetPandas):
     def __init__(self, n: int, model: ModelDF) -> None:
         super().__init__(model)
         ## Adding the agents to the agent set
-        # 1. Changing the agents attribute directly (not reccomended, if other agents were added before, they will be lost)
+        # 1. Changing the agents attribute directly (not recommended, if other agents were added before, they will be lost)
         # self.agents = pd.DataFrame({"unique_id": np.arange(n), "wealth": np.ones(n)})
         # 2. Adding the dataframe with add
         # self.add(pd.DataFrame({"unique_id": np.arange(n), "wealth": np.ones(n)}))
@@ -226,7 +226,6 @@ def mesa_frames_pandas(n_agents: int) -> None:
 
 
 def main():
-
     sns.set_theme(style="whitegrid")
 
     out = perfplot.bench(

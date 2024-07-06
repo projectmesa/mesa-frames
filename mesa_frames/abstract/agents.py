@@ -1,38 +1,26 @@
 from __future__ import annotations  # PEP 563: postponed evaluation of type annotations
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
-from copy import copy, deepcopy
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Collection,
-    Hashable,
-    Iterator,
-    Literal,
-    Self,
-    Sequence,
-    overload,
-)
+from typing import TYPE_CHECKING, Literal
 
 from numpy.random import Generator
+from typing_extensions import Any, Self, overload
 
-from mesa_frames.types import BoolSeries, DataFrame, IdsLike, MaskLike, Series
+from mesa_frames.abstract.mixin import CopyMixin
+from mesa_frames.types import BoolSeries, DataFrame, IdsLike, Index, MaskLike, Series
 
 if TYPE_CHECKING:
+    from mesa_frames.concrete.agents import AgentSetDF
     from mesa_frames.concrete.model import ModelDF
 
 
-class AgentContainer(ABC):
+class AgentContainer(CopyMixin):
     """An abstract class for containing agents. Defines the common interface for AgentSetDF and AgentsDF.
 
     Attributes
     ----------
-    _copy_with_method : dict[str, tuple[str, list[str]]]
-        A dictionary of attributes to copy with a specified method and arguments.
-    _copy_only_reference : list[str]
-        A list of attributes to copy with a reference only.
     _model : ModelDF
         The model that the AgentContainer belongs to.
 
@@ -75,7 +63,6 @@ class AgentContainer(ABC):
         Get the inactive agents in the AgentContainer.
     """
 
-    _copy_with_method: dict[str, tuple[str, list[str]]]
     _copy_only_reference: list[str] = [
         "_model",
     ]
@@ -84,89 +71,31 @@ class AgentContainer(ABC):
     @abstractmethod
     def __init__(self) -> None: ...
 
-    def copy(
-        self,
-        deep: bool = False,
-        memo: dict | None = None,
-    ) -> Self:
-        """Create a copy of the AgentContainer.
+    def discard(self, agents, inplace: bool = True) -> Self:
+        """Removes agents from the AgentContainer. Does not raise an error if the agent is not found.
 
         Parameters
         ----------
-        deep : bool, optional
-            Flag indicating whether to perform a deep copy of the AgentContainer.
-            If True, all attributes of the AgentContainer will be recursively copied (except attributes in self._copy_reference_only).
-            If False, only the top-level attributes will be copied.
-            Defaults to False.
-
-        memo : dict | None, optional
-            A dictionary used to track already copied objects during deep copy.
-            Defaults to None.
-
-        Returns
-        -------
-        Self
-            A new instance of the AgentContainer class that is a copy of the original instance.
-        """
-        cls = self.__class__
-        obj = cls.__new__(cls)
-
-        if deep:
-            if not memo:
-                memo = {}
-            memo[id(self)] = obj
-            attributes = self.__dict__.copy()
-            [
-                setattr(obj, k, deepcopy(v, memo))
-                for k, v in attributes.items()
-                if k not in self._copy_with_method
-                and k not in self._copy_only_reference
-            ]
-        else:
-            [
-                setattr(obj, k, copy(v))
-                for k, v in self.__dict__.items()
-                if k not in self._copy_with_method
-                and k not in self._copy_only_reference
-            ]
-
-        # Copy attributes with a reference only
-        for attr in self._copy_only_reference:
-            setattr(obj, attr, getattr(self, attr))
-
-        # Copy attributes with a specified method
-        for attr in self._copy_with_method:
-            attr_obj = getattr(self, attr)
-            attr_copy_method, attr_copy_args = self._copy_with_method[attr]
-            setattr(obj, attr, getattr(attr_obj, attr_copy_method)(*attr_copy_args))
-
-        return obj
-
-    def discard(self, agents: "AgentSetDF" | IdsLike, inplace: bool = True) -> Self:
-        """Removes an agent from the AgentContainer. Does not raise an error if the agent is not found.
-
-        Parameters
-        ----------
-        ids : MaskLike
-            The MaskLike of the agents to remove.
+        agents
+            The agents to remove
         inplace : bool
-            Whether to remove the agent in place. Defaults to False.
+            Whether to remove the agent in place. Defaults to True.
 
         Returns
         ----------
         Self
         """
-        with suppress(KeyError):
+        with suppress(KeyError, ValueError):
             return self.remove(agents, inplace=inplace)
         return self._get_obj(inplace)
 
     @abstractmethod
-    def add(self, other, inplace: bool = True) -> Self:
+    def add(self, agents, inplace: bool = True) -> Self:
         """Add agents to the AgentContainer.
 
         Parameters
         ----------
-        other : Any
+        agents
             The agents to add.
         inplace : bool
             Whether to add the agents in place. Defaults to True.
@@ -184,7 +113,7 @@ class AgentContainer(ABC):
 
     @overload
     @abstractmethod
-    def contains(self, agents: "AgentSetDF" | IdsLike) -> BoolSeries: ...
+    def contains(self, agents: AgentSetDF | IdsLike) -> BoolSeries: ...
 
     @abstractmethod
     def contains(self, agents: IdsLike) -> bool | BoolSeries:
@@ -207,6 +136,7 @@ class AgentContainer(ABC):
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
         **kwargs,
@@ -218,26 +148,32 @@ class AgentContainer(ABC):
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs,
-    ) -> Any | dict[str, Any]: ...
+    ) -> Any | dict[AgentSetDF, Any]: ...
 
     @abstractmethod
     def do(
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: bool = False,
         inplace: bool = True,
         **kwargs,
-    ) -> Self | Any | dict[str, Any]:
+    ) -> Self | Any | dict[AgentSetDF, Any]:
         """Invoke a method on the AgentContainer.
 
         Parameters
         ----------
         method_name : str
             The name of the method to invoke.
+        *args : Any
+            Positional arguments to pass to the method
+        mask : MaskLike, optional
+            The subset of agents on which to apply the method
         return_results : bool, optional
             Whether to return the result of the method, by default False
         inplace : bool, optional
@@ -281,13 +217,13 @@ class AgentContainer(ABC):
         ...
 
     @abstractmethod
-    def remove(self, agents: IdsLike, inplace: bool = True) -> Self:
-        """Removes an agent from the AgentContainer.
+    def remove(self, agents, inplace: bool = True) -> Self:
+        """Removes the agents from the AgentContainer
 
         Parameters
         ----------
-        agents : MaskLike
-            The ID of the agent to remove.
+        agents
+            The agents to remove.
         inplace : bool
             Whether to remove the agent in place.
 
@@ -423,68 +359,23 @@ class AgentContainer(ABC):
             A new or updated AgentContainer.
         """
 
-    def _get_obj(self, inplace: bool) -> Self:
-        """Get the object to perform operations on.
-
-        Parameters
-        ----------
-        inplace : bool
-            If inplace, return self. Otherwise, return a copy.
-
-        Returns
-        ----------
-        Self
-            The object to perform operations on.
-        """
-        if inplace:
-            return self
-        else:
-            return deepcopy(self)
-
     def __add__(self, other) -> Self:
-        return self.add(other=other, inplace=False)
+        return self.add(agents=other, inplace=False)
 
-    def __contains__(self, id: int) -> bool:
+    def __contains__(self, agents: int | IdsLike | AgentSetDF) -> bool:
         """Check if an agent is in the AgentContainer.
 
         Parameters
         ----------
-        id : Hashable
-            The ID(s) to check for.
+        id : int | IdsLike | AgentSetDF
+            The ID(s) or AgentSetDF to check for.
 
         Returns
         -------
         bool
             True if the agent is in the AgentContainer, False otherwise.
         """
-        if not isinstance(id, int):
-            raise TypeError("id must be an integer")
-        return self.contains(agents=id)
-
-    def __copy__(self) -> Self:
-        """Create a shallow copy of the AgentContainer.
-
-        Returns
-        -------
-        Self
-            A shallow copy of the AgentContainer.
-        """
-        return self.copy(deep=False)
-
-    def __deepcopy__(self, memo: dict) -> Self:
-        """Create a deep copy of the AgentContainer.
-
-        Parameters
-        ----------
-        memo : dict
-            A dictionary to store the copied objects.
-
-        Returns
-        -------
-        Self
-            A deep copy of the AgentContainer.
-        """
-        return self.copy(deep=True, memo=memo)
+        return self.contains(agents=agents)
 
     def __getitem__(
         self,
@@ -519,7 +410,7 @@ class AgentContainer(ABC):
         else:
             try:
                 return self.get(attr_names=key)
-            except:
+            except KeyError:
                 return self.get(mask=key)
 
     def __iadd__(self, other) -> Self:
@@ -535,9 +426,9 @@ class AgentContainer(ABC):
         Self
             The updated AgentContainer.
         """
-        return self.add(other=other, inplace=True)
+        return self.add(agents=other, inplace=True)
 
-    def __isub__(self, other: "AgentSetDF" | IdsLike) -> Self:
+    def __isub__(self, other: AgentSetDF | IdsLike) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
 
         Parameters
@@ -552,7 +443,7 @@ class AgentContainer(ABC):
         """
         return self.discard(other, inplace=True)
 
-    def __sub__(self, other: "AgentSetDF" | IdsLike) -> Self:
+    def __sub__(self, other: AgentSetDF | IdsLike) -> Self:
         """Remove agents from a new AgentContainer through the - operator.
 
         Parameters
@@ -596,7 +487,7 @@ class AgentContainer(ABC):
             ):
                 try:
                     self.set(attr_names=key, values=values)
-                except:  # key=MaskLike
+                except KeyError:  # key=MaskLike
                     self.set(attr_names=None, mask=key, values=values)
             else:
                 self.set(attr_names=None, mask=key, values=values)
@@ -617,7 +508,7 @@ class AgentContainer(ABC):
         """
 
     @abstractmethod
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         """Iterate over the agents in the AgentContainer.
 
         Returns
@@ -702,7 +593,7 @@ class AgentContainer(ABC):
 
     @agents.setter
     @abstractmethod
-    def agents(self, agents: DataFrame | list["AgentSetDF"]) -> None:
+    def agents(self, agents: DataFrame | list[AgentSetDF]) -> None:
         """Set the agents in the AgentContainer.
 
         Parameters
@@ -844,7 +735,7 @@ class AgentSetDF(AgentContainer):
 
     @abstractmethod
     def add(
-        self, other: DataFrame | Sequence[Any] | dict[str, Any], inplace: bool = True
+        self, agents: DataFrame | Sequence[Any] | dict[str, Any], inplace: bool = True
     ) -> Self:
         """Add agents to the AgentSetDF
 
@@ -867,11 +758,15 @@ class AgentSetDF(AgentContainer):
         """
         ...
 
+    def discard(self, agents: IdsLike, inplace: bool = True) -> Self:
+        return super().discard(agents, inplace)
+
     @overload
     def do(
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
         **kwargs,
@@ -882,6 +777,7 @@ class AgentSetDF(AgentContainer):
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs,
@@ -891,16 +787,36 @@ class AgentSetDF(AgentContainer):
         self,
         method_name: str,
         *args,
+        mask: MaskLike | None = None,
         return_results: bool = False,
         inplace: bool = True,
         **kwargs,
     ) -> Self | Any:
-        obj = self._get_obj(inplace)
-        method = getattr(obj, method_name)
+        masked_df = self._get_masked_df(mask)
+        # If the mask is empty, we can use the object as is
+        if len(masked_df) == len(self._agents):
+            obj = self._get_obj(inplace)
+            method = getattr(obj, method_name)
+            result = method(*args, **kwargs)
+        else:  # If the mask is not empty, we need to create a new masked AgentSetDF and concatenate the AgentSetDFs at the end
+            obj = self._get_obj(inplace=False)
+            obj._agents = masked_df
+            original_masked_index = obj._get_obj_copy(obj.index)
+            method = getattr(obj, method_name)
+            result = method(*args, **kwargs)
+            obj._concatenate_agentsets(
+                [self],
+                duplicates_allowed=True,
+                keep_first_only=True,
+                original_masked_index=original_masked_index,
+            )
+            if inplace:
+                for key, value in obj.__dict__.items():
+                    setattr(self, key, value)
+                obj = self
         if return_results:
-            return method(*args, **kwargs)
+            return result
         else:
-            method(*args, **kwargs)
             return obj
 
     @abstractmethod
@@ -925,6 +841,67 @@ class AgentSetDF(AgentContainer):
         attr_names: str | Collection[str] | None = None,
         mask: MaskLike | None = None,
     ) -> Series | DataFrame: ...
+
+    @abstractmethod
+    def remove(self, agents: IdsLike, inplace: bool = True) -> Self: ...
+
+    @abstractmethod
+    def _concatenate_agentsets(
+        self,
+        objs: Iterable[Self],
+        duplicates_allowed: bool = True,
+        keep_first_only: bool = True,
+        original_masked_index: Index | None = None,
+    ) -> Self: ...
+
+    @abstractmethod
+    def _get_bool_mask(self, mask: MaskLike) -> BoolSeries:
+        """Get the equivalent boolean mask based on the input mask
+
+        Parameters
+        ----------
+        mask : MaskLike
+
+        Returns
+        -------
+        BoolSeries
+        """
+        ...
+
+    @abstractmethod
+    def _get_masked_df(self, mask: MaskLike) -> DataFrame:
+        """Get the df filtered by the input mask
+
+        Parameters
+        ----------
+        mask : MaskLike
+
+        Returns
+        -------
+        DataFrame
+        """
+
+    @overload
+    @abstractmethod
+    def _get_obj_copy(self, obj: DataFrame) -> DataFrame: ...
+
+    @overload
+    @abstractmethod
+    def _get_obj_copy(self, obj: Series) -> Series: ...
+
+    @overload
+    @abstractmethod
+    def _get_obj_copy(self, obj: Index) -> Index: ...
+
+    @abstractmethod
+    def _get_obj_copy(
+        self, obj: DataFrame | Series | Index
+    ) -> DataFrame | Series | Index: ...
+
+    @abstractmethod
+    def _update_mask(
+        self, original_active_indices: Index, new_active_indices: Index | None = None
+    ) -> None: ...
 
     def __add__(self, other: DataFrame | Sequence[Any] | dict[str, Any]) -> Self:
         """Add agents to a new AgentSetDF through the + operator.
@@ -993,14 +970,11 @@ class AgentSetDF(AgentContainer):
         ),
     ) -> Series | DataFrame:
         attr = super().__getitem__(key)
-        assert isinstance(attr, (Series, DataFrame))
+        assert isinstance(attr, (Series, DataFrame, Index))
         return attr
 
     def __len__(self) -> int:
         return len(self._agents)
-
-    def __iter__(self) -> Iterator:
-        return iter(self._agents)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}\n {str(self._agents)}"
@@ -1033,3 +1007,6 @@ class AgentSetDF(AgentContainer):
     @property
     @abstractmethod
     def inactive_agents(self) -> DataFrame: ...
+
+    @property
+    def index(self) -> Index: ...
