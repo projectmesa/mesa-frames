@@ -13,7 +13,9 @@ The following is a performance graph showing execution time using mesa and mesa-
 
 ![Performance Graph](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot.png)
 
-(The script used to generate the graph can be found [here](https://github.com/adamamer20/mesa_frames/blob/main/docs/scripts/readme_plot.py))
+![Performance Graph without Mesa](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot_1.png)
+
+(The script used to generate the graph can be found [here](https://github.com/adamamer20/mesa_frames/blob/main/docs/scripts/readme_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
 
 ## Installation
 
