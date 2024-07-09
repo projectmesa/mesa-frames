@@ -71,7 +71,7 @@ class MoneyModel(mesa.Model):
 ### ---------- Mesa-frames implementation ---------- ###
 
 
-class MoneyAgentPolars(AgentSetPolars):
+class MoneyAgentPolarsConcise(AgentSetPolars):
     def __init__(self, n: int, model: ModelDF):
         super().__init__(model)
         ## Adding the agents to the agent set
@@ -100,11 +100,9 @@ class MoneyAgentPolars(AgentSetPolars):
 
     def give_money(self):
         ## Active agents are changed to wealthy agents
-        # 1. Using a native expression
-        # self.select(pl.col("wealth") > 0)
-        # 2. Using the __getitem__ method
+        # 1. Using the __getitem__ method
         # self.select(self["wealth"] > 0)
-        # 3. Using the fallback __getattr__ method
+        # 2. Using the fallback __getattr__ method
         self.select(self.wealth > 0)
 
         # Receiving agents are sampled (only native expressions currently supported)
@@ -113,35 +111,60 @@ class MoneyAgentPolars(AgentSetPolars):
         )
 
         # Wealth of wealthy is decreased by 1
-        # 1. Using a native expression
-        """self.agents = self.agents.with_columns(
-            wealth=pl.when(pl.col("unique_id").is_in(self.active_agents["unique_id"]))
-            .then(pl.col("wealth") - 1)
-            .otherwise(pl.col("wealth"))
-        )"""
-        # 2. Using the __setitem__ method with self.active_agents mask
+        # 1. Using the __setitem__ method with self.active_agents mask
         # self[self.active_agents, "wealth"] -= 1
-        # 3. Using the __setitem__ method with "active" mask
+        # 2. Using the __setitem__ method with "active" mask
         self["active", "wealth"] -= 1
 
         # Compute the income of the other agents (only native expressions currently supported)
         new_wealth = other_agents.group_by("unique_id").len()
 
         # Add the income to the other agents
-        # 1. Using native expressions
-        """self.agents = self.agents.join(new_wealth, on="unique_id", how="left").fill_null(
-            0
-        ).with_columns(wealth=pl.col("wealth") + pl.col("len")).drop("len")"""
-
-        # 2. Using the set method
+        # 1. Using the set method
         """self.set(
             attr_names="wealth",
             values=pl.col("wealth") + new_wealth["len"],
             mask=new_wealth,
         )"""
 
-        # 3. Using the __setitem__ method
+        # 2. Using the __setitem__ method
         self[new_wealth, "wealth"] += new_wealth["len"]
+
+
+class MoneyAgentPolarsNative(AgentSetPolars):
+    def __init__(self, n: int, model: ModelDF):
+        super().__init__(model)
+        self += pl.DataFrame(
+            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
+        )
+
+    def step(self) -> None:
+        self.do("give_money")
+
+    def give_money(self):
+        ## Active agents are changed to wealthy agents
+        self.select(pl.col("wealth") > 0)
+
+        other_agents = self.agents.sample(
+            n=len(self.active_agents), with_replacement=True
+        )
+
+        # Wealth of wealthy is decreased by 1
+        self.agents = self.agents.with_columns(
+            wealth=pl.when(pl.col("unique_id").is_in(self.active_agents["unique_id"]))
+            .then(pl.col("wealth") - 1)
+            .otherwise(pl.col("wealth"))
+        )
+
+        new_wealth = other_agents.group_by("unique_id").len()
+
+        # Add the income to the other agents
+        self.agents = (
+            self.agents.join(new_wealth, on="unique_id", how="left")
+            .fill_null(0)
+            .with_columns(wealth=pl.col("wealth") + pl.col("len"))
+            .drop("len")
+        )
 
 
 class MoneyAgentPandas(AgentSetPandas):
@@ -213,8 +236,13 @@ class MoneyModelDF(ModelDF):
             self.step()
 
 
-def mesa_frames_polars(n_agents: int) -> None:
-    model = MoneyModelDF(n_agents, MoneyAgentPolars)
+def mesa_frames_polars_concise(n_agents: int) -> None:
+    model = MoneyModelDF(n_agents, MoneyAgentPolarsConcise)
+    model.run_model(100)
+
+
+def mesa_frames_polars_native(n_agents: int) -> None:
+    model = MoneyModelDF(n_agents, MoneyAgentPolarsNative)
     model.run_model(100)
 
 
@@ -226,17 +254,28 @@ def mesa_frames_pandas(n_agents: int) -> None:
 def main():
     sns.set_theme(style="whitegrid")
 
+    labels = [
+        # "mesa",
+        "mesa-frames (pl concise)",
+        "mesa-frames (pl native)",
+        "mesa-frames (pandas)",
+    ]
     out = perfplot.bench(
         setup=lambda n: n,
-        kernels=[mesa_implementation, mesa_frames_polars, mesa_frames_pandas],
-        labels=["mesa", "mesa-frames (polars)", "mesa-frames (pandas)"],
+        kernels=[
+            # mesa_implementation,
+            mesa_frames_polars_concise,
+            mesa_frames_polars_native,
+            mesa_frames_pandas,
+        ],
+        labels=labels,
         n_range=[k for k in range(100, 10000, 1000)],
         xlabel="Number of agents",
         equality_check=None,
-        title="100 steps of the Boltzmann Wealth model: mesa vs mesa-frames (polars) vs mesa-frames (pandas)",
+        title="100 steps of the Boltzmann Wealth model:\n" + " vs ".join(labels),
     )
     plt.ylabel("Execution time (s)")
-    out.save("docs/images/readme_plot_1.png")
+    out.save("docs/images/readme_plot_2.png")
 
 
 if __name__ == "__main__":
