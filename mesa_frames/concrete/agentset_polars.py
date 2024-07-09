@@ -1,12 +1,13 @@
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
+import geopolars as gpl
 import polars as pl
 from polars._typing import IntoExpr
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
-from mesa_frames.types import PolarsIdsLike, PolarsMaskLike
+from mesa_frames.types_ import PolarsIdsLike, PolarsMaskLike
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.agentset_pandas import AgentSetPandas
@@ -136,7 +137,14 @@ class AgentSetPolars(AgentSetDF):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
-        if isinstance(agents, pl.DataFrame):
+        if isinstance(agents, gpl.GeoDataFrame):
+            try:
+                self.model.space
+            except ValueError:
+                raise ValueError(
+                    "You are adding agents with a GeoDataFrame but haven't set model.space. Set it before adding agents with a GeoDataFrame or add agents with a standard DataFrame"
+                )
+        if isinstance(agents, gpl.GeoDataFrame, pl.DataFrame):
             if "unique_id" not in agents.columns:
                 raise KeyError("DataFrame must have a unique_id column.")
             new_agents = agents

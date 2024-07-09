@@ -1,16 +1,19 @@
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
+import geopandas as gpd
 import pandas as pd
 import polars as pl
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.agentset_polars import AgentSetPolars
-from mesa_frames.types import PandasIdsLike, PandasMaskLike
+from mesa_frames.types_ import PandasIdsLike, PandasMaskLike
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
+
+from mesa_frames.concrete.space import SpaceDF
 
 
 class AgentSetPandas(AgentSetDF):
@@ -108,11 +111,18 @@ class AgentSetPandas(AgentSetDF):
 
     def add(
         self,
-        agents: pd.DataFrame | Sequence[Any] | dict[str, Any],
+        agents: pd.DataFrame | gpd.GeoDataFrame | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
-        if isinstance(agents, pd.DataFrame):
+        if isinstance(agents, gpd.GeoDataFrame):
+            try:
+                self.model.space
+            except ValueError:
+                raise ValueError(
+                    "You are adding agents with a GeoDataFrame but haven't set model.space. Set it before adding agents with a GeoDataFrame or add agents with a standard DataFrame"
+                )
+        if isinstance(agents, (pd.DataFrame, gpd.GeoDataFrame)):
             new_agents = agents
             if "unique_id" != agents.index.name:
                 try:
@@ -311,6 +321,12 @@ class AgentSetPandas(AgentSetDF):
             if not ids_to_remove.empty:
                 self.remove(ids_to_remove, inplace=True)
         return self
+
+    def _convert_to_geobject(self, space: SpaceDF, inplace: bool = True) -> Self:
+        obj = self._get_obj(inplace)
+
+        obj._agents = gpd.GeoDataFrame(obj._agents, geometry=None)
+        return obj
 
     def _get_bool_mask(
         self,

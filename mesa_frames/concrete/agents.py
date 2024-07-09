@@ -1,14 +1,13 @@
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import polars as pl
 from typing_extensions import Any, Self, overload
 
-from typing import TYPE_CHECKING
-
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
-from mesa_frames.types import (
+from mesa_frames.concrete.space import SpaceDF
+from mesa_frames.types_ import (
     AgnosticMask,
     BoolSeries,
     DataFrame,
@@ -317,6 +316,12 @@ class AgentsDF(AgentContainer):
             agentset.sort(by=by, ascending=ascending, inplace=inplace, **kwargs)
             for agentset in obj._agentsets
         ]
+        return obj
+
+    def _convert_to_geobject(self, space: SpaceDF, inplace: bool = True) -> Self:
+        obj = self._get_obj(inplace)
+        for agentset in obj._agentsets:
+            agentset._convert_to_geobject(space, inplace=True)
         return obj
 
     def _check_ids_presence(self, other: list[AgentSetDF]) -> pl.DataFrame:

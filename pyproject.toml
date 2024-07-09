@@ -19,10 +19,13 @@ dependencies = [
 pandas = [
   "pandas~=2.2",
   "pyarrow",
+  "geopandas"
 ]
 polars = [
   "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
+  "geopolars"
 ]
+
 dev = [
   "mesa_frames[pandas,polars]",
   "pytest",
@@ -30,6 +33,9 @@ dev = [
   "typeguard",
   "mesa",
 ]
+
+[tool.hatch.envs.dev]
+features = ["dev"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["mesa_frames"]

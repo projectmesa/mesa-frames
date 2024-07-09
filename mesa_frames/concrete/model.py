@@ -5,6 +5,7 @@ import numpy as np
 from typing_extensions import Any
 
 from mesa_frames.concrete.agents import AgentsDF
+from mesa_frames.concrete.space import SpaceDF
 
 if TYPE_CHECKING:
     from mesa_frames.abstract.agents import AgentSetDF
@@ -59,6 +60,7 @@ class ModelDF:
     _seed: int | Sequence[int]
     running: bool
     _agents: AgentsDF
+    _space: SpaceDF | None
 
     def __new__(
         cls, seed: int | Sequence[int] | None = None, *args: Any, **kwargs: Any
@@ -147,3 +149,14 @@ class ModelDF:
     @property
     def agent_types(self) -> list[type]:
         return [agent.__class__ for agent in self._agents._agentsets]
+
+    @property
+    def space(self) -> SpaceDF:
+        if not self._space:
+            raise ValueError("You haven't set the space for the model. Use model.space = your_space")
+        return self._space
+
+    @space.setter
+    def space(self, space: SpaceDF) -> None:
+        self._space = space
+        self._agents._convert_to_geobject(self._space, inplace=True)
