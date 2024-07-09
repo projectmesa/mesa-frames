@@ -129,11 +129,9 @@ class MoneyAgentPolars(AgentSetPolars):
 
         # Add the income to the other agents
         # 1. Using native expressions
-        """self.agents = self.agents.with_columns(
-            pl.when(pl.col("unique_id").is_in(new_wealth["unique_id"]))
-            .then(pl.col("wealth") + new_wealth["wealth"])
-            .otherwise(pl.col("wealth"))
-        )"""
+        """self.agents = self.agents.join(new_wealth, on="unique_id", how="left").fill_null(
+            0
+        ).with_columns(wealth=pl.col("wealth") + pl.col("len")).drop("len")"""
 
         # 2. Using the set method
         """self.set(
