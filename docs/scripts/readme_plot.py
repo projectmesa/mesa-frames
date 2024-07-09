@@ -159,17 +159,12 @@ class MoneyAgentPolarsNative(AgentSetPolars):
         new_wealth = other_agents.group_by("unique_id").len()
 
         # Add the income to the other agents
-        self.set(
-            attr_names="wealth",
-            values=pl.col("wealth") + new_wealth["len"],
-            mask=new_wealth,
+        self.agents = (
+            self.agents.join(new_wealth, on="unique_id", how="left")
+            .fill_null(0)
+            .with_columns(wealth=pl.col("wealth") + pl.col("len"))
+            .drop("len")
         )
-        # TODO: the native expression here doesn't work yet
-        # self.agents = self.agents.with_columns(
-        #     pl.when(pl.col("unique_id").is_in(new_wealth["unique_id"]))
-        #     .then(pl.col("wealth") + new_wealth["wealth"])
-        #     .otherwise(pl.col("wealth"))
-        # )
 
 
 class MoneyAgentPandas(AgentSetPandas):
