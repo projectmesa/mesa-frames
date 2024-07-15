@@ -6,7 +6,7 @@ import pytest
 
 from mesa_frames import AgentsDF, ModelDF
 from mesa_frames.abstract.agents import AgentSetDF
-from mesa_frames.types import MaskLike
+from mesa_frames.types_ import MaskLike
 from tests.test_agentset_pandas import (
     ExampleAgentSetPandas,
     fix1_AgentSetPandas,
