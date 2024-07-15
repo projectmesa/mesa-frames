@@ -21,10 +21,12 @@ pandas = [
   "pyarrow",
 ]
 polars = [
-  "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
+  "polars>=1.0.0", #polars._typing (see mesa_frames.types_) added in 1.0.0
 ]
 dev = [
   "mesa_frames[pandas,polars]",
+  "perfplot", #readme_script
+  "seaborn", #readme_script
   "pytest",
   "pytest-cov",
   "typeguard",

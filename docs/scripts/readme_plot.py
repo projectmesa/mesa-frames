@@ -1,3 +1,5 @@
+from random import choice, shuffle
+
 import matplotlib.pyplot as plt
 import mesa
 import numpy as np
@@ -28,7 +30,7 @@ class MoneyAgent(mesa.Agent):
     def step(self):
         # Verify agent has some wealth
         if self.wealth > 0:
-            other_agent = self.random.choice(self.model.schedule.agents)
+            other_agent = choice(self.model.agents)
             if other_agent is not None:
                 other_agent.wealth += 1
                 self.wealth -= 1
@@ -41,19 +43,13 @@ class MoneyModel(mesa.Model):
         super().__init__()
         self.num_agents = N
         # Create scheduler and assign it to the model
-        self.schedule = mesa.time.RandomActivation(self)
-
-        # Create agents
-        for i in range(self.num_agents):
-            a = MoneyAgent(i, self)
-            # Add the agent to the scheduler
-            self.schedule.add(a)
+        self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
 
     def step(self):
         """Advance the model by one step."""
-
-        # The model's step will go here for now this will call the step method of each agent and print the agent's unique_id
-        self.schedule.step()
+        shuffle(self.agents)
+        for agent in self.agents:
+            agent.step()
 
     def run_model(self, n_steps) -> None:
         for _ in range(n_steps):
@@ -176,7 +172,9 @@ class MoneyAgentPandasConcise(AgentSetPandas):
         # 2. Adding the dataframe with add
         # self.add(pd.DataFrame({"unique_id": np.arange(n), "wealth": np.ones(n)}))
         # 3. Adding the dataframe with __iadd__
-        self += pd.DataFrame({"unique_id": np.arange(n), "wealth": np.ones(n)})
+        self += pd.DataFrame(
+            {"unique_id": np.arange(n, dtype="int64"), "wealth": np.ones(n)}
+        )
 
     def step(self) -> None:
         # The give_money method is called
@@ -212,7 +210,9 @@ class MoneyAgentPandasNative(AgentSetPandas):
     def __init__(self, n: int, model: ModelDF) -> None:
         super().__init__(model)
         ## Adding the agents to the agent set
-        self += pd.DataFrame({"unique_id": np.arange(n), "wealth": np.ones(n)})
+        self += pd.DataFrame(
+            {"unique_id": np.arange(n, dtype="int64"), "wealth": np.ones(n)}
+        )
 
     def step(self) -> None:
         # The give_money method is called
@@ -274,33 +274,68 @@ def mesa_frames_pandas_native(n_agents: int) -> None:
     model.run_model(100)
 
 
+def plot_and_print_benchmark(labels, kernels, n_range, title, image_path):
+    out = perfplot.bench(
+        setup=lambda n: n,
+        kernels=kernels,
+        labels=labels,
+        n_range=n_range,
+        xlabel="Number of agents",
+        equality_check=None,
+        title=title,
+    )
+
+    plt.ylabel("Execution time (s)")
+    out.save(image_path)
+
+    print("\nExecution times:")
+    for i, label in enumerate(labels):
+        print(f"---------------\n{label}:")
+        for n, t in zip(out.n_range, out.timings_s[i]):
+            print(f"  Number of agents: {n}, Time: {t:.2f} seconds")
+        print("---------------")
+
+
 def main():
     sns.set_theme(style="whitegrid")
 
-    labels = [
-        # "mesa",
+    labels_0 = [
+        "mesa",
         "mesa-frames (pl concise)",
         "mesa-frames (pl native)",
         "mesa-frames (pd concise)",
         "mesa-frames (pd native)",
     ]
-    out = perfplot.bench(
-        setup=lambda n: n,
-        kernels=[
-            # mesa_implementation,
-            mesa_frames_polars_concise,
-            mesa_frames_polars_native,
-            mesa_frames_pandas_concise,
-            mesa_frames_pandas_native,
-        ],
-        labels=labels,
-        n_range=[k for k in range(100, 10000, 1000)],
-        xlabel="Number of agents",
-        equality_check=None,
-        title="100 steps of the Boltzmann Wealth model:\n" + " vs ".join(labels),
-    )
-    plt.ylabel("Execution time (s)")
-    out.save("docs/images/readme_plot_2.png")
+    kernels_0 = [
+        mesa_implementation,
+        mesa_frames_polars_concise,
+        mesa_frames_polars_native,
+        mesa_frames_pandas_concise,
+        mesa_frames_pandas_native,
+    ]
+    n_range_0 = [k for k in range(0, 100001, 10000)]
+    title_0 = "100 steps of the Boltzmann Wealth model:\n" + " vs ".join(labels_0)
+    image_path_0 = "docs/images/readme_plot_0.png"
+
+    plot_and_print_benchmark(labels_0, kernels_0, n_range_0, title_0, image_path_0)
+
+    labels_1 = [
+        "mesa-frames (pl concise)",
+        "mesa-frames (pl native)",
+        "mesa-frames (pd concise)",
+        "mesa-frames (pd native)",
+    ]
+    kernels_1 = [
+        mesa_frames_polars_concise,
+        mesa_frames_polars_native,
+        mesa_frames_pandas_concise,
+        mesa_frames_pandas_native,
+    ]
+    n_range_1 = [k for k in range(100000, 1000001, 100000)]
+    title_1 = "100 steps of the Boltzmann Wealth model:\n" + " vs ".join(labels_1)
+    image_path_1 = "docs/images/readme_plot_1.png"
+
+    plot_and_print_benchmark(labels_1, kernels_1, n_range_1, title_1, image_path_1)
 
 
 if __name__ == "__main__":
