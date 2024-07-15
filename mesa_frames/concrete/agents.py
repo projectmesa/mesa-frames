@@ -6,7 +6,6 @@ import polars as pl
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
-from mesa_frames.concrete.space import SpaceDF
 from mesa_frames.types_ import (
     AgnosticMask,
     BoolSeries,
