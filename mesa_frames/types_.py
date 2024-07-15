@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from typing import Literal, Sequence
 
 import geopandas as gpd
 import geopolars as gpl
@@ -17,18 +18,20 @@ ArrayLike = pd.api.extensions.ExtensionArray | ndarray
 AnyArrayLike = ArrayLike | pd.Index | pd.Series
 PandasMaskLike = AgnosticMask | pd.Series | pd.DataFrame | AnyArrayLike
 PandasIdsLike = AgnosticIds | pd.Series | pd.Index
+PandasGridCapacity = ndarray
 
 ###----- Polars Types -----###
 
 PolarsMaskLike = AgnosticMask | pl.Expr | pl.Series | pl.DataFrame | Collection[int]
 PolarsIdsLike = AgnosticIds | pl.Series
+PolarsGridCapacity = list[pl.Expr]
 
 ###----- Generic -----###
 
-GeoDataFame = gpd.GeoDataFrame | gpl.GeoDataFrame
+GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 GeoSeries = gpd.GeoSeries | gpl.GeoSeries
-DataFrame = pd.DataFrame | pl.DataFrame | GeoDataFame
-Series = pd.Series | pl.Series | GeoSeries
+DataFrame = pd.DataFrame | pl.DataFrame
+Series = pd.Series | pl.Series
 Index = pd.Index | pl.Series
 BoolSeries = pd.Series | pl.Series
 MaskLike = AgnosticMask | PandasMaskLike | PolarsMaskLike
@@ -38,25 +41,33 @@ IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike
 ###----- Time ------###
 TimeT = float | int
 
-
 ###----- Space -----###
-Coordinates = tuple[int, int] | tuple[float, float]
-Node_ID = int
-AgnosticPositionsLike = (
-    Sequence[Coordinates] | Sequence[Node_ID] | Coordinates | Node_ID
+
+NetworkCoordinate = int | DataFrame
+
+GridCoordinate = int | Sequence[int] | DataFrame
+
+DiscreteCoordinate = NetworkCoordinate | GridCoordinate
+ContinousCoordinate = float | Sequence[float] | DataFrame
+
+SpaceCoordinate = DiscreteCoordinate | ContinousCoordinate
+
+
+NetworkCoordinates = NetworkCoordinate | Collection[NetworkCoordinate]
+GridCoordinates = (
+    GridCoordinate | Sequence[int | slice | Sequence[int]] | Collection[GridCoordinate]
 )
-PolarsPositionsLike = (
-    AgnosticPositionsLike
-    | pl.DataFrame
-    | tuple[pl.Series, pl.Series]
-    | gpl.GeoSeries
-    | pl.Series
+
+DiscreteCoordinates = NetworkCoordinates | GridCoordinates
+ContinousCoordinates = (
+    ContinousCoordinate
+    | Sequence[float | Sequence[float]]
+    | Collection[ContinousCoordinate]
 )
-PandasPositionsLike = (
-    AgnosticPositionsLike
-    | pd.DataFrame
-    | tuple[pd.Series, pd.Series]
-    | gpd.GeoSeries
-    | pd.Series
-)
-PositionsLike = AgnosticPositionsLike | PolarsPositionsLike | PandasPositionsLike
+
+SpaceCoordinates = DiscreteCoordinates | ContinousCoordinates
+
+GridCapacity = PandasGridCapacity | PolarsGridCapacity
+NetworkCapacity = DataFrame
+
+DiscreteSpaceCapacity = GridCapacity | NetworkCapacity
