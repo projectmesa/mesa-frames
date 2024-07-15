@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 from numpy import ndarray
-from typing_extensions import Literal, Sequence
+from typing import Literal, Sequence
 
 ####----- Agnostic Types -----####
 AgnosticMask = Literal["all", "active"] | None

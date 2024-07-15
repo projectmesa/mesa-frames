@@ -1,5 +1,6 @@
 import pandas as pd
-from typing_extensions import Any, Collection, Iterator, Literal, Sequence
+from typing_extensions import Any
+from typing import Collection, Iterator, Literal, Sequence
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import PandasMaskLike

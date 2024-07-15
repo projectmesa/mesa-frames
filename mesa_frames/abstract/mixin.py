@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from copy import copy, deepcopy
 
-from typing_extensions import Any, Collection, Iterator, Literal, Self, Sequence
+from typing_extensions import Any, Self
+from typing import Collection, Iterator, Literal, Sequence
 
 from mesa_frames.types_ import BoolSeries, DataFrame, MaskLike, Series
 
