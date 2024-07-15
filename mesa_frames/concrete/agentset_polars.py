@@ -6,7 +6,7 @@ from polars._typing import IntoExpr
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
-from mesa_frames.types import PolarsIdsLike, PolarsMaskLike
+from mesa_frames.types_ import PolarsIdsLike, PolarsMaskLike
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.agentset_pandas import AgentSetPandas
