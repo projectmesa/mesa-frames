@@ -1,7 +1,6 @@
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
-import geopandas as gpd
 import pandas as pd
 import polars as pl
 from typing_extensions import Any, Self, overload
