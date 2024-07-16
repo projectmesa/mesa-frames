@@ -13,9 +13,10 @@ from numpy.random import Generator
 from pyproj import CRS
 from typing_extensions import Any, Self
 
+from typing import TYPE_CHECKING
+
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
-from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types_ import (
     DataFrame,
     DiscreteCoordinate,
@@ -31,17 +32,20 @@ from mesa_frames.types_ import (
 
 ESPG = int
 
+if TYPE_CHECKING:
+    from mesa_frames.concrete.model import ModelDF
+
 
 class SpaceDF(CopyMixin, DataFrameMixin):
-    _model: ModelDF
+    _model: "ModelDF"
     _agents: DataFrame | GeoDataFrame
 
-    def __init__(self, model: ModelDF) -> None:
+    def __init__(self, model: "ModelDF") -> None:
         """Create a new CellSet object.
 
         Parameters
         ----------
-        model : ModelDF
+        model : 'ModelDF'
 
         Returns
         -------
@@ -470,12 +474,12 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return self._agents
 
     @property
-    def model(self) -> ModelDF:
+    def model(self) -> "ModelDF":
         """The model to which the space belongs.
 
         Returns
         -------
-        ModelDF
+        'ModelDF'
         """
         self._model
 
@@ -501,7 +505,7 @@ class DiscreteSpaceDF(SpaceDF):
 
     def __init__(
         self,
-        model: ModelDF,
+        model: "ModelDF",
         capacity: int | None = None,
     ):
         super().__init__(model)
@@ -832,7 +836,7 @@ class GridDF(DiscreteSpaceDF):
 
     def __init__(
         self,
-        model: ModelDF,
+        model: "ModelDF",
         dimensions: Sequence[int],
         torus: bool = False,
         capacity: int | None = None,
@@ -844,7 +848,7 @@ class GridDF(DiscreteSpaceDF):
 
         Parameters
         ----------
-        model : ModelDF
+        model : 'ModelDF'
             The model selfect to which the grid belongs
         dimensions: Sequence[int]
             The dimensions of the grid
@@ -1143,12 +1147,14 @@ class ContinousSpaceDF(GeoSpaceDF):
     _agents: gpd.GeoDataFrame
     _limits: Sequence[float]
 
-    def __init__(self, model: ModelDF, ref_sys: CRS | ESPG | str | None = None) -> None:
+    def __init__(
+        self, model: "ModelDF", ref_sys: CRS | ESPG | str | None = None
+    ) -> None:
         """Create a new CellSet object.
 
         Parameters
         ----------
-        model : ModelDF
+        model : 'ModelDF'
         ref_sys : CRS | ESPG | str | None, optional
             Coordinate Reference System. ESPG is an integer, by default None
 
@@ -1218,7 +1224,7 @@ class ContinousSpaceDF(GeoSpaceDF):
 class MultiSpaceDF(SpaceDF):
     _spaces: list[SpaceDF]
 
-    def __init__(self, model: ModelDF) -> None:
+    def __init__(self, model: "ModelDF") -> None:
         super().__init__(model)
         self._spaces = []
 
