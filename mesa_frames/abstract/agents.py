@@ -14,7 +14,6 @@ from mesa_frames.types_ import BoolSeries, DataFrame, IdsLike, Index, MaskLike, 
 if TYPE_CHECKING:
     from mesa_frames.concrete.agents import AgentSetDF
     from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.space import SpaceDF
 
 
 class AgentContainer(CopyMixin):
@@ -359,23 +358,6 @@ class AgentContainer(CopyMixin):
         Self
             A new or updated AgentContainer.
         """
-
-    @abstractmethod
-    def _convert_to_geobject(self, space: SpaceDF, inplace: bool = True) -> Self:
-        """Converts the DataFrame(s) of AgentContainer to GeoDataFrame(s).
-
-        Parameters
-        ----------
-        space : SpaceDF
-            The space to add to the AgentContainer. Determines the geometry type.
-        inplace : bool
-            Whether to add the space column in place.
-
-        Returns
-        -------
-        Self
-        """
-        ...
 
     def __add__(self, other) -> Self:
         return self.add(agents=other, inplace=False)

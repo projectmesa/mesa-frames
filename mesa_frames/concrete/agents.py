@@ -317,12 +317,6 @@ class AgentsDF(AgentContainer):
         ]
         return obj
 
-    def _convert_to_geobject(self, space: SpaceDF, inplace: bool = True) -> Self:
-        obj = self._get_obj(inplace)
-        for agentset in obj._agentsets:
-            agentset._convert_to_geobject(space, inplace=True)
-        return obj
-
     def _check_ids_presence(self, other: list[AgentSetDF]) -> pl.DataFrame:
         """Check if the IDs of the agents to be added are unique.
 

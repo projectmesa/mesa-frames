@@ -153,10 +153,11 @@ class ModelDF:
     @property
     def space(self) -> SpaceDF:
         if not self._space:
-            raise ValueError("You haven't set the space for the model. Use model.space = your_space")
+            raise ValueError(
+                "You haven't set the space for the model. Use model.space = your_space"
+            )
         return self._space
 
     @space.setter
     def space(self, space: SpaceDF) -> None:
         self._space = space
-        self._agents._convert_to_geobject(self._space, inplace=True)
