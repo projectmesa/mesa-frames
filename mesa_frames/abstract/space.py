@@ -38,46 +38,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         """
         self._model = model
 
-    def iter_neighbors(
-        self,
-        radius: int | float | Sequence[int] | Sequence[float],
-        pos: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        include_center: bool = False,
-    ) -> Iterator[dict[str, Any]]:
-        """Returns an iterator over the neighboring agents from the given positions or agents according to specified radiuses.
-        You should specify either positions (pos) or agents, not both and they must have the same length.
-        NOTE: You should avoid iterating as much as possible and use vectorized operations instead.
-
-        Parameters
-        ----------
-        radius : int | float | Sequence[int] | Sequence[float]
-            The radius(es) of the neighborhood
-        pos : SpaceCoordinate | SpaceCoordinates | None, optional
-            The positions to get the neighbors from, by default None
-        agents : int | Sequence[int] | None, optional
-            The agent(s) to get the neighbors from, by default None
-        include_center : bool, optional
-            If the position or agent should be included in the result, by default False
-
-        Yields
-        ------
-        Iterator[dict[str, Any]]
-            An iterator over neighboring agents where each agent is a dictionary with:
-            - Attributes of the agent (the columns of its AgentSetDF dataframe)
-            - Keys which are suffixed by '_center' to indicate the original center (eg. ['dim_0_center', 'dim_1_center', ...] for Grids, ['node_id_center', 'edge_id_center'] for Networks, 'agent_id_center' for agents)
-
-        Raises
-        ------
-        ValueError
-            If both pos and agents are None or if both pos and agents are not None.
-        """
-        return self._df_iterator(
-            self.get_neighbors(
-                radius=radius, pos=pos, agents=agents, include_center=include_center
-            )
-        )
-
     def iter_directions(
         self,
         pos0: SpaceCoordinate | SpaceCoordinates | None = None,
@@ -143,6 +103,46 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         """
         return self._df_iterator(
             self.get_distances(pos0=pos0, pos1=pos1, agents0=agents0, agents1=agents1)
+        )
+
+    def iter_neighbors(
+        self,
+        radius: int | float | Sequence[int] | Sequence[float],
+        pos: SpaceCoordinate | SpaceCoordinates | None = None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        include_center: bool = False,
+    ) -> Iterator[dict[str, Any]]:
+        """Returns an iterator over the neighboring agents from the given positions or agents according to specified radiuses.
+        You should specify either positions (pos) or agents, not both and they must have the same length.
+        NOTE: You should avoid iterating as much as possible and use vectorized operations instead.
+
+        Parameters
+        ----------
+        radius : int | float | Sequence[int] | Sequence[float]
+            The radius(es) of the neighborhood
+        pos : SpaceCoordinate | SpaceCoordinates | None, optional
+            The positions to get the neighbors from, by default None
+        agents : int | Sequence[int] | None, optional
+            The agent(s) to get the neighbors from, by default None
+        include_center : bool, optional
+            If the position or agent should be included in the result, by default False
+
+        Yields
+        ------
+        Iterator[dict[str, Any]]
+            An iterator over neighboring agents where each agent is a dictionary with:
+            - Attributes of the agent (the columns of its AgentSetDF dataframe)
+            - Keys which are suffixed by '_center' to indicate the original center (eg. ['dim_0_center', 'dim_1_center', ...] for Grids, ['node_id_center', 'edge_id_center'] for Networks, 'agent_id_center' for agents)
+
+        Raises
+        ------
+        ValueError
+            If both pos and agents are None or if both pos and agents are not None.
+        """
+        return self._df_iterator(
+            self.get_neighbors(
+                radius=radius, pos=pos, agents=agents, include_center=include_center
+            )
         )
 
     def random_agents(
