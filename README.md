@@ -11,7 +11,7 @@ DataFrames are optimized for simultaneous operations through [SIMD processing](h
 
 The following is a performance graph showing execution time using mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
 
-![Performance Graph](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot.png)
+![Performance Graph](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot_0.png)
 
 ![Performance Graph without Mesa](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot_1.png)
 
