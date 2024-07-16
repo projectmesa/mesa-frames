@@ -28,6 +28,8 @@ polars = [
 
 dev = [
   "mesa_frames[pandas,polars]",
+  "perfplot", #readme_script
+  "seaborn", #readme_script
   "pytest",
   "pytest-cov",
   "typeguard",

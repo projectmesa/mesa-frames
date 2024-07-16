@@ -1,6 +1,7 @@
 import polars as pl
 from typing_extensions import Any
-from typing import Collection, Iterator, Literal, Sequence
+from typing import Literal
+from collections.abc import Collection, Iterator, Sequence
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import PolarsMaskLike

@@ -1,7 +1,6 @@
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
-import geopandas as gpd
 import pandas as pd
 import polars as pl
 from typing_extensions import Any, Self, overload
@@ -12,7 +11,7 @@ from mesa_frames.concrete.polars.agentset import AgentSetPolars
 from mesa_frames.types_ import PandasIdsLike, PandasMaskLike
 
 if TYPE_CHECKING:
-    pass
+    from mesa_frames.concrete.model import ModelDF
 
 
 class AgentSetPandas(AgentSetDF, PandasMixin):
@@ -99,20 +98,22 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         Get the string representation of the AgentSetPandas.
     """
 
+    def __init__(self, model: "ModelDF") -> None:
+        self._model = model
+        self._agents = (
+            pd.DataFrame(columns=["unique_id"])
+            .astype({"unique_id": "int64"})
+            .set_index("unique_id")
+        )
+        self._mask = pd.Series(True, index=self._agents.index, dtype=pd.BooleanDtype())
+
     def add(
         self,
-        agents: pd.DataFrame | gpd.GeoDataFrame | Sequence[Any] | dict[str, Any],
+        agents: pd.DataFrame | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
-        if isinstance(agents, gpd.GeoDataFrame):
-            try:
-                self.model.space
-            except ValueError:
-                raise ValueError(
-                    "You are adding agents with a GeoDataFrame but haven't set model.space. Set it before adding agents with a GeoDataFrame or add agents with a standard DataFrame"
-                )
-        if isinstance(agents, (pd.DataFrame, gpd.GeoDataFrame)):
+        if isinstance(agents, pd.DataFrame):
             new_agents = agents
             if "unique_id" != agents.index.name:
                 try:
