@@ -109,7 +109,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
 
     def add(
         self,
-        agents: pd.DataFrame | gpd.GeoDataFrame | Sequence[Any] | dict[str, Any],
+        agents: pd.DataFrame | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
