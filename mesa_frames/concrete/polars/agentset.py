@@ -1,7 +1,6 @@
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
-import geopolars as gpl
 import polars as pl
 from polars._typing import IntoExpr
 from typing_extensions import Any, Self, overload
@@ -11,6 +10,7 @@ from mesa_frames.concrete.polars.mixin import PolarsMixin
 from mesa_frames.types_ import PolarsIdsLike, PolarsMaskLike
 
 if TYPE_CHECKING:
+    from mesa_frames.concrete.model import ModelDF
     from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
 
@@ -101,6 +101,22 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     """
 
+    def __init__(self, model: "ModelDF") -> None:
+        """Initialize a new AgentSetPolars.
+
+        Parameters
+        ----------
+        model : ModelDF
+            The model that the agent set belongs to.
+
+        Returns
+        -------
+        None
+        """
+        self._model = model
+        self._agents = pl.DataFrame(schema={"unique_id": pl.Int64})
+        self._mask = pl.repeat(True, len(self._agents), dtype=pl.Boolean, eager=True)
+
     def add(
         self,
         agents: pl.DataFrame | Sequence[Any] | dict[str, Any],
@@ -121,14 +137,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
-        if isinstance(agents, gpl.GeoDataFrame):
-            try:
-                self.model.space
-            except ValueError:
-                raise ValueError(
-                    "You are adding agents with a GeoDataFrame but haven't set model.space. Set it before adding agents with a GeoDataFrame or add agents with a standard DataFrame"
-                )
-        if isinstance(agents, gpl.GeoDataFrame, pl.DataFrame):
+        if isinstance(agents, pl.DataFrame):
             if "unique_id" not in agents.columns:
                 raise KeyError("DataFrame must have a unique_id column.")
             new_agents = agents
@@ -301,7 +310,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         return obj
 
     def to_pandas(self) -> "AgentSetPandas":
-        from mesa_frames.concrete.pandas.agentset_pandas import AgentSetPandas
+        from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
         new_obj = AgentSetPandas(self._model)
         new_obj._agents = self._agents.to_pandas()
@@ -376,6 +385,80 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             if not ids_to_remove.is_empty():
                 self.remove(ids_to_remove, inplace=True)
         return self
+
+    def _get_bool_mask(
+        self,
+        mask: PolarsMaskLike = None,
+    ) -> pl.Series | pl.Expr:
+        def bool_mask_from_series(mask: pl.Series) -> pl.Series:
+            if (
+                isinstance(mask, pl.Series)
+                and mask.dtype == pl.Boolean
+                and len(mask) == len(self._agents)
+            ):
+                return mask
+            return self._agents["unique_id"].is_in(mask)
+
+        if isinstance(mask, pl.Expr):
+            return mask
+        elif isinstance(mask, pl.Series):
+            return bool_mask_from_series(mask)
+        elif isinstance(mask, pl.DataFrame):
+            if "unique_id" in mask.columns:
+                return bool_mask_from_series(mask["unique_id"])
+            elif len(mask.columns) == 1 and mask.dtypes[0] == pl.Boolean:
+                return bool_mask_from_series(mask[mask.columns[0]])
+            else:
+                raise KeyError(
+                    "DataFrame must have a 'unique_id' column or a single boolean column."
+                )
+        elif mask is None or mask == "all":
+            return pl.repeat(True, len(self._agents))
+        elif mask == "active":
+            return self._mask
+        elif isinstance(mask, Collection):
+            return bool_mask_from_series(pl.Series(mask))
+        else:
+            return bool_mask_from_series(pl.Series([mask]))
+
+    def _get_masked_df(
+        self,
+        mask: PolarsMaskLike = None,
+    ) -> pl.DataFrame:
+        if (isinstance(mask, pl.Series) and mask.dtype == pl.Boolean) or isinstance(
+            mask, pl.Expr
+        ):
+            return self._agents.filter(mask)
+        elif isinstance(mask, pl.DataFrame):
+            if not mask["unique_id"].is_in(self._agents["unique_id"]).all():
+                raise KeyError(
+                    "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
+                )
+            return mask.select("unique_id").join(
+                self._agents, on="unique_id", how="left"
+            )
+        elif isinstance(mask, pl.Series):
+            if not mask.is_in(self._agents["unique_id"]).all():
+                raise KeyError(
+                    "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
+                )
+            mask_df = mask.to_frame("unique_id")
+            return mask_df.join(self._agents, on="unique_id", how="left")
+        elif mask is None or mask == "all":
+            return self._agents
+        elif mask == "active":
+            return self._agents.filter(self._mask)
+        else:
+            if isinstance(mask, Collection):
+                mask_series = pl.Series(mask)
+            else:
+                mask_series = pl.Series([mask])
+            if not mask_series.is_in(self._agents["unique_id"]).all():
+                raise KeyError(
+                    "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
+                )
+            mask_df = mask_series.to_frame("unique_id")
+            return mask_df.join(self._agents, on="unique_id", how="left")
 
     @overload
     def _get_obj_copy(self, obj: pl.Series) -> pl.Series: ...
