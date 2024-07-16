@@ -161,7 +161,7 @@ class MoneyAgentPolarsNative(AgentSetPolars):
         )
 
 
-class MoneyAgentPandas(AgentSetPandas):
+class MoneyAgentPandasConcise(AgentSetPandas):
     def __init__(self, n: int, model: ModelDF) -> None:
         super().__init__(model)
         ## Adding the agents to the agent set
@@ -180,23 +180,18 @@ class MoneyAgentPandas(AgentSetPandas):
 
     def give_money(self):
         ## Active agents are changed to wealthy agents
-        # 1. Using a native expression
-        # self.select(self.agents['wealth'] > 0)
-        # 2. Using the __getitem__ method
+        # 1. Using the __getitem__ method
         # self.select(self["wealth"] > 0)
-        # 3. Using the fallback __getattr__ method
+        # 2. Using the fallback __getattr__ method
         self.select(self.wealth > 0)
 
         # Receiving agents are sampled (only native expressions currently supported)
         other_agents = self.agents.sample(n=len(self.active_agents), replace=True)
 
         # Wealth of wealthy is decreased by 1
-        # 1. Using a native expression
-        """b_mask = self.active_agents.index.isin(self.agents)
-        self.agents.loc[b_mask, "wealth"] -= 1"""
-        # 2. Using the __setitem__ method with self.active_agents mask
+        # 1. Using the __setitem__ method with self.active_agents mask
         # self[self.active_agents, "wealth"] -= 1
-        # 3. Using the __setitem__ method with "active" mask
+        # 2. Using the __setitem__ method with "active" mask
         self["active", "wealth"] -= 1
 
         # Compute the income of the other agents (only native expressions currently supported)
@@ -239,13 +234,7 @@ class MoneyAgentPandasNative(AgentSetPandas):
             self.agents, new_wealth, on="unique_id", how="left", suffixes=("", "_new")
         )
         merged["wealth"] = merged["wealth"] + merged["wealth_new"].fillna(0)
-        self.agents = merged.drop(columns=["wealth_new"])"""
-
-        # 2. Using the set method
-        # self.set(attr_names="wealth", values=self["wealth"] + new_wealth["wealth"], mask=new_wealth)
-
-        # 3. Using the __setitem__ method
-        self[new_wealth, "wealth"] += new_wealth["wealth"]
+        self.agents = merged.drop(columns=["wealth_new"])
 
 
 class MoneyModelDF(ModelDF):
