@@ -6,14 +6,15 @@ from polars._typing import IntoExpr
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
-from mesa_frames.types import PolarsIdsLike, PolarsMaskLike
+from mesa_frames.concrete.polars.mixin import PolarsMixin
+from mesa_frames.types_ import PolarsIdsLike, PolarsMaskLike
 
 if TYPE_CHECKING:
-    from mesa_frames.concrete.agentset_pandas import AgentSetPandas
     from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
 
-class AgentSetPolars(AgentSetDF):
+class AgentSetPolars(AgentSetDF, PolarsMixin):
     _agents: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("clone", []),
@@ -309,7 +310,7 @@ class AgentSetPolars(AgentSetDF):
         return obj
 
     def to_pandas(self) -> "AgentSetPandas":
-        from mesa_frames.concrete.agentset_pandas import AgentSetPandas
+        from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
         new_obj = AgentSetPandas(self._model)
         new_obj._agents = self._agents.to_pandas()

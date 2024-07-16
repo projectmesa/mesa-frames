@@ -1,7 +1,11 @@
 from abc import ABC, abstractmethod
 from copy import copy, deepcopy
 
-from typing_extensions import Self
+from typing_extensions import Any, Self
+from typing import Literal
+from collections.abc import Collection, Iterator, Sequence
+
+from mesa_frames.types_ import BoolSeries, DataFrame, MaskLike, Series
 
 
 class CopyMixin(ABC):
@@ -142,3 +146,79 @@ class CopyMixin(ABC):
             A deep copy of the AgentContainer.
         """
         return self.copy(deep=True, memo=memo)
+
+
+class DataFrameMixin(ABC):
+    @abstractmethod
+    def _df_add_columns(
+        self, original_df: DataFrame, new_columns: list[str], data: Any
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_combine_first(
+        self, original_df: DataFrame, new_df: DataFrame, index_cols: list[str]
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_concat(
+        self,
+        dfs: Collection[DataFrame],
+        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        ignore_index: bool = False,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_constructor(
+        self,
+        data: Sequence[Sequence] | dict[str | Any] | None = None,
+        columns: list[str] | None = None,
+        index_col: str | list[str] | None = None,
+        dtypes: dict[str, Any] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_get_bool_mask(
+        self,
+        df: DataFrame,
+        index_col: str,
+        mask: MaskLike | None = None,
+        negate: bool = False,
+    ) -> BoolSeries: ...
+
+    @abstractmethod
+    def _df_get_masked_df(
+        self,
+        df: DataFrame,
+        index_col: str,
+        mask: MaskLike | None = None,
+        columns: list[str] | None = None,
+        negate: bool = False,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
+
+    @abstractmethod
+    def _df_remove(
+        self, df: DataFrame, ids: Sequence[Any], index_col: str | None = None
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_sample(
+        self,
+        df: DataFrame,
+        n: int | None = None,
+        frac: float | None = None,
+        with_replacement: bool = False,
+        shuffle: bool = False,
+        seed: int | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _srs_constructor(
+        self,
+        data: Sequence[Any] | None = None,
+        name: str | None = None,
+        dtype: Any | None = None,
+        index: Sequence[Any] | None = None,
+    ) -> Series: ...

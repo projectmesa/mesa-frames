@@ -9,7 +9,7 @@ from numpy.random import Generator
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.abstract.mixin import CopyMixin
-from mesa_frames.types import BoolSeries, DataFrame, IdsLike, Index, MaskLike, Series
+from mesa_frames.types_ import BoolSeries, DataFrame, IdsLike, Index, MaskLike, Series
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.agents import AgentSetDF

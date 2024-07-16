@@ -29,4 +29,6 @@ Index = pd.Index | pl.Series
 BoolSeries = pd.Series | pl.Series
 MaskLike = AgnosticMask | PandasMaskLike | PolarsMaskLike
 IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike
+
+###----- Time ------###
 TimeT = float | int

@@ -1,14 +1,12 @@
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 import polars as pl
 from typing_extensions import Any, Self, overload
 
-from typing import TYPE_CHECKING
-
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
-from mesa_frames.types import (
+from mesa_frames.types_ import (
     AgnosticMask,
     BoolSeries,
     DataFrame,
