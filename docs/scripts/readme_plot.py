@@ -1,5 +1,3 @@
-from random import choice, shuffle
-
 import matplotlib.pyplot as plt
 import mesa
 import numpy as np
@@ -30,7 +28,7 @@ class MoneyAgent(mesa.Agent):
     def step(self):
         # Verify agent has some wealth
         if self.wealth > 0:
-            other_agent = choice(self.model.agents)
+            other_agent = self.random.choice(self.model.agents)
             if other_agent is not None:
                 other_agent.wealth += 1
                 self.wealth -= 1
@@ -47,7 +45,7 @@ class MoneyModel(mesa.Model):
 
     def step(self):
         """Advance the model by one step."""
-        shuffle(self.agents)
+        self.random.shuffle(self.agents)
         for agent in self.agents:
             agent.step()
 
