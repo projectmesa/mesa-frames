@@ -32,11 +32,16 @@ GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 DataFrame = pd.DataFrame | pl.DataFrame
 Series = pd.Series | pl.Series
 Series = pd.Series | pl.Series
+
+
+###----- Generic -----###
+
+DataFrame = pd.DataFrame | pl.DataFrame
+Series = pd.Series | pl.Series
 Index = pd.Index | pl.Series
 BoolSeries = pd.Series | pl.Series
 MaskLike = AgnosticMask | PandasMaskLike | PolarsMaskLike
 IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike
-
 
 ###----- Time ------###
 TimeT = float | int
@@ -71,3 +76,6 @@ GridCapacity = PandasGridCapacity | PolarsGridCapacity
 NetworkCapacity = DataFrame
 
 DiscreteSpaceCapacity = GridCapacity | NetworkCapacity
+
+###----- Time ------###
+TimeT = float | int
