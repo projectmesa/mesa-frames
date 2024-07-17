@@ -3,7 +3,7 @@ from collections.abc import Collection, Sequence
 from typing import TYPE_CHECKING
 
 from numpy.random import Generator
-from typing_extensions import Any, Self
+from typing_extensions import Self
 
 from mesa_frames.abstract.agents import AgentContainer
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
