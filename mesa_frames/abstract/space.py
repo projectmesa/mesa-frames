@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Collection, Sequence
 from typing import TYPE_CHECKING
 
 from numpy.random import Generator
@@ -37,113 +37,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         None
         """
         self._model = model
-
-    def iter_directions(
-        self,
-        pos0: SpaceCoordinate | SpaceCoordinates | None = None,
-        pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-    ) -> Iterator[dict[str, Any]]:
-        """Returns an iterator over the directions from pos0 to pos1 or agents0 to agents1.
-        You should specify either positions (pos0, pos1) or agents (agents0, agents1), not both, and they must have the same length.
-        NOTE: You should avoid iterating as much as possible and use vectorized operations instead.
-
-        Parameters
-        ----------
-        pos0 : SpaceCoordinate | SpaceCoordinates | None, optional
-            The starting positions, by default None
-        pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
-            The ending positions, by default None
-        agents0 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
-            The starting agents, by default None
-        agents1 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
-            The ending agents, by default None
-
-        Yields
-        ------
-        Iterator[dict[str, Any]]
-            An iterator over the direction from pos0 to pos1 or agents0 to agents1 where each direction is a dictionary with:
-            - Keys called according to the coordinates of the space(['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
-            - Values representing the value of coordinates according to the dimension
-        """
-        return self._df_iterator(
-            self.get_directions(pos0=pos0, pos1=pos1, agents0=agents0, agents1=agents1)
-        )
-
-    def iter_distances(
-        self,
-        pos0: SpaceCoordinate | SpaceCoordinates | None = None,
-        pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-    ) -> Iterator[dict[str, Any]]:
-        """Returns an iterator over the distances from pos0 to pos1 or agents0 to agents1.
-        If the space is a Network, the distance is the number of nodes of the shortest path between the two nodes.
-        In all other cases, the distance is Euclidean/l2/Frobenius norm.
-        You should specify either positions (pos0, pos1) or agents (agents0, agents1), not both and they must have the same length.
-        NOTE: You should avoid iterating as much as possible and use vectorized operations instead.
-
-        Parameters
-        ----------
-        pos0 : SpaceCoordinate | SpaceCoordinates | None, optional
-            The starting positions, by default None
-        pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
-            The ending positions, by default None
-        agents0 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
-            The starting agents, by default None
-        agents1 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
-            The ending agents, by default None
-
-        Yields
-        ------
-        Iterator[dict[str, Any]]
-            An iterator over the distances from pos0 to pos1 or agents0 to agents1 where each distance is a dictionary with:
-            - A single key 'distance' representing the distance between the two positions
-        """
-        return self._df_iterator(
-            self.get_distances(pos0=pos0, pos1=pos1, agents0=agents0, agents1=agents1)
-        )
-
-    def iter_neighbors(
-        self,
-        radius: int | float | Sequence[int] | Sequence[float],
-        pos: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        include_center: bool = False,
-    ) -> Iterator[dict[str, Any]]:
-        """Returns an iterator over the neighboring agents from the given positions or agents according to specified radiuses.
-        You should specify either positions (pos) or agents, not both and they must have the same length.
-        NOTE: You should avoid iterating as much as possible and use vectorized operations instead.
-
-        Parameters
-        ----------
-        radius : int | float | Sequence[int] | Sequence[float]
-            The radius(es) of the neighborhood
-        pos : SpaceCoordinate | SpaceCoordinates | None, optional
-            The positions to get the neighbors from, by default None
-        agents : int | Sequence[int] | None, optional
-            The agent(s) to get the neighbors from, by default None
-        include_center : bool, optional
-            If the position or agent should be included in the result, by default False
-
-        Yields
-        ------
-        Iterator[dict[str, Any]]
-            An iterator over neighboring agents where each agent is a dictionary with:
-            - Attributes of the agent (the columns of its AgentSetDF dataframe)
-            - Keys which are suffixed by '_center' to indicate the original center (eg. ['dim_0_center', 'dim_1_center', ...] for Grids, ['node_id_center', 'edge_id_center'] for Networks, 'agent_id_center' for agents)
-
-        Raises
-        ------
-        ValueError
-            If both pos and agents are None or if both pos and agents are not None.
-        """
-        return self._df_iterator(
-            self.get_neighbors(
-                radius=radius, pos=pos, agents=agents, include_center=include_center
-            )
-        )
 
     def random_agents(
         self,
