@@ -69,7 +69,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
         agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
         agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        normalize : bool = False
+        normalize: bool = False,
     ) -> DataFrame:
         """Returns the directions from pos0 to pos1 or agents0 and agents1.
         If the space is a Network, the direction is the shortest path between the two nodes.
