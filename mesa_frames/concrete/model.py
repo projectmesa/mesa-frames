@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from typing_extensions import Any
 
+from mesa_frames.abstract.space import SpaceDF
 from mesa_frames.concrete.agents import AgentsDF
 
 if TYPE_CHECKING:
@@ -59,6 +60,7 @@ class ModelDF:
     _seed: int | Sequence[int]
     running: bool
     _agents: AgentsDF
+    _space: SpaceDF | None  # This will be a MultiSpaceDF object
 
     def __new__(
         cls, seed: int | Sequence[int] | None = None, *args: Any, **kwargs: Any
@@ -77,6 +79,7 @@ class ModelDF:
         self.schedule = None
         self.current_id = 0
         self._agents = AgentsDF(self)
+        self._space = None
 
     def get_agents_of_type(self, agent_type: type) -> "AgentSetDF":
         """Retrieve the AgentSetDF of a specified type.
@@ -147,3 +150,15 @@ class ModelDF:
     @property
     def agent_types(self) -> list[type]:
         return [agent.__class__ for agent in self._agents._agentsets]
+
+    @property
+    def space(self) -> SpaceDF:
+        if not self._space:
+            raise ValueError(
+                "You haven't set the space for the model. Use model.space = your_space"
+            )
+        return self._space
+
+    @space.setter
+    def space(self, space: SpaceDF) -> None:
+        self._space = space

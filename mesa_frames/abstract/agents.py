@@ -735,7 +735,9 @@ class AgentSetDF(AgentContainer):
 
     @abstractmethod
     def add(
-        self, agents: DataFrame | Sequence[Any] | dict[str, Any], inplace: bool = True
+        self,
+        agents: DataFrame | Sequence[Any] | dict[str, Any],
+        inplace: bool = True,
     ) -> Self:
         """Add agents to the AgentSetDF
 
