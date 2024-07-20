@@ -1,6 +1,5 @@
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence
-from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import polars as pl
@@ -701,12 +700,7 @@ class DiscreteSpaceDF(SpaceDF):
         # then it must mean that it's in the _cells dataframe
         return self._cells[key]
 
-    # We use lru_cache because cached_property does not support a custom setter.
-    # It should improve performance if cell properties haven't changed between accesses.
-    # TODO: Test if there's an effective increase in performance
-
     @property
-    @lru_cache(maxsize=1)
     def cells(self) -> DataFrame:
         return self.get_cells()
 
@@ -715,21 +709,18 @@ class DiscreteSpaceDF(SpaceDF):
         return self.set_cells(df, inplace=True)
 
     @property
-    @lru_cache(maxsize=1)
     def empty_cells(self) -> DataFrame:
         return self._sample_cells(
             None, with_replacement=False, condition=self._empty_cell_condition
         )
 
     @property
-    @lru_cache(maxsize=1)
     def free_cells(self) -> DataFrame:
         return self._sample_cells(
             None, with_replacement=False, condition=self._free_cell_condition
         )
 
     @property
-    @lru_cache(maxsize=1)
     def full_cells(self) -> DataFrame:
         return self._sample_cells(
             None, with_replacement=False, condition=self._full_cell_condition
