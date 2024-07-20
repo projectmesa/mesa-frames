@@ -1,21 +1,17 @@
 from abc import abstractmethod
-from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from collections.abc import Callable, Collection, Iterable, Sequence
 from functools import lru_cache
 from itertools import product
+from typing import TYPE_CHECKING
 from warnings import warn
 
-import geopandas as gpd
-import networkx as nx
-import pandas as pd
 import polars as pl
-import shapely as shp
 from numpy.random import Generator
-from pyproj import CRS
 from typing_extensions import Any, Self
 
-from typing import TYPE_CHECKING
+from collections.abc import Iterator
 
-from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
+from mesa_frames.abstract.agents import AgentContainer
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
     DataFrame,
@@ -26,6 +22,7 @@ from mesa_frames.types_ import (
     GridCapacity,
     GridCoordinate,
     GridCoordinates,
+    IdsLike,
     SpaceCoordinate,
     SpaceCoordinates,
 )
@@ -33,6 +30,7 @@ from mesa_frames.types_ import (
 ESPG = int
 
 if TYPE_CHECKING:
+    from mesa_frames.abstract.agents import AgentSetDF
     from mesa_frames.concrete.model import ModelDF
 
 
@@ -41,7 +39,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     _agents: DataFrame | GeoDataFrame
 
     def __init__(self, model: "ModelDF") -> None:
-        """Create a new CellSet object.
+        """Create a new SpaceDF object.
 
         Parameters
         ----------
@@ -52,126 +50,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         None
         """
         self._model = model
-
-    def iter_neighbors(
-        self,
-        radius: int | float | Sequence[int] | Sequence[float],
-        pos: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
-        include_center: bool = False,
-    ) -> Iterator[dict[str, Any]]:
-        """Return an iterator over the neighboring agents from the given positions or agents according to specified radiuses.
-        Either the positions or the agents must be specified (not both).
-
-        Parameters
-        ----------
-        radius : int | float
-            The radius of the neighborhood
-        pos : SpaceCoordinate | SpaceCoordinates | None, optional
-            The positions to get the neighbors from, by default None
-        agents : int | Sequence[int] | None, optional
-            The agents to get the neighbors from, by default None
-        include_center : bool, optional
-            If the position or agent should be included in the result, by default False
-
-        Yields
-        ------
-        Iterator[dict[str, Any]]
-            An iterator over neighboring agents where each agent is a dictionary with:
-            - Attributes of the agent (the columns of its AgentSetDF dataframe)
-            - Keys which are suffixed by '_center' to indicate the original center (eg. ['dim_0_center', 'dim_1_center', ...] for Grids, ['node_id_center', 'edge_id_center'] for Networks, 'agent_id_center' for agents)
-
-        Raises
-        ------
-        ValueError
-            If both pos and agents are None or if both pos and agents are not None.
-        """
-        return self._df_iterator(
-            self.get_neighbors(
-                radius=radius, pos=pos, agents=agents, include_center=include_center
-            )
-        )
-
-    def iter_directions(
-        self,
-        pos0: SpaceCoordinate | SpaceCoordinates | None = None,
-        pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
-        agents1: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
-    ) -> Iterator[dict[str, Any]]:
-        """Return an iterator over the direction from pos0 to pos1 or agents0 to agents1.
-
-        Parameters
-        ----------
-        pos0 : SpaceCoordinate | SpaceCoordinates | None, optional
-            The starting positions, by default None
-        pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
-            The ending positions, by default None
-        agents0 : int | Sequence[int] | None, optional
-            The starting agents, by default None
-        agents1 : int | Sequence[int] | None, optional
-            The ending agents, by default None
-
-        Yields
-        ------
-        Iterator[dict[str, Any]]
-            An iterator over the direction from pos0 to pos1 or agents0 to agents1 where each direction is a dictionary with:
-            - Keys called according to the coordinates of the space(['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
-            - Values representing the value of coordinates according to the dimension
-        """
-        return self._df_iterator(
-            self.get_directions(pos0=pos0, pos1=pos1, agents0=agents0, agents1=agents1)
-        )
-
-    def iter_distances(
-        self,
-        pos0: SpaceCoordinate | SpaceCoordinates | None = None,
-        pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
-        agents1: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
-    ) -> Iterator[dict[str, Any]]:
-        """Return an iterator over the distance from pos0 to pos1 or agents0 to agents1.
-
-        Parameters
-        ----------
-        pos0 : SpaceCoordinate | SpaceCoordinates | None, optional
-            The starting positions, by default None
-        pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
-            The ending positions, by default None
-        agents0 : int | Sequence[int] | None, optional
-            The starting agents, by default None
-        agents1 : int | Sequence[int] | None, optional
-            The ending agents, by default None
-
-        Yields
-        ------
-        Iterator[dict[str, Any]]
-            An iterator over the distance from pos0 to pos1 or agents0 to agents1 where each distance is a dictionary with:
-            - A single key 'distance' representing the distance between the two positions
-        """
-        return self._df_iterator(
-            self.get_distances(pos0=pos0, pos1=pos1, agents0=agents0, agents1=agents1)
-        )
 
     def random_agents(
         self,
@@ -202,33 +80,27 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self,
         pos0: SpaceCoordinate | SpaceCoordinates | None = None,
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
-        agents1: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
+        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        normalize: bool = False,
     ) -> DataFrame:
-        """Returns the direction from pos0 to pos1 or agents0 and agents1.
+        """Returns the directions from pos0 to pos1 or agents0 and agents1.
         If the space is a Network, the direction is the shortest path between the two nodes.
         In all other cases, the direction is the direction vector between the two positions.
-        Either positions (pos0, pos1) or agents (agents0, agents1) must be specified, not both.
-        They must have the same length.
+        Either positions (pos0, pos1) or agents (agents0, agents1) must be specified, not both and they must have the same length.
 
         Parameters
         ----------
-        pos0 : SpaceCoordinate | SpaceCoordinates | None = None
+        pos0 : SpaceCoordinate | SpaceCoordinates | None, optional
             The starting positions
-        pos1 : SpaceCoordinate | SpaceCoordinates | None = None
+        pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
             The ending positions
-        agents0 : int | Sequence[int] | None = None
+        agents0 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
             The starting agents
-        agents1 : int | Sequence[int] | None = None
+        agents1 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
             The ending agents
+        normalize : bool, optional
+            Whether to normalize the vectors to unit norm. By default False
 
         Returns
         -------
@@ -242,33 +114,23 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self,
         pos0: SpaceCoordinate | SpaceCoordinates | None = None,
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
-        agents1: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
+        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
     ) -> DataFrame:
-        """Returns the distance from pos0 to pos1.
+        """Returns the distances from pos0 to pos1 or agents0 and agents1.
         If the space is a Network, the distance is the number of nodes of the shortest path between the two nodes.
         In all other cases, the distance is Euclidean/l2/Frobenius norm.
-        You should specify either positions (pos0, pos1) or agents (agents0, agents1), not both.
-        pos0 and pos1 must be the same type of coordinates and have the same length.
-        agents0 and agents1 must have the same length.
+        You should specify either positions (pos0, pos1) or agents (agents0, agents1), not both and they must have the same length.
 
         Parameters
         ----------
-        pos0 : SpaceCoordinate | SpaceCoordinates | None = None
+        pos0 : SpaceCoordinate | SpaceCoordinates | None, optional
             The starting positions
-        pos1 : SpaceCoordinate | SpaceCoordinates | None = None
+        pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
             The ending positions
-        agents0 : int | Sequence[int] | None = None
+        agents0 : IdsLike | AgentContainer | Collection[AgentContainer], optional
             The starting agents
-        agents1 : int | Sequence[int] | None = None
+        agents1 : IdsLike | AgentContainer | Collection[AgentContainer], optional
             The ending agents
 
         Returns
@@ -283,26 +145,22 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self,
         radius: int | float | Sequence[int] | Sequence[float],
         pos: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None = None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
         include_center: bool = False,
     ) -> DataFrame:
-        """Get the neighboring agents from given positions or agents according to a radius.
-        Either positions or agents must be specified, not both.
+        """Get the neighboring agents from given positions or agents according to the specified radiuses.
+        Either positions (pos0, pos1) or agents (agents0, agents1) must be specified, not both and they must have the same length.
 
         Parameters
         ----------
-        radius : int | float
-            The radius of the neighborhood
-        pos : SpaceCoordinates | None, optional
+        radius : int | float | Sequence[int] | Sequence[float]
+            The radius(es) of the neighborhood
+        pos : SpaceCoordinate | SpaceCoordinates | None, optional
             The coordinates of the cell to get the neighborhood from, by default None
-        agent : int | None, optional
-            The id of the agent to get the neighborhood from, by default None
+        agents : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+            The id of the agents to get the neighborhood from, by default None
         include_center : bool, optional
-            If the cell or agent should be included in the result, by default False
+            If the center cells or agents should be included in the result, by default False
 
         Returns
         -------
@@ -320,7 +178,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     @abstractmethod
     def move_agents(
         self,
-        agents: int | Collection[int] | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
         pos: SpaceCoordinate | SpaceCoordinates,
         inplace: bool = True,
     ) -> Self:
@@ -329,9 +187,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : AgentContainer | Collection[AgentContainer] | int | Sequence[int]
+        agents : IdsLike | AgentContainer | Collection[AgentContainer]
             The agents to place in the space
-        pos : SpaceCoordinates
+        pos : SpaceCoordinate | SpaceCoordinates
             The coordinates for each agents. The length of the coordinates must match the number of agents.
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -342,7 +200,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             If some agents are already placed in the space.
         ValueError
             - If some agents are not part of the model.
-            - If agents is int | Sequence[int] and some agents are present multiple times.
+            - If agents is IdsLike and some agents are present multiple times.
 
         Returns
         -------
@@ -353,18 +211,14 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     @abstractmethod
     def move_to_empty(
         self,
-        agents: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
     ) -> Self:
-        """Move agents to empty cells/positions in the space.
+        """Move agents to empty cells/positions in the space (cells/positions where there isn't any single agent).
 
         Parameters
         ----------
-        agents : AgentContainer | Collection[AgentContainer] | int | Sequence[int]
+        agents : IdsLike | AgentContainer | Collection[AgentContainer]
             The agents to move to empty cells/positions
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -401,18 +255,14 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     @abstractmethod
     def remove_agents(
         self,
-        agents: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
     ):
-        """Remove agents from the space
+        """Remove agents from the space.
 
         Parameters
         ----------
-        agents : AgentContainer | Collection[AgentContainer] | int | Sequence[int]
+        agents : IdsLike | AgentContainer | Collection[AgentContainer]
             The agents to remove from the space
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -431,25 +281,17 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     @abstractmethod
     def swap_agents(
         self,
-        agents0: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None,
-        agents1: int
-        | Collection[int]
-        | AgentContainer
-        | Collection[AgentContainer]
-        | None,
+        agents0: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents1: IdsLike | AgentContainer | Collection[AgentContainer],
     ) -> Self:
         """Swap the positions of the agents in the space.
         agents0 and agents1 must have the same length and all agents must be placed in the space.
 
         Parameters
         ----------
-        agents0 : AgentContainer | Collection[AgentContainer] | int | Sequence[int]
+        agents0 : IdsLike | AgentContainer | Collection[AgentContainer]
             The first set of agents to swap
-        agents1 : AgentContainer | Collection[AgentContainer] | int | Sequence[int]
+        agents1 : IdsLike | AgentContainer | Collection[AgentContainer]
             The second set of agents to swap
 
         Returns
@@ -481,7 +323,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         -------
         'ModelDF'
         """
-        self._model
+        return self._model
 
     @property
     def random(self) -> Generator:
@@ -492,9 +334,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         Generator
         """
         return self.model.random
-
-
-class GeoSpaceDF(SpaceDF): ...
 
 
 class DiscreteSpaceDF(SpaceDF):
@@ -1138,118 +977,3 @@ class GridDF(DiscreteSpaceDF):
 
     def __setitem__(self, cells: GridCoordinates, properties: DataFrame):
         return super().__setitem__(cells, properties)
-
-
-class GeoGridDF(GridDF, GeoSpaceDF): ...
-
-
-class ContinousSpaceDF(GeoSpaceDF):
-    _agents: gpd.GeoDataFrame
-    _limits: Sequence[float]
-
-    def __init__(
-        self, model: "ModelDF", ref_sys: CRS | ESPG | str | None = None
-    ) -> None:
-        """Create a new CellSet object.
-
-        Parameters
-        ----------
-        model : 'ModelDF'
-        ref_sys : CRS | ESPG | str | None, optional
-            Coordinate Reference System. ESPG is an integer, by default None
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(model)
-        self._cells = gpd.GeoDataFrame(columns=["agent_id", "geometry"], crs=ref_sys)
-
-    def get_neighborhood(
-        self,
-        pos: shp.Point | Sequence[tuple[int | float, int | float]],
-        radius: float | int,
-        include_center: bool = False,
-        inplace: bool = True,
-        **kwargs,
-    ) -> gpd.GeoDataFrame:
-        """Get the neighborhood cells from a given position.
-
-        Parameters
-        ----------
-        pos : shp.Point | Sequence[int, int]
-            The selfect to get the neighborhood from.
-        radius : float | int
-            The radius of the neighborhood
-        include_center : bool, optional
-            If the cell in the center of the neighborhood should be included in the result, by default False
-        inplace : bool, optional
-            If the method should return a new instance of the class or modify the current one, by default True
-        **kwargs
-            Extra arguments to be passed to shp.Point.buffer.
-
-        Returns
-        -------
-        GeoDataFrame
-            Cells in the neighborhood
-        """
-        if isinstance(pos, Sequence[int, int]):
-            pos = shp.Point(pos)
-            pos = pos.buffer(distance=radius, **kwargs)
-        if include_center:
-            return self._cells[self._cells.within(other=pos)]
-        else:
-            return self._cells[
-                self._cells.within(other=pos) & ~self._cells.intersects(other=pos)
-            ]
-
-    def get_direction(self, pos0, pos1):
-        pass
-
-    @property
-    def crs(self) -> CRS:
-        if self._agents.crs is None:
-            raise ValueError("CRS not set")
-        return self._agents.crs
-
-    @crs.setter
-    def crs(self, ref_sys: CRS | ESPG | str | None):
-        if isinstance(ref_sys, ESPG):
-            self._agents = self._agents.to_crs(espg=ref_sys)
-        else:
-            self._agents = self._agents.to_crs(crs=ref_sys)
-        return self
-
-
-class MultiSpaceDF(SpaceDF):
-    _spaces: list[SpaceDF]
-
-    def __init__(self, model: "ModelDF") -> None:
-        super().__init__(model)
-        self._spaces = []
-
-    def add(self, space: SpaceDF, inplace: bool = True) -> Self:
-        obj = self._get_obj(inplace)
-        obj._spaces.append(space)
-        return obj
-
-
-class NetworkDF(DiscreteSpaceDF):
-    _network: nx.Graph
-    _nodes: pd.DataFrame
-    _links: pd.DataFrame
-
-    def torus_adj(self, pos):
-        raise NotImplementedError("No concept of torus in Networks")
-
-    @abstractmethod
-    def __iter__(self) -> Iterable:
-        pass
-
-    @abstractmethod
-    def connect(self, nodes0, nodes1):
-        pass
-
-    @abstractmethod
-    def disconnect(self, nodes0, nodes1):
-        pass
