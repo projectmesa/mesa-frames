@@ -1,12 +1,10 @@
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 from numpy.random import Generator
 from typing_extensions import Self
-
-from typing import Literal
 
 from mesa_frames.abstract.agents import AgentContainer
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
@@ -392,20 +390,20 @@ class DiscreteSpaceDF(SpaceDF):
     -------
     __init__(model: 'ModelDF', capacity: int | None = None)
         Create a new DiscreteSpaceDF object.
-    is_free(pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame
-        Check whether the input positions are free (there exists at least one remaining spot in the cells).
+    is_available(pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame
+        Check whether the input positions are available (there exists at least one remaining spot in the cells).
     is_empty(pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame
         Check whether the input positions are empty (there isn't any single agent in the cells).
     is_full(pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame
         Check whether the input positions are full (there isn't any spot available in the cells).
     move_to_empty(agents: IdsLike | AgentContainer | Collection[AgentContainer], inplace: bool = True) -> Self
         Move agents to empty cells in the space (cells where there isn't any single agent).
-    move_to_free(agents: IdsLike | AgentContainer | Collection[AgentContainer], inplace: bool = True) -> Self
-        Move agents to free cells in the space (cells where there is at least one spot available).
-    sample_cells(n: int, cell_type: Literal["any", "empty", "free", "full"] = "any", with_replacement: bool = True) -> DataFrame
+    move_to_available(agents: IdsLike | AgentContainer | Collection[AgentContainer], inplace: bool = True) -> Self
+        Move agents to available cells in the space (cells where there is at least one spot available).
+    sample_cells(n: int, cell_type: Literal["any", "empty", "available", "full"] = "any", with_replacement: bool = True) -> DataFrame
         Sample cells from the grid according to the specified cell_type.
-    get_neighborhood(radius: int | float | Sequence[int] | Sequence[float], pos: DiscreteCoordinate | Discrete
-        Get the neighborhood cells from a given position.
+    get_neighborhood(radius: int | float | Sequence[int] | Sequence[float], pos: DiscreteCoordinate | DiscreteCoordinates | None = None, agents: IdsLike | AgentContainer | Collection[AgentContainer] = None, include_center: bool = False) -> DataFrame
+        Get the neighborhood cells from the given positions (pos) or agents according to the specified radiuses.
     get_cells(cells: DiscreteCoordinates | None = None) -> DataFrame
         Retrieve a dataframe of specified cells with their properties and agents.
     set_cells(properties: DataFrame, cells: DiscreteCoordinates | None = None, inplace: bool = True) -> Self
@@ -440,8 +438,8 @@ class DiscreteSpaceDF(SpaceDF):
         super().__init__(model)
         self._capacity = capacity
 
-    def is_free(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
-        """Check whether the input positions are free (there exists at least one remaining spot in the cells)
+    def is_available(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
+        """Check whether the input positions are available (there exists at least one remaining spot in the cells)
 
         Parameters
         ----------
@@ -451,11 +449,13 @@ class DiscreteSpaceDF(SpaceDF):
         Returns
         -------
         DataFrame
-            A dataframe with positions and a boolean column "free"
+            A dataframe with positions and a boolean column "available"
         """
         df = self._df_constructor(data=pos, columns=self._cells_col_names)
         return self._df_add_columns(
-            df, ["free"], self._df_get_bool_mask(df, mask=self.full_cells, negate=True)
+            df,
+            ["available"],
+            self._df_get_bool_mask(df, mask=self.full_cells, negate=True),
         )
 
     def is_empty(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
@@ -501,17 +501,17 @@ class DiscreteSpaceDF(SpaceDF):
     ) -> Self:
         return self._move_agents_to_cells(agents, cell_type="empty", inplace=inplace)
 
-    def move_to_free(
+    def move_to_available(
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
     ) -> Self:
-        """Move agents to free cells/positions in the space (cells/positions where there is at least one spot available).
+        """Move agents to available cells/positions in the space (cells/positions where there is at least one spot available).
 
         Parameters
         ----------
         agents : IdsLike | AgentContainer | Collection[AgentContainer]
-            The agents to move to free cells/positions
+            The agents to move to available cells/positions
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
 
@@ -519,12 +519,14 @@ class DiscreteSpaceDF(SpaceDF):
         -------
         Self
         """
-        return self._move_agents_to_cells(agents, cell_type="free", inplace=inplace)
+        return self._move_agents_to_cells(
+            agents, cell_type="available", inplace=inplace
+        )
 
     def sample_cells(
         self,
         n: int,
-        cell_type: Literal["any", "empty", "free", "full"] = "any",
+        cell_type: Literal["any", "empty", "available", "full"] = "any",
         with_replacement: bool = True,
     ) -> DataFrame:
         """Sample cells from the grid according to the specified cell_type.
@@ -533,7 +535,7 @@ class DiscreteSpaceDF(SpaceDF):
         ----------
         n : int
             The number of cells to sample
-        cell_type : Literal["any", "empty", "free", "full"], optional
+        cell_type : Literal["any", "empty", "available", "full"], optional
             The type of cells to sample, by default "any"
         with_replacement : bool, optional
             If the sampling should be with replacement, by default True
@@ -548,8 +550,8 @@ class DiscreteSpaceDF(SpaceDF):
                 condition = self._any_cell_condition
             case "empty":
                 condition = self._empty_cell_condition
-            case "free":
-                condition = self._free_cell_condition
+            case "available":
+                condition = self._available_cell_condition
             case "full":
                 condition = self._full_cell_condition
         return self._sample_cells(n, with_replacement, condition=condition)
@@ -558,18 +560,21 @@ class DiscreteSpaceDF(SpaceDF):
     def get_neighborhood(
         self,
         radius: int | float | Sequence[int] | Sequence[float],
-        pos: DiscreteCoordinate | DataFrame | None = None,
-        agents: int | Sequence[int] | None = None,
+        pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer] = None,
         include_center: bool = False,
     ) -> DataFrame:
-        """Get the neighborhood cells from a given position.
+        """Get the neighborhood cells from the given positions (pos) or agents according to the specified radiuses.
+        Either positions (pos) or agents must be specified, not both.
 
         Parameters
         ----------
-        pos : DiscreteCoordinates
-            The coordinates of the cell to get the neighborhood from
-        radius : int
-            The radius of the neighborhood
+        radius : int | float | Sequence[int] | Sequence[float]
+            The radius(es) of the neighborhoods
+        pos : DiscreteCoordinate | DiscreteCoordinates | None, optional
+            The coordinates of the cell(s) to get the neighborhood from
+        agents : IdsLike | AgentContainer | Collection[AgentContainer], optional
+            The agent(s) to get the neighborhood from
         include_center : bool, optional
             If the cell in the center of the neighborhood should be included in the result, by default False
 
@@ -605,8 +610,9 @@ class DiscreteSpaceDF(SpaceDF):
         inplace: bool = True,
     ) -> Self:
         """Set the properties of the specified cells.
-        Either the properties df must contain both the cell coordinates and the properties or
-        the cell coordinates must be specified separately.
+        This method mirrors the functionality of mesa's PropertyLayer, but allows also to set properties only of specific cells.
+        Either the properties DF must contain both the cell coordinates and the properties
+        or the cell coordinates must be specified separately with the cells argument.
         If the Space is a Grid, the cell coordinates must be GridCoordinates.
         If the Space is a Network, the cell coordinates must be NetworkCoordinates.
 
@@ -615,6 +621,8 @@ class DiscreteSpaceDF(SpaceDF):
         ----------
         properties : DataFrame
             The properties of the cells
+        cells : DiscreteCoordinates | None, optional
+            The coordinates of the cells to set the properties for, by default None (all cells)
         inplace : bool
             Whether to perform the operation inplace
 
@@ -627,7 +635,7 @@ class DiscreteSpaceDF(SpaceDF):
     def _move_agents_to_cells(
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        cell_type: Literal["empty", "free"],
+        cell_type: Literal["any", "empty", "available"],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -659,7 +667,7 @@ class DiscreteSpaceDF(SpaceDF):
     def _empty_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
         return cap == self._capacity
 
-    def _free_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
+    def _available_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
         return cap > 0
 
     def _full_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
@@ -715,9 +723,9 @@ class DiscreteSpaceDF(SpaceDF):
         )
 
     @property
-    def free_cells(self) -> DataFrame:
+    def available_cells(self) -> DataFrame:
         return self._sample_cells(
-            None, with_replacement=False, condition=self._free_cell_condition
+            None, with_replacement=False, condition=self._available_cell_condition
         )
 
     @property
