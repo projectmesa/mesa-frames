@@ -199,6 +199,9 @@ class DataFrameMixin(ABC):
     def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
 
     @abstractmethod
+    def _df_norm(self, df: DataFrame) -> DataFrame: ...
+
+    @abstractmethod
     def _df_remove(
         self, df: DataFrame, ids: Sequence[Any], index_col: str | None = None
     ) -> DataFrame: ...

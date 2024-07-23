@@ -1,7 +1,8 @@
+from collections.abc import Collection, Iterator, Sequence
+from typing import Literal
+
 import polars as pl
 from typing_extensions import Any
-from typing import Literal
-from collections.abc import Collection, Iterator, Sequence
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import PolarsMaskLike
@@ -116,6 +117,9 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_iterator(self, df: pl.DataFrame) -> Iterator[dict[str, Any]]:
         return iter(df.iter_rows(named=True))
+
+    def _df_norm(self, df: pl.DataFrame) -> pl.DataFrame:
+        return df.with_columns(pl.col("*").pow(2).alias("*")).sum_horizontal().sqrt()
 
     def _df_remove(
         self, df: pl.DataFrame, ids: Sequence[Any], index_col: str | None = None
