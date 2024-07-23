@@ -741,7 +741,7 @@ class DiscreteSpaceDF(SpaceDF):
 
 
 class GridDF(DiscreteSpaceDF):
-    """The GridDF class is an abstract class that defines the interface for all grid classes in mesa_frames.
+    """The GridDF class is an abstract class that defines the interface for all grid classes in mesa-frames.
     Inherits from DiscreteSpaceDF.
 
     Methods
@@ -750,11 +750,23 @@ class GridDF(DiscreteSpaceDF):
         Create a new GridDF object.
     out_of_bounds(pos: GridCoordinate | GridCoordinates) -> DataFrame
         Check whether the input positions are out of bounds in a non-toroidal grid.
+
+    Properties
+    ----------
+    dimensions : Sequence[int]
+        The dimensions of the grid
+    neighborhood_type : Literal['moore', 'von_neumann', 'hexagonal']
+        The type of neighborhood to consider
+    torus : bool
+        If the grid is a torus
     """
 
     _grid_capacity: (
         GridCapacity  # Storing the remaining capacity of the cells in the grid
     )
+    _neighborhood_type: Literal[
+        "moore", "von_neumann", "hexagonal"
+    ]  # The type of neighborhood to consider
     _offsets: DataFrame  # The offsets to compute the neighborhood of a cell
     _torus: bool  # If the grid is a torus
 
@@ -784,7 +796,7 @@ class GridDF(DiscreteSpaceDF):
             The type of neighborhood to consider, by default 'moore'.
             If 'moore', the neighborhood is the 8 cells around the center cell (up, down, left, right, and diagonals).
             If 'von_neumann', the neighborhood is the 4 cells around the center cell (up, down, left, right).
-            If 'hexagonal', the neighborhood is 6 cells around the center cell
+            If 'hexagonal', the neighborhood are 6 cells around the center cell distributed in a hexagonal shape.
         """
         super().__init__(model, capacity)
         self._dimensions = dimensions
@@ -800,6 +812,7 @@ class GridDF(DiscreteSpaceDF):
         )
         self._offsets = self._compute_offsets(neighborhood_type)
         self._grid_capacity = self._generate_empty_grid(dimensions, capacity)
+        self._neighborhood_type = neighborhood_type
 
     def get_directions(
         self,
@@ -1129,3 +1142,15 @@ class GridDF(DiscreteSpaceDF):
             A DataFrame with the agents placed in the grid
         """
         ...
+
+    @property
+    def dimensions(self) -> Sequence[int]:
+        return self._dimensions
+
+    @property
+    def neighborhood_type(self) -> str:
+        return self._neighborhood_type
+
+    @property
+    def torus(self) -> bool:
+        return self._torus
