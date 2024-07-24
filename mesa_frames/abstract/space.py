@@ -744,6 +744,19 @@ class GridDF(DiscreteSpaceDF):
     """The GridDF class is an abstract class that defines the interface for all grid classes in mesa-frames.
     Inherits from DiscreteSpaceDF.
 
+    Warning
+    -------
+    In this implementation, [0, ..., 0] is the bottom-left corner and
+    [dimensions[0]-1, ..., dimensions[n-1]-1] is the top-right corner, consistent with
+    Cartesian coordinates and Matplotlib/Seaborn plot outputs.
+    The convention is different from `np.genfromtxt`_ and its use in the
+    `mesa-examples Sugarscape model`_, where [0, ..., 0] is the top-left corner
+    and [dimensions[0]-1, ..., dimensions[n-1]-1] is the bottom-right corner.
+
+    .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
+    .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
+
+
     Methods
     -------
     __init__(model: 'ModelDF', dimensions: Sequence[int], torus: bool = False, capacity: int | None = None, neighborhood_type: str = 'moore')
@@ -778,9 +791,19 @@ class GridDF(DiscreteSpaceDF):
         capacity: int | None = None,
         neighborhood_type: str = "moore",
     ):
-        """Grid cells are indexed, where [0, ..., 0] is assumed to be the
-        bottom-left and [dimensions[0]-1, ..., dimensions[n]-1] is the top-right. If a grid is
-        toroidal, the top and bottom, and left and right, edges wrap to each other.
+        """Create a new GridDF object.
+
+        Warning
+        -------
+        In this implementation, [0, ..., 0] is the bottom-left corner and
+        [dimensions[0]-1, ..., dimensions[n-1]-1] is the top-right corner, consistent with
+        Cartesian coordinates and Matplotlib/Seaborn plot outputs.
+        The convention is different from `np.genfromtxt`_ and its use in the
+        `mesa-examples Sugarscape model`_, where [0, ..., 0] is the top-left corner
+        and [dimensions[0]-1, ..., dimensions[n-1]-1] is the bottom-right corner.
+
+        .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
+        .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
 
         Parameters
         ----------
@@ -844,9 +867,6 @@ class GridDF(DiscreteSpaceDF):
         agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
         include_center: bool = False,
     ) -> DataFrame:
-        if __debug__:
-            if pos is not None and agents is not None:
-                raise ValueError("Either pos or agents must be specified")
         neighborhood_df = self.get_neighborhood(
             radius=radius, pos=pos, agents=agents, include_center=include_center
         )
