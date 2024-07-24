@@ -417,6 +417,9 @@ class DiscreteSpaceDF(SpaceDF):
 
     _capacity: int | None  # The maximum capacity for cells (default is infinite)
     _cells: DataFrame  # Stores the properties of the cells
+    _cells_capacity: (
+        DiscreteSpaceCapacity  # Storing the remaining capacity of the cells in the grid
+    )
     _cells_col_names: list[
         str
     ]  # The column names of the _cells dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
@@ -568,6 +571,49 @@ class DiscreteSpaceDF(SpaceDF):
                 condition = self._full_cell_condition
         return self._sample_cells(n, with_replacement, condition=condition, seed=seed)
 
+    def set_cells(
+        self,
+        cells: DataFrame | DiscreteCoordinate | DiscreteCoordinates,
+        properties: DataFrame | dict[str, Any] | None = None,
+        inplace: bool = True,
+    ) -> Self:
+        """Set the properties of the specified cells.
+        This method mirrors the functionality of mesa's PropertyLayer, but allows also to set properties only of specific cells.
+        Either the cells DF must contain both the cells' coordinates and the properties
+        or the cells' coordinates can be specified separately with the cells argument.
+        If the Space is a Grid, the cell coordinates must be GridCoordinates.
+        If the Space is a Network, the cell coordinates must be NetworkCoordinates.
+
+
+        Parameters
+        ----------
+        cells : DataFrame | DiscreteCoordinate | DiscreteCoordinates
+            The cells to set the properties for
+        properties : DataFrame | dict[str, Any] | None, optional
+            The properties of the cells, by default None
+        inplace : bool
+            Whether to perform the operation inplace
+
+        Returns
+        -------
+        Self
+        """
+        obj = self._get_obj(inplace)
+        cells_col_names = obj._df_column_names(obj._cells)
+        if __debug__:
+            if isinstance(cells, DataFrame) and any(
+                k not in cells_col_names for k in obj._cells_col_names
+            ):
+                raise ValueError(
+                    f"The cells DataFrame must have the columns {obj._cells_col_names}"
+                )
+        obj._cells = obj._df_combine_first(
+            obj._cells, cells, index_cols=obj._cells_col_names
+        )
+        if "capacity" in cells_col_names:
+            obj._cells_capacity = obj._update_cells_capacity(cells)
+        return obj
+
     @abstractmethod
     def get_neighborhood(
         self,
@@ -614,36 +660,6 @@ class DiscreteSpaceDF(SpaceDF):
         -------
         DataFrame
             A DataFrame with the properties of the cells and the agents placed in them.
-        """
-        ...
-
-    @abstractmethod
-    def set_cells(
-        self,
-        cells: DataFrame | DiscreteCoordinate | DiscreteCoordinates,
-        properties: DataFrame | dict[str, Any] | None = None,
-        inplace: bool = True,
-    ) -> Self:
-        """Set the properties of the specified cells.
-        This method mirrors the functionality of mesa's PropertyLayer, but allows also to set properties only of specific cells.
-        Either the cells DF must contain both the cells' coordinates and the properties
-        or the cells' coordinates can be specified separately with the cells argument.
-        If the Space is a Grid, the cell coordinates must be GridCoordinates.
-        If the Space is a Network, the cell coordinates must be NetworkCoordinates.
-
-
-        Parameters
-        ----------
-        cells : DataFrame | DiscreteCoordinate | DiscreteCoordinates
-            The cells to set the properties for
-        properties : DataFrame | dict[str, Any] | None, optional
-            The properties of the cells, by default None
-        inplace : bool
-            Whether to perform the operation inplace
-
-        Returns
-        -------
-        Self
         """
         ...
 
@@ -713,6 +729,22 @@ class DiscreteSpaceDF(SpaceDF):
         Returns
         -------
         DataFrame
+        """
+        ...
+
+    @abstractmethod
+    def _update_cells_capacity(self, cells: DataFrame) -> DiscreteSpaceCapacity:
+        """Update the cells' capacity after setting new properties.
+
+        Parameters
+        ----------
+        cells : DataFrame
+            A DF with the cells to update the capacity and the 'capacity' column
+
+        Returns
+        -------
+        DiscreteSpaceCapacity
+            The updated cells' capacity
         """
         ...
 
@@ -794,7 +826,7 @@ class GridDF(DiscreteSpaceDF):
         If the grid is a torus
     """
 
-    _grid_capacity: (
+    _cells_capacity: (
         GridCapacity  # Storing the remaining capacity of the cells in the grid
     )
     _neighborhood_type: Literal[
@@ -854,7 +886,7 @@ class GridDF(DiscreteSpaceDF):
             index_cols=self._cells_col_names,
         )
         self._offsets = self._compute_offsets(neighborhood_type)
-        self._grid_capacity = self._generate_empty_grid(dimensions, capacity)
+        self._cells_capacity = self._generate_empty_grid(dimensions, capacity)
         self._neighborhood_type = neighborhood_type
 
     def get_directions(
