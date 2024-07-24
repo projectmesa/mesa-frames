@@ -220,7 +220,8 @@ class DataFrameMixin(ABC):
         how: Literal["left"]
         | Literal["right"]
         | Literal["inner"]
-        | Literal["outer"] = "left",
+        | Literal["outer"]
+        | Literal["cross"] = "left",
         suffix="_right",
     ) -> DataFrame: ...
 

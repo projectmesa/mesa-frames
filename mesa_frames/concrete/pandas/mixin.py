@@ -113,7 +113,8 @@ class PandasMixin(DataFrameMixin):
         how: Literal["left"]
         | Literal["right"]
         | Literal["inner"]
-        | Literal["outer"] = "left",
+        | Literal["outer"]
+        | Literal["cross"] = "left",
         suffix="_right",
     ) -> pd.DataFrame:
         left_index = False

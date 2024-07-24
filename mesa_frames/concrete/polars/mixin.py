@@ -139,7 +139,8 @@ class PolarsMixin(DataFrameMixin):
         how: Literal["left"]
         | Literal["right"]
         | Literal["inner"]
-        | Literal["outer"] = "left",
+        | Literal["outer"]
+        | Literal["cross"] = "left",
         suffix="_right",
     ) -> pl.DataFrame:
         return left.join(
