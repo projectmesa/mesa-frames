@@ -243,3 +243,6 @@ class DataFrameMixin(ABC):
         srs: Sequence[Any],
         values: Any | Sequence[Any],
     ) -> BoolSeries: ...
+
+    @abstractmethod
+    def _srs_range(self, name: str, start: int, end: int, step: int = 1) -> Series: ...

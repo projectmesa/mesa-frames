@@ -144,3 +144,12 @@ class PandasMixin(DataFrameMixin):
         self, srs: Sequence[Any], values: Any | Sequence[Any]
     ) -> pd.Series:
         return pd.Series(values, index=values).isin(srs)
+
+    def _srs_range(
+        self,
+        name: str,
+        start: int,
+        end: int,
+        step: int = 1,
+    ) -> pd.Series:
+        return pd.Series(np.arange(start, end, step), name=name)

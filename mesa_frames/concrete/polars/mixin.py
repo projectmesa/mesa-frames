@@ -165,3 +165,12 @@ class PolarsMixin(DataFrameMixin):
         values: Any | Sequence[Any],
     ) -> pl.Series:
         return pl.Series(values, index=values).is_in(srs)
+
+    def _srs_range(
+        self,
+        name: str,
+        start: int,
+        end: int,
+        step: int = 1,
+    ) -> pl.Series:
+        return pl.arange(start=start, end=end, step=step, eager=True).rename(name)
