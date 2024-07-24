@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
+from collections.abc import Collection, Iterator, Sequence
 from copy import copy, deepcopy
+from typing import Literal
 
 from typing_extensions import Any, Self
-from typing import Literal
-from collections.abc import Collection, Iterator, Sequence
 
 from mesa_frames.types_ import BoolSeries, DataFrame, MaskLike, Series
 
@@ -153,6 +153,9 @@ class DataFrameMixin(ABC):
     def _df_add_columns(
         self, original_df: DataFrame, new_columns: list[str], data: Any
     ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_columns(self, df: DataFrame) -> list[str]: ...
 
     @abstractmethod
     def _df_combine_first(

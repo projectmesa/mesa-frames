@@ -19,6 +19,9 @@ class PolarsMixin(DataFrameMixin):
             **{col: value for col, value in zip(new_columns, data)}
         )
 
+    def _df_columns(self, df: pl.DataFrame) -> list[str]:
+        return df.columns
+
     def _df_combine_first(
         self, original_df: pl.DataFrame, new_df: pl.DataFrame, index_cols: list[str]
     ) -> pl.DataFrame:
