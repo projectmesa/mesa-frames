@@ -708,13 +708,19 @@ class DiscreteSpaceDF(SpaceDF):
     def __getitem__(self, cells: DiscreteCoordinates):
         return self.get_cells(cells)
 
-    def __setitem__(self, cells: DiscreteCoordinates, properties: DataFrame):
-        self.set_cells(properties=properties, cells=cells)
-
     def __getattr__(self, key: str) -> DataFrame:
         # Fallback, if key (property) is not found in the object,
         # then it must mean that it's in the _cells dataframe
         return self._cells[key]
+
+    def __setitem__(self, cells: DiscreteCoordinates, properties: DataFrame):
+        self.set_cells(properties=properties, cells=cells)
+
+    def __repr__(self) -> str:
+        return self._cells.__repr__()
+
+    def __str__(self) -> str:
+        return self._cells.__str__()
 
     @property
     def cells(self) -> DataFrame:
