@@ -1,7 +1,9 @@
+from collections.abc import Collection, Iterator, Sequence
+from typing import Literal
+
+import numpy as np
 import pandas as pd
 from typing_extensions import Any
-from typing import Literal
-from collections.abc import Collection, Iterator, Sequence
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import PandasMaskLike
@@ -89,6 +91,13 @@ class PandasMixin(DataFrameMixin):
             row_dict = row.to_dict()
             row_dict["unique_id"] = index
             yield row_dict
+
+    def _df_norm(self, df: pd.DataFrame) -> pd.DataFrame:
+        return self._df_constructor(
+            data=[np.linalg.norm(df, axis=1), df.index],
+            columns=[df.columns, df.index.name],
+            index_col=df.index.name,
+        )
 
     def _df_remove(
         self,

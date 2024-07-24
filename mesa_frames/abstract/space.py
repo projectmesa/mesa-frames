@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence
+from itertools import product
 from typing import TYPE_CHECKING, Literal
+from warnings import warn
 
 import polars as pl
 from numpy.random import Generator
@@ -15,6 +17,9 @@ from mesa_frames.types_ import (
     DiscreteCoordinates,
     DiscreteSpaceCapacity,
     GeoDataFrame,
+    GridCapacity,
+    GridCoordinate,
+    GridCoordinates,
     IdsLike,
     SpaceCoordinate,
     SpaceCoordinates,
@@ -733,3 +738,439 @@ class DiscreteSpaceDF(SpaceDF):
         return self._sample_cells(
             None, with_replacement=False, condition=self._full_cell_condition
         )
+
+
+class GridDF(DiscreteSpaceDF):
+    """The GridDF class is an abstract class that defines the interface for all grid classes in mesa-frames.
+    Inherits from DiscreteSpaceDF.
+
+    Warning
+    -------
+    In this implementation, [0, ..., 0] is the bottom-left corner and
+    [dimensions[0]-1, ..., dimensions[n-1]-1] is the top-right corner, consistent with
+    Cartesian coordinates and Matplotlib/Seaborn plot outputs.
+    The convention is different from `np.genfromtxt`_ and its use in the
+    `mesa-examples Sugarscape model`_, where [0, ..., 0] is the top-left corner
+    and [dimensions[0]-1, ..., dimensions[n-1]-1] is the bottom-right corner.
+
+    .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
+    .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
+
+
+    Methods
+    -------
+    __init__(model: 'ModelDF', dimensions: Sequence[int], torus: bool = False, capacity: int | None = None, neighborhood_type: str = 'moore')
+        Create a new GridDF object.
+    out_of_bounds(pos: GridCoordinate | GridCoordinates) -> DataFrame
+        Check whether the input positions are out of bounds in a non-toroidal grid.
+
+    Properties
+    ----------
+    dimensions : Sequence[int]
+        The dimensions of the grid
+    neighborhood_type : Literal['moore', 'von_neumann', 'hexagonal']
+        The type of neighborhood to consider
+    torus : bool
+        If the grid is a torus
+    """
+
+    _grid_capacity: (
+        GridCapacity  # Storing the remaining capacity of the cells in the grid
+    )
+    _neighborhood_type: Literal[
+        "moore", "von_neumann", "hexagonal"
+    ]  # The type of neighborhood to consider
+    _offsets: DataFrame  # The offsets to compute the neighborhood of a cell
+    _torus: bool  # If the grid is a torus
+
+    def __init__(
+        self,
+        model: "ModelDF",
+        dimensions: Sequence[int],
+        torus: bool = False,
+        capacity: int | None = None,
+        neighborhood_type: str = "moore",
+    ):
+        """Create a new GridDF object.
+
+        Warning
+        -------
+        In this implementation, [0, ..., 0] is the bottom-left corner and
+        [dimensions[0]-1, ..., dimensions[n-1]-1] is the top-right corner, consistent with
+        Cartesian coordinates and Matplotlib/Seaborn plot outputs.
+        The convention is different from `np.genfromtxt`_ and its use in the
+        `mesa-examples Sugarscape model`_, where [0, ..., 0] is the top-left corner
+        and [dimensions[0]-1, ..., dimensions[n-1]-1] is the bottom-right corner.
+
+        .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
+        .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
+
+        Parameters
+        ----------
+        model : 'ModelDF'
+            The model selfect to which the grid belongs
+        dimensions: Sequence[int]
+            The dimensions of the grid
+        torus : bool, optional
+            If the grid should be a torus, by default False
+        capacity : int | None, optional
+            The maximum number of agents that can be placed in a cell, by default None
+        neighborhood_type: str, optional
+            The type of neighborhood to consider, by default 'moore'.
+            If 'moore', the neighborhood is the 8 cells around the center cell (up, down, left, right, and diagonals).
+            If 'von_neumann', the neighborhood is the 4 cells around the center cell (up, down, left, right).
+            If 'hexagonal', the neighborhood are 6 cells around the center cell distributed in a hexagonal shape.
+        """
+        super().__init__(model, capacity)
+        self._dimensions = dimensions
+        self._torus = torus
+        self._cells_col_names = [f"dim_{k}" for k in range(len(dimensions))]
+        self._center_col_names = [x + "_center" for x in self._cells_col_names]
+        self._agents = self._df_constructor(
+            columns=["agent_id"] + self._cells_col_names, index_col="agent_id"
+        )
+        self._cells = self._df_constructor(
+            columns=self._cells_col_names + ["capacity"],
+            index_cols=self._cells_col_names,
+        )
+        self._offsets = self._compute_offsets(neighborhood_type)
+        self._grid_capacity = self._generate_empty_grid(dimensions, capacity)
+        self._neighborhood_type = neighborhood_type
+
+    def get_directions(
+        self,
+        pos0: GridCoordinate | GridCoordinates | None = None,
+        pos1: GridCoordinate | GridCoordinates | None = None,
+        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        normalize: bool = False,
+    ) -> DataFrame:
+        result = self._calculate_differences(pos0, pos1, agents0, agents1)
+        if normalize:
+            result = result / self._df_norm(result)
+        return result
+
+    def get_distances(
+        self,
+        pos0: GridCoordinate | GridCoordinates | None = None,
+        pos1: GridCoordinate | GridCoordinates | None = None,
+        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+    ) -> DataFrame:
+        result = self._calculate_differences(pos0, pos1, agents0, agents1)
+        return self._df_norm(result)
+
+    def get_neighbors(
+        self,
+        radius: int | Sequence[int],
+        pos: GridCoordinate | GridCoordinates | None = None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        include_center: bool = False,
+    ) -> DataFrame:
+        neighborhood_df = self.get_neighborhood(
+            radius=radius, pos=pos, agents=agents, include_center=include_center
+        )
+        return self._df_get_masked_df(
+            df=self._agents,
+            index_col="agent_id",
+            mask=neighborhood_df,
+            columns=self._agents.columns,
+        )
+
+    def get_cells(
+        self, cells: GridCoordinate | GridCoordinates | None = None
+    ) -> DataFrame:
+        coords_df = self._get_df_coords(cells)
+        return self._df_get_masked_df(
+            df=self._cells,
+            index_cols=self._cells_col_names,
+            mask=coords_df,
+            columns=self._cells.columns,
+        )
+
+    def move_agents(
+        self,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        pos: GridCoordinate | GridCoordinates,
+        inplace: bool = True,
+    ) -> Self:
+        obj = self._get_obj(inplace)
+
+        # Get Ids of agents
+        if isinstance(agents, AgentContainer | Collection[AgentContainer]):
+            agents = agents.index
+
+        if __debug__:
+            # Check ids presence in model
+            b_contained = obj.model.agents.contains(agents)
+            if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
+                isinstance(b_contained, bool) and not b_contained
+            ):
+                raise ValueError("Some agents are not in the model")
+
+            # Check ids are unique
+            agents = pl.Series(agents)
+            if agents.unique_counts() != len(agents):
+                raise ValueError("Some agents are present multiple times")
+
+            # Warn if agents are already placed
+            if agents.is_in(obj._agents["agent_id"]):
+                warn("Some agents are already placed in the grid", RuntimeWarning)
+
+        # Place agents (checking that capacity is not)
+        coords = obj._get_df_coords(pos)
+        obj._agents = obj._place_agents_df(agents, coords)
+        return obj
+
+    def out_of_bounds(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
+        """Check if a position is out of bounds in a non-toroidal grid.
+
+        Parameters
+        ----------
+        pos : GridCoordinate | GridCoordinates
+            The position to check
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the coordinates and an 'out_of_bounds' containing boolean values.
+
+        Raises
+        ------
+        ValueError
+            If the grid is a torus
+        """
+        if self._torus:
+            raise ValueError("This method is only valid for non-torus grids")
+        pos_df = self._get_df_coords(pos)
+        out_of_bounds = pos_df < 0 | pos_df >= self._dimensions
+        return self._df_constructor(
+            data=[pos_df, out_of_bounds],
+        )
+
+    def remove_agents(
+        self,
+        agents: AgentContainer | Collection[AgentContainer] | int | Sequence[int],
+        inplace: bool = True,
+    ) -> Self:
+        obj = self._get_obj(inplace)
+
+        # Get Ids of agents
+        if isinstance(agents, AgentContainer | Collection[AgentContainer]):
+            agents = agents.index
+
+        if __debug__:
+            # Check ids presence in model
+            b_contained = obj.model.agents.contains(agents)
+            if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
+                isinstance(b_contained, bool) and not b_contained
+            ):
+                raise ValueError("Some agents are not in the model")
+
+        # Remove agents
+        obj._agents = obj._df_remove(obj._agents, ids=agents, index_col="agent_id")
+
+        return obj
+
+    def torus_adj(self, pos: GridCoordinates) -> DataFrame:
+        """Get the toroidal adjusted coordinates of a position.
+
+        Parameters
+        ----------
+        pos : GridCoordinates
+            The coordinates to adjust
+
+        Returns
+        -------
+        DataFrame
+            The adjusted coordinates
+        """
+        df_coords = self._get_df_coords(pos)
+        df_coords = df_coords % self._dimensions
+        return df_coords
+
+    def _calculate_differences(
+        self,
+        pos0: GridCoordinate | GridCoordinates | None,
+        pos1: GridCoordinate | GridCoordinates | None,
+        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None,
+        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None,
+    ) -> DataFrame:
+        """Calculate the differences between two positions or agents.
+
+        Parameters
+        ----------
+        pos0 : GridCoordinate | GridCoordinates | None
+            The starting positions
+        pos1 : GridCoordinate | GridCoordinates | None
+            The ending positions
+        agents0 : IdsLike | AgentContainer | Collection[AgentContainer] | None
+            The starting agents
+        agents1 : IdsLike | AgentContainer | Collection[AgentContainer] | None
+            The ending agents
+
+        Returns
+        -------
+        DataFrame
+
+        Raises
+        ------
+        ValueError
+            If objects do not have the same length
+        """
+        pos0_df = self._get_df_coords(pos0, agents0)
+        pos1_df = self._get_df_coords(pos1, agents1)
+        if __debug__ and len(pos0_df) != len(pos1_df):
+            raise ValueError("objects must have the same length")
+        return pos1_df - pos0_df
+
+    def _compute_offsets(self, neighborhood_type: str) -> DataFrame:
+        """Generate offsets for the neighborhood.
+
+        Parameters
+        ----------
+        neighborhood_type : str
+            The type of neighborhood to consider
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the offsets
+
+        Raises
+        ------
+        ValueError
+            If the neighborhood type is invalid
+        ValueError
+            If the grid has more than 2 dimensions and the neighborhood type is 'hexagonal'
+        """
+        if neighborhood_type == "moore":
+            ranges = [range(-1, 2) for _ in self._dimensions]
+            directions = [d for d in product(*ranges) if any(d)]
+        elif neighborhood_type == "von_neumann":
+            ranges = [range(-1, 2) for _ in self._dimensions]
+            directions = [
+                d for d in product(*ranges) if sum(map(abs, d)) <= 1 and any(d)
+            ]
+        elif neighborhood_type == "hexagonal":
+            if __debug__ and len(self._dimensions) > 2:
+                raise ValueError(
+                    "Hexagonal neighborhood is only valid for 2-dimensional grids"
+                )
+            even_offsets = [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)]
+            odd_offsets = [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)]
+
+            # Create a DataFrame with three columns: dim_0, dim_1, and is_even
+            offsets_data = [(d[0], d[1], True) for d in even_offsets] + [
+                (d[0], d[1], False) for d in odd_offsets
+            ]
+            return self._df_constructor(
+                data=offsets_data, columns=self._cells_col_names + ["is_even"]
+            )
+        else:
+            raise ValueError("Invalid neighborhood type specified")
+        return self._df_constructor(data=directions, columns=self._cells_col_names)
+
+    def _get_df_coords(
+        self,
+        pos: GridCoordinate | GridCoordinates | None = None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+    ) -> DataFrame:
+        """Get the DataFrame of coordinates from the specified positions or agents.
+
+        Parameters
+        ----------
+        pos : GridCoordinate | GridCoordinates | None, optional
+        agents : int | Sequence[int] | None, optional
+
+        Returns
+        -------
+        DataFrame
+            A dataframe where the columns are "dim_0, dim_1, ..." and the rows are the coordinates
+
+        Raises
+        ------
+        ValueError
+            If neither pos or agents are specified
+        """
+        if __debug__:
+            if pos is None and agents is None:
+                raise ValueError("Neither pos or agents are specified")
+            elif pos is not None and agents is not None:
+                raise ValueError("Both pos and agents are specified")
+        if agents:
+            return self._df_get_masked_df(
+                self._agents, index_col="agent_id", mask=agents
+            )
+        if isinstance(pos, DataFrame):
+            return pos[self._cells_col_names]
+        elif isinstance(pos, Sequence) and len(pos) == len(self._dimensions):
+            # This means that the sequence is already a sequence where each element is the
+            # sequence of coordinates for dimension i
+            for i, c in enumerate(pos):
+                if isinstance(c, slice):
+                    start = c.start if c.start is not None else 0
+                    step = c.step if c.step is not None else 1
+                    stop = c.stop if c.stop is not None else self._dimensions[i]
+                    pos[i] = pl.arange(start=start, end=stop, step=step)
+                elif isinstance(c, int):
+                    pos[i] = [c]
+            return self._df_constructor(data=pos, columns=self._cells_col_names)
+        elif isinstance(pos, Collection) and all(
+            len(c) == len(self._dimensions) for c in pos
+        ):
+            # This means that we have a collection of coordinates
+            sequences = []
+            for i in range(len(self._dimensions)):
+                sequences.append([c[i] for c in pos])
+            return self._df_constructor(data=sequences, columns=self._cells_col_names)
+        elif isinstance(pos, int) and len(self._dimensions) == 1:
+            return self._df_constructor(data=[pos], columns=self._cells_col_names)
+        else:
+            raise ValueError("Invalid coordinates")
+
+    @abstractmethod
+    def _generate_empty_grid(
+        self, dimensions: Sequence[int], capacity: int
+    ) -> GridCapacity:
+        """Generate an empty grid with the specified dimensions and capacity.
+
+        Parameters
+        ----------
+        dimensions : Sequence[int]
+
+        Returns
+        -------
+        GridCapacity
+        """
+        ...
+
+    @abstractmethod
+    def _place_agents_df(self, agents: IdsLike, coords: DataFrame) -> DataFrame:
+        """Place agents in the grid according to the specified coordinates.
+
+        Parameters
+        ----------
+        agents : IDsLike
+            The agents to place in the grid
+        coords : DataFrame
+            The coordinates for each agent
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the agents placed in the grid
+        """
+        ...
+
+    @property
+    def dimensions(self) -> Sequence[int]:
+        return self._dimensions
+
+    @property
+    def neighborhood_type(self) -> str:
+        return self._neighborhood_type
+
+    @property
+    def torus(self) -> bool:
+        return self._torus
