@@ -528,11 +528,15 @@ class DiscreteSpaceDF(SpaceDF):
             agents, cell_type="available", inplace=inplace
         )
 
+    def random_pos(self, n: int, seed: int | None = None) -> DataFrame | pl.DataFrame:
+        return self.sample_cells(n, cell_type="any", with_replacement=True, seed=seed)
+
     def sample_cells(
         self,
         n: int,
         cell_type: Literal["any", "empty", "available", "full"] = "any",
         with_replacement: bool = True,
+        seed: int | None = None,
     ) -> DataFrame:
         """Sample cells from the grid according to the specified cell_type.
 
@@ -544,6 +548,9 @@ class DiscreteSpaceDF(SpaceDF):
             The type of cells to sample, by default "any"
         with_replacement : bool, optional
             If the sampling should be with replacement, by default True
+        seed : int | None, optional
+            The seed for the sampling, by default None
+            If None, an integer from the model's random number generator is used.
 
         Returns
         -------
@@ -559,7 +566,7 @@ class DiscreteSpaceDF(SpaceDF):
                 condition = self._available_cell_condition
             case "full":
                 condition = self._full_cell_condition
-        return self._sample_cells(n, with_replacement, condition=condition)
+        return self._sample_cells(n, with_replacement, condition=condition, seed=seed)
 
     @abstractmethod
     def get_neighborhood(
@@ -687,6 +694,7 @@ class DiscreteSpaceDF(SpaceDF):
         n: int | None,
         with_replacement: bool,
         condition: Callable[[DiscreteSpaceCapacity], BoolSeries],
+        seed: int | None = None,
     ) -> DataFrame:
         """Sample cells from the grid according to a condition on the capacity.
 
@@ -698,6 +706,9 @@ class DiscreteSpaceDF(SpaceDF):
             If the sampling should be with replacement
         condition : Callable[[DiscreteSpaceCapacity], BoolSeries]
             The condition to apply on the capacity
+        seed : int | None, optional
+            The seed for the sampling, by default None
+            If None, an integer from the model's random number generator is used.
 
         Returns
         -------
