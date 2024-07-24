@@ -6,7 +6,7 @@ from warnings import warn
 
 import polars as pl
 from numpy.random import Generator
-from typing_extensions import Self
+from typing_extensions import Any, Self
 
 from mesa_frames.abstract.agents import AgentContainer
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
@@ -620,24 +620,24 @@ class DiscreteSpaceDF(SpaceDF):
     @abstractmethod
     def set_cells(
         self,
-        properties: DataFrame,
-        cells: DiscreteCoordinates | None = None,
+        cells: DataFrame | DiscreteCoordinate | DiscreteCoordinates,
+        properties: DataFrame | dict[str, Any] | None = None,
         inplace: bool = True,
     ) -> Self:
         """Set the properties of the specified cells.
         This method mirrors the functionality of mesa's PropertyLayer, but allows also to set properties only of specific cells.
-        Either the properties DF must contain both the cell coordinates and the properties
-        or the cell coordinates must be specified separately with the cells argument.
+        Either the cells DF must contain both the cells' coordinates and the properties
+        or the cells' coordinates can be specified separately with the cells argument.
         If the Space is a Grid, the cell coordinates must be GridCoordinates.
         If the Space is a Network, the cell coordinates must be NetworkCoordinates.
 
 
         Parameters
         ----------
-        properties : DataFrame
-            The properties of the cells
-        cells : DiscreteCoordinates | None, optional
-            The coordinates of the cells to set the properties for, by default None (all cells)
+        cells : DataFrame | DiscreteCoordinate | DiscreteCoordinates
+            The cells to set the properties for
+        properties : DataFrame | dict[str, Any] | None, optional
+            The properties of the cells, by default None
         inplace : bool
             Whether to perform the operation inplace
 
