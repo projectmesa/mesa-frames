@@ -12,7 +12,7 @@ class PolarsMixin(DataFrameMixin):
     # TODO: complete with other dtypes
     _dtypes_mapping: dict[str, Any] = {"int64": pl.Int64, "bool": pl.Boolean}
 
-    def _df_add_columns(
+    def _df_with_columns(
         self, original_df: pl.DataFrame, new_columns: list[str], data: Any
     ) -> pl.DataFrame:
         return original_df.with_columns(
@@ -63,6 +63,14 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.DataFrame:
         dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
         return pl.DataFrame(data=data, schema=dtypes if dtypes else columns)
+
+    def _df_contains(
+        self,
+        df: pl.DataFrame,
+        column: str,
+        values: Any | Sequence[Any],
+    ) -> pl.Series:
+        return pl.Series(values, index=values).is_in(df[column])
 
     def _df_get_bool_mask(
         self,
@@ -150,3 +158,10 @@ class PolarsMixin(DataFrameMixin):
         index: Sequence[Any] | None = None,
     ) -> pl.Series:
         return pl.Series(name=name, values=data, dtype=self._dtypes_mapping[dtype])
+
+    def _srs_contains(
+        self,
+        srs: Sequence[Any],
+        values: Any | Sequence[Any],
+    ) -> pl.Series:
+        return pl.Series(values, index=values).is_in(srs)

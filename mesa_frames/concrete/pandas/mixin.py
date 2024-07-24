@@ -10,7 +10,7 @@ from mesa_frames.types_ import PandasMaskLike
 
 
 class PandasMixin(DataFrameMixin):
-    def _df_add_columns(
+    def _df_with_columns(
         self, original_df: pd.DataFrame, new_columns: list[str], data: Any
     ) -> pd.DataFrame:
         original_df[new_columns] = data
@@ -45,6 +45,14 @@ class PandasMixin(DataFrameMixin):
         if index_col:
             df.set_index(index_col)
         return df
+
+    def _df_contains(
+        self,
+        df: pd.DataFrame,
+        column: str,
+        values: Any | Sequence[Any],
+    ) -> pd.Series:
+        return pd.Series(values, index=values).isin(df[column])
 
     def _df_get_bool_mask(
         self,
@@ -131,3 +139,8 @@ class PandasMixin(DataFrameMixin):
         index: Sequence[Any] | None = None,
     ) -> pd.Series:
         return pd.Series(data, name=name, dtype=dtype, index=index)
+
+    def _srs_contains(
+        self, srs: Sequence[Any], values: Any | Sequence[Any]
+    ) -> pd.Series:
+        return pd.Series(values, index=values).isin(srs)

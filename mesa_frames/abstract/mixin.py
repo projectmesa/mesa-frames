@@ -150,7 +150,7 @@ class CopyMixin(ABC):
 
 class DataFrameMixin(ABC):
     @abstractmethod
-    def _df_add_columns(
+    def _df_with_columns(
         self, original_df: DataFrame, new_columns: list[str], data: Any
     ) -> DataFrame: ...
 
@@ -169,6 +169,14 @@ class DataFrameMixin(ABC):
         how: Literal["horizontal"] | Literal["vertical"] = "vertical",
         ignore_index: bool = False,
     ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_contains(
+        self,
+        df: DataFrame,
+        column: str,
+        values: Any | Sequence[Any],
+    ) -> BoolSeries: ...
 
     @abstractmethod
     def _df_constructor(
@@ -228,3 +236,10 @@ class DataFrameMixin(ABC):
         dtype: Any | None = None,
         index: Sequence[Any] | None = None,
     ) -> Series: ...
+
+    @abstractmethod
+    def _srs_contains(
+        self,
+        srs: Sequence[Any],
+        values: Any | Sequence[Any],
+    ) -> BoolSeries: ...
