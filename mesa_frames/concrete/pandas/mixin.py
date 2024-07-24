@@ -16,7 +16,7 @@ class PandasMixin(DataFrameMixin):
         original_df[new_columns] = data
         return original_df
 
-    def _df_columns(self, df: pd.DataFrame) -> list[str]:
+    def _df_column_names(self, df: pd.DataFrame) -> list[str]:
         return df.columns.tolist() + df.index.names
 
     def _df_combine_first(
