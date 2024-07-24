@@ -409,7 +409,7 @@ class DiscreteSpaceDF(SpaceDF):
         Sample cells from the grid according to the specified cell_type.
     get_neighborhood(radius: int | float | Sequence[int] | Sequence[float], pos: DiscreteCoordinate | DiscreteCoordinates | None = None, agents: IdsLike | AgentContainer | Collection[AgentContainer] = None, include_center: bool = False) -> DataFrame
         Get the neighborhood cells from the given positions (pos) or agents according to the specified radiuses.
-    get_cells(cells: DiscreteCoordinates | None = None) -> DataFrame
+    get_cells(coords: DiscreteCoordinate | DiscreteCoordinates | None = None) -> DataFrame
         Retrieve a dataframe of specified cells with their properties and agents.
     set_cells(properties: DataFrame, cells: DiscreteCoordinates | None = None, inplace: bool = True) -> Self
         Set the properties of the specified cells.
@@ -593,12 +593,15 @@ class DiscreteSpaceDF(SpaceDF):
         ...
 
     @abstractmethod
-    def get_cells(self, cells: DiscreteCoordinates | None = None) -> DataFrame:
+    def get_cells(
+        self, coords: DiscreteCoordinate | DiscreteCoordinates | None = None
+    ) -> DataFrame:
         """Retrieve a dataframe of specified cells with their properties and agents.
 
         Parameters
         ----------
-        cells : CellCoordinates, default is optional (all cells retrieved)
+        coords : DiscreteCoordinate | DiscreteCoordinates | None, optional
+            The cells to retrieve. Default is None (all cells retrieved)
 
         Returns
         -------
@@ -878,9 +881,9 @@ class GridDF(DiscreteSpaceDF):
         )
 
     def get_cells(
-        self, cells: GridCoordinate | GridCoordinates | None = None
+        self, coords: GridCoordinate | GridCoordinates | None = None
     ) -> DataFrame:
-        coords_df = self._get_df_coords(cells)
+        coords_df = self._get_df_coords(pos=coords)
         return self._df_get_masked_df(
             df=self._cells,
             index_cols=self._cells_col_names,
