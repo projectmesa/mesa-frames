@@ -89,6 +89,12 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
     _model: "ModelDF"
     _agents: DataFrame | GeoDataFrame  # Stores the agents placed in the space
+    _center_col_names: list[
+        str
+    ]  # The column names of the center pos/agents in the neighbors/neighborhood method (eg. ['dim_0_center', 'dim_1_center', ...] in Grids, ['node_id_center', 'edge_id_center'] in Networks)
+    _pos_col_names: list[
+        str
+    ]  # The column names of the positions in the _agents dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
 
     def __init__(self, model: "ModelDF") -> None:
         """Create a new SpaceDF object.
@@ -126,6 +132,48 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         if seed is None:
             seed = self.random.integers(0)
         return self._df_sample(self._agents, n=n, seed=seed)
+
+    def swap_agents(
+        self,
+        agents0: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents1: IdsLike | AgentContainer | Collection[AgentContainer],
+        inplace: bool = True,
+    ) -> Self:
+        """Swap the positions of the agents in the space.
+        agents0 and agents1 must have the same length and all agents must be placed in the space.
+
+        Parameters
+        ----------
+        agents0 : IdsLike | AgentContainer | Collection[AgentContainer]
+            The first set of agents to swap
+        agents1 : IdsLike | AgentContainer | Collection[AgentContainer]
+            The second set of agents to swap
+
+        Returns
+        -------
+        Self
+        """
+        if isinstance(agents0, AgentContainer | Collection[AgentContainer]):
+            agents0 = agents0.index
+        elif isinstance(agents1, AgentContainer | Collection[AgentContainer]):
+            agents1 = agents1.index
+        if __debug__:
+            if len(agents0) != len(agents1):
+                raise ValueError("The two sets of agents must have the same length")
+            if not self._df_contains(self._agents, "agent_id", agents0).all():
+                raise ValueError("Some agents in agents0 are not in the space")
+            if not self._df_contains(self._agents, "agent_id", agents1).all():
+                raise ValueError("Some agents in agents1 are not in the space")
+            if self._srs_contains(agents0, agents1).any():
+                raise ValueError("Some agents are present in both agents0 and agents1")
+        obj = self._get_obj(inplace)
+        agents0_df = obj._df_get_masked_df(obj._agents, "agent_id", agents0)
+        agents1_df = obj._df_get_masked_df(obj._agents, "agent_id", agents1)
+        agents0_df = obj._df_with_columns(agents0_df, obj._pos_col_names, agents1_df)
+        agents1_df = obj._df_with_columns(agents1_df, obj._pos_col_names, agents0_df)
+        obj._agents = obj._df_combine_first(obj._agents, agents0_df)
+        obj._agents = obj._df_combine_first(obj._agents, agents1_df)
+        return obj
 
     @abstractmethod
     def get_directions(
@@ -331,27 +379,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         ...
 
     @abstractmethod
-    def swap_agents(
-        self,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer],
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer],
-    ) -> Self:
-        """Swap the positions of the agents in the space.
-        agents0 and agents1 must have the same length and all agents must be placed in the space.
-
-        Parameters
-        ----------
-        agents0 : IdsLike | AgentContainer | Collection[AgentContainer]
-            The first set of agents to swap
-        agents1 : IdsLike | AgentContainer | Collection[AgentContainer]
-            The second set of agents to swap
-
-        Returns
-        -------
-        Self
-        """
-
-    @abstractmethod
     def __repr__(self) -> str: ...
 
     @abstractmethod
@@ -420,12 +447,6 @@ class DiscreteSpaceDF(SpaceDF):
     _cells_capacity: (
         DiscreteSpaceCapacity  # Storing the remaining capacity of the cells in the grid
     )
-    _cells_col_names: list[
-        str
-    ]  # The column names of the _cells dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
-    _center_col_names: list[
-        str
-    ]  # The column names of the center cells/agents in the get_neighbors method (eg. ['dim_0_center', 'dim_1_center', ...] in Grids, ['node_id_center', 'edge_id_center'] in Networks)
 
     def __init__(
         self,
@@ -459,8 +480,8 @@ class DiscreteSpaceDF(SpaceDF):
         DataFrame
             A dataframe with positions and a boolean column "available"
         """
-        df = self._df_constructor(data=pos, columns=self._cells_col_names)
-        return self._df_add_columns(
+        df = self._df_constructor(data=pos, columns=self._pos_col_names)
+        return self._df_with_columns(
             df,
             ["available"],
             self._df_get_bool_mask(df, mask=self.full_cells, negate=True),
@@ -479,8 +500,8 @@ class DiscreteSpaceDF(SpaceDF):
         DataFrame
             A dataframe with positions and a boolean column "empty"
         """
-        df = self._df_constructor(data=pos, columns=self._cells_col_names)
-        return self._df_add_columns(
+        df = self._df_constructor(data=pos, columns=self._pos_col_names)
+        return self._df_with_columns(
             df, ["empty"], self._df_get_bool_mask(df, mask=self._cells, negate=True)
         )
 
@@ -497,8 +518,8 @@ class DiscreteSpaceDF(SpaceDF):
         DataFrame
             A dataframe with positions and a boolean column "full"
         """
-        df = self._df_constructor(data=pos, columns=self._cells_col_names)
-        return self._df_add_columns(
+        df = self._df_constructor(data=pos, columns=self._pos_col_names)
+        return self._df_with_columns(
             df, ["full"], self._df_get_bool_mask(df, mask=self.full_cells, negate=True)
         )
 
@@ -602,13 +623,13 @@ class DiscreteSpaceDF(SpaceDF):
         cells_col_names = obj._df_column_names(obj._cells)
         if __debug__:
             if isinstance(cells, DataFrame) and any(
-                k not in cells_col_names for k in obj._cells_col_names
+                k not in cells_col_names for k in obj._pos_col_names
             ):
                 raise ValueError(
-                    f"The cells DataFrame must have the columns {obj._cells_col_names}"
+                    f"The cells DataFrame must have the columns {obj._pos_col_names}"
                 )
         obj._cells = obj._df_combine_first(
-            obj._cells, cells, index_cols=obj._cells_col_names
+            obj._cells, cells, index_cols=obj._pos_col_names
         )
         if "capacity" in cells_col_names:
             obj._cells_capacity = obj._update_cells_capacity(cells)
@@ -876,14 +897,14 @@ class GridDF(DiscreteSpaceDF):
         super().__init__(model, capacity)
         self._dimensions = dimensions
         self._torus = torus
-        self._cells_col_names = [f"dim_{k}" for k in range(len(dimensions))]
-        self._center_col_names = [x + "_center" for x in self._cells_col_names]
+        self._pos_col_names = [f"dim_{k}" for k in range(len(dimensions))]
+        self._center_col_names = [x + "_center" for x in self._pos_col_names]
         self._agents = self._df_constructor(
-            columns=["agent_id"] + self._cells_col_names, index_col="agent_id"
+            columns=["agent_id"] + self._pos_col_names, index_col="agent_id"
         )
         self._cells = self._df_constructor(
-            columns=self._cells_col_names + ["capacity"],
-            index_cols=self._cells_col_names,
+            columns=self._pos_col_names + ["capacity"],
+            index_cols=self._pos_col_names,
         )
         self._offsets = self._compute_offsets(neighborhood_type)
         self._cells_capacity = self._generate_empty_grid(dimensions, capacity)
@@ -935,7 +956,7 @@ class GridDF(DiscreteSpaceDF):
         coords_df = self._get_df_coords(pos=coords)
         return self._df_get_masked_df(
             df=self._cells,
-            index_cols=self._cells_col_names,
+            index_cols=self._pos_col_names,
             mask=coords_df,
             columns=self._cells.columns,
         )
@@ -1117,11 +1138,11 @@ class GridDF(DiscreteSpaceDF):
                 (d[0], d[1], False) for d in odd_offsets
             ]
             return self._df_constructor(
-                data=offsets_data, columns=self._cells_col_names + ["is_even"]
+                data=offsets_data, columns=self._pos_col_names + ["is_even"]
             )
         else:
             raise ValueError("Invalid neighborhood type specified")
-        return self._df_constructor(data=directions, columns=self._cells_col_names)
+        return self._df_constructor(data=directions, columns=self._pos_col_names)
 
     def _get_df_coords(
         self,
@@ -1155,7 +1176,7 @@ class GridDF(DiscreteSpaceDF):
                 self._agents, index_col="agent_id", mask=agents
             )
         if isinstance(pos, DataFrame):
-            return pos[self._cells_col_names]
+            return pos[self._pos_col_names]
         elif isinstance(pos, Sequence) and len(pos) == len(self._dimensions):
             # This means that the sequence is already a sequence where each element is the
             # sequence of coordinates for dimension i
@@ -1167,7 +1188,7 @@ class GridDF(DiscreteSpaceDF):
                     pos[i] = pl.arange(start=start, end=stop, step=step)
                 elif isinstance(c, int):
                     pos[i] = [c]
-            return self._df_constructor(data=pos, columns=self._cells_col_names)
+            return self._df_constructor(data=pos, columns=self._pos_col_names)
         elif isinstance(pos, Collection) and all(
             len(c) == len(self._dimensions) for c in pos
         ):
@@ -1175,9 +1196,9 @@ class GridDF(DiscreteSpaceDF):
             sequences = []
             for i in range(len(self._dimensions)):
                 sequences.append([c[i] for c in pos])
-            return self._df_constructor(data=sequences, columns=self._cells_col_names)
+            return self._df_constructor(data=sequences, columns=self._pos_col_names)
         elif isinstance(pos, int) and len(self._dimensions) == 1:
-            return self._df_constructor(data=[pos], columns=self._cells_col_names)
+            return self._df_constructor(data=[pos], columns=self._pos_col_names)
         else:
             raise ValueError("Invalid coordinates")
 
