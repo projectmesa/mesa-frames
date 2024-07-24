@@ -103,6 +103,35 @@ class PandasMixin(DataFrameMixin):
             row_dict["unique_id"] = index
             yield row_dict
 
+    def _df_join(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        on: str | list[str] | None = None,
+        left_on: str | list[str] | None = None,
+        right_on: str | list[str] | None = None,
+        how: Literal["left"]
+        | Literal["right"]
+        | Literal["inner"]
+        | Literal["outer"] = "left",
+        suffix="_right",
+    ) -> pd.DataFrame:
+        left_index = False
+        right_index = False
+        if left.index.name in [on, left_on]:
+            left_index = True
+        if right.index.name in [on, right_on]:
+            right_index = True
+        return left.merge(
+            right,
+            how=how,
+            left_on=left_on if not left_index and not on else None,
+            right_on=right_on if not right_index and not on else None,
+            left_index=left_index,
+            right_index=right_index,
+            suffixes=("", suffix),
+        )
+
     def _df_norm(self, df: pd.DataFrame) -> pd.DataFrame:
         return self._df_constructor(
             data=[np.linalg.norm(df, axis=1), df.index],

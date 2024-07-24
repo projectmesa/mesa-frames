@@ -129,6 +129,29 @@ class PolarsMixin(DataFrameMixin):
     def _df_iterator(self, df: pl.DataFrame) -> Iterator[dict[str, Any]]:
         return iter(df.iter_rows(named=True))
 
+    def _df_join(
+        self,
+        left: pl.DataFrame,
+        right: pl.DataFrame,
+        on: str | list[str] | None = None,
+        left_on: str | list[str] | None = None,
+        right_on: str | list[str] | None = None,
+        how: Literal["left"]
+        | Literal["right"]
+        | Literal["inner"]
+        | Literal["outer"] = "left",
+        suffix="_right",
+    ) -> pl.DataFrame:
+        return left.join(
+            right,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            how=how,
+            lsuffix="",
+            rsuffix=suffix,
+        )
+
     def _df_norm(self, df: pl.DataFrame) -> pl.DataFrame:
         return df.with_columns(pl.col("*").pow(2).alias("*")).sum_horizontal().sqrt()
 

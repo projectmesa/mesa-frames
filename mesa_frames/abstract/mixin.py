@@ -210,6 +210,21 @@ class DataFrameMixin(ABC):
     def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
 
     @abstractmethod
+    def _df_join(
+        self,
+        left: DataFrame,
+        right: DataFrame,
+        on: str | list[str] | None = None,
+        left_on: str | list[str] | None = None,
+        right_on: str | list[str] | None = None,
+        how: Literal["left"]
+        | Literal["right"]
+        | Literal["inner"]
+        | Literal["outer"] = "left",
+        suffix="_right",
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_norm(self, df: DataFrame) -> DataFrame: ...
 
     @abstractmethod
