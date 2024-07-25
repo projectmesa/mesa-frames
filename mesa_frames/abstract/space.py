@@ -950,6 +950,50 @@ class GridDF(DiscreteSpaceDF):
             columns=self._agents.columns,
         )
 
+    def get_neighborhood(
+        self,
+        radius: int | Sequence[int],
+        pos: GridCoordinate | GridCoordinates | None = None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer] = None,
+        include_center: bool = False,
+    ) -> DataFrame:
+        pos_df = self._get_df_coords(pos, agents)
+
+        # Create all possible neighbors by multiplying directions by the radius and adding original pos
+        radius_srs = self._srs_range(name="radius", start=1, stop=radius + 1)
+        neighbors_df = self._df_join(
+            self._offsets, radius_srs, how="cross", suffix="_center"
+        )
+        neighbors_df = self._df_with_columns(
+            original_df=neighbors_df,
+            new_columns=self._pos_col_names,
+            data=(
+                neighbors_df[self._pos_col_names] * neighbors_df["radius"]
+                + neighbors_df[self._center_col_names]
+            ),
+        ).drop("radius")
+
+        # If torus, "normalize" (take modulo) for out-of-bounds cells
+        if self._torus:
+            neighbors_df = self.torus_adj(neighbors_df)
+
+        # Filter out-of-bound neighbors
+        neighbors_df = self._df_filter(
+            neighbors_df,
+            ((neighbors_df < self._dimensions) & (neighbors_df >= 0)),
+            all=True,
+        )
+
+        if include_center:
+            pos_df = self._df_rename_columns(
+                pos_df, self._pos_col_names, self._center_col_names
+            )
+            neighbors_df = self._df_concat(
+                [pos_df, neighbors_df], how="vertical", ignore_index=True
+            )
+
+        return neighbors_df
+
     def get_cells(
         self, coords: GridCoordinate | GridCoordinates | None = None
     ) -> DataFrame:
