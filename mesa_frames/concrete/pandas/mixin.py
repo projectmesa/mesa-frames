@@ -10,12 +10,6 @@ from mesa_frames.types_ import PandasMaskLike
 
 
 class PandasMixin(DataFrameMixin):
-    def _df_with_columns(
-        self, original_df: pd.DataFrame, new_columns: list[str], data: Any
-    ) -> pd.DataFrame:
-        original_df[new_columns] = data
-        return original_df
-
     def _df_column_names(self, df: pd.DataFrame) -> list[str]:
         return df.columns.tolist() + df.index.names
 
@@ -178,6 +172,12 @@ class PandasMixin(DataFrameMixin):
         return df.sample(
             n=n, frac=frac, replace=with_replacement, shuffle=shuffle, random_state=seed
         )
+
+    def _df_with_columns(
+        self, original_df: pd.DataFrame, new_columns: list[str], data: Any
+    ) -> pd.DataFrame:
+        original_df[new_columns] = data
+        return original_df
 
     def _srs_constructor(
         self,
