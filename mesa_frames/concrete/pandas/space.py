@@ -112,3 +112,7 @@ class GridPandas(GridDF, PandasMixin):
         # Update capacity on new positions
         self._grid_capacity[tuple(agents[self._pos_col_names].to_numpy().T)] -= 1
         return self._grid_capacity
+
+    @property
+    def remaining_capacity(self) -> int:
+        return self._grid_capacity.sum()

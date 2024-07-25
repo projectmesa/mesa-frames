@@ -828,8 +828,8 @@ class DiscreteSpaceDF(SpaceDF):
             None, with_replacement=False, condition=self._full_cell_condition
         )
 
-    @abstractmethod
     @property
+    @abstractmethod
     def remaining_capacity(self) -> int | None:
         """The remaining capacity of the cells in the grid.
 
