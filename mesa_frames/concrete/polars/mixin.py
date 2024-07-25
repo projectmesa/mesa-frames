@@ -171,6 +171,11 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.DataFrame:
         return df.filter(pl.col(index_col).is_in(ids).not_())
 
+    def _df_rename_columns(
+        self, df: pl.DataFrame, old_columns: list[str], new_columns: list[str]
+    ) -> pl.DataFrame:
+        return df.rename(dict(zip(old_columns, new_columns)))
+
     def _df_sample(
         self,
         df: pl.DataFrame,

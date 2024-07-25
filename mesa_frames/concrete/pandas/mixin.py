@@ -150,6 +150,14 @@ class PandasMixin(DataFrameMixin):
             index_col=df.index.name,
         )
 
+    def _df_rename_columns(
+        self,
+        df: pd.DataFrame,
+        old_columns: list[str],
+        new_columns: list[str],
+    ) -> pd.DataFrame:
+        return df.rename(columns=dict(zip(old_columns, new_columns)))
+
     def _df_remove(
         self,
         df: pd.DataFrame,

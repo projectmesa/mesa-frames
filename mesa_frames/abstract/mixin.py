@@ -242,6 +242,14 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
+    def _df_rename_columns(
+        self,
+        df: DataFrame,
+        old_columns: list[str],
+        new_columns: list[str],
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_sample(
         self,
         df: DataFrame,
