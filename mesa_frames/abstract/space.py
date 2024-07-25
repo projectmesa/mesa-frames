@@ -1063,8 +1063,8 @@ class GridDF(DiscreteSpaceDF):
             columns=["agent_id"] + obj._pos_col_names,
             index_col="agent_id",
         )
-        obj._agents = obj._df_combine_first(new_df, obj._agents, index_col="agent_id")
         obj._cells_capacity = obj._update_capacity_agents(new_df)
+        obj._agents = obj._df_combine_first(new_df, obj._agents, index_col="agent_id")
         return obj
 
     def out_of_bounds(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
