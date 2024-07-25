@@ -632,7 +632,7 @@ class DiscreteSpaceDF(SpaceDF):
             obj._cells, cells, index_cols=obj._pos_col_names
         )
         if "capacity" in cells_col_names:
-            obj._cells_capacity = obj._update_cells_capacity(cells)
+            obj._cells_capacity = obj._update_capacity_cells(cells)
         return obj
 
     @abstractmethod
@@ -754,13 +754,29 @@ class DiscreteSpaceDF(SpaceDF):
         ...
 
     @abstractmethod
-    def _update_cells_capacity(self, cells: DataFrame) -> DiscreteSpaceCapacity:
+    def _update_capacity_cells(self, cells: DataFrame) -> DiscreteSpaceCapacity:
         """Update the cells' capacity after setting new properties.
 
         Parameters
         ----------
         cells : DataFrame
             A DF with the cells to update the capacity and the 'capacity' column
+
+        Returns
+        -------
+        DiscreteSpaceCapacity
+            The updated cells' capacity
+        """
+        ...
+
+    @abstractmethod
+    def _update_capacity_agents(self, agents: DataFrame) -> DiscreteSpaceCapacity:
+        """Update the cells' capacity after moving agents.
+
+        Parameters
+        ----------
+        agents : DataFrame
+            The moved agents with their new positions
 
         Returns
         -------
@@ -811,6 +827,18 @@ class DiscreteSpaceDF(SpaceDF):
         return self._sample_cells(
             None, with_replacement=False, condition=self._full_cell_condition
         )
+
+    @abstractmethod
+    @property
+    def remaining_capacity(self) -> int | None:
+        """The remaining capacity of the cells in the grid.
+
+        Returns
+        -------
+        int | None
+            None if the capacity is infinite, otherwise the remaining capacity
+        """
+        ...
 
 
 class GridDF(DiscreteSpaceDF):
@@ -1013,30 +1041,30 @@ class GridDF(DiscreteSpaceDF):
     ) -> Self:
         obj = self._get_obj(inplace)
 
-        # Get Ids of agents
-        if isinstance(agents, AgentContainer | Collection[AgentContainer]):
-            agents = agents.index
-
         if __debug__:
-            # Check ids presence in model
-            b_contained = obj.model.agents.contains(agents)
-            if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
-                isinstance(b_contained, bool) and not b_contained
-            ):
-                raise ValueError("Some agents are not in the model")
-
-            # Check ids are unique
-            agents = pl.Series(agents)
-            if agents.unique_counts() != len(agents):
-                raise ValueError("Some agents are present multiple times")
-
             # Warn if agents are already placed
             if agents.is_in(obj._agents["agent_id"]):
                 warn("Some agents are already placed in the grid", RuntimeWarning)
 
-        # Place agents (checking that capacity is not)
-        coords = obj._get_df_coords(pos)
-        obj._agents = obj._place_agents_df(agents, coords)
+            # Check if there is enough capacity
+            if obj._capacity:
+                # If len(agents) > remaining_capacity + len(agents that will move)
+                if len(agents) > obj.remaining_capacity + len(
+                    obj._df_get_masked_df(
+                        obj._agents, mask=agents, columns=["agent_id"]
+                    )
+                ):
+                    raise ValueError("Not enough capacity in the grid for all agents")
+
+        # Place agents (checking that capacity is respected)
+        pos_df = obj._get_df_coords(pos)
+        new_df = obj._df_constructor(
+            data=[agents, pos_df],
+            columns=["agent_id"] + obj._pos_col_names,
+            index_col="agent_id",
+        )
+        obj._agents = obj._df_combine_first(new_df, obj._agents, index_col="agent_id")
+        obj._cells_capacity = obj._update_capacity_agents(new_df)
         return obj
 
     def out_of_bounds(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
@@ -1210,11 +1238,30 @@ class GridDF(DiscreteSpaceDF):
         ValueError
             If neither pos or agents are specified
         """
+        # If agents is agent container, get IDs
+        if isinstance(agents, AgentContainer | Collection[AgentContainer]):
+            agents = agents.index
         if __debug__:
             if pos is None and agents is None:
                 raise ValueError("Neither pos or agents are specified")
             elif pos is not None and agents is not None:
                 raise ValueError("Both pos and agents are specified")
+            if agents:
+                # Check ids presence in model
+                b_contained = self.model.agents.contains(agents)
+                if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
+                    isinstance(b_contained, bool) and not b_contained
+                ):
+                    raise ValueError("Some agents are not present in the model")
+
+                # Check ids presence in the grid
+                b_contained = self._df_contains(self._agents, "agent_id", agents)
+                if not b_contained.all():
+                    raise ValueError("Some agents are not placed in the grid")
+                # Check ids are unique
+                agents = pl.Series(agents)
+                if agents.unique_counts() != len(agents):
+                    raise ValueError("Some agents are present multiple times")
         if agents:
             return self._df_get_masked_df(
                 self._agents, index_col="agent_id", mask=agents
@@ -1259,24 +1306,6 @@ class GridDF(DiscreteSpaceDF):
         Returns
         -------
         GridCapacity
-        """
-        ...
-
-    @abstractmethod
-    def _place_agents_df(self, agents: IdsLike, coords: DataFrame) -> DataFrame:
-        """Place agents in the grid according to the specified coordinates.
-
-        Parameters
-        ----------
-        agents : IDsLike
-            The agents to place in the grid
-        coords : DataFrame
-            The coordinates for each agent
-
-        Returns
-        -------
-        DataFrame
-            A DataFrame with the agents placed in the grid
         """
         ...
 
