@@ -72,6 +72,16 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         return pl.Series(values, index=values).is_in(df[column])
 
+    def _df_filter(
+        self,
+        df: pl.DataFrame,
+        condition: pl.Series,
+        all: bool = True,
+    ) -> pl.DataFrame:
+        if all:
+            return df.filter(pl.all(condition))
+        return df.filter(condition)
+
     def _df_get_bool_mask(
         self,
         df: pl.DataFrame,

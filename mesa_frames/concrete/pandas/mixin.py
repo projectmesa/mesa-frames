@@ -54,6 +54,16 @@ class PandasMixin(DataFrameMixin):
     ) -> pd.Series:
         return pd.Series(values, index=values).isin(df[column])
 
+    def _df_filter(
+        self,
+        df: pd.DataFrame,
+        condition: pd.Series,
+        all: bool = True,
+    ) -> pd.DataFrame:
+        if all:
+            return df[condition.all(axis=1)]
+        return df[condition]
+
     def _df_get_bool_mask(
         self,
         df: pd.DataFrame,

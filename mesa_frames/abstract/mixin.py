@@ -188,6 +188,14 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
+    def _df_filter(
+        self,
+        df: DataFrame,
+        condition: BoolSeries,
+        all: bool = True,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_get_bool_mask(
         self,
         df: DataFrame,
