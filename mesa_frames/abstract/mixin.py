@@ -163,7 +163,7 @@ class DataFrameMixin(ABC):
     @abstractmethod
     def _df_concat(
         self,
-        dfs: Collection[DataFrame],
+        dfs: Collection[DataFrame] | Collection[Series],
         how: Literal["horizontal"] | Literal["vertical"] = "vertical",
         ignore_index: bool = False,
     ) -> DataFrame: ...

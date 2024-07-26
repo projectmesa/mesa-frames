@@ -49,10 +49,10 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_concat(
         self,
-        dfs: Collection[pl.DataFrame],
+        dfs: Collection[pl.DataFrame] | Collection[pl.Series],
         how: Literal["horizontal"] | Literal["vertical"] = "vertical",
         ignore_index: bool = False,
-    ) -> pl.DataFrame:
+    ) -> pl.Series | pl.DataFrame:
         return pl.concat(
             dfs, how="vertical_relaxed" if how == "vertical" else "horizontal_relaxed"
         )

@@ -27,10 +27,10 @@ class PandasMixin(DataFrameMixin):
 
     def _df_concat(
         self,
-        dfs: Collection[pd.DataFrame],
+        dfs: Collection[pd.DataFrame] | Collection[pd.Series],
         how: Literal["horizontal"] | Literal["vertical"] = "vertical",
         ignore_index: bool = False,
-    ) -> pd.DataFrame:
+    ) -> pd.Series | pd.DataFrame:
         return pd.concat(
             dfs, axis=0 if how == "vertical" else 1, ignore_index=ignore_index
         )
