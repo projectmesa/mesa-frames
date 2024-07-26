@@ -5,7 +5,7 @@ import polars as pl
 from typing_extensions import Any
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import PolarsMaskLike
+from mesa_frames.types_ import PolarsMask
 
 
 class PolarsMixin(DataFrameMixin):
@@ -23,9 +23,12 @@ class PolarsMixin(DataFrameMixin):
         return df.columns
 
     def _df_combine_first(
-        self, original_df: pl.DataFrame, new_df: pl.DataFrame, index_cols: list[str]
+        self,
+        original_df: pl.DataFrame,
+        new_df: pl.DataFrame,
+        index_col: str | list[str],
     ) -> pl.DataFrame:
-        new_df = original_df.join(new_df, on=index_cols, how="full", suffix="_right")
+        new_df = original_df.join(new_df, on=index_col, how="full", suffix="_right")
         # Find columns with the _right suffix and update the corresponding original columns
         updated_columns = []
         for col in new_df.columns:
@@ -68,7 +71,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.DataFrame,
         column: str,
-        values: Any | Sequence[Any],
+        values: Sequence[Any],
     ) -> pl.Series:
         return pl.Series(values, index=values).is_in(df[column])
 
@@ -86,7 +89,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.DataFrame,
         index_col: str,
-        mask: PolarsMaskLike = None,
+        mask: PolarsMask = None,
         negate: bool = False,
     ) -> pl.Series | pl.Expr:
         def bool_mask_from_series(mask: pl.Series) -> pl.Series:
@@ -127,7 +130,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.DataFrame,
         index_col: str,
-        mask: PolarsMaskLike | None = None,
+        mask: PolarsMask | None = None,
         columns: list[str] | None = None,
         negate: bool = False,
     ) -> pl.DataFrame:
@@ -165,11 +168,6 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_norm(self, df: pl.DataFrame) -> pl.DataFrame:
         return df.with_columns(pl.col("*").pow(2).alias("*")).sum_horizontal().sqrt()
-
-    def _df_remove(
-        self, df: pl.DataFrame, ids: Sequence[Any], index_col: str | None = None
-    ) -> pl.DataFrame:
-        return df.filter(pl.col(index_col).is_in(ids).not_())
 
     def _df_rename_columns(
         self, df: pl.DataFrame, old_columns: list[str], new_columns: list[str]

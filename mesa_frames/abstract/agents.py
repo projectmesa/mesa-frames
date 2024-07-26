@@ -9,7 +9,14 @@ from numpy.random import Generator
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.abstract.mixin import CopyMixin
-from mesa_frames.types_ import BoolSeries, DataFrame, IdsLike, Index, MaskLike, Series
+from mesa_frames.types_ import (
+    AgentMask,
+    BoolSeries,
+    DataFrame,
+    IdsLike,
+    Index,
+    Series,
+)
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.agents import AgentSetDF
@@ -136,7 +143,7 @@ class AgentContainer(CopyMixin):
         self,
         method_name: str,
         *args,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
         **kwargs,
@@ -148,7 +155,7 @@ class AgentContainer(CopyMixin):
         self,
         method_name: str,
         *args,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs,
@@ -159,7 +166,7 @@ class AgentContainer(CopyMixin):
         self,
         method_name: str,
         *args,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         return_results: bool = False,
         inplace: bool = True,
         **kwargs,
@@ -198,7 +205,7 @@ class AgentContainer(CopyMixin):
     def get(
         self,
         attr_names: str | Collection[str] | None = None,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
     ) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]:
         """Retrieves the value of a specified attribute for each agent in the AgentContainer.
 
@@ -237,8 +244,8 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def select(
         self,
-        mask: MaskLike | None = None,
-        filter_func: Callable[[Self], MaskLike] | None = None,
+        mask: AgentMask | None = None,
+        filter_func: Callable[[Self], AgentMask] | None = None,
         n: int | None = None,
         negate: bool = False,
         inplace: bool = True,
@@ -271,7 +278,7 @@ class AgentContainer(CopyMixin):
         self,
         attr_names: dict[str, Any],
         values: None,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         inplace: bool = True,
     ) -> Self: ...
 
@@ -281,7 +288,7 @@ class AgentContainer(CopyMixin):
         self,
         attr_names: str | Collection[str],
         values: Any,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         inplace: bool = True,
     ) -> Self: ...
 
@@ -290,7 +297,7 @@ class AgentContainer(CopyMixin):
         self,
         attr_names: str | dict[str, Any] | Collection[str],
         values: Any | None = None,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         inplace: bool = True,
     ) -> Self:
         """Sets the value of a specified attribute or attributes for each agent in the mask in AgentContainer.
@@ -382,9 +389,9 @@ class AgentContainer(CopyMixin):
         key: (
             str
             | Collection[str]
-            | MaskLike
-            | tuple[MaskLike, str]
-            | tuple[MaskLike, Collection[str]]
+            | AgentMask
+            | tuple[AgentMask, str]
+            | tuple[AgentMask, Collection[str]]
         ),
     ) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]:
         """Implements the [] operator for the AgentContainer.
@@ -460,7 +467,10 @@ class AgentContainer(CopyMixin):
 
     def __setitem__(
         self,
-        key: str | Collection[str] | MaskLike | tuple[MaskLike, str | Collection[str]],
+        key: str
+        | Collection[str]
+        | AgentMask
+        | tuple[AgentMask, str | Collection[str]],
         values: Any,
     ) -> None:
         """Implement the [] operator for setting values in the AgentContainer.
@@ -615,7 +625,7 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def active_agents(
         self,
-        mask: MaskLike,
+        mask: AgentMask,
     ) -> None:
         """Set the active agents in the AgentContainer.
 
@@ -715,7 +725,7 @@ class AgentSetDF(AgentContainer):
     """
 
     _agents: DataFrame
-    _mask: MaskLike
+    _mask: AgentMask
     _model: ModelDF
 
     @abstractmethod
@@ -768,7 +778,7 @@ class AgentSetDF(AgentContainer):
         self,
         method_name: str,
         *args,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
         **kwargs,
@@ -779,7 +789,7 @@ class AgentSetDF(AgentContainer):
         self,
         method_name: str,
         *args,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs,
@@ -789,7 +799,7 @@ class AgentSetDF(AgentContainer):
         self,
         method_name: str,
         *args,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
         return_results: bool = False,
         inplace: bool = True,
         **kwargs,
@@ -826,7 +836,7 @@ class AgentSetDF(AgentContainer):
     def get(
         self,
         attr_names: str,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
     ) -> Series: ...
 
     @abstractmethod
@@ -834,14 +844,14 @@ class AgentSetDF(AgentContainer):
     def get(
         self,
         attr_names: Collection[str] | None = None,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
     ) -> DataFrame: ...
 
     @abstractmethod
     def get(
         self,
         attr_names: str | Collection[str] | None = None,
-        mask: MaskLike | None = None,
+        mask: AgentMask | None = None,
     ) -> Series | DataFrame: ...
 
     @abstractmethod
@@ -857,7 +867,7 @@ class AgentSetDF(AgentContainer):
     ) -> Self: ...
 
     @abstractmethod
-    def _get_bool_mask(self, mask: MaskLike) -> BoolSeries:
+    def _get_bool_mask(self, mask: AgentMask) -> BoolSeries:
         """Get the equivalent boolean mask based on the input mask
 
         Parameters
@@ -871,7 +881,7 @@ class AgentSetDF(AgentContainer):
         ...
 
     @abstractmethod
-    def _get_masked_df(self, mask: MaskLike) -> DataFrame:
+    def _get_masked_df(self, mask: AgentMask) -> DataFrame:
         """Get the df filtered by the input mask
 
         Parameters
@@ -954,11 +964,12 @@ class AgentSetDF(AgentContainer):
             )
 
     @overload
-    def __getitem__(self, key: str | tuple[MaskLike, str]) -> Series | DataFrame: ...
+    def __getitem__(self, key: str | tuple[AgentMask, str]) -> Series | DataFrame: ...
 
     @overload
     def __getitem__(
-        self, key: MaskLike | Collection[str] | tuple[MaskLike, Collection[str]]
+        self,
+        key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
     ) -> DataFrame: ...
 
     def __getitem__(
@@ -966,9 +977,9 @@ class AgentSetDF(AgentContainer):
         key: (
             str
             | Collection[str]
-            | MaskLike
-            | tuple[MaskLike, str]
-            | tuple[MaskLike, Collection[str]]
+            | AgentMask
+            | tuple[AgentMask, str]
+            | tuple[AgentMask, Collection[str]]
         ),
     ) -> Series | DataFrame:
         attr = super().__getitem__(key)

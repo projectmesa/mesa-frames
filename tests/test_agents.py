@@ -6,7 +6,7 @@ import pytest
 
 from mesa_frames import AgentsDF, ModelDF
 from mesa_frames.abstract.agents import AgentSetDF
-from mesa_frames.types_ import MaskLike
+from mesa_frames.types_ import AgentMask
 from tests.pandas.test_agentset import (
     ExampleAgentSetPandas,
     fix1_AgentSetPandas,
@@ -714,7 +714,7 @@ class Test_AgentsDF:
             fix2_AgentSetPolars._agents["wealth"]
             > fix2_AgentSetPolars._agents["wealth"][0]
         )
-        mask_dictionary: dict[AgentSetDF, MaskLike] = {
+        mask_dictionary: dict[AgentSetDF, AgentMask] = {
             fix1_AgentSetPandas: mask0,
             fix2_AgentSetPolars: mask1,
         }

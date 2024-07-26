@@ -8,7 +8,7 @@ from typing_extensions import Any, Self, overload
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 from mesa_frames.concrete.polars.agentset import AgentSetPolars
-from mesa_frames.types_ import PandasIdsLike, PandasMaskLike
+from mesa_frames.types_ import AgentPandasMask, PandasIdsLike
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
@@ -172,7 +172,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
     def get(
         self,
         attr_names: str | Collection[str] | None = None,
-        mask: PandasMaskLike = None,
+        mask: AgentPandasMask = None,
     ) -> pd.Index | pd.Series | pd.DataFrame:
         mask = self._get_bool_mask(mask)
         if attr_names is None:
@@ -206,7 +206,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         self,
         attr_names: str | dict[str, Any] | Collection[str] | None = None,
         values: Any | None = None,
-        mask: PandasMaskLike = None,
+        mask: AgentPandasMask = None,
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -242,8 +242,8 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
 
     def select(
         self,
-        mask: PandasMaskLike = None,
-        filter_func: Callable[[Self], PandasMaskLike] | None = None,
+        mask: AgentPandasMask = None,
+        filter_func: Callable[[Self], AgentPandasMask] | None = None,
         n: int | None = None,
         negate: bool = False,
         inplace: bool = True,
@@ -315,7 +315,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
 
     def _get_bool_mask(
         self,
-        mask: PandasMaskLike = None,
+        mask: AgentPandasMask = None,
     ) -> pd.Series:
         if isinstance(mask, pd.Series) and mask.dtype == bool:
             return mask
@@ -334,7 +334,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
 
     def _get_masked_df(
         self,
-        mask: PandasMaskLike = None,
+        mask: AgentPandasMask = None,
     ) -> pd.DataFrame:
         if isinstance(mask, pd.Series) and mask.dtype == bool:
             return self._agents.loc[mask]
@@ -428,7 +428,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         return self._agents.loc[self._mask]
 
     @active_agents.setter
-    def active_agents(self, mask: PandasMaskLike) -> None:
+    def active_agents(self, mask: AgentPandasMask) -> None:
         self.select(mask=mask, inplace=True)
 
     @property

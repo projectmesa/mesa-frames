@@ -7,11 +7,11 @@ from typing_extensions import Any, Self, overload
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.types_ import (
-    AgnosticMask,
+    AgentMask,
+    AgnosticAgentMask,
     BoolSeries,
     DataFrame,
     IdsLike,
-    MaskLike,
     Series,
 )
 
@@ -157,7 +157,7 @@ class AgentsDF(AgentContainer):
         self,
         method_name: str,
         *args,
-        mask: AgnosticMask | IdsLike | dict[AgentSetDF, MaskLike] = None,
+        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
         **kwargs,
@@ -168,7 +168,7 @@ class AgentsDF(AgentContainer):
         self,
         method_name: str,
         *args,
-        mask: AgnosticMask | IdsLike | dict[AgentSetDF, MaskLike] = None,
+        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs,
@@ -178,7 +178,7 @@ class AgentsDF(AgentContainer):
         self,
         method_name: str,
         *args,
-        mask: AgnosticMask | IdsLike | dict[AgentSetDF, MaskLike] = None,
+        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         return_results: bool = False,
         inplace: bool = True,
         **kwargs,
@@ -214,7 +214,7 @@ class AgentsDF(AgentContainer):
     def get(
         self,
         attr_names: str | Collection[str] | None = None,
-        mask: AgnosticMask | IdsLike | dict[AgentSetDF, MaskLike] = None,
+        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
     ) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
         agentsets_masks = self._get_bool_masks(mask)
         return {
@@ -253,8 +253,8 @@ class AgentsDF(AgentContainer):
 
     def select(
         self,
-        mask: AgnosticMask | IdsLike | dict[AgentSetDF, MaskLike] = None,
-        filter_func: Callable[[AgentSetDF], MaskLike] | None = None,
+        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+        filter_func: Callable[[AgentSetDF], AgentMask] | None = None,
         n: int | None = None,
         inplace: bool = True,
         negate: bool = False,
@@ -275,7 +275,7 @@ class AgentsDF(AgentContainer):
         self,
         attr_names: str | dict[AgentSetDF, Any] | Collection[str],
         values: Any | None = None,
-        mask: AgnosticMask | IdsLike | dict[AgentSetDF, MaskLike] = None,
+        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -370,7 +370,7 @@ class AgentsDF(AgentContainer):
 
     def _get_bool_masks(
         self,
-        mask: AgnosticMask | IdsLike | dict[AgentSetDF, MaskLike] = None,
+        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
     ) -> dict[AgentSetDF, BoolSeries]:
         return_dictionary = {}
         if not isinstance(mask, dict):
@@ -418,16 +418,16 @@ class AgentsDF(AgentContainer):
 
     @overload
     def __getitem__(
-        self, key: str | tuple[dict[AgentSetDF, MaskLike], str]
+        self, key: str | tuple[dict[AgentSetDF, AgentMask], str]
     ) -> dict[str, Series]: ...
 
     @overload
     def __getitem__(
         self,
         key: Collection[str]
-        | AgnosticMask
+        | AgnosticAgentMask
         | IdsLike
-        | tuple[dict[AgentSetDF, MaskLike], Collection[str]],
+        | tuple[dict[AgentSetDF, AgentMask], Collection[str]],
     ) -> dict[str, DataFrame]: ...
 
     def __getitem__(
@@ -435,10 +435,10 @@ class AgentsDF(AgentContainer):
         key: (
             str
             | Collection[str]
-            | AgnosticMask
+            | AgnosticAgentMask
             | IdsLike
-            | tuple[dict[AgentSetDF, MaskLike], str]
-            | tuple[dict[AgentSetDF, MaskLike], Collection[str]]
+            | tuple[dict[AgentSetDF, AgentMask], str]
+            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
         ),
     ) -> dict[str, Series] | dict[str, DataFrame]:
         return super().__getitem__(key)
@@ -494,10 +494,10 @@ class AgentsDF(AgentContainer):
         key: (
             str
             | Collection[str]
-            | AgnosticMask
+            | AgnosticAgentMask
             | IdsLike
-            | tuple[dict[AgentSetDF, MaskLike], str]
-            | tuple[dict[AgentSetDF, MaskLike], Collection[str]]
+            | tuple[dict[AgentSetDF, AgentMask], str]
+            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
         ),
         values: Any,
     ) -> None:
@@ -542,7 +542,7 @@ class AgentsDF(AgentContainer):
 
     @active_agents.setter
     def active_agents(
-        self, agents: AgnosticMask | IdsLike | dict[AgentSetDF, MaskLike]
+        self, agents: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask]
     ) -> None:
         self.select(agents, inplace=True)
 
