@@ -5,7 +5,7 @@ from typing import Literal
 
 from typing_extensions import Any, Self
 
-from mesa_frames.types_ import BoolSeries, DataFrame, MaskLike, Series
+from mesa_frames.types_ import BoolSeries, DataFrame, Mask, Series
 
 
 class CopyMixin(ABC):
@@ -149,17 +149,15 @@ class CopyMixin(ABC):
 
 
 class DataFrameMixin(ABC):
-    @abstractmethod
-    def _df_with_columns(
-        self, original_df: DataFrame, new_columns: list[str], data: Any
-    ) -> DataFrame: ...
+    def _df_remove(self, df: DataFrame, mask: Mask, index_col: str) -> DataFrame:
+        return self._df_get_masked_df(df, index_col, mask, negate=True)
 
     @abstractmethod
     def _df_column_names(self, df: DataFrame) -> list[str]: ...
 
     @abstractmethod
     def _df_combine_first(
-        self, original_df: DataFrame, new_df: DataFrame, index_cols: list[str]
+        self, original_df: DataFrame, new_df: DataFrame, index_col: str | list[str]
     ) -> DataFrame: ...
 
     @abstractmethod
@@ -175,7 +173,7 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         column: str,
-        values: Any | Sequence[Any],
+        values: Sequence[Any],
     ) -> BoolSeries: ...
 
     @abstractmethod
@@ -200,7 +198,7 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         index_col: str,
-        mask: MaskLike | None = None,
+        mask: Mask | None = None,
         negate: bool = False,
     ) -> BoolSeries: ...
 
@@ -209,8 +207,8 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         index_col: str,
-        mask: MaskLike | None = None,
-        columns: list[str] | None = None,
+        mask: Mask | None = None,
+        columns: str | list[str] | None = None,
         negate: bool = False,
     ) -> DataFrame: ...
 
@@ -234,12 +232,7 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
-    def _df_norm(self, df: DataFrame) -> DataFrame: ...
-
-    @abstractmethod
-    def _df_remove(
-        self, df: DataFrame, ids: Sequence[Any], index_col: str | None = None
-    ) -> DataFrame: ...
+    def _df_norm(self, df: DataFrame) -> Series: ...
 
     @abstractmethod
     def _df_rename_columns(
@@ -258,6 +251,19 @@ class DataFrameMixin(ABC):
         with_replacement: bool = False,
         shuffle: bool = False,
         seed: int | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_with_columns(
+        self,
+        original_df: DataFrame,
+        data: DataFrame
+        | Series
+        | Sequence[Sequence]
+        | dict[str | Any]
+        | Sequence[Any]
+        | Any,
+        new_columns: str | list[str] | None = None,
     ) -> DataFrame: ...
 
     @abstractmethod
