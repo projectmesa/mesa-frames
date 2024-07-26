@@ -1,10 +1,12 @@
 import numpy as np
 import pandas as pd
 import pytest
+import typeguard as tg
 
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 
 
+@tg.typechecked
 class TestPandasMixin:
     @pytest.fixture
     def mixin(self):
