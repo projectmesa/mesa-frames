@@ -1,111 +1,307 @@
 from collections.abc import Collection, Iterator, Sequence
 from typing import Literal
 
+from collections.abc import Hashable
+
 import numpy as np
 import pandas as pd
-from typing_extensions import Any
+from typing_extensions import Any, overload
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import PandasMask
 
 
 class PandasMixin(DataFrameMixin):
-    def _df_add_columns(
-        self, original_df: pd.DataFrame, new_columns: list[str], data: Any
+    def _df_add(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
     ) -> pd.DataFrame:
-        original_df[new_columns] = data
-        return original_df
+        return df.add(other=other, axis=axis)
+
+    def _df_all(
+        self,
+        df: pd.DataFrame,
+        name: str,
+        axis: str = "columns",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.all(axis).to_frame(name)
+
+    def _df_column_names(self, df: pd.DataFrame) -> list[str]:
+        return df.columns.tolist() + df.index.names
 
     def _df_combine_first(
-        self, original_df: pd.DataFrame, new_df: pd.DataFrame, index_cols: list[str]
+        self,
+        original_df: pd.DataFrame,
+        new_df: pd.DataFrame,
+        index_cols: str | list[str],
     ) -> pd.DataFrame:
+        if (isinstance(index_cols, str) and index_cols != original_df.index.name) or (
+            isinstance(index_cols, list) and index_cols != original_df.index.names
+        ):
+            original_df = original_df.set_index(index_cols)
+
+        if (isinstance(index_cols, str) and index_cols != original_df.index.name) or (
+            isinstance(index_cols, list) and index_cols != original_df.index.names
+        ):
+            new_df = new_df.set_index(index_cols)
         return original_df.combine_first(new_df)
+
+    @overload
+    def _df_concat(
+        self,
+        objs: Collection[pd.DataFrame],
+        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        ignore_index: bool = False,
+        index_cols: str | None = None,
+    ) -> pd.DataFrame: ...
+
+    @overload
+    def _df_concat(
+        self,
+        objs: Collection[pd.Series],
+        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        ignore_index: bool = False,
+        index_cols: str | None = None,
+    ) -> pd.Series: ...
 
     def _df_concat(
         self,
-        dfs: Collection[pd.DataFrame],
+        objs: Collection[pd.DataFrame] | Collection[pd.Series],
         how: Literal["horizontal"] | Literal["vertical"] = "vertical",
         ignore_index: bool = False,
-    ) -> pd.DataFrame:
-        return pd.concat(
-            dfs, axis=0 if how == "vertical" else 1, ignore_index=ignore_index
+        index_cols: str | None = None,
+    ) -> pd.Series | pd.DataFrame:
+        df = pd.concat(
+            objs, axis=0 if how == "vertical" else 1, ignore_index=ignore_index
         )
+        if index_cols:
+            return df.set_index(index_cols)
+        return df
 
     def _df_constructor(
         self,
         data: Sequence[Sequence] | dict[str | Any] | None = None,
         columns: list[str] | None = None,
-        index_col: str | list[str] | None = None,
+        index: Sequence[Hashable] | None = None,
+        index_cols: str | list[str] | None = None,
         dtypes: dict[str, Any] | None = None,
     ) -> pd.DataFrame:
-        df = pd.DataFrame(data=data, columns=columns).astype(dtypes)
-        if index_col:
-            df.set_index(index_col)
+        df = pd.DataFrame(data=data, columns=columns, index=index)
+        if dtypes:
+            df = df.astype(dtypes)
+        if index_cols:
+            df = df.set_index(index_cols)
         return df
+
+    def _df_contains(
+        self,
+        df: pd.DataFrame,
+        column: str,
+        values: Sequence[Any],
+    ) -> pd.Series:
+        if df.index.name == column:
+            return pd.Series(values).isin(df.index)
+        return pd.Series(values).isin(df[column])
+
+    def _df_filter(
+        self,
+        df: pd.DataFrame,
+        condition: pd.DataFrame,
+        all: bool = True,
+    ) -> pd.DataFrame:
+        if all and isinstance(condition, pd.DataFrame):
+            return df[condition.all(axis=1)]
+        return df[condition]
+
+    def _df_div(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.div(other=other, axis=axis)
+
+    def _df_drop_columns(
+        self,
+        df: pd.DataFrame,
+        columns: str | list[str],
+    ) -> pd.DataFrame:
+        return df.drop(columns=columns)
+
+    def _df_drop_duplicates(
+        self,
+        df: pd.DataFrame,
+        subset: str | list[str] | None = None,
+        keep: Literal["first", "last", False] = "first",
+    ) -> pd.DataFrame:
+        return df.drop_duplicates(subset=subset, keep=keep)
 
     def _df_get_bool_mask(
         self,
         df: pd.DataFrame,
-        index_col: str,
+        index_cols: str | list[str],
         mask: PandasMask = None,
         negate: bool = False,
     ) -> pd.Series:
-        if isinstance(mask, pd.Series) and mask.dtype == bool and len(mask) == len(df):
-            result = mask
-        elif isinstance(mask, pd.DataFrame):
-            if mask.index.name == index_col:
-                result = pd.Series(df.index.isin(mask.index), index=df.index)
-            elif index_col in mask.columns:
-                result = pd.Series(df.index.isin(mask[index_col]), index=df.index)
-            else:
-                raise ValueError(
-                    f"A DataFrame mask must have a column/index with name {index_col}"
-                )
-        elif mask is None or mask == "all":
-            result = pd.Series(True, index=df.index)
-        elif isinstance(mask, Sequence):
-            result = pd.Series(df.index.isin(mask), index=df.index)
+        # Get the index column
+        if (isinstance(index_cols, str) and df.index.name == index_cols) or (
+            isinstance(index_cols, list) and df.index.names == index_cols
+        ):
+            srs = df.index
         else:
-            result = pd.Series(df.index.isin([mask]), index=df.index)
+            srs = df.set_index(index_cols).index
+        if isinstance(mask, pd.Series) and mask.dtype == bool and len(mask) == len(df):
+            mask.index = df.index
+            result = mask
+        elif mask is None:
+            result = pd.Series(True, index=df.index)
+        else:
+            if isinstance(mask, pd.DataFrame):
+                if (isinstance(index_cols, str) and mask.index.name == index_cols) or (
+                    isinstance(index_cols, list) and mask.index.names == index_cols
+                ):
+                    mask = mask.index
+                else:
+                    mask = mask.set_index(index_cols).index
 
+            elif isinstance(mask, Collection):
+                pass
+            else:  # single value
+                mask = [mask]
+            result = pd.Series(srs.isin(mask), index=df.index)
         if negate:
             result = ~result
-
         return result
 
     def _df_get_masked_df(
         self,
         df: pd.DataFrame,
-        index_col: str,
+        index_cols: str,
         mask: PandasMask | None = None,
-        columns: list[str] | None = None,
+        columns: str | list[str] | None = None,
         negate: bool = False,
     ) -> pd.DataFrame:
-        b_mask = self._df_get_bool_mask(df, index_col, mask, negate)
+        b_mask = self._df_get_bool_mask(df, index_cols, mask, negate)
         if columns:
             return df.loc[b_mask, columns]
         return df.loc[b_mask]
 
+    def _df_groupby_cumcount(self, df: pd.DataFrame, by: str | list[str]) -> pd.Series:
+        return df.groupby(by).cumcount()
+
     def _df_iterator(self, df: pd.DataFrame) -> Iterator[dict[str, Any]]:
         for index, row in df.iterrows():
             row_dict = row.to_dict()
-            row_dict["unique_id"] = index
+            if df.index.name:
+                row_dict[df.index.name] = index
+            else:
+                row_dict["index"] = index
             yield row_dict
 
-    def _df_norm(self, df: pd.DataFrame) -> pd.DataFrame:
-        return self._df_constructor(
-            data=[np.linalg.norm(df, axis=1), df.index],
-            columns=[df.columns, df.index.name],
-            index_col=df.index.name,
+    def _df_join(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        index_cols: str | list[str] | None = None,
+        on: str | list[str] | None = None,
+        left_on: str | list[str] | None = None,
+        right_on: str | list[str] | None = None,
+        how: Literal["left"]
+        | Literal["right"]
+        | Literal["inner"]
+        | Literal["outer"]
+        | Literal["cross"] = "left",
+        suffix="_right",
+    ) -> pd.DataFrame:
+        left_index = False
+        right_index = False
+        if on:
+            left_on = on
+            right_on = on
+        if left.index.name and left.index.name == left_on:
+            left_index = True
+            left_on = None
+        if right.index.name and right.index.name == right_on:
+            right_index = True
+            right_on = None
+        # Reset index if it is not used as a key to keep it in the DataFrame
+        if not left_index and left.index.name:
+            left = left.reset_index()
+        if not right_index and right.index.name:
+            right = right.reset_index()
+        df = left.merge(
+            right,
+            how=how,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            suffixes=("", suffix),
         )
+        if index_cols:
+            return df.set_index(index_cols)
+        else:
+            return df
 
-    def _df_remove(
+    def _df_mul(
         self,
         df: pd.DataFrame,
-        ids: Sequence[Any],
-        index_col: str | None = None,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
     ) -> pd.DataFrame:
-        return df[~df.index.isin(ids)]
+        return df.mul(other=other, axis=axis)
+
+    @overload
+    def _df_norm(
+        self,
+        df: pd.DataFrame,
+        srs_name: str = "norm",
+        include_cols: Literal[False] = False,
+    ) -> pd.Series: ...
+
+    @overload
+    def _df_norm(
+        self,
+        df: pd.DataFrame,
+        srs_name: str = "norm",
+        include_cols: Literal[True] = True,
+    ) -> pd.DataFrame: ...
+
+    def _df_norm(
+        self,
+        df: pd.DataFrame,
+        srs_name: str = "norm",
+        include_cols: bool = False,
+    ) -> pd.Series | pd.DataFrame:
+        srs = self._srs_constructor(
+            np.linalg.norm(df, axis=1), name=srs_name, index=df.index
+        )
+        if include_cols:
+            return self._df_with_columns(df, srs, srs_name)
+        else:
+            return srs
+
+    def _df_rename_columns(
+        self,
+        df: pd.DataFrame,
+        old_columns: list[str],
+        new_columns: list[str],
+    ) -> pd.DataFrame:
+        return df.rename(columns=dict(zip(old_columns, new_columns)))
+
+    def _df_reset_index(
+        self,
+        df: pd.DataFrame,
+        index_cols: str | list[str] | None = None,
+        drop: bool = False,
+    ) -> pd.DataFrame:
+        return df.reset_index(level=index_cols, drop=drop)
 
     def _df_sample(
         self,
@@ -116,9 +312,42 @@ class PandasMixin(DataFrameMixin):
         shuffle: bool = False,
         seed: int | None = None,
     ) -> pd.DataFrame:
-        return df.sample(
-            n=n, frac=frac, replace=with_replacement, shuffle=shuffle, random_state=seed
-        )
+        return df.sample(n=n, frac=frac, replace=with_replacement, random_state=seed)
+
+    def _df_set_index(
+        self,
+        df: pd.DataFrame,
+        index_name: str,
+        new_index: Sequence[Hashable] | None = None,
+    ) -> pd.DataFrame:
+        if new_index is None:
+            df = df.set_index(index_name)
+        else:
+            df = df.set_index(new_index)
+            df.index.name = index_name
+        return df
+
+    def _df_with_columns(
+        self,
+        original_df: pd.DataFrame,
+        data: pd.DataFrame
+        | pd.Series
+        | Sequence[Sequence]
+        | dict[str | Any]
+        | Sequence[Any]
+        | Any,
+        new_columns: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        df = original_df.copy()
+        if isinstance(data, dict):
+            return df.assign(**data)
+        elif isinstance(data, pd.DataFrame):
+            data = data.set_index(df.index)
+            new_columns = data.columns
+        elif isinstance(data, pd.Series):
+            data.index = df.index
+        df.loc[:, new_columns] = data
+        return df
 
     def _srs_constructor(
         self,
@@ -128,3 +357,26 @@ class PandasMixin(DataFrameMixin):
         index: Sequence[Any] | None = None,
     ) -> pd.Series:
         return pd.Series(data, name=name, dtype=dtype, index=index)
+
+    def _srs_contains(
+        self, srs: Sequence[Any], values: Any | Sequence[Any]
+    ) -> pd.Series:
+        if isinstance(values, Sequence):
+            return pd.Series(values, index=values).isin(srs)
+        else:
+            return pd.Series(values, index=[values]).isin(srs)
+
+    def _srs_range(
+        self,
+        name: str,
+        start: int,
+        end: int,
+        step: int = 1,
+    ) -> pd.Series:
+        return pd.Series(np.arange(start, end, step), name=name)
+
+    def _srs_to_df(self, srs: pd.Series, index: pd.Index | None = None) -> pd.DataFrame:
+        df = srs.to_frame()
+        if index:
+            return df.set_index(index)
+        return df
