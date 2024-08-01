@@ -5,7 +5,7 @@ import polars as pl
 from typing_extensions import Any
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import PolarsMaskLike
+from mesa_frames.types_ import PolarsMask
 
 
 class PolarsMixin(DataFrameMixin):
@@ -65,7 +65,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.DataFrame,
         index_col: str,
-        mask: PolarsMaskLike = None,
+        mask: PolarsMask = None,
         negate: bool = False,
     ) -> pl.Series | pl.Expr:
         def bool_mask_from_series(mask: pl.Series) -> pl.Series:
@@ -106,7 +106,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.DataFrame,
         index_col: str,
-        mask: PolarsMaskLike | None = None,
+        mask: PolarsMask | None = None,
         columns: list[str] | None = None,
         negate: bool = False,
     ) -> pl.DataFrame:

@@ -291,13 +291,13 @@ class Test_AgentSetPolars:
         # Testing with a string
         assert agents["wealth"].to_list() == [1, 2, 3, 4]
 
-        # Test with a tuple[MaskLike, str]
+        # Test with a tuple[AgentMask, str]
         assert agents[0, "wealth"].item() == 1
 
         # Test with a list[str]
         assert agents[["wealth", "age"]].columns == ["wealth", "age"]
 
-        # Testing with a tuple[MaskLike, list[str]]
+        # Testing with a tuple[AgentMask, list[str]]
         result = agents[0, ["wealth", "age"]]
         assert result["wealth"].to_list() == [1]
         assert result["age"].to_list() == [10]
@@ -374,7 +374,7 @@ class Test_AgentSetPolars:
         agents[0, "wealth"] = 5
         assert agents.agents["wealth"].to_list() == [5, 1, 1, 1]
 
-        # Test with key=MaskLike, value=Any
+        # Test with key=AgentMask, value=Any
         agents[0] = [9, 99]
         assert agents.agents.item(0, "wealth") == 9
         assert agents.agents.item(0, "age") == 99

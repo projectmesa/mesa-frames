@@ -292,13 +292,13 @@ class Test_AgentSetPandas:
         # Testing with a string
         assert agents["wealth"].tolist() == [1, 2, 3, 4]
 
-        # Test with a tuple[MaskLike, str]
+        # Test with a tuple[AgentMask, str]
         assert agents[0, "wealth"].values == 1
 
         # Test with a list[str]
         assert agents[["wealth", "age"]].columns.tolist() == ["wealth", "age"]
 
-        # Testing with a tuple[MaskLike, list[str]]
+        # Testing with a tuple[AgentMask, list[str]]
         result = agents[0, ["wealth", "age"]]
         assert result["wealth"].values.tolist() == [1]
         assert result["age"].values.tolist() == [10]
@@ -375,7 +375,7 @@ class Test_AgentSetPandas:
         agents[0, "wealth"] = 5
         assert agents.agents.wealth.tolist() == [5, 1, 1, 1]
 
-        # Test with key=MaskLike, value=Any
+        # Test with key=AgentMask, value=Any
         agents[0] = [9, 99]
         assert agents.agents.loc[0, "wealth"] == 9
         assert agents.agents.loc[0, "age"] == 99

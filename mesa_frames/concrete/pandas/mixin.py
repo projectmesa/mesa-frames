@@ -6,7 +6,7 @@ import pandas as pd
 from typing_extensions import Any
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import PandasMaskLike
+from mesa_frames.types_ import PandasMask
 
 
 class PandasMixin(DataFrameMixin):
@@ -47,7 +47,7 @@ class PandasMixin(DataFrameMixin):
         self,
         df: pd.DataFrame,
         index_col: str,
-        mask: PandasMaskLike = None,
+        mask: PandasMask = None,
         negate: bool = False,
     ) -> pd.Series:
         if isinstance(mask, pd.Series) and mask.dtype == bool and len(mask) == len(df):
@@ -77,7 +77,7 @@ class PandasMixin(DataFrameMixin):
         self,
         df: pd.DataFrame,
         index_col: str,
-        mask: PandasMaskLike | None = None,
+        mask: PandasMask | None = None,
         columns: list[str] | None = None,
         negate: bool = False,
     ) -> pd.DataFrame:

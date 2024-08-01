@@ -5,7 +5,7 @@ from typing_extensions import Any, Self
 from typing import Literal
 from collections.abc import Collection, Iterator, Sequence
 
-from mesa_frames.types_ import BoolSeries, DataFrame, MaskLike, Series
+from mesa_frames.types_ import BoolSeries, DataFrame, Mask, Series
 
 
 class CopyMixin(ABC):
@@ -181,7 +181,7 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         index_col: str,
-        mask: MaskLike | None = None,
+        mask: Mask | None = None,
         negate: bool = False,
     ) -> BoolSeries: ...
 
@@ -190,7 +190,7 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         index_col: str,
-        mask: MaskLike | None = None,
+        mask: Mask | None = None,
         columns: list[str] | None = None,
         negate: bool = False,
     ) -> DataFrame: ...

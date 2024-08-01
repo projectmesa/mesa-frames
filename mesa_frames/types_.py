@@ -1,29 +1,31 @@
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from typing import Literal
-
-from collections.abc import Sequence
 
 import geopandas as gpd
 import geopolars as gpl
 import pandas as pd
 import polars as pl
 from numpy import ndarray
+from typing_extensions import Any
 
 ####----- Agnostic Types -----####
-AgnosticMask = Literal["all", "active"] | None
+AgnosticMask = (
+    Any | Sequence[Any] | None
+)  # Any is a placeholder for any type if it's a single value
+AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
 AgnosticIds = int | Collection[int]
 
 ###----- Pandas Types -----###
 
-ArrayLike = pd.api.extensions.ExtensionArray | ndarray
-AnyArrayLike = ArrayLike | pd.Index | pd.Series
-PandasMaskLike = AgnosticMask | pd.Series | pd.DataFrame | AnyArrayLike
+PandasMask = pd.Series | pd.DataFrame | AgnosticMask
+AgentPandasMask = AgnosticAgentMask | pd.Series | pd.DataFrame
 PandasIdsLike = AgnosticIds | pd.Series | pd.Index
 PandasGridCapacity = ndarray
 
 ###----- Polars Types -----###
 
-PolarsMaskLike = AgnosticMask | pl.Expr | pl.Series | pl.DataFrame | Collection[int]
+PolarsMask = pl.Expr | pl.Series | pl.DataFrame | AgnosticMask
+AgentPolarsMask = AgnosticAgentMask | pl.Expr | pl.Series | pl.DataFrame | Sequence[int]
 PolarsIdsLike = AgnosticIds | pl.Series
 PolarsGridCapacity = list[pl.Expr]
 
@@ -31,10 +33,10 @@ PolarsGridCapacity = list[pl.Expr]
 GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 DataFrame = pd.DataFrame | pl.DataFrame
 Series = pd.Series | pl.Series
-Series = pd.Series | pl.Series
 Index = pd.Index | pl.Series
 BoolSeries = pd.Series | pl.Series
-MaskLike = AgnosticMask | PandasMaskLike | PolarsMaskLike
+Mask = PandasMask | PolarsMask
+AgentMask = AgentPandasMask | AgentPolarsMask
 IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike
 
 
