@@ -3,9 +3,11 @@ from collections.abc import Collection, Iterator, Sequence
 from copy import copy, deepcopy
 from typing import Literal
 
-from typing_extensions import Any, Self
+from typing_extensions import Any, Self, overload
 
-from mesa_frames.types_ import BoolSeries, DataFrame, Mask, Series
+from collections.abc import Hashable
+
+from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series
 
 
 class CopyMixin(ABC):
@@ -149,24 +151,63 @@ class CopyMixin(ABC):
 
 
 class DataFrameMixin(ABC):
-    def _df_remove(self, df: DataFrame, mask: Mask, index_col: str) -> DataFrame:
-        return self._df_get_masked_df(df, index_col, mask, negate=True)
+    def _df_remove(self, df: DataFrame, mask: Mask, index_cols: str) -> DataFrame:
+        return self._df_get_masked_df(df, index_cols, mask, negate=True)
+
+    @abstractmethod
+    def _df_add(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_all(
+        self,
+        df: DataFrame,
+        name: str,
+        axis: str = "columns",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
 
     @abstractmethod
     def _df_column_names(self, df: DataFrame) -> list[str]: ...
 
     @abstractmethod
     def _df_combine_first(
-        self, original_df: DataFrame, new_df: DataFrame, index_col: str | list[str]
+        self, original_df: DataFrame, new_df: DataFrame, index_cols: str | list[str]
+    ) -> DataFrame: ...
+
+    @overload
+    @abstractmethod
+    def _df_concat(
+        self,
+        objs: Collection[Series],
+        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        ignore_index: bool = False,
+        index_cols: str | None = None,
+    ) -> Series: ...
+
+    @overload
+    @abstractmethod
+    def _df_concat(
+        self,
+        objs: Collection[DataFrame],
+        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        ignore_index: bool = False,
+        index_cols: str | None = None,
     ) -> DataFrame: ...
 
     @abstractmethod
     def _df_concat(
         self,
-        dfs: Collection[DataFrame] | Collection[Series],
+        objs: Collection[DataFrame] | Collection[Series],
         how: Literal["horizontal"] | Literal["vertical"] = "vertical",
         ignore_index: bool = False,
-    ) -> DataFrame: ...
+        index_cols: str | None = None,
+    ) -> DataFrame | Series: ...
 
     @abstractmethod
     def _df_contains(
@@ -181,8 +222,33 @@ class DataFrameMixin(ABC):
         self,
         data: Sequence[Sequence] | dict[str | Any] | None = None,
         columns: list[str] | None = None,
-        index_col: str | list[str] | None = None,
+        index: Index | None = None,
+        index_cols: str | list[str] | None = None,
         dtypes: dict[str, Any] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_div(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_drop_columns(
+        self,
+        df: DataFrame,
+        columns: str | list[str],
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_drop_duplicates(
+        self,
+        df: DataFrame,
+        subset: str | list[str] | None = None,
+        keep: Literal["first", "last", False] = "first",
     ) -> DataFrame: ...
 
     @abstractmethod
@@ -197,7 +263,7 @@ class DataFrameMixin(ABC):
     def _df_get_bool_mask(
         self,
         df: DataFrame,
-        index_col: str,
+        index_cols: str | list[str],
         mask: Mask | None = None,
         negate: bool = False,
     ) -> BoolSeries: ...
@@ -206,11 +272,18 @@ class DataFrameMixin(ABC):
     def _df_get_masked_df(
         self,
         df: DataFrame,
-        index_col: str,
+        index_cols: str,
         mask: Mask | None = None,
         columns: str | list[str] | None = None,
         negate: bool = False,
     ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_groupby_cumcount(
+        self,
+        df: DataFrame,
+        by: str | list[str],
+    ) -> Series: ...
 
     @abstractmethod
     def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
@@ -220,6 +293,7 @@ class DataFrameMixin(ABC):
         self,
         left: DataFrame,
         right: DataFrame,
+        index_cols: str | list[str] | None = None,
         on: str | list[str] | None = None,
         left_on: str | list[str] | None = None,
         right_on: str | list[str] | None = None,
@@ -232,7 +306,39 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
-    def _df_norm(self, df: DataFrame) -> Series: ...
+    def _df_mul(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    @overload
+    def _df_norm(
+        self,
+        df: DataFrame,
+        srs_name: str = "norm",
+        include_cols: Literal[False] = False,
+    ) -> Series: ...
+
+    @abstractmethod
+    @overload
+    def _df_norm(
+        self,
+        df: DataFrame,
+        srs_name: str = "norm",
+        include_cols: Literal[True] = False,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_norm(
+        self,
+        df: DataFrame,
+        srs_name: str = "norm",
+        include_cols: bool = False,
+    ) -> Series | DataFrame: ...
 
     @abstractmethod
     def _df_rename_columns(
@@ -240,6 +346,14 @@ class DataFrameMixin(ABC):
         df: DataFrame,
         old_columns: list[str],
         new_columns: list[str],
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_reset_index(
+        self,
+        df: DataFrame,
+        index_cols: str | list[str] | None = None,
+        drop: bool = False,
     ) -> DataFrame: ...
 
     @abstractmethod
@@ -251,6 +365,14 @@ class DataFrameMixin(ABC):
         with_replacement: bool = False,
         shuffle: bool = False,
         seed: int | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_set_index(
+        self,
+        df: DataFrame,
+        index_name: str,
+        new_index: Sequence[Hashable] | None = None,
     ) -> DataFrame: ...
 
     @abstractmethod
@@ -284,3 +406,6 @@ class DataFrameMixin(ABC):
 
     @abstractmethod
     def _srs_range(self, name: str, start: int, end: int, step: int = 1) -> Series: ...
+
+    @abstractmethod
+    def _srs_to_df(self, srs: Series, index: Index | None = None) -> DataFrame: ...
