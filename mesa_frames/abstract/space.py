@@ -4,11 +4,13 @@ from itertools import product
 from typing import TYPE_CHECKING, Literal
 from warnings import warn
 
+import numpy as np
 import polars as pl
 from numpy.random import Generator
 from typing_extensions import Any, Self
 
-from mesa_frames.abstract.agents import AgentContainer
+from mesa_frames import AgentsDF
+from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
     BoolSeries,
@@ -21,6 +23,7 @@ from mesa_frames.types_ import (
     GridCoordinate,
     GridCoordinates,
     IdsLike,
+    Series,
     SpaceCoordinate,
     SpaceCoordinates,
 )
@@ -109,6 +112,71 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         """
         self._model = model
 
+    def move_agents(
+        self,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        pos: SpaceCoordinate | SpaceCoordinates,
+        inplace: bool = True,
+    ) -> Self:
+        """Move agents in the Space to the specified coordinates. If some agents are not placed,
+        raises a RuntimeWarning.
+
+        Parameters
+        ----------
+        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+            The agents to move
+        pos : SpaceCoordinate | SpaceCoordinates
+            The coordinates for each agents. The length of the coordinates must match the number of agents.
+        inplace : bool, optional
+            Whether to perform the operation inplace, by default True
+
+        Raises
+        ------
+        RuntimeWarning
+            If some agents are not placed in the space.
+        ValueError
+            - If some agents are not part of the model.
+            - If agents is IdsLike and some agents are present multiple times.
+
+        Returns
+        -------
+        Self
+        """
+        obj = self._get_obj(inplace=inplace)
+        return obj._place_or_move_agents(agents=agents, pos=pos, is_move=True)
+
+    def place_agents(
+        self,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        pos: SpaceCoordinate | SpaceCoordinates,
+        inplace: bool = True,
+    ) -> Self:
+        """Place agents in the space according to the specified coordinates. If some agents are already placed, raises a RuntimeWarning.
+
+        Parameters
+        ----------
+        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+            The agents to place in the space
+        pos : SpaceCoordinate | SpaceCoordinates
+            The coordinates for each agents. The length of the coordinates must match the number of agents.
+        inplace : bool, optional
+            Whether to perform the operation inplace, by default True
+
+        Returns
+        -------
+        Self
+
+        Raises
+        ------
+        RuntimeWarning
+            If some agents are already placed in the space.
+        ValueError
+            - If some agents are not part of the model.
+            - If agents is IdsLike and some agents are present multiple times.
+        """
+        obj = self._get_obj(inplace=inplace)
+        return obj._place_or_move_agents(agents=agents, pos=pos, is_move=False)
+
     def random_agents(
         self,
         n: int,
@@ -130,7 +198,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             A DataFrame with the sampled agents
         """
         if seed is None:
-            seed = self.random.integers(0)
+            seed = self.random.integers(np.iinfo(np.int32).max)
         return self._df_sample(self._agents, n=n, seed=seed)
 
     def swap_agents(
@@ -153,10 +221,8 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         -------
         Self
         """
-        if isinstance(agents0, AgentContainer | Collection[AgentContainer]):
-            agents0 = agents0.index
-        elif isinstance(agents1, AgentContainer | Collection[AgentContainer]):
-            agents1 = agents1.index
+        agents0 = self._get_ids_srs(agents0)
+        agents1 = self._get_ids_srs(agents1)
         if __debug__:
             if len(agents0) != len(agents1):
                 raise ValueError("The two sets of agents must have the same length")
@@ -167,12 +233,21 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             if self._srs_contains(agents0, agents1).any():
                 raise ValueError("Some agents are present in both agents0 and agents1")
         obj = self._get_obj(inplace)
-        agents0_df = obj._df_get_masked_df(obj._agents, "agent_id", agents0)
-        agents1_df = obj._df_get_masked_df(obj._agents, "agent_id", agents1)
-        agents0_df = obj._df_with_columns(agents0_df, obj._pos_col_names, agents1_df)
-        agents1_df = obj._df_with_columns(agents1_df, obj._pos_col_names, agents0_df)
-        obj._agents = obj._df_combine_first(obj._agents, agents0_df)
-        obj._agents = obj._df_combine_first(obj._agents, agents1_df)
+        agents0_df = obj._df_get_masked_df(
+            obj._agents, index_cols="agent_id", mask=agents0
+        )
+        agents1_df = obj._df_get_masked_df(
+            obj._agents, index_cols="agent_id", mask=agents1
+        )
+        agents0_df = obj._df_set_index(agents0_df, "agent_id", agents1)
+        agents1_df = obj._df_set_index(agents1_df, "agent_id", agents0)
+        obj._agents = obj._df_combine_first(
+            agents0_df, obj._agents, index_cols="agent_id"
+        )
+        obj._agents = obj._df_combine_first(
+            agents1_df, obj._agents, index_cols="agent_id"
+        )
+
         return obj
 
     @abstractmethod
@@ -216,7 +291,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
         agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
         agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-    ) -> DataFrame:
+    ) -> Series:
         """Returns the distances from pos0 to pos1 or agents0 and agents1.
         If the space is a Network, the distance is the number of nodes of the shortest path between the two nodes.
         In all other cases, the distance is Euclidean/l2/Frobenius norm.
@@ -276,39 +351,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         ...
 
     @abstractmethod
-    def move_agents(
-        self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        pos: SpaceCoordinate | SpaceCoordinates,
-        inplace: bool = True,
-    ) -> Self:
-        """Move agents in the Space to the specified coordinates. If some agents are not placed,
-        raises a RuntimeWarning.
-
-        Parameters
-        ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
-            The agents to move
-        pos : SpaceCoordinate | SpaceCoordinates
-            The coordinates for each agents. The length of the coordinates must match the number of agents.
-        inplace : bool, optional
-            Whether to perform the operation inplace, by default True
-
-        Raises
-        ------
-        RuntimeWarning
-            If some agents are not placed in the space.
-        ValueError
-            - If some agents are not part of the model.
-            - If agents is IdsLike and some agents are present multiple times.
-
-        Returns
-        -------
-        Self
-        """
-        ...
-
-    @abstractmethod
     def move_to_empty(
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
@@ -326,38 +368,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         Returns
         -------
         Self
-        """
-        ...
-
-    @abstractmethod
-    def place_agents(
-        self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        pos: SpaceCoordinate | SpaceCoordinates,
-        inplace: bool = True,
-    ) -> Self:
-        """Place agents in the space according to the specified coordinates. If some agents are already placed, raises a RuntimeWarning.
-
-        Parameters
-        ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
-            The agents to place in the space
-        pos : SpaceCoordinate | SpaceCoordinates
-            The coordinates for each agents. The length of the coordinates must match the number of agents.
-        inplace : bool, optional
-            Whether to perform the operation inplace, by default True
-
-        Returns
-        -------
-        Self
-
-        Raises
-        ------
-        RuntimeWarning
-            If some agents are already placed in the space.
-        ValueError
-            - If some agents are not part of the model.
-            - If agents is IdsLike and some agents are present multiple times.
         """
         ...
 
@@ -431,6 +441,49 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         """
         ...
 
+    def _get_ids_srs(
+        self, agents: IdsLike | AgentContainer | Collection[AgentContainer]
+    ) -> Series:
+        if isinstance(agents, AgentSetDF):
+            return self._srs_constructor(agents.index, name="agent_id")
+        elif isinstance(agents, AgentsDF):
+            return self._srs_constructor(agents._ids, name="agent_id")
+        elif isinstance(agents, Collection) and (isinstance(agents[0], AgentContainer)):
+            ids = []
+            for a in agents:
+                if isinstance(a, AgentSetDF):
+                    ids.append(self._srs_constructor(a.index, name="agent_id"))
+                elif isinstance(a, AgentsDF):
+                    ids.append(self._srs_constructor(a._ids, name="agent_id"))
+            return self._df_concat(ids, ignore_index=True)
+        elif isinstance(agents, int):
+            return self._srs_constructor([agents], name="agent_id")
+        else:  # IDsLike
+            return self._srs_constructor(agents, name="agent_id")
+
+    @abstractmethod
+    def _place_or_move_agents(
+        self,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        pos: SpaceCoordinate | SpaceCoordinates,
+        is_move: bool,
+    ) -> Self:
+        """A unique method for moving or placing agents (only the RuntimeWarning changes).
+
+        Parameters
+        ----------
+        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+            The agents to move/place
+        pos : SpaceCoordinate | SpaceCoordinates
+            The position to move/place agents to
+        is_move : bool
+            Whether the operation is "move" or "place"
+
+        Returns
+        -------
+        Self
+        """
+
     @abstractmethod
     def __repr__(self) -> str: ...
 
@@ -495,6 +548,7 @@ class DiscreteSpaceDF(SpaceDF):
         Set the properties of the specified cells.
     """
 
+    _agents: DataFrame
     _capacity: int | None  # The maximum capacity for cells (default is infinite)
     _cells: DataFrame  # Stores the properties of the cells
     _cells_capacity: (
@@ -533,12 +587,7 @@ class DiscreteSpaceDF(SpaceDF):
         DataFrame
             A dataframe with positions and a boolean column "available"
         """
-        df = self._df_constructor(data=pos, columns=self._pos_col_names)
-        return self._df_with_columns(
-            df,
-            ["available"],
-            self._df_get_bool_mask(df, mask=self.full_cells, negate=True),
-        )
+        return self._check_cells(pos, "available")
 
     def is_empty(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
         """Check whether the input positions are empty (there isn't any single agent in the cells)
@@ -553,10 +602,7 @@ class DiscreteSpaceDF(SpaceDF):
         DataFrame
             A dataframe with positions and a boolean column "empty"
         """
-        df = self._df_constructor(data=pos, columns=self._pos_col_names)
-        return self._df_with_columns(
-            df, ["empty"], self._df_get_bool_mask(df, mask=self._cells, negate=True)
-        )
+        return self._check_cells(pos, "empty")
 
     def is_full(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
         """Check whether the input positions are full (there isn't any spot available in the cells)
@@ -571,17 +617,17 @@ class DiscreteSpaceDF(SpaceDF):
         DataFrame
             A dataframe with positions and a boolean column "full"
         """
-        df = self._df_constructor(data=pos, columns=self._pos_col_names)
-        return self._df_with_columns(
-            df, ["full"], self._df_get_bool_mask(df, mask=self.full_cells, negate=True)
-        )
+        return self._check_cells(pos, "full")
 
     def move_to_empty(
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
     ) -> Self:
-        return self._move_agents_to_cells(agents, cell_type="empty", inplace=inplace)
+        obj = self._get_obj(inplace)
+        return obj._place_or_move_agents_to_cells(
+            agents, cell_type="empty", is_move=True
+        )
 
     def move_to_available(
         self,
@@ -601,8 +647,9 @@ class DiscreteSpaceDF(SpaceDF):
         -------
         Self
         """
-        return self._move_agents_to_cells(
-            agents, cell_type="available", inplace=inplace
+        obj = self._get_obj(inplace)
+        return obj._place_or_move_agents_to_cells(
+            agents, cell_type="available", is_move=True
         )
 
     def place_to_empty(
@@ -610,15 +657,19 @@ class DiscreteSpaceDF(SpaceDF):
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
     ) -> Self:
-        return self._place_agents_to_cells(agents, cell_type="empty", inplace=inplace)
+        obj = self._get_obj(inplace)
+        return obj._place_or_move_agents_to_cells(
+            agents, cell_type="empty", is_move=False
+        )
 
     def place_to_available(
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
     ) -> Self:
-        return self._place_agents_to_cells(
-            agents, cell_type="available", inplace=inplace
+        obj = self._get_obj(inplace)
+        return obj._place_or_move_agents_to_cells(
+            agents, cell_type="available", is_move=False
         )
 
     def random_pos(self, n: int, seed: int | None = None) -> DataFrame | pl.DataFrame:
@@ -630,6 +681,7 @@ class DiscreteSpaceDF(SpaceDF):
         cell_type: Literal["any", "empty", "available", "full"] = "any",
         with_replacement: bool = True,
         seed: int | None = None,
+        respect_capacity: bool = True,
     ) -> DataFrame:
         """Sample cells from the grid according to the specified cell_type.
 
@@ -644,6 +696,9 @@ class DiscreteSpaceDF(SpaceDF):
         seed : int | None, optional
             The seed for the sampling, by default None
             If None, an integer from the model's random number generator is used.
+        respect_capacity : bool, optional
+            If the capacity of the cells should be respected in the sampling.
+            This is only relevant if cell_type is "empty" or "available", by default True
 
         Returns
         -------
@@ -659,7 +714,13 @@ class DiscreteSpaceDF(SpaceDF):
                 condition = self._available_cell_condition
             case "full":
                 condition = self._full_cell_condition
-        return self._sample_cells(n, with_replacement, condition=condition, seed=seed)
+        return self._sample_cells(
+            n,
+            with_replacement,
+            condition=condition,
+            seed=seed,
+            respect_capacity=respect_capacity,
+        )
 
     def set_cells(
         self,
@@ -678,9 +739,9 @@ class DiscreteSpaceDF(SpaceDF):
         Parameters
         ----------
         cells : DataFrame | DiscreteCoordinate | DiscreteCoordinates
-            The cells to set the properties for
+            The cells to set the properties for. It can contain the coordinates of the cells or both the coordinates and the properties.
         properties : DataFrame | dict[str, Any] | None, optional
-            The properties of the cells, by default None
+            The properties of the cells, by default None if the cells argument contains the properties
         inplace : bool
             Whether to perform the operation inplace
 
@@ -697,11 +758,21 @@ class DiscreteSpaceDF(SpaceDF):
                 raise ValueError(
                     f"The cells DataFrame must have the columns {obj._pos_col_names}"
                 )
-        obj._cells = obj._df_combine_first(
-            obj._cells, cells, index_col=obj._pos_col_names
-        )
+        if properties:
+            pos_df = obj._get_df_coords(cells)
+            properties = obj._df_constructor(data=properties, index=pos_df.index)
+            cells = obj._df_concat(
+                [pos_df, properties], how="horizontal", index_cols=obj._pos_col_names
+            )
+        else:
+            cells = obj._df_constructor(data=cells, index_cols=obj._pos_col_names)
+
         if "capacity" in cells_col_names:
             obj._cells_capacity = obj._update_capacity_cells(cells)
+
+        obj._cells = obj._df_combine_first(
+            cells, obj._cells, index_cols=obj._pos_col_names
+        )
         return obj
 
     @abstractmethod
@@ -753,73 +824,110 @@ class DiscreteSpaceDF(SpaceDF):
         """
         ...
 
-    def _move_agents_to_cells(
-        self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        cell_type: Literal["any", "empty", "available"],
-        inplace: bool = True,
-    ) -> Self:
-        obj = self._get_obj(inplace)
-
-        # Get Ids of agents
-        # TODO: fix this
-        if isinstance(agents, AgentContainer | Collection[AgentContainer]):
-            agents = agents.index
-
-        # Check ids presence in model
-        b_contained = obj.model.agents.contains(agents)
-        if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
-            isinstance(b_contained, bool) and not b_contained
-        ):
-            raise ValueError("Some agents are not in the model")
-
-        # Get cells of specified type
-        cells = obj.sample_cells(len(agents), cell_type=cell_type)
-
-        # Place agents
-        obj._agents = obj.move_agents(agents, cells)
-        return obj
-
-    def _place_agents_to_cells(
-        self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        cell_type: Literal["any", "empty", "available"],
-        inplace: bool = True,
-    ) -> Self:
-        obj = self._get_obj(inplace)
-
-        # Get Ids of agents
-        # TODO: fix this
-        if isinstance(agents, AgentContainer | Collection[AgentContainer]):
-            agents = agents.index
-
-        # Check ids presence in model
-        b_contained = obj.model.agents.contains(agents)
-        if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
-            isinstance(b_contained, bool) and not b_contained
-        ):
-            raise ValueError("Some agents are not in the model")
-
-        # Get cells of specified type
-        cells = obj.sample_cells(len(agents), cell_type=cell_type)
-
-        # Place agents
-        obj._agents = obj.place_agents(agents, cells)
-        return obj
-
     # We define the cell conditions here, because ruff does not allow lambda functions
 
     def _any_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
-        return True
+        return self._cells_capacity
 
-    def _empty_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
-        return cap == self._capacity
+    @abstractmethod
+    def _empty_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries: ...
 
     def _available_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
         return cap > 0
 
     def _full_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
         return cap == 0
+
+    def _check_cells(
+        self,
+        pos: DiscreteCoordinate | DiscreteCoordinates,
+        state: Literal["empty", "full", "available"],
+    ) -> DataFrame:
+        """
+        Check the state of cells at given positions.
+
+        Parameters
+        ----------
+        pos : DiscreteCoordinate | DiscreteCoordinates
+            The positions to check
+        state : Literal["empty", "full", "available"]
+            The state to check for ("empty", "full", or "available")
+
+        Returns
+        -------
+        DataFrame
+            A dataframe with positions and a boolean column indicating the state
+        """
+        pos_df = self._get_df_coords(pos)
+
+        if state == "empty":
+            mask = self.empty_cells
+        elif state == "full":
+            mask = self.full_cells
+        elif state == "available":
+            mask = self.available_cells
+
+        return self._df_with_columns(
+            original_df=pos_df,
+            data=self._df_get_bool_mask(
+                pos_df,
+                index_cols=self._pos_col_names,
+                mask=mask,
+            ),
+            new_columns=state,
+        )
+
+    def _place_or_move_agents_to_cells(
+        self,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        cell_type: Literal["any", "empty", "available"],
+        is_move: bool,
+    ) -> Self:
+        # Get Ids of agents
+        agents = self._get_ids_srs(agents)
+
+        if __debug__:
+            # Check ids presence in model
+            b_contained = self.model.agents.contains(agents)
+            if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
+                isinstance(b_contained, bool) and not b_contained
+            ):
+                raise ValueError("Some agents are not in the model")
+
+        # Get cells of specified type
+        cells = self.sample_cells(len(agents), cell_type=cell_type)
+
+        # Place agents
+        if is_move:
+            self.move_agents(agents, cells)
+        else:
+            self.place_agents(agents, cells)
+        return self
+
+    @abstractmethod
+    def _get_df_coords(
+        self,
+        pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+    ) -> DataFrame:
+        """Get the DataFrame of coordinates from the specified positions or agents.
+
+        Parameters
+        ----------
+        pos : DiscreteCoordinate | DiscreteCoordinates | None, optional
+        agents : IdsLike | AgentContainer | Collection[AgentContainer], optional
+
+        Returns
+        -------
+        DataFrame
+            A dataframe where the columns are the coordinates col_names and the rows are the positions
+
+        Raises
+        ------
+        ValueError
+            If neither pos or agents are specified
+        """
+        ...
 
     @abstractmethod
     def _sample_cells(
@@ -828,13 +936,14 @@ class DiscreteSpaceDF(SpaceDF):
         with_replacement: bool,
         condition: Callable[[DiscreteSpaceCapacity], BoolSeries],
         seed: int | None = None,
+        respect_capacity: bool = True,
     ) -> DataFrame:
         """Sample cells from the grid according to a condition on the capacity.
 
         Parameters
         ----------
         n : int | None
-            The number of cells to sample
+            The number of cells to sample. If None, samples the maximum available.
         with_replacement : bool
             If the sampling should be with replacement
         condition : Callable[[DiscreteSpaceCapacity], BoolSeries]
@@ -842,6 +951,9 @@ class DiscreteSpaceDF(SpaceDF):
         seed : int | None, optional
             The seed for the sampling, by default None
             If None, an integer from the model's random number generator is used.
+        respect_capacity : bool, optional
+            If the capacity should be respected in the sampling.
+            This is only relevant if cell_type is "empty" or "available", by default True
 
         Returns
         -------
@@ -866,7 +978,9 @@ class DiscreteSpaceDF(SpaceDF):
         ...
 
     @abstractmethod
-    def _update_capacity_agents(self, agents: DataFrame) -> DiscreteSpaceCapacity:
+    def _update_capacity_agents(
+        self, agents: DataFrame, operation: Literal["movement", "removal"]
+    ) -> DiscreteSpaceCapacity:
         """Update the cells' capacity after moving agents.
 
         Parameters
@@ -881,7 +995,7 @@ class DiscreteSpaceDF(SpaceDF):
         """
         ...
 
-    def __getitem__(self, cells: DiscreteCoordinates):
+    def __getitem__(self, cells: DiscreteCoordinate | DiscreteCoordinates):
         return self.get_cells(cells)
 
     def __getattr__(self, key: str) -> DataFrame:
@@ -893,13 +1007,21 @@ class DiscreteSpaceDF(SpaceDF):
         self.set_cells(properties=properties, cells=cells)
 
     def __repr__(self) -> str:
-        return self._cells.__repr__()
+        return f"{self.__class__.__name__}\nCells:\n{self._cells.__repr__()}\nAgents:\n{self._agents.__repr__()}"
 
     def __str__(self) -> str:
-        return self._cells.__str__()
+        return (
+            f"{self.__class__.__name__}\nCells:\n{self._cells}\nAgents:\n{self._agents}"
+        )
 
     @property
     def cells(self) -> DataFrame:
+        """
+        Returns
+        -------
+        DataFrame
+            A Dataframe with all cells, their properties and their agents
+        """
         return self.get_cells()
 
     @cells.setter
@@ -943,12 +1065,19 @@ class GridDF(DiscreteSpaceDF):
 
     Warning
     -------
+    For rectangular grids:
     In this implementation, [0, ..., 0] is the bottom-left corner and
     [dimensions[0]-1, ..., dimensions[n-1]-1] is the top-right corner, consistent with
     Cartesian coordinates and Matplotlib/Seaborn plot outputs.
     The convention is different from `np.genfromtxt`_ and its use in the
     `mesa-examples Sugarscape model`_, where [0, ..., 0] is the top-left corner
     and [dimensions[0]-1, ..., dimensions[n-1]-1] is the bottom-right corner.
+
+    For hexagonal grids:
+    The coordinates are ordered according to the axial coordinate system.
+    In this system, the hexagonal grid uses two axes (q and r) at 60 degrees to each other.
+    The q-axis points to the right, and the r-axis points up and to the right.
+    The [0, 0] coordinate is at the bottom-left corner of the grid.
 
     .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
     .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
@@ -992,6 +1121,7 @@ class GridDF(DiscreteSpaceDF):
 
         Warning
         -------
+        For rectangular grids:
         In this implementation, [0, ..., 0] is the bottom-left corner and
         [dimensions[0]-1, ..., dimensions[n-1]-1] is the top-right corner, consistent with
         Cartesian coordinates and Matplotlib/Seaborn plot outputs.
@@ -999,15 +1129,21 @@ class GridDF(DiscreteSpaceDF):
         `mesa-examples Sugarscape model`_, where [0, ..., 0] is the top-left corner
         and [dimensions[0]-1, ..., dimensions[n-1]-1] is the bottom-right corner.
 
+        For hexagonal grids:
+        The coordinates are ordered according to the axial coordinate system.
+        In this system, the hexagonal grid uses two axes (q and r) at 60 degrees to each other.
+        The q-axis points to the right, and the r-axis points up and to the right.
+        The [0, 0] coordinate is at the bottom-left corner of the grid.
+
         .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
         .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
 
         Parameters
         ----------
         model : 'ModelDF'
-            The model selfect to which the grid belongs
+            The model object to which the grid belongs
         dimensions: Sequence[int]
-            The dimensions of the grid
+            The dimensions of the grid. For hexagonal grids, this should be [q_max, r_max].
         torus : bool, optional
             If the grid should be a torus, by default False
         capacity : int | None, optional
@@ -1024,11 +1160,13 @@ class GridDF(DiscreteSpaceDF):
         self._pos_col_names = [f"dim_{k}" for k in range(len(dimensions))]
         self._center_col_names = [x + "_center" for x in self._pos_col_names]
         self._agents = self._df_constructor(
-            columns=["agent_id"] + self._pos_col_names, index_col="agent_id"
+            columns=["agent_id"] + self._pos_col_names,
+            index_cols="agent_id",
+            dtypes={col: int for col in self._pos_col_names},
         )
         self._cells = self._df_constructor(
             columns=self._pos_col_names + ["capacity"],
-            index_col=self._pos_col_names,
+            index_cols=self._pos_col_names,
         )
         self._offsets = self._compute_offsets(neighborhood_type)
         self._cells_capacity = self._generate_empty_grid(dimensions, capacity)
@@ -1044,7 +1182,7 @@ class GridDF(DiscreteSpaceDF):
     ) -> DataFrame:
         result = self._calculate_differences(pos0, pos1, agents0, agents1)
         if normalize:
-            result = result / self._df_norm(result)
+            result = self._df_div(result, other=self._df_norm(result))
         return result
 
     def get_distances(
@@ -1055,7 +1193,7 @@ class GridDF(DiscreteSpaceDF):
         agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
     ) -> DataFrame:
         result = self._calculate_differences(pos0, pos1, agents0, agents1)
-        return self._df_norm(result)
+        return self._df_norm(result, "distance", True)
 
     def get_neighbors(
         self,
@@ -1069,9 +1207,8 @@ class GridDF(DiscreteSpaceDF):
         )
         return self._df_get_masked_df(
             df=self._agents,
-            index_col="agent_id",
+            index_cols=self._pos_col_names,
             mask=neighborhood_df,
-            columns=self._agents.columns,
         )
 
     def get_neighborhood(
@@ -1083,88 +1220,189 @@ class GridDF(DiscreteSpaceDF):
     ) -> DataFrame:
         pos_df = self._get_df_coords(pos, agents)
 
-        # Create all possible neighbors by multiplying directions by the radius and adding original pos
-        radius_srs = self._srs_range(name="radius", start=1, stop=radius + 1)
+        if __debug__:
+            if isinstance(radius, Sequence):
+                if len(radius) != len(pos_df):
+                    raise ValueError(
+                        "The length of the radius sequence must be equal to the number of positions/agents"
+                    )
+
+        ## Create all possible neighbors by multiplying offsets by the radius and adding original pos
+
+        # If radius is a sequence, get the maximum radius (we will drop unnecessary neighbors later, time-efficient but memory-inefficient)
+        if isinstance(radius, Sequence):
+            radius_srs = self._srs_constructor(radius, name="radius")
+            max_radius = radius_srs.max()
+        else:
+            max_radius = radius
+
+        range_srs = self._srs_range(name="radius", start=1, end=max_radius + 1)
+
         neighbors_df = self._df_join(
-            self._offsets, radius_srs, how="cross", suffix="_center"
+            self._offsets,
+            range_srs,
+            how="cross",
         )
+
+        neighbors_df = self._df_with_columns(
+            neighbors_df,
+            data=self._df_mul(
+                neighbors_df[self._pos_col_names], neighbors_df["radius"]
+            ),
+            new_columns=self._pos_col_names,
+        )
+
+        if self.neighborhood_type == "hexagonal":
+            # We need to add in-between cells for hexagonal grids
+            # In-between offsets (for every radius k>=2, we need k-1 in-between cells)
+            in_between_cols = ["in_between_dim_0", "in_between_dim_1"]
+            radius_srs = self._srs_constructor(
+                np.repeat(np.arange(1, max_radius + 1), np.arange(0, max_radius)),
+                name="radius",
+            )
+            radius_df = self._srs_to_df(radius_srs)
+            radius_df = self._df_with_columns(
+                radius_df,
+                self._df_groupby_cumcount(radius_df, "radius") + 1,
+                new_columns="offset",
+            )
+
+            in_between_df = self._df_join(
+                self._in_between_offsets,
+                radius_df,
+                how="cross",
+            )
+            # We multiply the radius to get the directional cells
+            in_between_df = self._df_with_columns(
+                in_between_df,
+                data=self._df_mul(
+                    in_between_df[self._pos_col_names], in_between_df["radius"]
+                ),
+                new_columns=self._pos_col_names,
+            )
+            # We multiply the offset (from the directional cells) to get the in-between offset for each radius
+            in_between_df = self._df_with_columns(
+                in_between_df,
+                data=self._df_mul(
+                    in_between_df[in_between_cols], in_between_df["offset"]
+                ),
+                new_columns=in_between_cols,
+            )
+            # We add the in-between offset to the directional cells to obtain the in-between cells
+            in_between_df = self._df_with_columns(
+                in_between_df,
+                data=self._df_add(
+                    in_between_df[self._pos_col_names],
+                    self._df_rename_columns(
+                        in_between_df[in_between_cols],
+                        in_between_cols,
+                        self._pos_col_names,
+                    ),
+                ),
+                new_columns=self._pos_col_names,
+            )
+
+            in_between_df = self._df_drop_columns(
+                in_between_df, in_between_cols + ["offset"]
+            )
+
+            neighbors_df = self._df_concat(
+                [neighbors_df, in_between_df], how="vertical"
+            )
+
+        neighbors_df = self._df_join(
+            neighbors_df, pos_df, how="cross", suffix="_center"
+        )
+
+        center_df = self._df_rename_columns(
+            neighbors_df[self._center_col_names],
+            self._center_col_names,
+            self._pos_col_names,
+        )  # We rename the columns to the original names for the addition
+
         neighbors_df = self._df_with_columns(
             original_df=neighbors_df,
             new_columns=self._pos_col_names,
-            data=(
-                neighbors_df[self._pos_col_names] * neighbors_df["radius"]
-                + neighbors_df[self._center_col_names]
+            data=self._df_add(
+                neighbors_df[self._pos_col_names],
+                center_df,
             ),
-        ).drop("radius")
+        )
+
+        # If radius is a sequence, filter unnecessary neighbors
+        if isinstance(radius, Sequence):
+            radius_df = self._df_rename_columns(
+                self._df_concat([pos_df, radius_srs], how="horizontal"),
+                self._pos_col_names + ["radius"],
+                self._center_col_names + ["max_radius"],
+            )
+            neighbors_df = self._df_join(
+                neighbors_df,
+                radius_df,
+                on=self._center_col_names,
+            )
+            neighbors_df = self._df_filter(
+                neighbors_df, neighbors_df["radius"] <= neighbors_df["max_radius"]
+            )
+            neighbors_df = self._df_drop_columns(neighbors_df, "max_radius")
 
         # If torus, "normalize" (take modulo) for out-of-bounds cells
         if self._torus:
-            neighbors_df = self.torus_adj(neighbors_df)
+            neighbors_df = self._df_with_columns(
+                neighbors_df,
+                data=self.torus_adj(neighbors_df[self._pos_col_names]),
+                new_columns=self._pos_col_names,
+            )
+            # Remove duplicates
+            neighbors_df = self._df_drop_duplicates(neighbors_df, self._pos_col_names)
 
         # Filter out-of-bound neighbors
         neighbors_df = self._df_filter(
             neighbors_df,
-            ((neighbors_df < self._dimensions) & (neighbors_df >= 0)),
+            (
+                (neighbors_df[self._pos_col_names] < self._dimensions)
+                & (neighbors_df >= 0)
+            ),
             all=True,
         )
 
         if include_center:
-            pos_df = self._df_rename_columns(
+            center_df = self._df_rename_columns(
                 pos_df, self._pos_col_names, self._center_col_names
             )
+            pos_df = self._df_with_columns(
+                pos_df,
+                data=0,
+                new_columns=["radius"],
+            )
+            pos_df = self._df_concat([pos_df, center_df], how="horizontal")
+
             neighbors_df = self._df_concat(
                 [pos_df, neighbors_df], how="vertical", ignore_index=True
             )
 
+        neighbors_df = self._df_reset_index(neighbors_df, drop=True)
         return neighbors_df
 
     def get_cells(
         self, coords: GridCoordinate | GridCoordinates | None = None
     ) -> DataFrame:
+        # TODO : Consider whether not outputting the agents at all (fastest),
+        # outputting a single agent per cell (current)
+        # or outputting all agents per cell in a imploded list (slowest, https://stackoverflow.com/a/66018377)
         if not coords:
-            return self._cells
-
-        coords_df = self._get_df_coords(pos=coords)
-        return self._df_get_masked_df(
-            df=self._cells,
+            cells_df = self._cells
+        else:
+            coords_df = self._get_df_coords(pos=coords)
+            cells_df = self._df_get_masked_df(
+                df=self._cells, index_cols=self._pos_col_names, mask=coords_df
+            )
+        return self._df_join(
+            left=cells_df,
+            right=self._agents,
             index_cols=self._pos_col_names,
-            mask=coords_df,
-            columns=self._cells.columns,
+            on=self._pos_col_names,
         )
-
-    def move_agents(
-        self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        pos: GridCoordinate | GridCoordinates,
-        inplace: bool = True,
-    ) -> Self:
-        obj = self._get_obj(inplace)
-
-        if __debug__:
-            # Warn if agents are already placed
-            if agents.is_in(obj._agents["agent_id"]):
-                warn("Some agents are already placed in the grid", RuntimeWarning)
-
-            # Check if there is enough capacity
-            if obj._capacity:
-                # If len(agents) > remaining_capacity + len(agents that will move)
-                if len(agents) > obj.remaining_capacity + len(
-                    obj._df_get_masked_df(
-                        obj._agents, mask=agents, columns=["agent_id"]
-                    )
-                ):
-                    raise ValueError("Not enough capacity in the grid for all agents")
-
-        # Place agents (checking that capacity is respected)
-        pos_df = obj._get_df_coords(pos)
-        new_df = obj._df_constructor(
-            data=[agents, pos_df],
-            columns=["agent_id"] + obj._pos_col_names,
-            index_col="agent_id",
-        )
-        obj._cells_capacity = obj._update_capacity_agents(new_df)
-        obj._agents = obj._df_combine_first(new_df, obj._agents, index_col="agent_id")
-        return obj
 
     def out_of_bounds(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
         """Check if a position is out of bounds in a non-toroidal grid.
@@ -1184,13 +1422,15 @@ class GridDF(DiscreteSpaceDF):
         ValueError
             If the grid is a torus
         """
-        if self._torus:
+        if self.torus:
             raise ValueError("This method is only valid for non-torus grids")
-        pos_df = self._get_df_coords(pos)
-        out_of_bounds = pos_df < 0 | pos_df >= self._dimensions
-        return self._df_constructor(
-            data=[pos_df, out_of_bounds],
+        pos_df = self._get_df_coords(pos, check_bounds=False)
+        out_of_bounds = self._df_all(
+            (pos_df < 0) | (pos_df >= self._dimensions),
+            name="out_of_bounds",
+            index_cols=self._pos_col_names,
         )
+        return self._df_concat(objs=[pos_df, out_of_bounds], how="horizontal")
 
     def remove_agents(
         self,
@@ -1199,9 +1439,7 @@ class GridDF(DiscreteSpaceDF):
     ) -> Self:
         obj = self._get_obj(inplace)
 
-        # Get Ids of agents
-        if isinstance(agents, AgentContainer | Collection[AgentContainer]):
-            agents = agents.index
+        agents = obj._get_ids_srs(agents)
 
         if __debug__:
             # Check ids presence in model
@@ -1212,16 +1450,18 @@ class GridDF(DiscreteSpaceDF):
                 raise ValueError("Some agents are not in the model")
 
         # Remove agents
-        obj._agents = obj._df_remove(obj._agents, ids=agents, index_col="agent_id")
+        obj._cells_capacity = obj._update_capacity_agents(agents, operation="removal")
+
+        obj._agents = obj._df_remove(obj._agents, mask=agents, index_cols="agent_id")
 
         return obj
 
-    def torus_adj(self, pos: GridCoordinates) -> DataFrame:
+    def torus_adj(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
         """Get the toroidal adjusted coordinates of a position.
 
         Parameters
         ----------
-        pos : GridCoordinates
+        pos : GridCoordinate | GridCoordinates
             The coordinates to adjust
 
         Returns
@@ -1301,16 +1541,29 @@ class GridDF(DiscreteSpaceDF):
                 raise ValueError(
                     "Hexagonal neighborhood is only valid for 2-dimensional grids"
                 )
-            even_offsets = [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)]
-            odd_offsets = [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)]
-
-            # Create a DataFrame with three columns: dim_0, dim_1, and is_even
-            offsets_data = [(d[0], d[1], True) for d in even_offsets] + [
-                (d[0], d[1], False) for d in odd_offsets
+            directions = [
+                (1, 0),  # East
+                (1, -1),  # South-West
+                (0, -1),  # South-East
+                (-1, 0),  # West
+                (-1, 1),  # North-West
+                (0, 1),  # North-East
             ]
-            return self._df_constructor(
-                data=offsets_data, columns=self._pos_col_names + ["is_even"]
+            in_between = [
+                (-1, -1),  # East -> South-East
+                (0, 1),  # South-West -> West
+                (-1, 0),  # South-East -> South-West
+                (1, 1),  # West -> North-West
+                (1, 0),  # North-West -> North-East
+                (0, -1),  # North-East -> East
+            ]
+            df = self._df_constructor(data=directions, columns=self._pos_col_names)
+            self._in_between_offsets = self._df_with_columns(
+                df,
+                data=in_between,
+                new_columns=["in_between_dim_0", "in_between_dim_1"],
             )
+            return df
         else:
             raise ValueError("Invalid neighborhood type specified")
         return self._df_constructor(data=directions, columns=self._pos_col_names)
@@ -1319,6 +1572,7 @@ class GridDF(DiscreteSpaceDF):
         self,
         pos: GridCoordinate | GridCoordinates | None = None,
         agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        check_bounds: bool = True,
     ) -> DataFrame:
         """Get the DataFrame of coordinates from the specified positions or agents.
 
@@ -1337,17 +1591,20 @@ class GridDF(DiscreteSpaceDF):
         ValueError
             If neither pos or agents are specified
         """
-        # If agents is agent container, get IDs
-        if isinstance(agents, AgentContainer):
-            agents = agents.index
-        elif isinstance(agents, Collection) and isinstance(agents[0], AgentContainer):
-            agents = self._df_concat([a.index for a in agents])
         if __debug__:
             if pos is None and agents is None:
                 raise ValueError("Neither pos or agents are specified")
             elif pos is not None and agents is not None:
                 raise ValueError("Both pos and agents are specified")
-            if agents:
+            # If the grid is non-toroidal, we have to check whether any position is out of bounds
+            if not self.torus and pos is not None and check_bounds:
+                pos = self.out_of_bounds(pos)
+                if pos["out_of_bounds"].any():
+                    raise ValueError(
+                        "If the grid is non-toroidal, every position must be in-bound"
+                    )
+            if agents is not None:
+                agents = self._get_ids_srs(agents)
                 # Check ids presence in model
                 b_contained = self.model.agents.contains(agents)
                 if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
@@ -1361,14 +1618,25 @@ class GridDF(DiscreteSpaceDF):
                     raise ValueError("Some agents are not placed in the grid")
                 # Check ids are unique
                 agents = pl.Series(agents)
-                if agents.unique_counts() != len(agents):
+                if agents.n_unique() != len(agents):
                     raise ValueError("Some agents are present multiple times")
-        if agents:
-            return self._df_get_masked_df(
-                self._agents, index_col="agent_id", mask=agents
+        if agents is not None:
+            return self._df_reset_index(
+                self._df_get_masked_df(
+                    self._agents, index_cols="agent_id", mask=agents
+                ),
+                index_cols="agent_id",
+                drop=True,
             )
         if isinstance(pos, DataFrame):
             return pos[self._pos_col_names]
+        elif (
+            isinstance(pos, Collection)
+            and isinstance(pos[0], Collection)
+            and (len(pos[0]) == len(self._dimensions))
+        ):  # We only test the first coordinate for performance
+            # This means that we have a collection of coordinates
+            return self._df_constructor(data=pos, columns=self._pos_col_names)
         elif isinstance(pos, Sequence) and len(pos) == len(self._dimensions):
             # This means that the sequence is already a sequence where each element is the
             # sequence of coordinates for dimension i
@@ -1377,22 +1645,65 @@ class GridDF(DiscreteSpaceDF):
                     start = c.start if c.start is not None else 0
                     step = c.step if c.step is not None else 1
                     stop = c.stop if c.stop is not None else self._dimensions[i]
-                    pos[i] = pl.arange(start=start, end=stop, step=step)
-                elif isinstance(c, int):
-                    pos[i] = [c]
-            return self._df_constructor(data=pos, columns=self._pos_col_names)
-        elif isinstance(pos, Collection) and all(
-            len(c) == len(self._dimensions) for c in pos
-        ):
-            # This means that we have a collection of coordinates
-            sequences = []
-            for i in range(len(self._dimensions)):
-                sequences.append([c[i] for c in pos])
-            return self._df_constructor(data=sequences, columns=self._pos_col_names)
+                    pos[i] = self._srs_range(start=start, stop=stop, step=step)
+            return self._df_constructor(data=[pos], columns=self._pos_col_names)
         elif isinstance(pos, int) and len(self._dimensions) == 1:
             return self._df_constructor(data=[pos], columns=self._pos_col_names)
         else:
             raise ValueError("Invalid coordinates")
+
+    def _place_or_move_agents(
+        self,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        pos: GridCoordinate | GridCoordinates,
+        is_move: bool,
+    ) -> Self:
+        agents = self._get_ids_srs(agents)
+
+        if __debug__:
+            # Warn if agents are already placed
+            if is_move:
+                if not self._df_contains(self._agents, "agent_id", agents).all():
+                    warn("Some agents are not present in the grid", RuntimeWarning)
+            else:  # is "place"
+                if self._df_contains(self._agents, "agent_id", agents).any():
+                    warn("Some agents are already present in the grid", RuntimeWarning)
+
+            # Check if agents are present in the model
+            b_contained = self.model.agents.contains(agents)
+            if not b_contained.all():
+                raise ValueError("Some agents are not present in the model")
+
+            # Check if there is enough capacity
+            if self._capacity:
+                # If len(agents) > remaining_capacity + len(agents that will move)
+                if len(agents) > self.remaining_capacity + len(
+                    self._df_get_masked_df(
+                        self._agents,
+                        index_cols="agent_id",
+                        mask=agents,
+                    )
+                ):
+                    raise ValueError("Not enough capacity in the space for all agents")
+
+        # Place or move agents (checking that capacity is respected)
+        pos_df = self._get_df_coords(pos)
+        agents_df = self._srs_to_df(agents)
+
+        if __debug__:
+            if len(agents_df) != len(pos_df):
+                raise ValueError("The number of agents and positions must be equal")
+
+        new_df = self._df_concat(
+            [agents_df, pos_df], how="horizontal", index_cols="agent_id"
+        )
+        self._cells_capacity = self._update_capacity_agents(
+            new_df, operation="movement"
+        )
+        self._agents = self._df_combine_first(
+            new_df, self._agents, index_cols="agent_id"
+        )
+        return self
 
     @abstractmethod
     def _generate_empty_grid(
