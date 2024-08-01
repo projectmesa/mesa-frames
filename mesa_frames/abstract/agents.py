@@ -43,13 +43,13 @@ class AgentContainer(CopyMixin):
         Check if agents with the specified IDs are in the AgentContainer.
     do(method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any | dict[str, Any]
         Invoke a method on the AgentContainer.
-    get(attr_names: str | Collection[str] | None = None, mask: MaskLike | None = None) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]
+    get(attr_names: str | Collection[str] | None = None, mask: AgentMask | None = None) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]
         Retrieve the value of a specified attribute for each agent in the AgentContainer.
     remove(ids: IdsLike, inplace: bool = True) -> Self
         Removes an agent from the AgentContainer.
-    select(mask: MaskLike | None = None, filter_func: Callable[[Self], MaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
+    select(mask: AgentMask | None = None, filter_func: Callable[[Self], AgentMask] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentContainer based on the given criteria.
-    set(attr_names: str | dict[str, Any] | Collection[str], values: Any | None = None, mask: MaskLike | None = None, inplace: bool = True) -> Self
+    set(attr_names: str | dict[str, Any] | Collection[str], values: Any | None = None, mask: AgentMask | None = None, inplace: bool = True) -> Self
         Sets the value of a specified attribute or attributes for each agent in the mask in AgentContainer.
     shuffle(inplace: bool = False) -> Self
         Shuffles the order of agents in the AgentContainer.
@@ -179,7 +179,7 @@ class AgentContainer(CopyMixin):
             The name of the method to invoke.
         *args : Any
             Positional arguments to pass to the method
-        mask : MaskLike, optional
+        mask : AgentMask, optional
             The subset of agents on which to apply the method
         return_results : bool, optional
             Whether to return the result of the method, by default False
@@ -213,8 +213,8 @@ class AgentContainer(CopyMixin):
         ----------
         attr_names : str | Collection[str] | None
             The attributes to retrieve. If None, all attributes are retrieved. Defaults to None.
-        MaskLike : MaskLike | None
-            The MaskLike of agents to retrieve the attribute for. If None, attributes of all agents are returned. Defaults to None.
+        AgentMask : AgentMask | None
+            The AgentMask of agents to retrieve the attribute for. If None, attributes of all agents are returned. Defaults to None.
 
         Returns
         ----------
@@ -254,10 +254,10 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        mask : MaskLike | None, optional
-            The MaskLike of agents to be selected, by default None
-        filter_func : Callable[[Self], MaskLike] | None, optional
-            A function which takes as input the AgentContainer and returns a MaskLike, by default None
+        mask : AgentMask | None, optional
+            The AgentMask of agents to be selected, by default None
+        filter_func : Callable[[Self], AgentMask] | None, optional
+            A function which takes as input the AgentContainer and returns a AgentMask, by default None
         n : int, optional
             The maximum number of agents to be selected, by default None
         negate : bool, optional
@@ -311,8 +311,8 @@ class AgentContainer(CopyMixin):
             - A dictionary: keys should be attributes and values should be the values to set. Value should be None.
         value : Any | None
             The value to set the attribute to. If None, attr_names must be a dictionary.
-        mask : MaskLike | None
-            The MaskLike of agents to set the attribute for.
+        mask : AgentMask | None
+            The AgentMask of agents to set the attribute for.
         inplace : bool
             Whether to set the attribute in place.
 
@@ -398,12 +398,12 @@ class AgentContainer(CopyMixin):
 
         The key can be:
         - An attribute or collection of attributes (eg. AgentContainer["str"], AgentContainer[["str1", "str2"]]): returns the specified column(s) of the agents in the AgentContainer.
-        - A MaskLike (eg. AgentContainer[MaskLike]): returns the agents in the AgentContainer that satisfy the MaskLike.
-        - A tuple (eg. AgentContainer[MaskLike, "str"]): returns the specified column of the agents in the AgentContainer that satisfy the MaskLike.
+        - A AgentMask (eg. AgentContainer[AgentMask]): returns the agents in the AgentContainer that satisfy the AgentMask.
+        - A tuple (eg. AgentContainer[AgentMask, "str"]): returns the specified column of the agents in the AgentContainer that satisfy the AgentMask.
 
         Parameters
         ----------
-        key : Attributes | MaskLike | tuple[MaskLike, Attributes]
+        key : Attributes | AgentMask | tuple[AgentMask, Attributes]
             The key to retrieve.
 
         Returns
@@ -440,7 +440,7 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        other : MaskLike
+        other : AgentMask
             The agents to remove.
 
         Returns
@@ -478,12 +478,12 @@ class AgentContainer(CopyMixin):
         The key can be:
         - A string (eg. AgentContainer["str"]): sets the specified column of the agents in the AgentContainer.
         - A list of strings(eg. AgentContainer[["str1", "str2"]]): sets the specified columns of the agents in the AgentContainer.
-        - A tuple (eg. AgentContainer[MaskLike, "str"]): sets the specified column of the agents in the AgentContainer that satisfy the MaskLike.
-        - A MaskLike (eg. AgentContainer[MaskLike]): sets the attributes of the agents in the AgentContainer that satisfy the MaskLike.
+        - A tuple (eg. AgentContainer[AgentMask, "str"]): sets the specified column of the agents in the AgentContainer that satisfy the AgentMask.
+        - A AgentMask (eg. AgentContainer[AgentMask]): sets the attributes of the agents in the AgentContainer that satisfy the AgentMask.
 
         Parameters
         ----------
-        key : str | list[str] | MaskLike | tuple[MaskLike, str | list[str]]
+        key : str | list[str] | AgentMask | tuple[AgentMask, str | list[str]]
             The key to set.
         values : Any
             The values to set for the specified key.
@@ -497,7 +497,7 @@ class AgentContainer(CopyMixin):
             ):
                 try:
                     self.set(attr_names=key, values=values)
-                except KeyError:  # key=MaskLike
+                except KeyError:  # key=AgentMask
                     self.set(attr_names=None, mask=key, values=values)
             else:
                 self.set(attr_names=None, mask=key, values=values)
@@ -631,7 +631,7 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        mask : MaskLike
+        mask : AgentMask
             The mask to apply.
         """
         self.select(mask=mask, inplace=True)
@@ -669,7 +669,7 @@ class AgentSetDF(AgentContainer):
         A list of attributes to copy with a reference only.
     _copy_with_method : dict[str, tuple[str, list[str]]]
         A dictionary of attributes to copy with a specified method and arguments.
-    _mask : MaskLike
+    _mask : AgentMask
         The underlying mask used for the active agents in the AgentSetDF.
     _model : ModelDF
         The model that the AgentSetDF belongs to.
@@ -684,17 +684,17 @@ class AgentSetDF(AgentContainer):
         Check if agents with the specified IDs are in the AgentSetDF.
     copy(self, deep: bool = False, memo: dict | None = None) -> Self
         Create a copy of the AgentSetDF.
-    discard(self, ids: MaskLike, inplace: bool = True) -> Self
+    discard(self, ids: AgentMask, inplace: bool = True) -> Self
         Removes an agent from the AgentSetDF. Does not raise an error if the agent is not found.
     do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
         Invoke a method on the AgentSetDF.
-    get(self, attr_names: str | Collection[str] | None = None, mask: MaskLike | None = None) -> Series | DataFrame
+    get(self, attr_names: str | Collection[str] | None = None, mask: AgentMask | None = None) -> Series | DataFrame
         Retrieve the value of a specified attribute for each agent in the AgentSetDF.
-    remove(self, ids: MaskLike, inplace: bool = True) -> Self
+    remove(self, ids: AgentMask, inplace: bool = True) -> Self
         Removes an agent from the AgentSetDF.
-    select(self, mask: MaskLike | None = None, filter_func: Callable[[Self], MaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
+    select(self, mask: AgentMask | None = None, filter_func: Callable[[Self], AgentMask] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentSetDF based on the given criteria.
-    set(self, attr_names: str | dict[str, Any] | Collection[str], values: Any | None = None, mask: MaskLike | None = None, inplace: bool = True) -> Self
+    set(self, attr_names: str | dict[str, Any] | Collection[str], values: Any | None = None, mask: AgentMask | None = None, inplace: bool = True) -> Self
         Sets the value of a specified attribute or attributes for each agent in the mask in AgentSetDF.
     shuffle(self, inplace: bool = False) -> Self
         Shuffles the order of agents in the AgentSetDF.
@@ -708,7 +708,7 @@ class AgentSetDF(AgentContainer):
         Add agents to the AgentSetDF through the += operator.
     __getattr__(self, name: str) -> Any
         Retrieve an attribute of the AgentSetDF.
-    __getitem__(self, key: str | Collection[str] | MaskLike | tuple[MaskLike, str] | tuple[MaskLike, Collection[str]]) -> Series | DataFrame
+    __getitem__(self, key: str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]]) -> Series | DataFrame
         Retrieve an item from the AgentSetDF.
     __iter__(self) -> Iterator
         Get an iterator for the agents in the AgentSetDF.
@@ -883,7 +883,7 @@ class AgentSetDF(AgentContainer):
 
         Parameters
         ----------
-        mask : MaskLike
+        mask : AgentMask
 
         Returns
         -------
@@ -897,7 +897,7 @@ class AgentSetDF(AgentContainer):
 
         Parameters
         ----------
-        mask : MaskLike
+        mask : AgentMask
 
         Returns
         -------

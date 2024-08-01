@@ -554,7 +554,7 @@ class Test_AgentsDF:
             len(agents._agentsets[1]) - 1
         )
 
-        # Test with mask = dict[AgentSetDF, MaskLike]
+        # Test with mask = dict[AgentSetDF, AgentMask]
         result = agents._get_bool_masks(mask=mask_dictionary)
         assert result[agents._agentsets[0]].to_list() == mask0.to_list()
         assert result[agents._agentsets[1]].to_list() == mask1.to_list()

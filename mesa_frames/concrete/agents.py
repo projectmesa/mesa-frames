@@ -59,13 +59,13 @@ class AgentsDF(AgentContainer):
         Remove an agent from the AgentsDF. Does not raise an error if the agent is not found.
     do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
         Invoke a method on the AgentsDF.
-    get(self, attr_names: str | Collection[str] | None = None, mask: MaskLike = None) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]
+    get(self, attr_names: str | Collection[str] | None = None, mask: AgentMask = None) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]
         Retrieve the value of a specified attribute for each agent in the AgentsDF.
     remove(self, ids: IdsLike, inplace: bool = True) -> Self
         Remove agents from the AgentsDF.
-    select(self, mask: MaskLike = None, filter_func: Callable[[Self], MaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
+    select(self, mask: AgentMask = None, filter_func: Callable[[Self], AgentMask] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentsDF based on the given criteria.
-    set(self, attr_names: str | Collection[str] | dict[AgentSetDF, Any] | None = None, values: Any | None = None, mask: MaskLike | None = None, inplace: bool = True) -> Self
+    set(self, attr_names: str | Collection[str] | dict[AgentSetDF, Any] | None = None, values: Any | None = None, mask: AgentMask | None = None, inplace: bool = True) -> Self
         Set the value of a specified attribute or attributes for each agent in the mask in the AgentsDF.
     shuffle(self, inplace: bool = True) -> Self
         Shuffle the order of agents in the AgentsDF.
