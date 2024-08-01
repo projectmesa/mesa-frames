@@ -12,6 +12,7 @@ from mesa_frames.types_ import (
     BoolSeries,
     DataFrame,
     IdsLike,
+    Index,
     Series,
 )
 
@@ -563,3 +564,7 @@ class AgentsDF(AgentContainer):
     @property
     def inactive_agents(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.inactive_agents for agentset in self._agentsets}
+
+    @property
+    def index(self) -> dict[AgentSetDF, Index]:
+        return {agentset: agentset.index for agentset in self._agentsets}
