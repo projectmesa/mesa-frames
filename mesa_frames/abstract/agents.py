@@ -638,13 +638,24 @@ class AgentContainer(CopyMixin):
 
     @property
     @abstractmethod
-    def inactive_agents(self) -> DataFrame | dict[str, DataFrame]:
+    def inactive_agents(self) -> DataFrame | dict[AgentSetDF, DataFrame]:
         """The inactive agents in the AgentContainer.
 
         Returns
         -------
         DataFrame
         """
+
+    @property
+    @abstractmethod
+    def index(self) -> Index | dict[AgentSetDF, Index]:
+        """The ids in the AgentContainer.
+
+        Returns
+        -------
+        Series | dict[str, Series]
+        """
+        ...
 
 
 class AgentSetDF(AgentContainer):
