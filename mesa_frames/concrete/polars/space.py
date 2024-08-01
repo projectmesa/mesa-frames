@@ -4,9 +4,6 @@ import polars as pl
 
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.polars.mixin import PolarsMixin
-from mesa_frames.types_ import (
-    GridCoordinates,
-)
 
 
 class GridPolars(GridDF, PolarsMixin):
