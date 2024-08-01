@@ -7,12 +7,12 @@ import pytest
 from mesa_frames import AgentsDF, ModelDF
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.types_ import AgentMask
-from tests.test_agentset_pandas import (
+from tests.pandas.test_agentset_pandas import (
     ExampleAgentSetPandas,
     fix1_AgentSetPandas,
     fix2_AgentSetPandas,
 )
-from tests.test_agentset_polars import (
+from tests.polars.test_agentset_polars import (
     ExampleAgentSetPolars,
     fix2_AgentSetPolars,
 )
