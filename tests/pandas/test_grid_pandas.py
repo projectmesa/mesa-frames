@@ -4,12 +4,11 @@ import pytest
 import typeguard as tg
 
 from mesa_frames import GridPandas, ModelDF
-
-from ..pandas.test_agentset_pandas import (
+from tests.pandas.test_agentset_pandas import (
     ExampleAgentSetPandas,
     fix1_AgentSetPandas,
 )
-from ..polars.test_agentset_polars import (
+from tests.polars.test_agentset_polars import (
     ExampleAgentSetPolars,
     fix2_AgentSetPolars,
 )
