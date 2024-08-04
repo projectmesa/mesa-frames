@@ -1,10 +1,8 @@
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import polars as pl
 from typing_extensions import Any, overload
-
-from collections.abc import Hashable
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import PolarsMask
@@ -64,20 +62,11 @@ class PolarsMixin(DataFrameMixin):
     def _df_all(
         self,
         df: pl.DataFrame,
-        name: str,
-        axis: str = "columns",
-        index_cols: str | None = None,
-    ) -> pl.DataFrame:
-        if axis == "index":
-            return df.group_by(index_cols).agg(pl.all().all().alias(index_cols))
-        return df.select(pl.all().all())
-
-    def _df_with_columns(
-        self, original_df: pl.DataFrame, new_columns: list[str], data: Any
-    ) -> pl.DataFrame:
-        return original_df.with_columns(
-            **{col: value for col, value in zip(new_columns, data)}
-        )
+        axis: Literal["index", "columns"] = "columns",
+    ) -> pl.Series:
+        if axis == "columns":
+            return df.select(pl.col("*").all()).to_series()
+        return df.with_columns(all=pl.all_horizontal())["all"]
 
     def _df_column_names(self, df: pl.DataFrame) -> list[str]:
         return df.columns
@@ -113,7 +102,7 @@ class PolarsMixin(DataFrameMixin):
         objs: Collection[pl.DataFrame],
         how: Literal["horizontal"] | Literal["vertical"] = "vertical",
         ignore_index: bool = False,
-        index_cols: str | None = None,
+        index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame: ...
 
     @overload
@@ -470,6 +459,13 @@ class PolarsMixin(DataFrameMixin):
         if new_index is None:
             return df
         return df.with_columns(index_name=new_index)
+
+    def _df_with_columns(
+        self, original_df: pl.DataFrame, new_columns: list[str], data: Any
+    ) -> pl.DataFrame:
+        return original_df.with_columns(
+            **{col: value for col, value in zip(new_columns, data)}
+        )
 
     def _srs_constructor(
         self,
