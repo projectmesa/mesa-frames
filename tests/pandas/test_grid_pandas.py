@@ -925,8 +925,8 @@ class TestGridPandas:
     def test_random_agents(self, grid_moore: GridPandas):
         # Test without seed
         different = False
-        for _ in range(10):
-            agents0 = grid_moore.random_agents(1)
+        agents0 = grid_moore.random_agents(1)
+        for _ in range(100):
             agents1 = grid_moore.random_agents(1)
             if (agents0.values != agents1.values).all().all():
                 different = True
