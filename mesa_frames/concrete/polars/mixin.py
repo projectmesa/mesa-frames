@@ -64,20 +64,12 @@ class PolarsMixin(DataFrameMixin):
     def _df_all(
         self,
         df: pl.DataFrame,
-        name: str,
-        axis: str = "columns",
-        index_cols: str | None = None,
-    ) -> pl.DataFrame:
-        if axis == "index":
-            return df.group_by(index_cols).agg(pl.all().all().alias(index_cols))
-        return df.select(pl.all().all())
-
-    def _df_with_columns(
-        self, original_df: pl.DataFrame, new_columns: list[str], data: Any
-    ) -> pl.DataFrame:
-        return original_df.with_columns(
-            **{col: value for col, value in zip(new_columns, data)}
-        )
+        name: str = "all",
+        axis: Literal["index", "columns"] = "columns",
+    ) -> pl.Series:
+        if axis == "columns":
+            return df.select(pl.col("*").all()).to_series()
+        return df.with_columns(all=pl.all_horizontal())["all"]
 
     def _df_column_names(self, df: pl.DataFrame) -> list[str]:
         return df.columns

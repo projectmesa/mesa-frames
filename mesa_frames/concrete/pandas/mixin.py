@@ -1,7 +1,5 @@
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Collection, Hashable, Iterator, Sequence
 from typing import Literal
-
-from collections.abc import Hashable
 
 import numpy as np
 import pandas as pd
@@ -24,11 +22,10 @@ class PandasMixin(DataFrameMixin):
     def _df_all(
         self,
         df: pd.DataFrame,
-        name: str,
+        name: str = "all",
         axis: str = "columns",
-        index_cols: str | list[str] | None = None,
-    ) -> pd.DataFrame:
-        return df.all(axis).to_frame(name)
+    ) -> pd.Series:
+        return df.all(axis).rename(name)
 
     def _df_column_names(self, df: pd.DataFrame) -> list[str]:
         return df.columns.tolist() + df.index.names
@@ -116,16 +113,6 @@ class PandasMixin(DataFrameMixin):
             return pd.Series(values).isin(df.index)
         return pd.Series(values).isin(df[column])
 
-    def _df_filter(
-        self,
-        df: pd.DataFrame,
-        condition: pd.DataFrame,
-        all: bool = True,
-    ) -> pd.DataFrame:
-        if all and isinstance(condition, pd.DataFrame):
-            return df[condition.all(axis=1)]
-        return df[condition]
-
     def _df_div(
         self,
         df: pd.DataFrame,
@@ -153,7 +140,7 @@ class PandasMixin(DataFrameMixin):
     def _df_get_bool_mask(
         self,
         df: pd.DataFrame,
-        index_cols: str | list[str],
+        index_cols: str | list[str] | None = None,
         mask: PandasMask = None,
         negate: bool = False,
     ) -> pd.Series:
@@ -162,7 +149,7 @@ class PandasMixin(DataFrameMixin):
             isinstance(index_cols, list) and df.index.names == index_cols
         ):
             srs = df.index
-        else:
+        elif index_cols is not None:
             srs = df.set_index(index_cols).index
         if isinstance(mask, pd.Series) and mask.dtype == bool and len(mask) == len(df):
             mask.index = df.index
@@ -190,7 +177,7 @@ class PandasMixin(DataFrameMixin):
     def _df_get_masked_df(
         self,
         df: pd.DataFrame,
-        index_cols: str,
+        index_cols: str | list[str] | None = None,
         mask: PandasMask | None = None,
         columns: str | list[str] | None = None,
         negate: bool = False,
