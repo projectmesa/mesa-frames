@@ -1341,8 +1341,8 @@ class GridDF(DiscreteSpaceDF):
                 radius_df,
                 on=self._center_col_names,
             )
-            neighbors_df = self._df_filter(
-                neighbors_df, neighbors_df["radius"] <= neighbors_df["max_radius"]
+            neighbors_df = self._df_get_masked_df(
+                neighbors_df, mask=neighbors_df["radius"] <= neighbors_df["max_radius"]
             )
             neighbors_df = self._df_drop_columns(neighbors_df, "max_radius")
 
@@ -1357,13 +1357,12 @@ class GridDF(DiscreteSpaceDF):
             neighbors_df = self._df_drop_duplicates(neighbors_df, self._pos_col_names)
 
         # Filter out-of-bound neighbors
-        neighbors_df = self._df_filter(
+        neighbors_df = self._df_get_masked_df(
             neighbors_df,
-            (
+            mask=self._df_all(
                 (neighbors_df[self._pos_col_names] < self._dimensions)
                 & (neighbors_df >= 0)
             ),
-            all=True,
         )
 
         if include_center:
@@ -1428,7 +1427,6 @@ class GridDF(DiscreteSpaceDF):
         out_of_bounds = self._df_all(
             (pos_df < 0) | (pos_df >= self._dimensions),
             name="out_of_bounds",
-            index_cols=self._pos_col_names,
         )
         return self._df_concat(objs=[pos_df, out_of_bounds], how="horizontal")
 

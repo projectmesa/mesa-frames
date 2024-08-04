@@ -62,6 +62,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_all(
         self,
         df: pl.DataFrame,
+        name: str = "all",
         axis: Literal["index", "columns"] = "columns",
     ) -> pl.Series:
         if axis == "columns":

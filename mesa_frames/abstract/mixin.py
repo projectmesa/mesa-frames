@@ -165,10 +165,9 @@ class DataFrameMixin(ABC):
     def _df_all(
         self,
         df: DataFrame,
-        name: str,
+        name: str = "all",
         axis: str = "columns",
-        index_cols: str | list[str] | None = None,
-    ) -> DataFrame: ...
+    ) -> Series: ...
 
     @abstractmethod
     def _df_column_names(self, df: DataFrame) -> list[str]: ...
@@ -260,18 +259,10 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
-    def _df_filter(
-        self,
-        df: DataFrame,
-        condition: BoolSeries,
-        all: bool = True,
-    ) -> DataFrame: ...
-
-    @abstractmethod
     def _df_get_bool_mask(
         self,
         df: DataFrame,
-        index_cols: str | list[str],
+        index_cols: str | list[str] | None = None,
         mask: Mask | None = None,
         negate: bool = False,
     ) -> BoolSeries: ...
@@ -280,7 +271,7 @@ class DataFrameMixin(ABC):
     def _df_get_masked_df(
         self,
         df: DataFrame,
-        index_cols: str,
+        index_cols: str | list[str] | None = None,
         mask: Mask | None = None,
         columns: str | list[str] | None = None,
         negate: bool = False,
