@@ -1,11 +1,9 @@
 from abc import ABC, abstractmethod
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Collection, Hashable, Iterator, Sequence
 from copy import copy, deepcopy
 from typing import Literal
 
 from typing_extensions import Any, Self, overload
-
-from collections.abc import Hashable
 
 from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series
 
@@ -185,10 +183,20 @@ class DataFrameMixin(ABC):
     def _df_concat(
         self,
         objs: Collection[Series],
-        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        how: Literal["vertical"] = "vertical",
         ignore_index: bool = False,
         index_cols: str | None = None,
     ) -> Series: ...
+
+    @overload
+    @abstractmethod
+    def _df_concat(
+        self,
+        objs: Collection[Series],
+        how: Literal["horizontal"] = "horizontal",
+        ignore_index: bool = False,
+        index_cols: str | None = None,
+    ) -> DataFrame: ...
 
     @overload
     @abstractmethod

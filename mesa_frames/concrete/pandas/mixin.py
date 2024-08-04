@@ -63,7 +63,16 @@ class PandasMixin(DataFrameMixin):
     def _df_concat(
         self,
         objs: Collection[pd.Series],
-        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        how: Literal["horizontal"] = "horizontal",
+        ignore_index: bool = False,
+        index_cols: str | None = None,
+    ) -> pd.DataFrame: ...
+
+    @overload
+    def _df_concat(
+        self,
+        objs: Collection[pd.Series],
+        how: Literal["vertical"] = "vertical",
         ignore_index: bool = False,
         index_cols: str | None = None,
     ) -> pd.Series: ...
