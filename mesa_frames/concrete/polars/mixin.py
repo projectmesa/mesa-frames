@@ -120,10 +120,19 @@ class PolarsMixin(DataFrameMixin):
     def _df_concat(
         self,
         objs: Collection[pl.Series],
-        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        how: Literal["vertical"] = "vertical",
         ignore_index: bool = False,
-        index_cols: str | None = None,
+        index_cols: str | list[str] | None = None,
     ) -> pl.Series: ...
+
+    @overload
+    def _df_concat(
+        self,
+        objs: Collection[pl.Series],
+        how: Literal["horizontal"] = "horizontal",
+        ignore_index: bool = False,
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame: ...
 
     def _df_concat(
         self,
