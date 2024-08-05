@@ -41,7 +41,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     -------
     __init__(model: 'ModelDF')
         Create a new SpaceDF object.
-    random_agents(n: int, seed: int | None = None) -> DataFrame
+    random_agents(n: int) -> DataFrame
         Return a random sample of agents from the space.
     get_directions(
         pos0: SpaceCoordinate | SpaceCoordinates | None = None,
@@ -75,7 +75,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         Move agents to empty cells/positions in the space.
     random_pos(
         n: int,
-        seed: int | None = None,
     ) -> DataFrame
         Return a random sample of positions from the space.
     remove_agents(
@@ -180,7 +179,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     def random_agents(
         self,
         n: int,
-        seed: int | None = None,
     ) -> DataFrame:
         """Return a random sample of agents from the space.
 
@@ -188,17 +186,13 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         ----------
         n : int
             The number of agents to sample
-        seed : int | None, optional
-            The seed for the sampling, by default None
-            If None, an integer from the model's random number generator is used.
 
         Returns
         -------
         DataFrame
             A DataFrame with the sampled agents
         """
-        if seed is None:
-            seed = self.random.integers(np.iinfo(np.int32).max)
+        seed = self.random.integers(np.iinfo(np.int32).max)
         return self._df_sample(self._agents, n=n, seed=seed)
 
     def swap_agents(
@@ -396,7 +390,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     def random_pos(
         self,
         n: int,
-        seed: int | None = None,
     ) -> DataFrame:
         """Return a random sample of positions from the space.
 
@@ -404,9 +397,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         ----------
         n : int
             The number of positions to sample
-        seed : int | None, optional
-            The seed for the sampling, by default None
-            If None, an integer from the model's random number generator is used.
 
         Returns
         -------
@@ -672,15 +662,14 @@ class DiscreteSpaceDF(SpaceDF):
             agents, cell_type="available", is_move=False
         )
 
-    def random_pos(self, n: int, seed: int | None = None) -> DataFrame | pl.DataFrame:
-        return self.sample_cells(n, cell_type="any", with_replacement=True, seed=seed)
+    def random_pos(self, n: int) -> DataFrame | pl.DataFrame:
+        return self.sample_cells(n, cell_type="any", with_replacement=True)
 
     def sample_cells(
         self,
         n: int,
         cell_type: Literal["any", "empty", "available", "full"] = "any",
         with_replacement: bool = True,
-        seed: int | None = None,
         respect_capacity: bool = True,
     ) -> DataFrame:
         """Sample cells from the grid according to the specified cell_type.
@@ -693,9 +682,6 @@ class DiscreteSpaceDF(SpaceDF):
             The type of cells to sample, by default "any"
         with_replacement : bool, optional
             If the sampling should be with replacement, by default True
-        seed : int | None, optional
-            The seed for the sampling, by default None
-            If None, an integer from the model's random number generator is used.
         respect_capacity : bool, optional
             If the capacity of the cells should be respected in the sampling.
             This is only relevant if cell_type is "empty" or "available", by default True
@@ -718,7 +704,6 @@ class DiscreteSpaceDF(SpaceDF):
             n,
             with_replacement,
             condition=condition,
-            seed=seed,
             respect_capacity=respect_capacity,
         )
 
@@ -935,7 +920,6 @@ class DiscreteSpaceDF(SpaceDF):
         n: int | None,
         with_replacement: bool,
         condition: Callable[[DiscreteSpaceCapacity], BoolSeries],
-        seed: int | None = None,
         respect_capacity: bool = True,
     ) -> DataFrame:
         """Sample cells from the grid according to a condition on the capacity.
@@ -948,9 +932,6 @@ class DiscreteSpaceDF(SpaceDF):
             If the sampling should be with replacement
         condition : Callable[[DiscreteSpaceCapacity], BoolSeries]
             The condition to apply on the capacity
-        seed : int | None, optional
-            The seed for the sampling, by default None
-            If None, an integer from the model's random number generator is used.
         respect_capacity : bool, optional
             If the capacity should be respected in the sampling.
             This is only relevant if cell_type is "empty" or "available", by default True

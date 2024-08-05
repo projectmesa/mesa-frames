@@ -923,7 +923,6 @@ class TestGridPandas:
         assert different
 
     def test_random_agents(self, grid_moore: GridPandas):
-        # Test without seed
         different = False
         agents0 = grid_moore.random_agents(1)
         for _ in range(100):
@@ -933,13 +932,7 @@ class TestGridPandas:
                 break
         assert different
 
-        # Test with seed
-        agents0 = grid_moore.random_agents(1, seed=42)
-        agents1 = grid_moore.random_agents(1, seed=42)
-        assert (agents0 == agents1).all().all()
-
     def test_random_pos(self, grid_moore: GridPandas):
-        # Test without seed
         different = False
         last = None
         for _ in range(10):
@@ -954,11 +947,6 @@ class TestGridPandas:
                 break
             last = random_pos
         assert different
-
-        # Test with seed
-        random_pos0 = grid_moore.random_pos(5, seed=42)
-        random_pos1 = grid_moore.random_pos(5, seed=42)
-        assert (random_pos0 == random_pos1).all().all()
 
     def test_remove_agents(
         self,
@@ -1075,11 +1063,6 @@ class TestGridPandas:
         # 2 should be the max number of full cells
         with pytest.raises(AssertionError):
             grid_moore.sample_cells(3, cell_type="full", with_replacement=False)
-
-        # Test with 'seed'
-        result = grid_moore.sample_cells(10, seed=42)
-        result2 = grid_moore.sample_cells(10, seed=42)
-        assert (result == result2).all().all()
 
     def test_set_cells(self, model: ModelDF):
         grid_moore = GridPandas(model, dimensions=[3, 3], capacity=2)
