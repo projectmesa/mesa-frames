@@ -1,8 +1,8 @@
 from collections.abc import Callable, Sequence
+from typing import Literal
 
 import numpy as np
 import pandas as pd
-from typing import Literal
 
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
@@ -45,15 +45,8 @@ class GridPandas(GridDF, PandasMixin):
         n: int | None,
         with_replacement: bool,
         condition: Callable[[np.ndarray], np.ndarray],
-        seed: int | None = None,
         respect_capacity: bool = True,
     ) -> pd.DataFrame:
-        # Set up the random number generator
-        if seed is None:
-            rng = self.model.random
-        else:
-            rng = np.random.default_rng(seed)
-
         # Get the coordinates of cells that meet the condition
         coords = np.array(np.where(condition(self._cells_capacity))).T
 
@@ -73,7 +66,7 @@ class GridPandas(GridDF, PandasMixin):
                 sampled_coords = np.empty((0, coords.shape[1]), dtype=coords.dtype)
                 while len(sampled_coords) < n:
                     remaining_samples = n - len(sampled_coords)
-                    sampled_indices = rng.choice(
+                    sampled_indices = self.random.choice(
                         len(coords),
                         size=remaining_samples,
                         replace=True,
@@ -102,12 +95,12 @@ class GridPandas(GridDF, PandasMixin):
                         capacities = capacities[mask]
 
                 sampled_coords = sampled_coords[:n]
-                rng.shuffle(sampled_coords)
+                self.random.shuffle(sampled_coords)
             else:
                 assert n <= len(
                     coords
                 ), "Requested sample size exceeds the number of available cells."
-                sampled_indices = rng.choice(len(coords), size=n, replace=False)
+                sampled_indices = self.random.choice(len(coords), size=n, replace=False)
                 sampled_coords = coords[sampled_indices]
         else:
             sampled_coords = coords
