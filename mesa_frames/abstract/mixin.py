@@ -259,6 +259,15 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
+    def _df_ge(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_get_bool_mask(
         self,
         df: DataFrame,

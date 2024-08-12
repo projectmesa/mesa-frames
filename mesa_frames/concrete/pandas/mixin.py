@@ -137,6 +137,15 @@ class PandasMixin(DataFrameMixin):
     ) -> pd.DataFrame:
         return df.drop_duplicates(subset=subset, keep=keep)
 
+    def _df_ge(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.ge(other, axis=axis)
+
     def _df_get_bool_mask(
         self,
         df: pd.DataFrame,

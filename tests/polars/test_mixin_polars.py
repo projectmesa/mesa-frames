@@ -344,6 +344,31 @@ class TestPolarsMixin:
         assert dropped.columns == ["unique_id", "A", "B", "C", "D"]
         assert dropped["B"].to_list() == ["b", "c", "e", "f"]
 
+    def test_df_ge(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+        # Test comparing the DataFrame with a sequence element-wise along the rows (axis='index')
+        result = mixin._df_ge(df_0[["A", "D"]], df_1["A"], axis="index")
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [False, False, False]
+        assert result["D"].to_list() == [False, False, False]
+
+        # Test comparing the DataFrame with a sequence element-wise along the columns (axis='columns')
+        result = mixin._df_ge(df_0[["A", "D"]], [1, 2], axis="columns")
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [True, True, True]
+        assert result["D"].to_list() == [False, True, True]
+
+        # Test comparing DataFrames with index-column alignment
+        df_1 = df_1.with_columns(D=pl.col("E"))
+        result = mixin._df_ge(
+            df_0[["unique_id", "A", "D"]],
+            df_1[["unique_id", "A", "D"]],
+            axis="index",
+            index_cols="unique_id",
+        )
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [None, None, False]
+        assert result["D"].to_list() == [None, None, True]
+
     def test_df_get_bool_mask(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         # Test with pl.Series[bool]
         mask = mixin._df_get_bool_mask(df_0, "A", pl.Series([True, False, True]))

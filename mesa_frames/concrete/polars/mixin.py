@@ -174,6 +174,21 @@ class PolarsMixin(DataFrameMixin):
                 .select(original_col_order)
             )
 
+    def _df_ge(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x >= y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
     def _df_get_bool_mask(
         self,
         df: pl.DataFrame,
