@@ -294,6 +294,29 @@ class PandasMixin(DataFrameMixin):
         else:
             return srs
 
+    def _df_or(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[bool],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        if isinstance(other, pd.DataFrame):
+            if index_cols is not None:
+                if df.index.name != index_cols:
+                    df = df.set_index(index_cols)
+                if other.index.name != index_cols:
+                    other = other.set_index(index_cols)
+            other = other.reindex(df.index, fill_value=np.nan)
+            return df | other
+        else:  # Sequence[bool]
+            other = pd.Series(other)
+            if axis == "index":
+                other.index = df.index
+                return (df | other.values[:, None]).astype(bool)
+            else:  # columns
+                return (df | other.values[None, :]).astype(bool)
+
     def _df_rename_columns(
         self,
         df: pd.DataFrame,

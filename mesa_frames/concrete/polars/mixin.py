@@ -377,6 +377,21 @@ class PolarsMixin(DataFrameMixin):
         else:
             raise ValueError("other must be a DataFrame or a Sequence")
 
+    def _df_or(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x | y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
     def _df_rename_columns(
         self, df: pl.DataFrame, old_columns: list[str], new_columns: list[str]
     ) -> pl.DataFrame:

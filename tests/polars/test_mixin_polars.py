@@ -522,6 +522,32 @@ class TestPolarsMixin:
         assert norm.row(0, named=True)["norm"] == 5
         assert norm.row(1, named=True)["norm"] == 5
 
+    def test_df_or(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+        # Test comparing the DataFrame with a sequence element-wise along the rows (axis='index')
+        df_0 = df_0.with_columns(F=pl.Series([True, True, False]))
+        df_1 = df_1.with_columns(F=pl.Series([False, False, True]))
+        result = mixin._df_or(df_0[["C", "F"]], df_1["F"], axis="index")
+        assert isinstance(result, pl.DataFrame)
+        assert result["C"].to_list() == [True, False, True]
+        assert result["F"].to_list() == [True, True, True]
+
+        # Test comparing the DataFrame with a sequence element-wise along the columns (axis='columns')
+        result = mixin._df_or(df_0[["C", "F"]], [True, False], axis="columns")
+        assert isinstance(result, pl.DataFrame)
+        assert result["C"].to_list() == [True, True, True]
+        assert result["F"].to_list() == [True, True, False]
+
+        # Test comparing DataFrames with index-column alignment
+        result = mixin._df_or(
+            df_0[["unique_id", "C", "F"]],
+            df_1[["unique_id", "C", "F"]],
+            axis="index",
+            index_cols="unique_id",
+        )
+        assert isinstance(result, pl.DataFrame)
+        assert result["C"].to_list() == [True, None, True]
+        assert result["F"].to_list() == [True, True, False]
+
     def test_df_rename_columns(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         renamed = mixin._df_rename_columns(df_0, ["A", "B"], ["X", "Y"])
         assert renamed.columns == ["unique_id", "X", "Y", "C", "D"]

@@ -347,6 +347,15 @@ class DataFrameMixin(ABC):
     ) -> Series | DataFrame: ...
 
     @abstractmethod
+    def _df_or(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_rename_columns(
         self,
         df: DataFrame,
