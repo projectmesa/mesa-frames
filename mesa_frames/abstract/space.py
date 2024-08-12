@@ -1341,13 +1341,13 @@ class GridDF(DiscreteSpaceDF):
             neighbors_df = self._df_drop_duplicates(neighbors_df, self._pos_col_names)
 
         # Filter out-of-bound neighbors
-        neighbors_df = self._df_get_masked_df(
-            neighbors_df,
-            mask=self._df_all(
-                (neighbors_df[self._pos_col_names] < self._dimensions)
-                & (neighbors_df >= 0)
-            ),
+        mask = self._df_all(
+            self._df_and(
+                self._df_lt(neighbors_df[self._pos_col_names], self._dimensions),
+                neighbors_df >= 0,
+            )
         )
+        neighbors_df = self._df_get_masked_df(neighbors_df, mask=mask)
 
         if include_center:
             center_df = self._df_rename_columns(
@@ -1409,7 +1409,11 @@ class GridDF(DiscreteSpaceDF):
             raise ValueError("This method is only valid for non-torus grids")
         pos_df = self._get_df_coords(pos, check_bounds=False)
         out_of_bounds = self._df_all(
-            (pos_df < 0) | (pos_df >= self._dimensions),
+            self._df_or(
+                pos_df < 0,
+                self._df_lt(pos_df, self._dimensions, index_cols=self._pos_col_names),
+                index_cols=self._pos_col_names,
+            ),
             name="out_of_bounds",
         )
         return self._df_concat(objs=[pos_df, out_of_bounds], how="horizontal")
