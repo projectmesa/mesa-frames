@@ -37,6 +37,21 @@ class PolarsMixin(DataFrameMixin):
             return pl.Series(name, df.select(pl.col("*").all()).row(0))
         return df.with_columns(all=pl.all_horizontal("*"))["all"]
 
+    def _df_and(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x & y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
     def _df_column_names(self, df: pl.DataFrame) -> list[str]:
         return df.columns
 
@@ -174,6 +189,21 @@ class PolarsMixin(DataFrameMixin):
                 .select(original_col_order)
             )
 
+    def _df_ge(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x >= y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
     def _df_get_bool_mask(
         self,
         df: pl.DataFrame,
@@ -264,6 +294,21 @@ class PolarsMixin(DataFrameMixin):
             right_on=right_on,
             how=how,
             suffix=suffix,
+        )
+
+    def _df_lt(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x < y,
+            axis=axis,
+            index_cols=index_cols,
         )
 
     def _df_mul(
@@ -361,6 +406,21 @@ class PolarsMixin(DataFrameMixin):
                 )
         else:
             raise ValueError("other must be a DataFrame or a Sequence")
+
+    def _df_or(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x | y,
+            axis=axis,
+            index_cols=index_cols,
+        )
 
     def _df_rename_columns(
         self, df: pl.DataFrame, old_columns: list[str], new_columns: list[str]

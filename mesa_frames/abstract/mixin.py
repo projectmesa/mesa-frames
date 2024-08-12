@@ -153,6 +153,15 @@ class DataFrameMixin(ABC):
         return self._df_get_masked_df(df, index_cols, mask, negate=True)
 
     @abstractmethod
+    def _df_and(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_add(
         self,
         df: DataFrame,
@@ -259,6 +268,15 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
+    def _df_ge(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_get_bool_mask(
         self,
         df: DataFrame,
@@ -303,6 +321,15 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
+    def _df_lt(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_mul(
         self,
         df: DataFrame,
@@ -336,6 +363,15 @@ class DataFrameMixin(ABC):
         srs_name: str = "norm",
         include_cols: bool = False,
     ) -> Series | DataFrame: ...
+
+    @abstractmethod
+    def _df_or(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
 
     @abstractmethod
     def _df_rename_columns(
