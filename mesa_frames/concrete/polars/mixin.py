@@ -1,10 +1,8 @@
-from collections.abc import Collection, Hashable, Iterator, Sequence
+from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import polars as pl
 from typing_extensions import Any, overload
-
-from collections.abc import Callable
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import DataFrame, PolarsMask
@@ -242,6 +240,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         left: pl.DataFrame,
         right: pl.DataFrame,
+        index_cols: str | list[str] | None = None,
         on: str | list[str] | None = None,
         left_on: str | list[str] | None = None,
         right_on: str | list[str] | None = None,
