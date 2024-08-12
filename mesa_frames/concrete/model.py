@@ -95,7 +95,7 @@ class ModelDF:
             The AgentSetDF of the specified type.
         """
         for agentset in self._agents._agentsets:
-            if agent_type == type(agentset):
+            if isinstance(agentset, agent_type):
                 return agentset
         raise ValueError(f"No agents of type {agent_type} found in the model.")
 
