@@ -1,71 +1,186 @@
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import polars as pl
-from typing_extensions import Any
+from typing_extensions import Any, overload
+
+from collections.abc import Callable
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import PolarsMaskLike
+from mesa_frames.types_ import DataFrame, PolarsMask
 
 
 class PolarsMixin(DataFrameMixin):
     # TODO: complete with other dtypes
     _dtypes_mapping: dict[str, Any] = {"int64": pl.Int64, "bool": pl.Boolean}
 
-    def _df_add_columns(
-        self, original_df: pl.DataFrame, new_columns: list[str], data: Any
+    def _df_add(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
-        return original_df.with_columns(
-            **{col: value for col, value in zip(new_columns, data)}
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x + y,
+            axis=axis,
+            index_cols=index_cols,
         )
+
+    def _df_all(
+        self,
+        df: pl.DataFrame,
+        name: str = "all",
+        axis: Literal["index", "columns"] = "columns",
+    ) -> pl.Series:
+        if axis == "columns":
+            return pl.Series(name, df.select(pl.col("*").all()).row(0))
+        return df.with_columns(all=pl.all_horizontal("*"))["all"]
+
+    def _df_column_names(self, df: pl.DataFrame) -> list[str]:
+        return df.columns
 
     def _df_combine_first(
-        self, original_df: pl.DataFrame, new_df: pl.DataFrame, index_cols: list[str]
+        self,
+        original_df: pl.DataFrame,
+        new_df: pl.DataFrame,
+        index_cols: str | list[str],
     ) -> pl.DataFrame:
-        new_df = original_df.join(new_df, on=index_cols, how="full", suffix="_right")
-        # Find columns with the _right suffix and update the corresponding original columns
-        updated_columns = []
-        for col in new_df.columns:
-            if col.endswith("_right"):
-                original_col = col.replace("_right", "")
-                updated_columns.append(
-                    pl.when(pl.col(col).is_not_null())
-                    .then(pl.col(col))
-                    .otherwise(pl.col(original_col))
-                    .alias(original_col)
-                )
+        common_cols = set(original_df.columns) & set(new_df.columns)
+        merged_df = original_df.join(new_df, on=index_cols, how="full", suffix="_right")
+        merged_df = merged_df.with_columns(
+            [
+                pl.coalesce(pl.col(col), pl.col(f"{col}_right")).alias(col)
+                for col in common_cols
+            ]
+        ).select(pl.exclude("^.*_right$"))
+        return merged_df
 
-        # Apply the updates and remove the _right columns
-        new_df = new_df.with_columns(updated_columns).select(
-            pl.col(r"^(?!.*_right$).*")
-        )
-        return new_df
+    @overload
+    def _df_concat(
+        self,
+        objs: Collection[pl.DataFrame],
+        how: Literal["horizontal"] | Literal["vertical"] = "vertical",
+        ignore_index: bool = False,
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame: ...
+
+    @overload
+    def _df_concat(
+        self,
+        objs: Collection[pl.Series],
+        how: Literal["vertical"] = "vertical",
+        ignore_index: bool = False,
+        index_cols: str | list[str] | None = None,
+    ) -> pl.Series: ...
+
+    @overload
+    def _df_concat(
+        self,
+        objs: Collection[pl.Series],
+        how: Literal["horizontal"] = "horizontal",
+        ignore_index: bool = False,
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame: ...
 
     def _df_concat(
         self,
-        dfs: Collection[pl.DataFrame],
+        objs: Collection[pl.DataFrame] | Collection[pl.Series],
         how: Literal["horizontal"] | Literal["vertical"] = "vertical",
         ignore_index: bool = False,
-    ) -> pl.DataFrame:
-        return pl.concat(
-            dfs, how="vertical_relaxed" if how == "vertical" else "horizontal_relaxed"
-        )
+        index_cols: str | None = None,
+    ) -> pl.Series | pl.DataFrame:
+        if isinstance(objs[0], pl.DataFrame) and how == "vertical":
+            how = "diagonal_relaxed"
+        if isinstance(objs[0], pl.Series) and how == "horizontal":
+            obj = pl.DataFrame().hstack(objs, in_place=True)
+        else:
+            obj = pl.concat(objs, how=how)
+        if isinstance(obj, pl.DataFrame) and how == "horizontal" and ignore_index:
+            obj = obj.rename(
+                {c: str(i) for c, i in zip(obj.columns, range(len(obj.columns)))}
+            )
+        return obj
 
     def _df_constructor(
         self,
-        data: Sequence[Sequence] | dict[str | Any] | None = None,
+        data: dict[str | Any] | Sequence[Sequence] | DataFrame | None = None,
         columns: list[str] | None = None,
-        index_col: str | list[str] | None = None,
+        index: Sequence[Hashable] | None = None,
+        index_cols: str | list[str] | None = None,
         dtypes: dict[str, str] | None = None,
     ) -> pl.DataFrame:
-        dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
-        return pl.DataFrame(data=data, schema=dtypes if dtypes else columns)
+        if dtypes is not None:
+            dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
+        return pl.DataFrame(data=data, schema=columns, schema_overrides=dtypes)
+
+    def _df_contains(
+        self,
+        df: pl.DataFrame,
+        column: str,
+        values: Sequence[Any],
+    ) -> pl.Series:
+        return pl.Series("contains", values).is_in(df[column])
+
+    def _df_div(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x / y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
+    def _df_drop_columns(
+        self,
+        df: pl.DataFrame,
+        columns: str | list[str],
+    ) -> pl.DataFrame:
+        return df.drop(columns)
+
+    def _df_drop_duplicates(
+        self,
+        df: pl.DataFrame,
+        subset: str | list[str] | None = None,
+        keep: Literal["first", "last", False] = "first",
+    ) -> pl.DataFrame:
+        # If subset is None, use all columns
+        if subset is None:
+            subset = df.columns
+        original_col_order = df.columns
+        if keep == "first":
+            return (
+                df.group_by(subset, maintain_order=True)
+                .first()
+                .select(original_col_order)
+            )
+        elif keep == "last":
+            return (
+                df.group_by(subset, maintain_order=True)
+                .last()
+                .select(original_col_order)
+            )
+        else:
+            return (
+                df.with_columns(pl.len().over(subset))
+                .filter(pl.col("len") < 2)
+                .drop("len")
+                .select(original_col_order)
+            )
 
     def _df_get_bool_mask(
         self,
         df: pl.DataFrame,
-        index_col: str,
-        mask: PolarsMaskLike = None,
+        index_cols: str | list[str],
+        mask: PolarsMask = None,
         negate: bool = False,
     ) -> pl.Series | pl.Expr:
         def bool_mask_from_series(mask: pl.Series) -> pl.Series:
@@ -75,20 +190,20 @@ class PolarsMixin(DataFrameMixin):
                 and len(mask) == len(df)
             ):
                 return mask
-            return df[index_col].is_in(mask)
+            return df[index_cols].is_in(mask)
 
         if isinstance(mask, pl.Expr):
             result = mask
         elif isinstance(mask, pl.Series):
             result = bool_mask_from_series(mask)
         elif isinstance(mask, pl.DataFrame):
-            if index_col in mask.columns:
-                result = bool_mask_from_series(mask[index_col])
+            if index_cols in mask.columns:
+                result = bool_mask_from_series(mask[index_cols])
             elif len(mask.columns) == 1 and mask.dtypes[0] == pl.Boolean:
                 result = bool_mask_from_series(mask[mask.columns[0]])
             else:
                 raise KeyError(
-                    f"DataFrame must have an {index_col} column or a single boolean column."
+                    f"DataFrame must have an {index_cols} column or a single boolean column."
                 )
         elif mask is None or mask == "all":
             result = pl.Series([True] * len(df))
@@ -105,26 +220,164 @@ class PolarsMixin(DataFrameMixin):
     def _df_get_masked_df(
         self,
         df: pl.DataFrame,
-        index_col: str,
-        mask: PolarsMaskLike | None = None,
+        index_cols: str,
+        mask: PolarsMask | None = None,
         columns: list[str] | None = None,
         negate: bool = False,
     ) -> pl.DataFrame:
-        b_mask = self._df_get_bool_mask(df, index_col, mask, negate=negate)
+        b_mask = self._df_get_bool_mask(df, index_cols, mask, negate=negate)
         if columns:
             return df.filter(b_mask)[columns]
         return df.filter(b_mask)
 
+    def _df_groupby_cumcount(
+        self, df: pl.DataFrame, by: str | list[str], name="cum_count"
+    ) -> pl.Series:
+        return df.with_columns(pl.cum_count(by).over(by).alias(name))[name]
+
     def _df_iterator(self, df: pl.DataFrame) -> Iterator[dict[str, Any]]:
         return iter(df.iter_rows(named=True))
 
-    def _df_norm(self, df: pl.DataFrame) -> pl.DataFrame:
-        return df.with_columns(pl.col("*").pow(2).alias("*")).sum_horizontal().sqrt()
-
-    def _df_remove(
-        self, df: pl.DataFrame, ids: Sequence[Any], index_col: str | None = None
+    def _df_join(
+        self,
+        left: pl.DataFrame,
+        right: pl.DataFrame,
+        on: str | list[str] | None = None,
+        left_on: str | list[str] | None = None,
+        right_on: str | list[str] | None = None,
+        how: Literal["left"]
+        | Literal["right"]
+        | Literal["inner"]
+        | Literal["outer"]
+        | Literal["cross"] = "left",
+        suffix="_right",
     ) -> pl.DataFrame:
-        return df.filter(pl.col(index_col).is_in(ids).not_())
+        if how == "outer":
+            how = "full"
+        if how == "right":
+            left, right = right, left
+            left_on, right_on = right_on, left_on
+            how = "left"
+        return left.join(
+            right,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            how=how,
+            suffix=suffix,
+        )
+
+    def _df_mul(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x * y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
+    @overload
+    def _df_norm(
+        self,
+        df: pl.DataFrame,
+        srs_name: str = "norm",
+        include_cols: Literal[False] = False,
+    ) -> pl.Series: ...
+
+    @overload
+    def _df_norm(
+        self,
+        df: pl.Series,
+        srs_name: str = "norm",
+        include_cols: Literal[True] = True,
+    ) -> pl.DataFrame: ...
+
+    def _df_norm(
+        self,
+        df: pl.DataFrame,
+        srs_name: str = "norm",
+        include_cols: bool = False,
+    ) -> pl.Series | pl.DataFrame:
+        srs = (
+            df.with_columns(pl.col("*").pow(2)).sum_horizontal().sqrt().rename(srs_name)
+        )
+        if include_cols:
+            return df.with_columns(srs)
+        return srs
+
+    def _df_operation(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        operation: Callable[[pl.Expr, pl.Expr], pl.Expr],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        if isinstance(other, pl.DataFrame):
+            if index_cols is not None:
+                op_df = df.join(other, how="left", on=index_cols, suffix="_op")
+            else:
+                assert len(df) == len(
+                    other
+                ), "DataFrames must have the same length if index_cols is not specified"
+                index_cols = []
+                other = other.rename(lambda col: col + "_op")
+                op_df = pl.concat([df, other], how="horizontal")
+            return op_df.with_columns(
+                [
+                    operation(pl.col(col), pl.col(f"{col}_op")).alias(col)
+                    for col in df.columns
+                    if col not in index_cols
+                ]
+            ).select(df.columns)
+        elif isinstance(
+            other, (Sequence, pl.Series)
+        ):  # Currently, pl.Series is not a Sequence
+            if axis == "index":
+                assert len(df) == len(
+                    other
+                ), "Sequence must have the same length as df if axis is 'index'"
+                other_series = pl.Series("operand", other)
+                return df.with_columns(
+                    [
+                        operation(pl.col(col), other_series).alias(col)
+                        for col in df.columns
+                    ]
+                )
+            else:
+                assert (
+                    len(df.columns) == len(other)
+                ), "Sequence must have the same length as df.columns if axis is 'columns'"
+                return df.with_columns(
+                    [
+                        operation(pl.col(col), pl.lit(other[i])).alias(col)
+                        for i, col in enumerate(df.columns)
+                    ]
+                )
+        else:
+            raise ValueError("other must be a DataFrame or a Sequence")
+
+    def _df_rename_columns(
+        self, df: pl.DataFrame, old_columns: list[str], new_columns: list[str]
+    ) -> pl.DataFrame:
+        return df.rename(dict(zip(old_columns, new_columns)))
+
+    def _df_reset_index(
+        self,
+        df: pl.DataFrame,
+        index_cols: str | list[str] | None = None,
+        drop: bool = False,
+    ) -> pl.DataFrame:
+        if drop:
+            return df.drop(index_cols)
+        else:
+            return df
 
     def _df_sample(
         self,
@@ -136,14 +389,83 @@ class PolarsMixin(DataFrameMixin):
         seed: int | None = None,
     ) -> pl.DataFrame:
         return df.sample(
-            n=n, frac=frac, replace=with_replacement, shuffle=shuffle, seed=seed
+            n=n,
+            fraction=frac,
+            with_replacement=with_replacement,
+            shuffle=shuffle,
+            seed=seed,
         )
+
+    def _df_set_index(
+        self,
+        df: pl.DataFrame,
+        index_name: str,
+        new_index: Sequence[Hashable] | None = None,
+    ) -> pl.DataFrame:
+        if new_index is None:
+            return df
+        return df.with_columns(**{index_name: new_index})
+    def _df_with_columns(
+        self,
+        original_df: pl.DataFrame,
+        data: Sequence | pl.DataFrame | Sequence[Sequence] | dict[str | Any] | Any,
+        new_columns: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        if (
+            (isinstance(data, Sequence) and isinstance(data[0], Sequence))
+            or isinstance(
+                data, pl.DataFrame
+            )  # Currently, pl.DataFrame is not a Sequence
+            or (
+                isinstance(data, dict)
+                and isinstance(data[list(data.keys())[0]], Sequence)
+            )
+        ):
+            # This means that data is a Sequence of Sequences (rows)
+            data = pl.DataFrame(data, new_columns)
+            original_df = original_df.select(pl.exclude(data.columns))
+            return original_df.hstack(data)
+        if not isinstance(data, dict):
+            assert new_columns is not None, "new_columns must be specified"
+            if isinstance(new_columns, list):
+                data = {col: value for col, value in zip(new_columns, data)}
+            else:
+                data = {new_columns: data}
+            return original_df.with_columns(**data)
 
     def _srs_constructor(
         self,
         data: Sequence[Any] | None = None,
         name: str | None = None,
-        dtype: Any | None = None,
+        dtype: str | None = None,
         index: Sequence[Any] | None = None,
     ) -> pl.Series:
-        return pl.Series(name=name, values=data, dtype=self._dtypes_mapping[dtype])
+        if dtype is not None:
+            dtype = self._dtypes_mapping[dtype]
+        return pl.Series(name=name, values=data, dtype=dtype)
+
+    def _srs_contains(
+        self,
+        srs: Collection[Any],
+        values: Any | Sequence[Any],
+    ) -> pl.Series:
+        if not isinstance(values, Collection):
+            values = [values]
+        return pl.Series(values).is_in(srs)
+
+    def _srs_range(
+        self,
+        name: str,
+        start: int,
+        end: int,
+        step: int = 1,
+    ) -> pl.Series:
+        return pl.arange(start=start, end=end, step=step, eager=True).rename(name)
+
+    def _srs_to_df(
+        self, srs: pl.Series, index: pl.Series | None = None
+    ) -> pl.DataFrame:
+        df = srs.to_frame()
+        if index:
+            return df.with_columns({index.name: index})
+        return df

@@ -7,7 +7,7 @@ from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.polars.mixin import PolarsMixin
-from mesa_frames.types_ import PolarsIdsLike, PolarsMaskLike
+from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
@@ -188,7 +188,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     def get(
         self,
         attr_names: IntoExpr | Iterable[IntoExpr] | None,
-        mask: PolarsMaskLike = None,
+        mask: AgentPolarsMask = None,
     ) -> pl.Series | pl.DataFrame:
         masked_df = self._get_masked_df(mask)
         attr_names = self.agents.select(attr_names).columns.copy()
@@ -219,7 +219,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         self,
         attr_names: str | Collection[str] | dict[str, Any] | None = None,
         values: Any | None = None,
-        mask: PolarsMaskLike = None,
+        mask: AgentPolarsMask = None,
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -270,7 +270,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     def select(
         self,
-        mask: PolarsMaskLike = None,
+        mask: AgentPolarsMask = None,
         filter_func: Callable[[Self], pl.Series] | None = None,
         n: int | None = None,
         negate: bool = False,
@@ -388,7 +388,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     def _get_bool_mask(
         self,
-        mask: PolarsMaskLike = None,
+        mask: AgentPolarsMask = None,
     ) -> pl.Series | pl.Expr:
         def bool_mask_from_series(mask: pl.Series) -> pl.Series:
             if (
@@ -423,7 +423,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     def _get_masked_df(
         self,
-        mask: PolarsMaskLike = None,
+        mask: AgentPolarsMask = None,
     ) -> pl.DataFrame:
         if (isinstance(mask, pl.Series) and mask.dtype == pl.Boolean) or isinstance(
             mask, pl.Expr
@@ -486,17 +486,17 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     @overload
     def __getitem__(
         self,
-        key: str | tuple[PolarsMaskLike, str],
+        key: str | tuple[AgentPolarsMask, str],
     ) -> pl.Series: ...
 
     @overload
     def __getitem__(
         self,
         key: (
-            PolarsMaskLike
+            AgentPolarsMask
             | Collection[str]
             | tuple[
-                PolarsMaskLike,
+                AgentPolarsMask,
                 Collection[str],
             ]
         ),
@@ -507,10 +507,10 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         key: (
             str
             | Collection[str]
-            | PolarsMaskLike
-            | tuple[PolarsMaskLike, str]
+            | AgentPolarsMask
+            | tuple[AgentPolarsMask, str]
             | tuple[
-                PolarsMaskLike,
+                AgentPolarsMask,
                 Collection[str],
             ]
         ),
@@ -543,7 +543,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         return self.agents.filter(self._mask)
 
     @active_agents.setter
-    def active_agents(self, mask: PolarsMaskLike) -> None:
+    def active_agents(self, mask: AgentPolarsMask) -> None:
         self.select(mask=mask, inplace=True)
 
     @property
