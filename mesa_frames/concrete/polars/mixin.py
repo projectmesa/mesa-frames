@@ -405,7 +405,6 @@ class PolarsMixin(DataFrameMixin):
         if new_index is None:
             return df
         return df.with_columns(**{index_name: new_index})
-
     def _df_with_columns(
         self,
         original_df: pl.DataFrame,
