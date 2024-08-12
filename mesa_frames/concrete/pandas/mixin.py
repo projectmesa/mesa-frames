@@ -1,11 +1,9 @@
-from collections.abc import Collection, Hashable, Iterator, Sequence
+from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import numpy as np
 import pandas as pd
 from typing_extensions import Any, overload
-
-from collections.abc import Callable
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import PandasMask
