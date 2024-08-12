@@ -281,6 +281,21 @@ class PolarsMixin(DataFrameMixin):
             suffix=suffix,
         )
 
+    def _df_lt(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x < y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
     def _df_mul(
         self,
         df: pl.DataFrame,

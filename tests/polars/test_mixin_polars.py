@@ -480,6 +480,31 @@ class TestPolarsMixin:
         assert joined.row(2) == (2, "b", 1, "x")
         assert joined.row(3) == (2, "b", 3, "y")
 
+    def test_df_lt(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+        # Test comparing the DataFrame with a sequence element-wise along the rows (axis='index')
+        result = mixin._df_lt(df_0[["A", "D"]], df_1["A"], axis="index")
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [True, True, True]
+        assert result["D"].to_list() == [True, True, True]
+
+        # Test comparing the DataFrame with a sequence element-wise along the columns (axis='columns')
+        result = mixin._df_lt(df_0[["A", "D"]], [2, 3], axis="columns")
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [True, False, False]
+        assert result["D"].to_list() == [True, True, False]
+
+        # Test comparing DataFrames with index-column alignment
+        df_1 = df_1.with_columns(D=pl.col("E"))
+        result = mixin._df_lt(
+            df_0[["unique_id", "A", "D"]],
+            df_1[["unique_id", "A", "D"]],
+            axis="index",
+            index_cols="unique_id",
+        )
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [None, None, True]
+        assert result["D"].to_list() == [None, None, False]
+
     def test_df_mul(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
         # Test multiplying the DataFrame by a sequence element-wise along the rows (axis='index')
         result = mixin._df_mul(df_0[["A", "D"]], df_1["A"], axis="index")

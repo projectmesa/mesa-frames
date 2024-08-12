@@ -255,6 +255,15 @@ class PandasMixin(DataFrameMixin):
         else:
             return df
 
+    def _df_lt(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.lt(other, axis=axis)
+
     def _df_mul(
         self,
         df: pd.DataFrame,
