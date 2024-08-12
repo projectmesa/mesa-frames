@@ -470,7 +470,34 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.DataFrame:
         if new_index is None:
             return df
-        return df.with_columns(index_name=new_index)
+
+    def _df_with_columns(
+        self,
+        original_df: pl.DataFrame,
+        data: Sequence | pl.DataFrame | Sequence[Sequence] | dict[str | Any] | Any,
+        new_columns: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        if (
+            (isinstance(data, Sequence) and isinstance(data[0], Sequence))
+            or isinstance(
+                data, pl.DataFrame
+            )  # Currently, pl.DataFrame is not a Sequence
+            or (
+                isinstance(data, dict)
+                and isinstance(data[list(data.keys())[0]], Sequence)
+            )
+        ):
+            # This means that data is a Sequence of Sequences (rows)
+            data = pl.DataFrame(data, new_columns)
+            original_df = original_df.select(pl.exclude(data.columns))
+            return original_df.hstack(data)
+        if not isinstance(data, dict):
+            assert new_columns is not None, "new_columns must be specified"
+            if isinstance(new_columns, list):
+                data = {col: value for col, value in zip(new_columns, data)}
+            else:
+                data = {new_columns: data}
+            return original_df.with_columns(**data)
 
     def _srs_constructor(
         self,
