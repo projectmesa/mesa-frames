@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from typing_extensions import Any, overload
 
+from collections.abc import Callable
+
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import PandasMask
 
@@ -18,6 +20,21 @@ class PandasMixin(DataFrameMixin):
         index_cols: str | list[str] | None = None,
     ) -> pd.DataFrame:
         return df.add(other=other, axis=axis)
+
+    def _df_and(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return self._df_logical_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x & y,
+            axis=axis,
+            index_cols=index_cols,
+        )
 
     def _df_all(
         self,
@@ -264,6 +281,32 @@ class PandasMixin(DataFrameMixin):
     ) -> pd.DataFrame:
         return df.lt(other, axis=axis)
 
+    def _df_logical_operation(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[bool],
+        operation: Callable[
+            [pd.DataFrame, Sequence[bool] | pd.DataFrame], pd.DataFrame
+        ],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        if isinstance(other, pd.DataFrame):
+            if index_cols is not None:
+                if df.index.name != index_cols:
+                    df = df.set_index(index_cols)
+                if other.index.name != index_cols:
+                    other = other.set_index(index_cols)
+            other = other.reindex(df.index, fill_value=np.nan)
+            return operation(df, other)
+        else:  # Sequence[bool]
+            other = pd.Series(other)
+            if axis == "index":
+                other.index = df.index
+                return operation(df, other.values[:, None]).astype(bool)
+            else:
+                return operation(df, other.values[None, :]).astype(bool)
+
     def _df_mul(
         self,
         df: pd.DataFrame,
@@ -310,21 +353,13 @@ class PandasMixin(DataFrameMixin):
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pd.DataFrame:
-        if isinstance(other, pd.DataFrame):
-            if index_cols is not None:
-                if df.index.name != index_cols:
-                    df = df.set_index(index_cols)
-                if other.index.name != index_cols:
-                    other = other.set_index(index_cols)
-            other = other.reindex(df.index, fill_value=np.nan)
-            return df | other
-        else:  # Sequence[bool]
-            other = pd.Series(other)
-            if axis == "index":
-                other.index = df.index
-                return (df | other.values[:, None]).astype(bool)
-            else:  # columns
-                return (df | other.values[None, :]).astype(bool)
+        return self._df_logical_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x | y,
+            axis=axis,
+            index_cols=index_cols,
+        )
 
     def _df_rename_columns(
         self,

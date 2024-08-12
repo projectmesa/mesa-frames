@@ -153,6 +153,15 @@ class DataFrameMixin(ABC):
         return self._df_get_masked_df(df, index_cols, mask, negate=True)
 
     @abstractmethod
+    def _df_and(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_add(
         self,
         df: DataFrame,

@@ -82,6 +82,32 @@ class TestPolarsMixin:
         assert result.name == "all"
         assert result.to_list() == [False, True]
 
+    def test_df_and(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+        # Test comparing the DataFrame with a sequence element-wise along the rows (axis='index')
+        df_0 = df_0.with_columns(F=pl.Series([True, True, False]))
+        df_1 = df_1.with_columns(F=pl.Series([False, False, True]))
+        result = mixin._df_and(df_0[["C", "F"]], df_1["F"], axis="index")
+        assert isinstance(result, pl.DataFrame)
+        assert result["C"].to_list() == [False, False, True]
+        assert result["F"].to_list() == [False, False, False]
+
+        # Test comparing the DataFrame with a sequence element-wise along the columns (axis='columns')
+        result = mixin._df_and(df_0[["C", "F"]], [True, False], axis="columns")
+        assert isinstance(result, pl.DataFrame)
+        assert result["C"].to_list() == [True, False, True]
+        assert result["F"].to_list() == [False, False, False]
+
+        # Test comparing DataFrames with index-column alignment
+        result = mixin._df_and(
+            df_0[["unique_id", "C", "F"]],
+            df_1[["unique_id", "C", "F"]],
+            axis="index",
+            index_cols="unique_id",
+        )
+        assert isinstance(result, pl.DataFrame)
+        assert result["C"].to_list() == [None, False, False]
+        assert result["F"].to_list() == [None, None, False]
+
     def test_df_column_names(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         cols = mixin._df_column_names(df_0)
         assert isinstance(cols, list)

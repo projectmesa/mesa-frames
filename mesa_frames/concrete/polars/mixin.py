@@ -37,6 +37,21 @@ class PolarsMixin(DataFrameMixin):
             return pl.Series(name, df.select(pl.col("*").all()).row(0))
         return df.with_columns(all=pl.all_horizontal("*"))["all"]
 
+    def _df_and(
+        self,
+        df: pl.DataFrame,
+        other: pl.DataFrame | Sequence[float | int],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pl.DataFrame:
+        return self._df_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x & y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
     def _df_column_names(self, df: pl.DataFrame) -> list[str]:
         return df.columns
 
