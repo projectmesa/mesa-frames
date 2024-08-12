@@ -324,8 +324,10 @@ class PolarsMixin(DataFrameMixin):
             return df.filter(b_mask)[columns]
         return df.filter(b_mask)
 
-    def _df_groupby_cumcount(self, df: pl.DataFrame, by: str | list[str]) -> pl.Series:
-        return df.with_columns(pl.col(by).cum_count().alias("cumcount"))
+    def _df_groupby_cumcount(
+        self, df: pl.DataFrame, by: str | list[str], name="cum_count"
+    ) -> pl.Series:
+        return df.with_columns(pl.cum_count(by).over(by).alias(name))[name]
 
     def _df_iterator(self, df: pl.DataFrame) -> Iterator[dict[str, Any]]:
         return iter(df.iter_rows(named=True))

@@ -187,8 +187,10 @@ class PandasMixin(DataFrameMixin):
             return df.loc[b_mask, columns]
         return df.loc[b_mask]
 
-    def _df_groupby_cumcount(self, df: pd.DataFrame, by: str | list[str]) -> pd.Series:
-        return df.groupby(by).cumcount()
+    def _df_groupby_cumcount(
+        self, df: pd.DataFrame, by: str | list[str], name: str = "cum_count"
+    ) -> pd.Series:
+        return df.groupby(by).cumcount().rename(name)
 
     def _df_iterator(self, df: pd.DataFrame) -> Iterator[dict[str, Any]]:
         for index, row in df.iterrows():

@@ -279,9 +279,7 @@ class DataFrameMixin(ABC):
 
     @abstractmethod
     def _df_groupby_cumcount(
-        self,
-        df: DataFrame,
-        by: str | list[str],
+        self, df: DataFrame, by: str | list[str], name: str = "cum_count"
     ) -> Series: ...
 
     @abstractmethod
