@@ -1607,13 +1607,11 @@ class GridDF(DiscreteSpaceDF):
                 if agents.n_unique() != len(agents):
                     raise ValueError("Some agents are present multiple times")
         if agents is not None:
-            return self._df_reset_index(
-                self._df_get_masked_df(
-                    self._agents, index_cols="agent_id", mask=agents
-                ),
-                index_cols="agent_id",
-                drop=True,
+            df = self._df_get_masked_df(
+                self._agents, index_cols="agent_id", mask=agents
             )
+            df = self._df_reindex(df, agents, "agent_id")
+            return self._df_reset_index(df, index_cols="agent_id", drop=True)
         if isinstance(pos, DataFrame):
             return pos[self._pos_col_names]
         elif (
