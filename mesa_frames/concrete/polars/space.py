@@ -1,6 +1,8 @@
 from collections.abc import Callable, Sequence
 
+import numpy as np
 import polars as pl
+from typing import Literal
 
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.polars.mixin import PolarsMixin
@@ -8,190 +10,161 @@ from mesa_frames.concrete.polars.mixin import PolarsMixin
 
 class GridPolars(GridDF, PolarsMixin):
     _agents: pl.DataFrame
+    _copy_with_method: dict[str, tuple[str, list[str]]] = {
+        "_agents": ("clone", []),
+        "_cells": ("clone", []),
+        "_cells_capacity": ("copy", []),
+        "_offsets": ("clone", []),
+    }
     _cells: pl.DataFrame
-    _empty_grid: list[pl.Expr]
+    _cells_capacity: np.ndarray
     _offsets: pl.DataFrame
 
-    def _generate_empty_grid(self, dimensions: Sequence[int]) -> list[pl.Expr]:
-        return [pl.arange(0, d, eager=False) for d in dimensions]
+    def _empty_cell_condition(self, cap: np.ndarray) -> np.ndarray:
+        # Create a boolean mask of the same shape as cap
+        empty_mask = np.ones_like(cap, dtype=bool)
 
-    def _sample_cells_lazy(
-        self,
-        n: int | None,
-        with_replacement: bool,
-        condition: Callable[[pl.Expr], pl.Expr],
-    ) -> pl.DataFrame:
-        # Create a base DataFrame with all grid coordinates and default capacities
-        grid_df = pl.DataFrame(self._empty_grid).with_columns(
-            [pl.lit(self._capacity).alias("capacity")]
-        )
+        if not self._agents.is_empty():
+            # Get the coordinates of all agents
+            agent_coords = self._agents[self._pos_col_names].to_numpy()
 
-        # Apply the condition to filter the cells
-        grid_df = grid_df.filter(condition(pl.col("capacity")))
+            # Mark cells containing agents as not empty
+            empty_mask[tuple(agent_coords.T)] = False
 
-        if n is not None:
-            if with_replacement:
-                assert (
-                    n <= grid_df.select(pl.sum("capacity")).item()
-                ), "Requested sample size exceeds the total available capacity."
+        return empty_mask
 
-                # Initialize the sampled DataFrame
-                sampled_df = pl.DataFrame()
-
-                # Resample until we have the correct number of samples with valid capacities
-                while sampled_df.shape[0] < n:
-                    # Calculate the remaining samples needed
-                    remaining_samples = n - sampled_df.shape[0]
-
-                    # Sample with replacement using uniform probabilities
-                    sampled_part = grid_df.sample(
-                        n=remaining_samples, with_replacement=True
-                    )
-
-                    # Count occurrences of each sampled coordinate
-                    count_df = sampled_part.group_by(self._cells_col_names).agg(
-                        pl.count("capacity").alias("sampled_count")
-                    )
-
-                    # Adjust capacities based on counts
-                    grid_df = (
-                        grid_df.join(count_df, on=self._cells_col_names, how="left")
-                        .with_columns(
-                            [
-                                (
-                                    pl.col("capacity")
-                                    - pl.col("sampled_count").fill_null(0)
-                                ).alias("capacity")
-                            ]
-                        )
-                        .drop("sampled_count")
-                    )
-
-                    # Ensure no cell exceeds its capacity
-                    valid_sampled_part = sampled_part.join(
-                        grid_df.filter(pl.col("capacity") >= 0),
-                        on=self._cells_col_names,
-                        how="inner",
-                    )
-
-                    # Add valid samples to the result
-                    sampled_df = pl.concat([sampled_df, valid_sampled_part])
-
-                    # Filter out over-capacity cells from the grid
-                    grid_df = grid_df.filter(pl.col("capacity") > 0)
-
-                sampled_df = sampled_df.head(n)  # Ensure we have exactly n samples
-            else:
-                assert (
-                    n <= grid_df.height
-                ), "Requested sample size exceeds the number of available cells."
-
-                # Sample without replacement
-                sampled_df = grid_df.sample(n=n, with_replacement=False)
-        else:
-            sampled_df = grid_df
-
-        return sampled_df
-
-    def _sample_cells_eager(
-        self,
-        n: int | None,
-        with_replacement: bool,
-        condition: Callable[[pl.Expr], pl.Expr],
-    ) -> pl.DataFrame:
-        # Create a base DataFrame with all grid coordinates and default capacities
-        grid_df = pl.DataFrame(self._empty_grid).with_columns(
-            [pl.lit(self._capacity).alias("capacity")]
-        )
-
-        # If there are any specific capacities in self._cells, update the grid_df with these values
-        if not self._cells.is_empty():
-            grid_df = (
-                grid_df.join(self._cells, on=self._cells_col_names, how="left")
-                .with_columns(
-                    [
-                        pl.col("capacity_right")
-                        .fill_null(pl.col("capacity"))
-                        .alias("capacity")
-                    ]
-                )
-                .drop("capacity_right")
-            )
-
-        # Apply the condition to filter the cells
-        grid_df = grid_df.filter(condition(pl.col("capacity")))
-
-        if n is not None:
-            if with_replacement:
-                assert (
-                    n <= grid_df.select(pl.sum("capacity")).item()
-                ), "Requested sample size exceeds the total available capacity."
-
-                # Initialize the sampled DataFrame
-                sampled_df = pl.DataFrame()
-
-                # Resample until we have the correct number of samples with valid capacities
-                while sampled_df.shape[0] < n:
-                    # Calculate the remaining samples needed
-                    remaining_samples = n - sampled_df.shape[0]
-
-                    # Sample with replacement using uniform probabilities
-                    sampled_part = grid_df.sample(
-                        n=remaining_samples, with_replacement=True
-                    )
-
-                    # Count occurrences of each sampled coordinate
-                    count_df = sampled_part.group_by(self._cells_col_names).agg(
-                        pl.count("capacity").alias("sampled_count")
-                    )
-
-                    # Adjust capacities based on counts
-                    grid_df = (
-                        grid_df.join(count_df, on=self._cells_col_names, how="left")
-                        .with_columns(
-                            [
-                                (
-                                    pl.col("capacity")
-                                    - pl.col("sampled_count").fill_null(0)
-                                ).alias("capacity")
-                            ]
-                        )
-                        .drop("sampled_count")
-                    )
-
-                    # Ensure no cell exceeds its capacity
-                    valid_sampled_part = sampled_part.join(
-                        grid_df.filter(pl.col("capacity") >= 0),
-                        on=self._cells_col_names,
-                        how="inner",
-                    )
-
-                    # Add valid samples to the result
-                    sampled_df = pl.concat([sampled_df, valid_sampled_part])
-
-                    # Filter out over-capacity cells from the grid
-                    grid_df = grid_df.filter(pl.col("capacity") > 0)
-
-                sampled_df = sampled_df.head(n)  # Ensure we have exactly n samples
-            else:
-                assert (
-                    n <= grid_df.height
-                ), "Requested sample size exceeds the number of available cells."
-
-                # Sample without replacement
-                sampled_df = grid_df.sample(n=n, with_replacement=False)
-        else:
-            sampled_df = grid_df
-
-        return sampled_df
+    def _generate_empty_grid(
+        self, dimensions: Sequence[int], capacity: int
+    ) -> np.ndarray:
+        if not capacity:
+            capacity = np.inf
+        return np.full(dimensions, capacity)
 
     def _sample_cells(
         self,
         n: int | None,
         with_replacement: bool,
-        condition: Callable[[pl.Expr], pl.Expr],
+        condition: Callable[[np.ndarray], np.ndarray],
+        respect_capacity: bool = True,
     ) -> pl.DataFrame:
-        if "capacity" not in self._cells.columns:
-            return self._sample_cells_lazy(n, with_replacement, condition)
+        # Get the coordinates of cells that meet the condition
+        coords = np.array(np.where(condition(self._cells_capacity))).T
+
+        if respect_capacity and condition != self._full_cell_condition:
+            capacities = self._cells_capacity[tuple(coords.T)]
         else:
-            return self._sample_cells_eager(n, with_replacement, condition)
+            # If not respecting capacity or for full cells, set capacities to 1
+            capacities = np.ones(len(coords), dtype=int)
+
+        if n is not None:
+            if with_replacement:
+                if respect_capacity and condition != self._full_cell_condition:
+                    assert (
+                        n <= capacities.sum()
+                    ), "Requested sample size exceeds the total available capacity."
+
+                sampled_coords = np.empty((0, coords.shape[1]), dtype=coords.dtype)
+                while len(sampled_coords) < n:
+                    remaining_samples = n - len(sampled_coords)
+                    sampled_indices = self.random.choice(
+                        len(coords),
+                        size=remaining_samples,
+                        replace=True,
+                    )
+                    unique_indices, counts = np.unique(
+                        sampled_indices, return_counts=True
+                    )
+
+                    if respect_capacity and condition != self._full_cell_condition:
+                        # Calculate valid counts for each unique index
+                        valid_counts = np.minimum(counts, capacities[unique_indices])
+                        # Update capacities
+                        capacities[unique_indices] -= valid_counts
+                    else:
+                        valid_counts = counts
+
+                    # Create array of repeated coordinates
+                    new_coords = np.repeat(coords[unique_indices], valid_counts, axis=0)
+                    # Extend sampled_coords
+                    sampled_coords = np.vstack((sampled_coords, new_coords))
+
+                    if respect_capacity and condition != self._full_cell_condition:
+                        # Update coords and capacities
+                        mask = capacities > 0
+                        coords = coords[mask]
+                        capacities = capacities[mask]
+
+                sampled_coords = sampled_coords[:n]
+                self.random.shuffle(sampled_coords)
+            else:
+                assert n <= len(
+                    coords
+                ), "Requested sample size exceeds the number of available cells."
+                sampled_indices = self.random.choice(len(coords), size=n, replace=False)
+                sampled_coords = coords[sampled_indices]
+        else:
+            sampled_coords = coords
+
+        # Convert the coordinates to a DataFrame
+        sampled_cells = pl.DataFrame(
+            sampled_coords, schema=self._pos_col_names, orient="row"
+        )
+        return sampled_cells
+
+    def _update_capacity_agents(
+        self,
+        agents: pl.DataFrame,
+        operation: Literal["movement", "removal"],
+    ) -> np.ndarray:
+        # Update capacity for agents that were already on the grid
+        masked_df = self._df_get_masked_df(
+            self._agents, index_cols="agent_id", mask=agents
+        )
+
+        if operation == "movement":
+            # Increase capacity at old positions
+            old_positions = tuple(masked_df[self._pos_col_names].to_numpy().T)
+            np.add.at(self._cells_capacity, old_positions, 1)
+
+            # Decrease capacity at new positions
+            new_positions = tuple(agents[self._pos_col_names].to_numpy().T)
+            np.add.at(self._cells_capacity, new_positions, -1)
+        elif operation == "removal":
+            # Increase capacity at the positions of removed agents
+            positions = tuple(masked_df[self._pos_col_names].to_numpy().T)
+            np.add.at(self._cells_capacity, positions, 1)
+        return self._cells_capacity
+
+    def _update_capacity_cells(self, cells: pl.DataFrame) -> np.ndarray:
+        # Get the coordinates of the cells to update
+        coords = cells[self._pos_col_names]
+
+        # Get the current capacity of updatable cells
+        current_capacity = (
+            coords.join(self._cells, on=self._pos_col_names, how="left")
+            .fill_null(self._capacity)["capacity"]
+            .to_numpy()
+        )
+
+        # Calculate the number of agents currently in each cell
+        agents_in_cells = (
+            current_capacity - self._cells_capacity[tuple(zip(*coords.to_numpy()))]
+        )
+
+        # Update the capacity in self._cells_capacity
+        new_capacity = cells["capacity"].to_numpy() - agents_in_cells
+
+        # Assert that no new capacity is negative
+        assert np.all(
+            new_capacity >= 0
+        ), "New capacity of a cell cannot be less than the number of agents in it."
+
+        self._cells_capacity[tuple(zip(*coords.to_numpy()))] = new_capacity
+
+        return self._cells_capacity
+
+    @property
+    def remaining_capacity(self) -> int:
+        if not self._capacity:
+            return np.inf
+        return self._cells_capacity.sum()
