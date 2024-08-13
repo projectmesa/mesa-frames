@@ -305,6 +305,15 @@ class PandasMixin(DataFrameMixin):
             else:
                 return operation(df, other.values[None, :]).astype(bool)
 
+    def _df_mod(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.mod(other, axis=axis)
+
     def _df_mul(
         self,
         df: pd.DataFrame,
