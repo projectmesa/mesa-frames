@@ -216,7 +216,6 @@ class PolarsMixin(DataFrameMixin):
             index_cols=index_cols,
         )
 
-
     def _df_get_bool_mask(
         self,
         df: pl.DataFrame,
@@ -313,12 +312,8 @@ class PolarsMixin(DataFrameMixin):
             left_on, right_on = right_on, left_on
             how = "left"
         return left.join(
-            right,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            how=how,
-            suffix=suffix,
+            right, on=on, left_on=left_on, right_on=right_on, how=how, suffix=suffix
+        )
 
     def _df_lt(
         self,
@@ -348,7 +343,6 @@ class PolarsMixin(DataFrameMixin):
             operation=lambda x, y: x % y,
             axis=axis,
             index_cols=index_cols,
-
         )
 
     def _df_mul(
