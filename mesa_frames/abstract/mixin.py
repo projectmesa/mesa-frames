@@ -301,6 +301,9 @@ class DataFrameMixin(ABC):
     ) -> Series: ...
 
     @abstractmethod
+    def _df_index(self, df: DataFrame, index_name: str) -> Index: ...
+
+    @abstractmethod
     def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
 
     @abstractmethod
@@ -322,6 +325,15 @@ class DataFrameMixin(ABC):
 
     @abstractmethod
     def _df_lt(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_mod(
         self,
         df: DataFrame,
         other: DataFrame | Sequence[float | int],
