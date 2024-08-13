@@ -70,14 +70,14 @@ class TestPolarsMixin:
             }
         )
 
-        # Test with axis='index'
-        result = mixin._df_all(df["A", "B"], axis="index")
+        # Test with axis='columns'
+        result = mixin._df_all(df["A", "B"], axis="columns")
         assert isinstance(result, pl.Series)
         assert result.name == "all"
         assert result.to_list() == [True, False, True]
 
-        # Test with axis='columns'
-        result = mixin._df_all(df["A", "B"], axis="columns")
+        # Test with axis='index'
+        result = mixin._df_all(df["A", "B"], axis="index")
         assert isinstance(result, pl.Series)
         assert result.name == "all"
         assert result.to_list() == [False, True]
@@ -452,6 +452,11 @@ class TestPolarsMixin:
         result = mixin._df_groupby_cumcount(df_0, "C")
         assert result.to_list() == [1, 1, 2]
 
+    def test_df_index(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+        index = mixin._df_index(df_0, "unique_id")
+        assert isinstance(index, pl.Series)
+        assert index.to_list() == ["x", "y", "z"]
+
     def test_df_iterator(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         iterator = mixin._df_iterator(df_0)
         first_item = next(iterator)
@@ -530,6 +535,31 @@ class TestPolarsMixin:
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [None, None, True]
         assert result["D"].to_list() == [None, None, False]
+
+    def test_df_mod(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+        # Test taking the modulo of the DataFrame by a sequence element-wise along the rows (axis='index')
+        result = mixin._df_mod(df_0[["A", "D"]], df_1["A"], axis="index")
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [1, 2, 3]
+        assert result["D"].to_list() == [1, 2, 3]
+
+        # Test taking the modulo of the DataFrame by a sequence element-wise along the columns (axis='columns')
+        result = mixin._df_mod(df_0[["A", "D"]], [1, 2], axis="columns")
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [0, 0, 0]
+        assert result["D"].to_list() == [1, 0, 1]
+
+        # Test taking the modulo of DataFrames with index-column alignment
+        df_1 = df_1.with_columns(D=pl.col("E"))
+        result = mixin._df_mod(
+            df_0[["unique_id", "A", "D"]],
+            df_1[["unique_id", "A", "D"]],
+            axis="index",
+            index_cols="unique_id",
+        )
+        assert isinstance(result, pl.DataFrame)
+        assert result["A"].to_list() == [None, None, 3]
+        assert result["D"].to_list() == [None, None, 0]
 
     def test_df_mul(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
         # Test multiplying the DataFrame by a sequence element-wise along the rows (axis='index')

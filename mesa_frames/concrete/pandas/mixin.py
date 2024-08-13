@@ -216,6 +216,16 @@ class PandasMixin(DataFrameMixin):
     ) -> pd.Series:
         return df.groupby(by).cumcount().rename(name)
 
+    def _df_index(self, df: pd.DataFrame, index_col: str | list[str]) -> pd.Index:
+        if (
+            index_col is None
+            or df.index.name == index_col
+            or df.index.names == index_col
+        ):
+            return df.index
+        else:
+            return df.set_index(index_col).index
+
     def _df_iterator(self, df: pd.DataFrame) -> Iterator[dict[str, Any]]:
         for index, row in df.iterrows():
             row_dict = row.to_dict()
@@ -304,6 +314,15 @@ class PandasMixin(DataFrameMixin):
                 return operation(df, other.values[:, None]).astype(bool)
             else:
                 return operation(df, other.values[None, :]).astype(bool)
+
+    def _df_mod(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.mod(other, axis=axis)
 
     def _df_mul(
         self,
