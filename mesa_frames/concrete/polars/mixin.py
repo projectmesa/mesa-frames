@@ -33,9 +33,9 @@ class PolarsMixin(DataFrameMixin):
         name: str = "all",
         axis: Literal["index", "columns"] = "columns",
     ) -> pl.Series:
-        if axis == "columns":
+        if axis == "index":
             return pl.Series(name, df.select(pl.col("*").all()).row(0))
-        return df.with_columns(all=pl.all_horizontal("*"))["all"]
+        return df.with_columns(pl.all_horizontal("*").alias(name))[name]
 
     def _df_and(
         self,
@@ -64,10 +64,8 @@ class PolarsMixin(DataFrameMixin):
         common_cols = set(original_df.columns) & set(new_df.columns)
         merged_df = original_df.join(new_df, on=index_cols, how="full", suffix="_right")
         merged_df = merged_df.with_columns(
-            [
-                pl.coalesce(pl.col(col), pl.col(f"{col}_right")).alias(col)
-                for col in common_cols
-            ]
+            pl.coalesce(pl.col(col), pl.col(f"{col}_right")).alias(col)
+            for col in common_cols
         ).select(pl.exclude("^.*_right$"))
         return merged_df
 
@@ -127,7 +125,19 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.DataFrame:
         if dtypes is not None:
             dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
-        return pl.DataFrame(data=data, schema=columns, schema_overrides=dtypes)
+        df = pl.DataFrame(
+            data=data, schema=columns, schema_overrides=dtypes, orient="row"
+        )
+        if index is not None:
+            if index_cols is not None:
+                index_df = pl.DataFrame(index, index_cols)
+            else:
+                index_df = pl.DataFrame(index)
+            if len(df) != len(index_df) and len(df) == 1:
+                df = index_df.join(df, how="cross")
+            else:
+                df = index_df.hstack(df)
+        return df
 
     def _df_contains(
         self,
@@ -218,7 +228,14 @@ class PolarsMixin(DataFrameMixin):
                 and len(mask) == len(df)
             ):
                 return mask
+            assert isinstance(index_cols, str)
             return df[index_cols].is_in(mask)
+
+        def bool_mask_from_df(mask: pl.DataFrame) -> pl.Series:
+            mask = mask.with_columns(in_it=True)
+            return df.join(mask[index_cols + ["in_it"]], on=index_cols, how="left")[
+                "in_it"
+            ].fill_null(False)
 
         if isinstance(mask, pl.Expr):
             result = mask
@@ -227,11 +244,13 @@ class PolarsMixin(DataFrameMixin):
         elif isinstance(mask, pl.DataFrame):
             if index_cols in mask.columns:
                 result = bool_mask_from_series(mask[index_cols])
+            elif all(col in mask.columns for col in index_cols):
+                result = bool_mask_from_df(mask[index_cols])
             elif len(mask.columns) == 1 and mask.dtypes[0] == pl.Boolean:
                 result = bool_mask_from_series(mask[mask.columns[0]])
             else:
                 raise KeyError(
-                    f"DataFrame must have an {index_cols} column or a single boolean column."
+                    f"Mask must have {index_cols} column(s) or a single boolean column."
                 )
         elif mask is None or mask == "all":
             result = pl.Series([True] * len(df))
@@ -392,11 +411,9 @@ class PolarsMixin(DataFrameMixin):
                 other = other.rename(lambda col: col + "_op")
                 op_df = pl.concat([df, other], how="horizontal")
             return op_df.with_columns(
-                [
-                    operation(pl.col(col), pl.col(f"{col}_op")).alias(col)
-                    for col in df.columns
-                    if col not in index_cols
-                ]
+                operation(pl.col(col), pl.col(f"{col}_op")).alias(col)
+                for col in df.columns
+                if col not in index_cols
             ).select(df.columns)
         elif isinstance(
             other, (Sequence, pl.Series)
@@ -407,20 +424,16 @@ class PolarsMixin(DataFrameMixin):
                 ), "Sequence must have the same length as df if axis is 'index'"
                 other_series = pl.Series("operand", other)
                 return df.with_columns(
-                    [
-                        operation(pl.col(col), other_series).alias(col)
-                        for col in df.columns
-                    ]
+                    operation(pl.col(col), other_series).alias(col)
+                    for col in df.columns
                 )
             else:
                 assert (
                     len(df.columns) == len(other)
                 ), "Sequence must have the same length as df.columns if axis is 'columns'"
                 return df.with_columns(
-                    [
-                        operation(pl.col(col), pl.lit(other[i])).alias(col)
-                        for i, col in enumerate(df.columns)
-                    ]
+                    operation(pl.col(col), pl.lit(other[i])).alias(col)
+                    for i, col in enumerate(df.columns)
                 )
         else:
             raise ValueError("other must be a DataFrame or a Sequence")
