@@ -301,6 +301,9 @@ class DataFrameMixin(ABC):
     ) -> Series: ...
 
     @abstractmethod
+    def _df_index(self, df: DataFrame, index_name: str) -> Index: ...
+
+    @abstractmethod
     def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
 
     @abstractmethod

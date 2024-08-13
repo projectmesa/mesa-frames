@@ -263,6 +263,9 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         return df.with_columns(pl.cum_count(by).over(by).alias(name))[name]
 
+    def _df_index(self, df: pl.DataFrame, index_col: str | list[str]) -> pl.Series:
+        return df[index_col]
+
     def _df_iterator(self, df: pl.DataFrame) -> Iterator[dict[str, Any]]:
         return iter(df.iter_rows(named=True))
 

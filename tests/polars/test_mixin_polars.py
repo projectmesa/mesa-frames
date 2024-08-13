@@ -452,6 +452,11 @@ class TestPolarsMixin:
         result = mixin._df_groupby_cumcount(df_0, "C")
         assert result.to_list() == [1, 1, 2]
 
+    def test_df_index(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+        index = mixin._df_index(df_0, "unique_id")
+        assert isinstance(index, pl.Series)
+        assert index.to_list() == ["x", "y", "z"]
+
     def test_df_iterator(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         iterator = mixin._df_iterator(df_0)
         first_item = next(iterator)
