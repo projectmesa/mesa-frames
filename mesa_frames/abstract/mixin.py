@@ -386,6 +386,14 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
+    def _df_reindex(
+        self,
+        df: DataFrame,
+        other: Sequence[Hashable] | DataFrame,
+        index_cols: str | list[str],
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_rename_columns(
         self,
         df: DataFrame,
