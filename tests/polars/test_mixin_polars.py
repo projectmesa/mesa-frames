@@ -70,14 +70,14 @@ class TestPolarsMixin:
             }
         )
 
-        # Test with axis='index'
-        result = mixin._df_all(df["A", "B"], axis="index")
+        # Test with axis='columns'
+        result = mixin._df_all(df["A", "B"], axis="columns")
         assert isinstance(result, pl.Series)
         assert result.name == "all"
         assert result.to_list() == [True, False, True]
 
-        # Test with axis='columns'
-        result = mixin._df_all(df["A", "B"], axis="columns")
+        # Test with axis='index'
+        result = mixin._df_all(df["A", "B"], axis="index")
         assert isinstance(result, pl.Series)
         assert result.name == "all"
         assert result.to_list() == [False, True]
