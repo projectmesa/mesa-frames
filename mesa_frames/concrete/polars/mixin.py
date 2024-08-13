@@ -115,6 +115,8 @@ class PolarsMixin(DataFrameMixin):
         )
         if index is not None:
             if index_cols is not None:
+                if isinstance(index_cols, str):
+                    index_cols = [index_cols]
                 index_df = pl.DataFrame(index, index_cols)
             else:
                 index_df = pl.DataFrame(index)

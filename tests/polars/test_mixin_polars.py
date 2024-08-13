@@ -257,6 +257,16 @@ class TestPolarsMixin:
         assert df["num"].to_list() == [1, 2, 3]
         assert df["letter"].to_list() == ["a", "b", "c"]
 
+        # Test with index > 1 and 1 value
+        data = {"a": 5}
+        df = mixin._df_constructor(
+            data, index=pl.int_range(5, eager=True), index_cols="index"
+        )
+        assert isinstance(df, pl.DataFrame)
+        assert list(df.columns) == ["index", "a"]
+        assert df["a"].to_list() == [5, 5, 5, 5, 5]
+        assert df["index"].to_list() == [0, 1, 2, 3, 4]
+
     def test_df_contains(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         # Test with list
         result = mixin._df_contains(df_0, "A", [5, 2, 3])
