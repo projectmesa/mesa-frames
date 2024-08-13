@@ -1343,7 +1343,9 @@ class GridDF(DiscreteSpaceDF):
         # Filter out-of-bound neighbors
         mask = self._df_all(
             self._df_and(
-                self._df_lt(neighbors_df[self._pos_col_names], self._dimensions),
+                self._df_lt(
+                    neighbors_df[self._pos_col_names], self._dimensions, axis="columns"
+                ),
                 neighbors_df >= 0,
             )
         )
@@ -1411,8 +1413,12 @@ class GridDF(DiscreteSpaceDF):
         out_of_bounds = self._df_all(
             self._df_or(
                 pos_df < 0,
-                self._df_lt(pos_df, self._dimensions, index_cols=self._pos_col_names),
-                index_cols=self._pos_col_names,
+                self._df_ge(
+                    pos_df,
+                    self._dimensions,
+                    axis="columns",
+                    index_cols=self._pos_col_names,
+                ),
             ),
             name="out_of_bounds",
         )
