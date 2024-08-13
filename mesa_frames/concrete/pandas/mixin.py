@@ -214,7 +214,7 @@ class PandasMixin(DataFrameMixin):
     def _df_groupby_cumcount(
         self, df: pd.DataFrame, by: str | list[str], name: str = "cum_count"
     ) -> pd.Series:
-        return df.groupby(by).cumcount().rename(name)
+        return df.groupby(by).cumcount().rename(name) + 1
 
     def _df_index(self, df: pd.DataFrame, index_col: str | list[str]) -> pd.Index:
         if (
