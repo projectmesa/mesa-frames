@@ -1456,7 +1456,7 @@ class GridDF(DiscreteSpaceDF):
             The adjusted coordinates
         """
         df_coords = self._get_df_coords(pos)
-        df_coords = df_coords % self._dimensions
+        df_coords = self._df_mod(df_coords, self._dimensions, axis="columns")
         return df_coords
 
     def _calculate_differences(
