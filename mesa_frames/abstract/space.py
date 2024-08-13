@@ -1247,7 +1247,7 @@ class GridDF(DiscreteSpaceDF):
             radius_df = self._srs_to_df(radius_srs)
             radius_df = self._df_with_columns(
                 radius_df,
-                self._df_groupby_cumcount(radius_df, "radius", name="offset") + 1,
+                self._df_groupby_cumcount(radius_df, "radius", name="offset"),
                 new_columns="offset",
             )
 
