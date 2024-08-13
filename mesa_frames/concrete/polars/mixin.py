@@ -464,7 +464,7 @@ class PolarsMixin(DataFrameMixin):
             other = other.select(index_cols)
         else:
             # If other is a sequence, create a DataFrame with it
-            other = pl.DataFrame(index_cols=other)
+            other = pl.Series(name=index_cols, values=other).to_frame()
 
         # Perform a left join to reindex
         result = other.join(df, on=index_cols, how="left")
