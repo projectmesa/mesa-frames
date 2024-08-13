@@ -130,6 +130,8 @@ class PolarsMixin(DataFrameMixin):
         )
         if index is not None:
             if index_cols is not None:
+                if isinstance(index_cols, str):
+                    index_cols = [index_cols]
                 index_df = pl.DataFrame(index, index_cols)
             else:
                 index_df = pl.DataFrame(index)
@@ -213,6 +215,7 @@ class PolarsMixin(DataFrameMixin):
             axis=axis,
             index_cols=index_cols,
         )
+
 
     def _df_get_bool_mask(
         self,
@@ -316,7 +319,6 @@ class PolarsMixin(DataFrameMixin):
             right_on=right_on,
             how=how,
             suffix=suffix,
-        )
 
     def _df_lt(
         self,
@@ -346,6 +348,7 @@ class PolarsMixin(DataFrameMixin):
             operation=lambda x, y: x % y,
             axis=axis,
             index_cols=index_cols,
+
         )
 
     def _df_mul(
