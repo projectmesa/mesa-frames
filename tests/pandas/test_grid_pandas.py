@@ -1106,6 +1106,12 @@ class TestGridPandas:
         assert cells_df.iloc[1]["property_1"] == "value_1"
         assert cells_df.iloc[2]["property_1"] == "value_1"
 
+        # Test with DataFrame without capacity
+        df = pd.DataFrame(
+            {"dim_0": [0, 1, 2], "dim_1": [0, 1, 2], "property_2": [0, 1, 2]}
+        )
+        grid_moore.set_cells(df)
+
         # Test with DataFrame with dimensions as index
         df = pd.DataFrame(
             {"capacity": [1, 1, 1]},

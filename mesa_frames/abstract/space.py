@@ -735,27 +735,27 @@ class DiscreteSpaceDF(SpaceDF):
         Self
         """
         obj = self._get_obj(inplace)
-        cells_col_names = obj._df_column_names(obj._cells)
+
+        # Convert cells to DataFrame
+        if isinstance(cells, DataFrame):
+            cells_df = cells
+        else:
+            cells_df = obj._get_df_coords(cells)
+        cells_df = obj._df_set_index(cells_df, index_name=obj._pos_col_names)
 
         if __debug__:
-            if isinstance(cells, DataFrame) and any(
-                k not in cells_col_names for k in obj._pos_col_names
+            if isinstance(cells_df, DataFrame) and any(
+                k not in obj._df_column_names(cells_df) for k in obj._pos_col_names
             ):
                 raise ValueError(
                     f"The cells DataFrame must have the columns {obj._pos_col_names}"
                 )
-        if isinstance(cells, DataFrame):
-            cells_df = obj._df_set_index(cells, index_name=obj._pos_col_names)
-        else:
-            cells_df = obj._df_set_index(
-                obj._get_df_coords(cells), index_name=obj._pos_col_names
-            )
 
         if properties:
             properties = obj._df_constructor(data=properties, index=cells_df.index)
             cells_df = obj._df_concat([cells_df, properties], how="horizontal")
 
-        if "capacity" in cells_col_names:
+        if "capacity" in obj._df_column_names(cells_df):
             obj._cells_capacity = obj._update_capacity_cells(cells_df)
 
         obj._cells = obj._df_combine_first(
@@ -988,7 +988,7 @@ class DiscreteSpaceDF(SpaceDF):
         return self._cells[key]
 
     def __setitem__(self, cells: DiscreteCoordinates, properties: DataFrame):
-        self.set_cells(properties=properties, cells=cells)
+        self.set_cells(properties=properties, cells_df=cells)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}\nCells:\n{self._cells.__repr__()}\nAgents:\n{self._agents.__repr__()}"
