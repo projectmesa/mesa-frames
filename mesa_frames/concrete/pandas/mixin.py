@@ -384,7 +384,9 @@ class PandasMixin(DataFrameMixin):
         other: Sequence[Hashable] | pd.DataFrame,
         index_cols: str | list[str],
     ) -> pd.DataFrame:
-        return df.reindex(other)
+        df = df.reindex(other)
+        df.index.name = index_cols
+        return df
 
     def _df_rename_columns(
         self,

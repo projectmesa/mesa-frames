@@ -283,6 +283,16 @@ class TestPolarsMixin:
         assert df["num"].to_list() == [1, 2, 3]
         assert df["letter"].to_list() == ["a", "b", "c"]
 
+        # Test with index > 1 and 1 value
+        data = {"a": 5}
+        df = mixin._df_constructor(
+            data, index=pl.int_range(5, eager=True), index_cols="index"
+        )
+        assert isinstance(df, pl.DataFrame)
+        assert list(df.columns) == ["index", "a"]
+        assert df["a"].to_list() == [5, 5, 5, 5, 5]
+        assert df["index"].to_list() == [0, 1, 2, 3, 4]
+
     def test_df_contains(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         # Test with list
         result = mixin._df_contains(df_0, "A", [5, 2, 3])
@@ -628,6 +638,27 @@ class TestPolarsMixin:
         assert isinstance(result, pl.DataFrame)
         assert result["C"].to_list() == [True, None, True]
         assert result["F"].to_list() == [True, True, False]
+
+    def test_df_reindex(
+        self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame
+    ):
+        # Test with DataFrame
+        reindexed = mixin._df_reindex(df_0, df_1, "unique_id")
+        assert isinstance(reindexed, pl.DataFrame)
+        assert reindexed["unique_id"].to_list() == ["z", "a", "b"]
+        assert reindexed["A"].to_list() == [3, None, None]
+        assert reindexed["B"].to_list() == ["c", None, None]
+        assert reindexed["C"].to_list() == [True, None, None]
+        assert reindexed["D"].to_list() == [3, None, None]
+
+        # Test with list
+        reindexed = mixin._df_reindex(df_0, ["z", "a", "b"], "unique_id")
+        assert isinstance(reindexed, pl.DataFrame)
+        assert reindexed["unique_id"].to_list() == ["z", "a", "b"]
+        assert reindexed["A"].to_list() == [3, None, None]
+        assert reindexed["B"].to_list() == ["c", None, None]
+        assert reindexed["C"].to_list() == [True, None, None]
+        assert reindexed["D"].to_list() == [3, None, None]
 
     def test_df_rename_columns(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         renamed = mixin._df_rename_columns(df_0, ["A", "B"], ["X", "Y"])

@@ -136,6 +136,8 @@ class PolarsMixin(DataFrameMixin):
         )
         if index is not None:
             if index_cols is not None:
+                if isinstance(index_cols, str):
+                    index_cols = [index_cols]
                 index_df = pl.DataFrame(index, index_cols)
             else:
                 index_df = pl.DataFrame(index)
@@ -316,12 +318,7 @@ class PolarsMixin(DataFrameMixin):
             left_on, right_on = right_on, left_on
             how = "left"
         return left.join(
-            right,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            how=how,
-            suffix=suffix,
+            right, on=on, left_on=left_on, right_on=right_on, how=how, suffix=suffix
         )
 
     def _df_lt(
@@ -470,7 +467,7 @@ class PolarsMixin(DataFrameMixin):
             other = other.select(index_cols)
         else:
             # If other is a sequence, create a DataFrame with it
-            other = pl.DataFrame(index_cols=other)
+            other = pl.Series(name=index_cols, values=other).to_frame()
 
         # Perform a left join to reindex
         result = other.join(df, on=index_cols, how="left")
