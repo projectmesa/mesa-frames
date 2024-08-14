@@ -435,14 +435,20 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self, agents: IdsLike | AgentContainer | Collection[AgentContainer]
     ) -> Series:
         if isinstance(agents, AgentSetDF):
-            return self._srs_constructor(agents.index, name="agent_id")
+            return self._srs_constructor(
+                self._df_index(agents, "unique_id"), name="agent_id"
+            )
         elif isinstance(agents, AgentsDF):
             return self._srs_constructor(agents._ids, name="agent_id")
         elif isinstance(agents, Collection) and (isinstance(agents[0], AgentContainer)):
             ids = []
             for a in agents:
                 if isinstance(a, AgentSetDF):
-                    ids.append(self._srs_constructor(a.index, name="agent_id"))
+                    ids.append(
+                        self._srs_constructor(
+                            self._df_index(a, "unique_id"), name="agent_id"
+                        )
+                    )
                 elif isinstance(a, AgentsDF):
                     ids.append(self._srs_constructor(a._ids, name="agent_id"))
             return self._df_concat(ids, ignore_index=True)
@@ -752,8 +758,10 @@ class DiscreteSpaceDF(SpaceDF):
                 )
 
         if properties:
-            properties = obj._df_constructor(data=properties, index=cells_df.index)
-            cells_df = obj._df_concat([cells_df, properties], how="horizontal")
+            properties = obj._df_constructor(
+                data=properties, index=self._df_index(cells_df, obj._pos_col_names)
+            )
+            cells_df = obj._df_join(cells_df, properties, on=obj._pos_col_names)
 
         if "capacity" in obj._df_column_names(cells_df):
             obj._cells_capacity = obj._update_capacity_cells(cells_df)
@@ -1146,11 +1154,12 @@ class GridDF(DiscreteSpaceDF):
         self._agents = self._df_constructor(
             columns=["agent_id"] + self._pos_col_names,
             index_cols="agent_id",
-            dtypes={col: int for col in self._pos_col_names},
+            dtypes={col: int for col in ["agent_id"] + self._pos_col_names},
         )
         self._cells = self._df_constructor(
             columns=self._pos_col_names + ["capacity"],
             index_cols=self._pos_col_names,
+            dtypes={col: int for col in self._pos_col_names + ["capacity"]},
         )
         self._offsets = self._compute_offsets(neighborhood_type)
         self._cells_capacity = self._generate_empty_grid(dimensions, capacity)
@@ -1216,15 +1225,18 @@ class GridDF(DiscreteSpaceDF):
         # If radius is a sequence, get the maximum radius (we will drop unnecessary neighbors later, time-efficient but memory-inefficient)
         if isinstance(radius, Sequence):
             radius_srs = self._srs_constructor(radius, name="radius")
+            radius_df = self._srs_to_df(radius_srs)
             max_radius = radius_srs.max()
         else:
             max_radius = radius
 
-        range_srs = self._srs_range(name="radius", start=1, end=max_radius + 1)
+        range_df = self._srs_to_df(
+            self._srs_range(name="radius", start=1, end=max_radius + 1)
+        )
 
         neighbors_df = self._df_join(
             self._offsets,
-            range_srs,
+            range_df,
             how="cross",
         )
 
@@ -1293,6 +1305,7 @@ class GridDF(DiscreteSpaceDF):
             neighbors_df = self._df_concat(
                 [neighbors_df, in_between_df], how="vertical"
             )
+            radius_df = self._df_drop_columns(radius_df, "offset")
 
         neighbors_df = self._df_join(
             neighbors_df, pos_df, how="cross", suffix="_center"
@@ -1316,10 +1329,11 @@ class GridDF(DiscreteSpaceDF):
         # If radius is a sequence, filter unnecessary neighbors
         if isinstance(radius, Sequence):
             radius_df = self._df_rename_columns(
-                self._df_concat([pos_df, radius_srs], how="horizontal"),
+                self._df_concat([pos_df, radius_df], how="horizontal"),
                 self._pos_col_names + ["radius"],
                 self._center_col_names + ["max_radius"],
             )
+
             neighbors_df = self._df_join(
                 neighbors_df,
                 radius_df,
@@ -1358,7 +1372,7 @@ class GridDF(DiscreteSpaceDF):
             pos_df = self._df_with_columns(
                 pos_df,
                 data=0,
-                new_columns=["radius"],
+                new_columns="radius",
             )
             pos_df = self._df_concat([pos_df, center_df], how="horizontal")
 
@@ -1366,7 +1380,6 @@ class GridDF(DiscreteSpaceDF):
                 [pos_df, neighbors_df], how="vertical", ignore_index=True
             )
 
-        neighbors_df = self._df_reset_index(neighbors_df, drop=True)
         return neighbors_df
 
     def get_cells(
@@ -1422,7 +1435,9 @@ class GridDF(DiscreteSpaceDF):
             ),
             name="out_of_bounds",
         )
-        return self._df_concat(objs=[pos_df, out_of_bounds], how="horizontal")
+        return self._df_concat(
+            objs=[pos_df, self._srs_to_df(out_of_bounds)], how="horizontal"
+        )
 
     def remove_agents(
         self,
@@ -1626,7 +1641,11 @@ class GridDF(DiscreteSpaceDF):
             and (len(pos[0]) == len(self._dimensions))
         ):  # We only test the first coordinate for performance
             # This means that we have a collection of coordinates
-            return self._df_constructor(data=pos, columns=self._pos_col_names)
+            return self._df_constructor(
+                data=pos,
+                columns=self._pos_col_names,
+                dtypes={col: int for col in self._pos_col_names},
+            )
         elif isinstance(pos, Sequence) and len(pos) == len(self._dimensions):
             # This means that the sequence is already a sequence where each element is the
             # sequence of coordinates for dimension i
@@ -1636,9 +1655,17 @@ class GridDF(DiscreteSpaceDF):
                     step = c.step if c.step is not None else 1
                     stop = c.stop if c.stop is not None else self._dimensions[i]
                     pos[i] = self._srs_range(start=start, stop=stop, step=step)
-            return self._df_constructor(data=[pos], columns=self._pos_col_names)
+            return self._df_constructor(
+                data=[pos],
+                columns=self._pos_col_names,
+                dtypes={col: int for col in self._pos_col_names},
+            )
         elif isinstance(pos, int) and len(self._dimensions) == 1:
-            return self._df_constructor(data=[pos], columns=self._pos_col_names)
+            return self._df_constructor(
+                data=[pos],
+                columns=self._pos_col_names,
+                dtypes={col: int for col in self._pos_col_names},
+            )
         else:
             raise ValueError("Invalid coordinates")
 

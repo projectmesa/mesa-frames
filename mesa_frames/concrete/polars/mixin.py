@@ -61,12 +61,18 @@ class PolarsMixin(DataFrameMixin):
         new_df: pl.DataFrame,
         index_cols: str | list[str],
     ) -> pl.DataFrame:
+        original_df = original_df.with_columns(_index=pl.int_range(0, len(original_df)))
         common_cols = set(original_df.columns) & set(new_df.columns)
         merged_df = original_df.join(new_df, on=index_cols, how="full", suffix="_right")
-        merged_df = merged_df.with_columns(
-            pl.coalesce(pl.col(col), pl.col(f"{col}_right")).alias(col)
-            for col in common_cols
-        ).select(pl.exclude("^.*_right$"))
+        merged_df = (
+            merged_df.with_columns(
+                pl.coalesce(pl.col(col), pl.col(f"{col}_right")).alias(col)
+                for col in common_cols
+            )
+            .select(pl.exclude("^.*_right$"))
+            .sort("_index")
+            .drop("_index")
+        )
         return merged_df
 
     @overload
@@ -219,7 +225,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_get_bool_mask(
         self,
         df: pl.DataFrame,
-        index_cols: str | list[str],
+        index_cols: str | list[str] | None = None,
         mask: PolarsMask = None,
         negate: bool = False,
     ) -> pl.Series | pl.Expr:
@@ -234,10 +240,10 @@ class PolarsMixin(DataFrameMixin):
             return df[index_cols].is_in(mask)
 
         def bool_mask_from_df(mask: pl.DataFrame) -> pl.Series:
+            assert index_cols, list[str]
+            mask = mask[index_cols].unique()
             mask = mask.with_columns(in_it=True)
-            return df.join(mask[index_cols + ["in_it"]], on=index_cols, how="left")[
-                "in_it"
-            ].fill_null(False)
+            return df.join(mask, on=index_cols, how="left")["in_it"].fill_null(False)
 
         if isinstance(mask, pl.Expr):
             result = mask
@@ -269,7 +275,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_get_masked_df(
         self,
         df: pl.DataFrame,
-        index_cols: str,
+        index_cols: str | list[str] | None = None,
         mask: PolarsMask | None = None,
         columns: list[str] | None = None,
         negate: bool = False,
