@@ -994,7 +994,7 @@ class TestGridPandas:
             x for id in space.model.agents.index.values() for x in id.to_list()
         ] == [x for x in range(8)]
 
-    def test_sample_cells(self, grid_moore: GridPandas):
+    def test_sample_cells(self, grid_moore: GridPandas, model: ModelDF):
         # Test with default parameters
         replacement = False
         same = True
@@ -1063,6 +1063,13 @@ class TestGridPandas:
         # 2 should be the max number of full cells
         with pytest.raises(AssertionError):
             grid_moore.sample_cells(3, cell_type="full", with_replacement=False)
+
+        # Test with grid with infinite capacity
+        grid_moore = GridPandas(model, dimensions=[3, 3], capacity=np.inf)
+        result = grid_moore.sample_cells(10)
+        assert len(result) == 10
+        assert isinstance(result, pd.DataFrame)
+        assert result.columns.to_list() == ["dim_0", "dim_1"]
 
     def test_set_cells(self, model: ModelDF):
         grid_moore = GridPandas(model, dimensions=[3, 3], capacity=2)

@@ -3,7 +3,6 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 
@@ -49,6 +48,10 @@ class GridPandas(GridDF, PandasMixin):
     ) -> pd.DataFrame:
         # Get the coordinates of cells that meet the condition
         coords = np.array(np.where(condition(self._cells_capacity))).T
+
+        # If the grid has infinite capacity, there is no need to respect capacity
+        if np.any(self._cells_capacity == np.inf):
+            respect_capacity = False
 
         if respect_capacity and condition != self._full_cell_condition:
             capacities = self._cells_capacity[tuple(coords.T)]
