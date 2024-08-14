@@ -1111,6 +1111,10 @@ class TestGridPandas:
             {"dim_0": [0, 1, 2], "dim_1": [0, 1, 2], "property_2": [0, 1, 2]}
         )
         grid_moore.set_cells(df)
+        assert grid_moore.remaining_capacity == (2 * 3 * 3)
+        assert grid_moore.get_cells([[0, 0], [1, 1], [2, 2]])[
+            "property_2"
+        ].to_list() == [0, 1, 2]
 
         # Test with DataFrame with dimensions as index
         df = pd.DataFrame(
