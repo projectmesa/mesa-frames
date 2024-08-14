@@ -153,6 +153,15 @@ class DataFrameMixin(ABC):
         return self._df_get_masked_df(df, index_cols, mask, negate=True)
 
     @abstractmethod
+    def _df_and(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_add(
         self,
         df: DataFrame,
@@ -259,6 +268,15 @@ class DataFrameMixin(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
+    def _df_ge(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
     def _df_get_bool_mask(
         self,
         df: DataFrame,
@@ -283,6 +301,9 @@ class DataFrameMixin(ABC):
     ) -> Series: ...
 
     @abstractmethod
+    def _df_index(self, df: DataFrame, index_name: str) -> Index: ...
+
+    @abstractmethod
     def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
 
     @abstractmethod
@@ -300,6 +321,24 @@ class DataFrameMixin(ABC):
         | Literal["outer"]
         | Literal["cross"] = "left",
         suffix="_right",
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_lt(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_mod(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
     ) -> DataFrame: ...
 
     @abstractmethod
@@ -336,6 +375,23 @@ class DataFrameMixin(ABC):
         srs_name: str = "norm",
         include_cols: bool = False,
     ) -> Series | DataFrame: ...
+
+    @abstractmethod
+    def _df_or(
+        self,
+        df: DataFrame,
+        other: DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> DataFrame: ...
+
+    @abstractmethod
+    def _df_reindex(
+        self,
+        df: DataFrame,
+        other: Sequence[Hashable] | DataFrame,
+        index_cols: str | list[str],
+    ) -> DataFrame: ...
 
     @abstractmethod
     def _df_rename_columns(

@@ -1341,13 +1341,15 @@ class GridDF(DiscreteSpaceDF):
             neighbors_df = self._df_drop_duplicates(neighbors_df, self._pos_col_names)
 
         # Filter out-of-bound neighbors
-        neighbors_df = self._df_get_masked_df(
-            neighbors_df,
-            mask=self._df_all(
-                (neighbors_df[self._pos_col_names] < self._dimensions)
-                & (neighbors_df >= 0)
-            ),
+        mask = self._df_all(
+            self._df_and(
+                self._df_lt(
+                    neighbors_df[self._pos_col_names], self._dimensions, axis="columns"
+                ),
+                neighbors_df >= 0,
+            )
         )
+        neighbors_df = self._df_get_masked_df(neighbors_df, mask=mask)
 
         if include_center:
             center_df = self._df_rename_columns(
@@ -1409,7 +1411,15 @@ class GridDF(DiscreteSpaceDF):
             raise ValueError("This method is only valid for non-torus grids")
         pos_df = self._get_df_coords(pos, check_bounds=False)
         out_of_bounds = self._df_all(
-            (pos_df < 0) | (pos_df >= self._dimensions),
+            self._df_or(
+                pos_df < 0,
+                self._df_ge(
+                    pos_df,
+                    self._dimensions,
+                    axis="columns",
+                    index_cols=self._pos_col_names,
+                ),
+            ),
             name="out_of_bounds",
         )
         return self._df_concat(objs=[pos_df, out_of_bounds], how="horizontal")
@@ -1452,7 +1462,7 @@ class GridDF(DiscreteSpaceDF):
             The adjusted coordinates
         """
         df_coords = self._get_df_coords(pos)
-        df_coords = df_coords % self._dimensions
+        df_coords = self._df_mod(df_coords, self._dimensions, axis="columns")
         return df_coords
 
     def _calculate_differences(
@@ -1603,13 +1613,11 @@ class GridDF(DiscreteSpaceDF):
                 if agents.n_unique() != len(agents):
                     raise ValueError("Some agents are present multiple times")
         if agents is not None:
-            return self._df_reset_index(
-                self._df_get_masked_df(
-                    self._agents, index_cols="agent_id", mask=agents
-                ),
-                index_cols="agent_id",
-                drop=True,
+            df = self._df_get_masked_df(
+                self._agents, index_cols="agent_id", mask=agents
             )
+            df = self._df_reindex(df, agents, "agent_id")
+            return self._df_reset_index(df, index_cols="agent_id", drop=True)
         if isinstance(pos, DataFrame):
             return pos[self._pos_col_names]
         elif (

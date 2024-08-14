@@ -1,4 +1,4 @@
-from collections.abc import Collection, Hashable, Iterator, Sequence
+from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import numpy as np
@@ -18,6 +18,21 @@ class PandasMixin(DataFrameMixin):
         index_cols: str | list[str] | None = None,
     ) -> pd.DataFrame:
         return df.add(other=other, axis=axis)
+
+    def _df_and(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return self._df_logical_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x & y,
+            axis=axis,
+            index_cols=index_cols,
+        )
 
     def _df_all(
         self,
@@ -137,6 +152,15 @@ class PandasMixin(DataFrameMixin):
     ) -> pd.DataFrame:
         return df.drop_duplicates(subset=subset, keep=keep)
 
+    def _df_ge(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.ge(other, axis=axis)
+
     def _df_get_bool_mask(
         self,
         df: pd.DataFrame,
@@ -192,6 +216,16 @@ class PandasMixin(DataFrameMixin):
     ) -> pd.Series:
         return df.groupby(by).cumcount().rename(name) + 1
 
+    def _df_index(self, df: pd.DataFrame, index_col: str | list[str]) -> pd.Index:
+        if (
+            index_col is None
+            or df.index.name == index_col
+            or df.index.names == index_col
+        ):
+            return df.index
+        else:
+            return df.set_index(index_col).index
+
     def _df_iterator(self, df: pd.DataFrame) -> Iterator[dict[str, Any]]:
         for index, row in df.iterrows():
             row_dict = row.to_dict()
@@ -246,6 +280,50 @@ class PandasMixin(DataFrameMixin):
         else:
             return df
 
+    def _df_lt(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.lt(other, axis=axis)
+
+    def _df_logical_operation(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[bool],
+        operation: Callable[
+            [pd.DataFrame, Sequence[bool] | pd.DataFrame], pd.DataFrame
+        ],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        if isinstance(other, pd.DataFrame):
+            if index_cols is not None:
+                if df.index.name != index_cols:
+                    df = df.set_index(index_cols)
+                if other.index.name != index_cols:
+                    other = other.set_index(index_cols)
+            other = other.reindex(df.index, fill_value=np.nan)
+            return operation(df, other)
+        else:  # Sequence[bool]
+            other = pd.Series(other)
+            if axis == "index":
+                other.index = df.index
+                return operation(df, other.values[:, None]).astype(bool)
+            else:
+                return operation(df, other.values[None, :]).astype(bool)
+
+    def _df_mod(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[float | int],
+        axis: Literal["index", "columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return df.mod(other, axis=axis)
+
     def _df_mul(
         self,
         df: pd.DataFrame,
@@ -284,6 +362,31 @@ class PandasMixin(DataFrameMixin):
             return self._df_with_columns(df, srs, srs_name)
         else:
             return srs
+
+    def _df_or(
+        self,
+        df: pd.DataFrame,
+        other: pd.DataFrame | Sequence[bool],
+        axis: Literal["index"] | Literal["columns"] = "index",
+        index_cols: str | list[str] | None = None,
+    ) -> pd.DataFrame:
+        return self._df_logical_operation(
+            df=df,
+            other=other,
+            operation=lambda x, y: x | y,
+            axis=axis,
+            index_cols=index_cols,
+        )
+
+    def _df_reindex(
+        self,
+        df: pd.DataFrame,
+        other: Sequence[Hashable] | pd.DataFrame,
+        index_cols: str | list[str],
+    ) -> pd.DataFrame:
+        df = df.reindex(other)
+        df.index.name = index_cols
+        return df
 
     def _df_rename_columns(
         self,
