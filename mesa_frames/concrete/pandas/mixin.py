@@ -418,14 +418,19 @@ class PandasMixin(DataFrameMixin):
     def _df_set_index(
         self,
         df: pd.DataFrame,
-        index_name: str,
+        index_name: str | list[str],
         new_index: Sequence[Hashable] | None = None,
     ) -> pd.DataFrame:
         if new_index is None:
-            df = df.set_index(index_name)
+            if isinstance(index_name, str) and df.index == index_name:
+                return df
+            elif isinstance(index_name, list) and df.index.names == index_name:
+                return df
+            else:
+                return df.set_index(index_name)
         else:
             df = df.set_index(new_index)
-            df.index.name = index_name
+            df.index.rename(index_name, inplace=True)
         return df
 
     def _df_with_columns(

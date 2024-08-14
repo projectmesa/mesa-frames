@@ -1090,7 +1090,7 @@ class TestGridPandas:
         assert cell_df.iloc[0]["capacity"] == 1
         assert cell_df.iloc[0]["property_0"] == "value_0"
 
-        # Test with DataFrame
+        # Test with DataFrame with dimensions as columns
         df = pd.DataFrame(
             {"dim_0": [0, 1, 2], "dim_1": [0, 1, 2], "capacity": [2, 2, 2]}
         )
@@ -1102,6 +1102,24 @@ class TestGridPandas:
         assert cells_df.iloc[0]["capacity"] == 2
         assert cells_df.iloc[1]["capacity"] == 2
         assert cells_df.iloc[2]["capacity"] == 2
+        assert cells_df.iloc[0]["property_0"] == "value_0"
+        assert cells_df.iloc[1]["property_1"] == "value_1"
+        assert cells_df.iloc[2]["property_1"] == "value_1"
+
+        # Test with DataFrame with dimensions as index
+        df = pd.DataFrame(
+            {"capacity": [1, 1, 1]},
+            index=pd.MultiIndex.from_tuples(
+                [(0, 0), (1, 1), (2, 2)], names=["dim_0", "dim_1"]
+            ),
+        )
+        space = grid_moore.set_cells(df, inplace=False)
+        assert space.remaining_capacity == (2 * 3 * 3 - 3)
+
+        cells_df = space.get_cells([[0, 0], [1, 1], [2, 2]])
+        assert cells_df.iloc[0]["capacity"] == 1
+        assert cells_df.iloc[1]["capacity"] == 1
+        assert cells_df.iloc[2]["capacity"] == 1
         assert cells_df.iloc[0]["property_0"] == "value_0"
         assert cells_df.iloc[1]["property_1"] == "value_1"
         assert cells_df.iloc[2]["property_1"] == "value_1"
