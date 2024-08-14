@@ -988,7 +988,7 @@ class DiscreteSpaceDF(SpaceDF):
         return self._cells[key]
 
     def __setitem__(self, cells: DiscreteCoordinates, properties: DataFrame):
-        self.set_cells(properties=properties, cells_df=cells)
+        self.set_cells(cells=cells, properties=properties, inplace=True)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}\nCells:\n{self._cells.__repr__()}\nAgents:\n{self._agents.__repr__()}"
