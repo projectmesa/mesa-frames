@@ -138,7 +138,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             )
 
         if new_agents.index.dtype != "int64":
-            raise TypeError("unique_id must be of type int64.")
+            new_agents.index = new_agents.index.astype("int64")
 
         if not obj._agents.index.intersection(new_agents.index).empty:
             raise KeyError("Some IDs already exist in the agent set.")
