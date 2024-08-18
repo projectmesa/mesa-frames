@@ -585,3 +585,7 @@ class AgentsDF(AgentContainer):
     @property
     def index(self) -> dict[AgentSetDF, Index]:
         return {agentset: agentset.index for agentset in self._agentsets}
+
+    @property
+    def pos(self) -> dict[AgentSetDF, DataFrame]:
+        return {agentset: agentset.pos for agentset in self._agentsets}

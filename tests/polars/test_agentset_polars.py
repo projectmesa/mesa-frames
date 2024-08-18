@@ -5,7 +5,7 @@ import pytest
 import typeguard as tg
 from numpy.random import Generator
 
-from mesa_frames import AgentSetPolars, ModelDF
+from mesa_frames import AgentSetPolars, GridPandas, ModelDF
 
 
 @tg.typechecked
@@ -28,6 +28,7 @@ def fix1_AgentSetPolars() -> ExampleAgentSetPolars:
     agents.add({"unique_id": [0, 1, 2, 3]})
     agents["wealth"] = agents.starting_wealth
     agents["age"] = [10, 20, 30, 40]
+    model.agents.add(agents)
     return agents
 
 
@@ -426,3 +427,14 @@ class Test_AgentSetPolars:
 
         agents.select(agents.agents["wealth"] > 2, inplace=True)
         assert agents.inactive_agents["unique_id"].to_list() == [0, 1]
+
+    def test_pos(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
+        space = GridPandas(fix1_AgentSetPolars.model, dimensions=[3, 3], capacity=2)
+        fix1_AgentSetPolars.model.space = space
+        space.place_agents(agents=[0, 1], pos=[[0, 0], [1, 1]])
+        pos = fix1_AgentSetPolars.pos
+        assert isinstance(pos, pl.DataFrame)
+        assert pos["unique_id"].to_list() == [0, 1, 2, 3]
+        assert pos.columns == ["unique_id", "dim_0", "dim_1"]
+        assert pos["dim_0"].to_list() == [0, 1, None, None]
+        assert pos["dim_1"].to_list() == [0, 1, None, None]

@@ -438,3 +438,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
     @property
     def index(self) -> pd.Index:
         return self._agents.index
+
+    @property
+    def pos(self) -> pd.DataFrame:
+        return super().pos

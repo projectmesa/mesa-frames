@@ -553,3 +553,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     @property
     def index(self) -> pl.Series:
         return self._agents["unique_id"]
+
+    @property
+    def pos(self) -> pl.DataFrame:
+        return super().pos

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal
 from numpy.random import Generator
 from typing_extensions import Any, Self, overload
 
-from mesa_frames.abstract.mixin import CopyMixin
+from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
     AgentMask,
     BoolSeries,
@@ -668,8 +668,19 @@ class AgentContainer(CopyMixin):
         """
         ...
 
+    @property
+    @abstractmethod
+    def pos(self) -> DataFrame | dict[str, DataFrame]:
+        """The position of the agents in the AgentContainer.
 
-class AgentSetDF(AgentContainer):
+        Returns
+        -------
+        DataFrame | dict[str, DataFrame]
+        """
+        ...
+
+
+class AgentSetDF(AgentContainer, DataFrameMixin):
     """The AgentSetDF class is a container for agents of the same type.
 
     Attributes
@@ -1050,3 +1061,12 @@ class AgentSetDF(AgentContainer):
 
     @property
     def index(self) -> Index: ...
+
+    @property
+    def pos(self) -> DataFrame:
+        pos = self._df_constructor(self.space.agents, index_cols="agent_id")
+        pos = self._df_get_masked_df(df=pos, index_cols="agent_id", mask=self.index)
+        pos = self._df_reindex(
+            pos, self.index, new_index_cols="unique_id", original_index_cols="agent_id"
+        )
+        return pos

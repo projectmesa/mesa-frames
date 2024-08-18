@@ -1,3 +1,4 @@
+import math
 from copy import copy, deepcopy
 
 import pandas as pd
@@ -5,7 +6,7 @@ import pytest
 import typeguard as tg
 from numpy.random import Generator
 
-from mesa_frames import AgentSetPandas, ModelDF
+from mesa_frames import AgentSetPandas, GridPolars, ModelDF
 
 
 @tg.typechecked
@@ -28,7 +29,7 @@ def fix1_AgentSetPandas() -> ExampleAgentSetPandas:
     agents.add({"unique_id": [0, 1, 2, 3]})
     agents["wealth"] = agents.starting_wealth
     agents["age"] = [10, 20, 30, 40]
-
+    model.agents.add(agents)
     return agents
 
 
@@ -427,3 +428,16 @@ class Test_AgentSetPandas:
 
         agents.select(agents["wealth"] > 2, inplace=True)
         assert agents.inactive_agents.index.to_list() == [0, 1]
+
+    def test_pos(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
+        space = GridPolars(fix1_AgentSetPandas.model, dimensions=[3, 3], capacity=2)
+        fix1_AgentSetPandas.model.space = space
+        space.place_agents(agents=[0, 1], pos=[[0, 0], [1, 1]])
+        pos = fix1_AgentSetPandas.pos
+        assert isinstance(pos, pd.DataFrame)
+        assert pos.index.tolist() == [0, 1, 2, 3]
+        assert pos.columns.tolist() == ["dim_0", "dim_1"]
+        assert pos["dim_0"].tolist()[:2] == [0, 1]
+        assert all(math.isnan(val) for val in pos["dim_0"].tolist()[2:])
+        assert pos["dim_1"].tolist()[:2] == [0, 1]
+        assert all(math.isnan(val) for val in pos["dim_1"].tolist()[2:])
