@@ -2,12 +2,12 @@ from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import numpy as np
-import pandas as pd
-import polars as pl
-from typing_extensions import Any, overload
-
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import DataFrame, PandasMask
+from typing_extensions import Any, overload
+
+import pandas as pd
+import polars as pl
 
 
 class PandasMixin(DataFrameMixin):
@@ -121,7 +121,7 @@ class PandasMixin(DataFrameMixin):
         if dtypes:
             df = df.astype(dtypes)
         if index_cols:
-            df = df.set_index(index_cols)
+            df = self._df_set_index(df, index_name=index_cols)
         return df
 
     def _df_contains(
@@ -429,7 +429,7 @@ class PandasMixin(DataFrameMixin):
         new_index: Sequence[Hashable] | None = None,
     ) -> pd.DataFrame:
         if new_index is None:
-            if isinstance(index_name, str) and df.index == index_name:
+            if isinstance(index_name, str) and df.index.name == index_name:
                 return df
             elif isinstance(index_name, list) and df.index.names == index_name:
                 return df
