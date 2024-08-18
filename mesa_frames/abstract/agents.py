@@ -19,6 +19,7 @@ from mesa_frames.types_ import (
 )
 
 if TYPE_CHECKING:
+    from mesa_frames.abstract.space import SpaceDF
     from mesa_frames.concrete.agents import AgentSetDF
     from mesa_frames.concrete.model import ModelDF
 
@@ -590,6 +591,16 @@ class AgentContainer(CopyMixin):
         -------
         Generator"""
         return self.model.random
+
+    @property
+    def space(self) -> SpaceDF:
+        """The space of the model.
+
+        Returns
+        -------
+        SpaceDF
+        """
+        return self.model.space
 
     @property
     @abstractmethod
