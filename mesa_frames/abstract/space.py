@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING, Literal
 from warnings import warn
 
 import numpy as np
-import polars as pl
 from numpy.random import Generator
 from typing_extensions import Any, Self
 
+import polars as pl
 from mesa_frames import AgentsDF
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
@@ -1640,7 +1640,7 @@ class GridDF(DiscreteSpaceDF):
             df = self._df_reindex(df, agents, "agent_id")
             return self._df_reset_index(df, index_cols="agent_id", drop=True)
         if isinstance(pos, DataFrame):
-            return pos[self._pos_col_names]
+            return self._df_reset_index(pos[self._pos_col_names], drop=True)
         elif (
             isinstance(pos, Collection)
             and isinstance(pos[0], Collection)

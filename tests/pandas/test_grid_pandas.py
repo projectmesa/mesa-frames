@@ -627,10 +627,11 @@ class TestGridPandas:
         # Test with AgentsDF, pos=DataFrame
         pos = pd.DataFrame(
             {
+                "unaligned_index": range(1000, 1008),
                 "dim_0": [0, 1, 2, 0, 1, 2, 0, 1],
                 "dim_1": [2, 2, 2, 1, 1, 1, 0, 0],
             }
-        )
+        ).set_index("unaligned_index")
 
         with pytest.warns(RuntimeWarning):
             space = grid_moore.move_agents(
@@ -810,10 +811,12 @@ class TestGridPandas:
         # Test with AgentsDF, pos=DataFrame
         pos = pd.DataFrame(
             {
+                "unaligned_index": range(1000, 1008),
                 "dim_0": [0, 1, 2, 0, 1, 2, 0, 1],
                 "dim_1": [2, 2, 2, 1, 1, 1, 0, 0],
             }
-        )
+        ).set_index("unaligned_index")
+
         with pytest.warns(RuntimeWarning):
             space = grid_moore.place_agents(
                 agents=grid_moore.model.agents,
