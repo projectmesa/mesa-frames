@@ -17,6 +17,9 @@ class ExampleAgentSetPandas(AgentSetPandas):
     def add_wealth(self, amount: int) -> None:
         self.agents["wealth"] += amount
 
+    def step(self) -> None:
+        self.add_wealth(1)
+
 
 @pytest.fixture
 def fix1_AgentSetPandas() -> ExampleAgentSetPandas:

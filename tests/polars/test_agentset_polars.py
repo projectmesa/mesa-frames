@@ -17,6 +17,9 @@ class ExampleAgentSetPolars(AgentSetPolars):
     def add_wealth(self, amount: int) -> None:
         self["wealth"] += amount
 
+    def step(self) -> None:
+        self.add_wealth(1)
+
 
 @pytest.fixture
 def fix1_AgentSetPolars() -> ExampleAgentSetPolars:

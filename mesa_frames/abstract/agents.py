@@ -866,6 +866,11 @@ class AgentSetDF(AgentContainer):
     ) -> Series | DataFrame: ...
 
     @abstractmethod
+    def step(self) -> None: ...
+
+    """A single step of the AgentSetDF. This method should be overridden by subclasses."""
+
+    @abstractmethod
     def remove(self, agents: IdsLike, inplace: bool = True) -> Self: ...
 
     @abstractmethod

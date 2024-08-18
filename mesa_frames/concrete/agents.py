@@ -318,6 +318,23 @@ class AgentsDF(AgentContainer):
         ]
         return obj
 
+    def step(self, inplace=True) -> Self:
+        """Advance the state of the agents in the AgentsDF by one step.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Whether to update the AgentsDF in place, by default True
+
+        Returns
+        -------
+        Self
+        """
+        obj = self._get_obj(inplace)
+        for agentset in obj._agentsets:
+            agentset.step()
+        return obj
+
     def _check_ids_presence(self, other: list[AgentSetDF]) -> pl.DataFrame:
         """Check if the IDs of the agents to be added are unique.
 

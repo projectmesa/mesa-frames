@@ -476,6 +476,27 @@ class Test_AgentsDF:
             descending=True
         )
 
+    def test_step(
+        self,
+        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix_AgentsDF: AgentsDF,
+    ):
+        previous_wealth_0 = fix1_AgentSetPandas._agents["wealth"].copy()
+        previous_wealth_1 = fix2_AgentSetPolars._agents["wealth"].clone()
+
+        agents = fix_AgentsDF
+        agents.step()
+
+        assert (
+            agents._agentsets[0].agents["wealth"].to_list()
+            == (previous_wealth_0 + 1).to_list()
+        )
+        assert (
+            agents._agentsets[1].agents["wealth"].to_list()
+            == (previous_wealth_1 + 1).to_list()
+        )
+
     def test__check_ids_presence(
         self,
         fix_AgentsDF: AgentsDF,
