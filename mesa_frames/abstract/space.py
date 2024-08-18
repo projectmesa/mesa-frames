@@ -1156,10 +1156,15 @@ class GridDF(DiscreteSpaceDF):
             index_cols="agent_id",
             dtypes={col: int for col in ["agent_id"] + self._pos_col_names},
         )
+
+        cells_df_dtypes = {col: int for col in self._pos_col_names}
+        cells_df_dtypes.update(
+            {"capacity": float}  # Capacity can be float if we want to represent np.nan
+        )
         self._cells = self._df_constructor(
             columns=self._pos_col_names + ["capacity"],
             index_cols=self._pos_col_names,
-            dtypes={col: int for col in self._pos_col_names + ["capacity"]},
+            dtypes=cells_df_dtypes,
         )
         self._offsets = self._compute_offsets(neighborhood_type)
         self._cells_capacity = self._generate_empty_grid(dimensions, capacity)
