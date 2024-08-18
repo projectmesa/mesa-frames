@@ -134,8 +134,8 @@ class ModelDF:
             self.step()
 
     def step(self) -> None:
-        """A single step. Fill in here."""
-        raise NotImplementedError("step() method needs to be overridden in a subclass.")
+        """A single step. The default method calls the step() method of all agents. Overload as needed."""
+        self.agents.step()
 
     @property
     def agents(self) -> AgentsDF:
