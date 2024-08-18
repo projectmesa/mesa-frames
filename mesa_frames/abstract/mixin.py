@@ -236,7 +236,7 @@ class DataFrameMixin(ABC):
     @abstractmethod
     def _df_constructor(
         self,
-        data: Sequence[Sequence] | dict[str | Any] | None = None,
+        data: Sequence[Sequence] | dict[str | Any] | DataFrame | None = None,
         columns: list[str] | None = None,
         index: Index | None = None,
         index_cols: str | list[str] | None = None,

@@ -279,7 +279,8 @@ class TestPolarsMixin:
         data = pd.DataFrame({"num": [1, 2, 3], "letter": ["a", "b", "c"]})
         df = mixin._df_constructor(data)
         assert isinstance(df, pl.DataFrame)
-        assert list(df.columns) == ["num", "letter"]
+        assert list(df.columns) == ["index", "num", "letter"]
+        assert df["index"].to_list() == [0, 1, 2]
         assert df["num"].to_list() == [1, 2, 3]
         assert df["letter"].to_list() == ["a", "b", "c"]
 

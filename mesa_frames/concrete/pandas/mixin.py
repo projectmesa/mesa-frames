@@ -3,10 +3,11 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+import polars as pl
 from typing_extensions import Any, overload
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import PandasMask
+from mesa_frames.types_ import DataFrame, PandasMask
 
 
 class PandasMixin(DataFrameMixin):
@@ -105,13 +106,18 @@ class PandasMixin(DataFrameMixin):
 
     def _df_constructor(
         self,
-        data: Sequence[Sequence] | dict[str | Any] | None = None,
+        data: Sequence[Sequence] | dict[str | Any] | DataFrame | None = None,
         columns: list[str] | None = None,
         index: Sequence[Hashable] | None = None,
         index_cols: str | list[str] | None = None,
         dtypes: dict[str, Any] | None = None,
     ) -> pd.DataFrame:
-        df = pd.DataFrame(data=data, columns=columns, index=index)
+        if isinstance(data, pd.DataFrame):
+            df = data
+        elif isinstance(data, pl.DataFrame):
+            df = data.to_pandas()
+        else:
+            df = pd.DataFrame(data=data, columns=columns, index=index)
         if dtypes:
             df = df.astype(dtypes)
         if index_cols:
