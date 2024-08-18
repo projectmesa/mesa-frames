@@ -388,10 +388,11 @@ class PandasMixin(DataFrameMixin):
         self,
         df: pd.DataFrame,
         other: Sequence[Hashable] | pd.DataFrame,
-        index_cols: str | list[str],
+        new_index_cols: str | list[str],
+        original_index_cols: str | list[str] | None = None,
     ) -> pd.DataFrame:
         df = df.reindex(other)
-        df.index.name = index_cols
+        df.index.name = new_index_cols
         return df
 
     def _df_rename_columns(

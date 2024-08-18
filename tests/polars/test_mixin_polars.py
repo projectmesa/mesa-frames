@@ -661,6 +661,20 @@ class TestPolarsMixin:
         assert reindexed["C"].to_list() == [True, None, None]
         assert reindexed["D"].to_list() == [3, None, None]
 
+        # Test reindexing with a different column name
+        reindexed = mixin._df_reindex(
+            df_0,
+            ["z", "a", "b"],
+            new_index_cols="new_index",
+            original_index_cols="unique_id",
+        )
+        assert isinstance(reindexed, pl.DataFrame)
+        assert reindexed["new_index"].to_list() == ["z", "a", "b"]
+        assert reindexed["A"].to_list() == [3, None, None]
+        assert reindexed["B"].to_list() == ["c", None, None]
+        assert reindexed["C"].to_list() == [True, None, None]
+        assert reindexed["D"].to_list() == [3, None, None]
+
     def test_df_rename_columns(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         renamed = mixin._df_rename_columns(df_0, ["A", "B"], ["X", "Y"])
         assert renamed.columns == ["unique_id", "X", "Y", "C", "D"]

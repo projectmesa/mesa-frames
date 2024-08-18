@@ -390,7 +390,8 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         other: Sequence[Hashable] | DataFrame,
-        index_cols: str | list[str],
+        new_index_cols: str | list[str],
+        original_index_cols: str | list[str] | None = None,
     ) -> DataFrame: ...
 
     @abstractmethod

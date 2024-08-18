@@ -463,17 +463,22 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.DataFrame,
         other: Sequence[Hashable] | pl.DataFrame,
-        index_cols: str | list[str],
+        new_index_cols: str | list[str],
+        original_index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
         # If other is a DataFrame, extract the index columns
         if isinstance(other, pl.DataFrame):
-            other = other.select(index_cols)
+            other = other.select(new_index_cols)
         else:
             # If other is a sequence, create a DataFrame with it
-            other = pl.Series(name=index_cols, values=other).to_frame()
+            other = pl.Series(name=new_index_cols, values=other).to_frame()
 
         # Perform a left join to reindex
-        result = other.join(df, on=index_cols, how="left")
+        if original_index_cols is None:
+            original_index_cols = new_index_cols
+        result = other.join(
+            df, left_on=new_index_cols, right_on=original_index_cols, how="left"
+        )
         return result
 
     def _df_rename_columns(
