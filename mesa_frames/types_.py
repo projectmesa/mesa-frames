@@ -38,7 +38,7 @@ BoolSeries = pd.Series | pl.Series
 Mask = PandasMask | PolarsMask
 AgentMask = AgentPandasMask | AgentPolarsMask
 IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike
-
+ArrayLike = ndarray | Series | Sequence
 
 ###----- Time ------###
 TimeT = float | int
