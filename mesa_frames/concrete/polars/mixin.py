@@ -492,7 +492,7 @@ class PolarsMixin(DataFrameMixin):
         index_cols: str | list[str] | None = None,
         drop: bool = False,
     ) -> pl.DataFrame:
-        if drop:
+        if drop and index_cols is not None:
             return df.drop(index_cols)
         else:
             return df
