@@ -3,12 +3,11 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 import polars as pl
-from typing_extensions import Any, Self, overload
-
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 from mesa_frames.concrete.polars.agentset import AgentSetPolars
 from mesa_frames.types_ import AgentPandasMask, PandasIdsLike
+from typing_extensions import Any, Self, overload
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
@@ -178,7 +177,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         if attr_names is None:
             return self._agents.loc[mask]
         else:
-            if attr_names == "unique_id":
+            if isinstance(attr_names, str) and attr_names == "unique_id":
                 return self._agents.loc[mask].index
             if isinstance(attr_names, str):
                 return self._agents.loc[mask, attr_names]
