@@ -228,28 +228,41 @@ class AgentsDF(AgentContainer):
     ) -> Self:
         obj = self._get_obj(inplace)
         if isinstance(agents, AgentSetDF):
+            agents = [agents]
+        if isinstance(agents, Iterable) and isinstance(next(iter(agents)), AgentSetDF):
             # We have to get the index of the original AgentSetDF because the copy made AgentSetDFs with different hash
-            id = self._agentsets.index(agents)
-            obj._agentsets.pop(id)
-        elif isinstance(agents, Iterable) and isinstance(
-            next(iter(agents)), AgentSetDF
-        ):
             ids = [self._agentsets.index(agentset) for agentset in iter(agents)]
             ids.sort(reverse=True)
+            removed_ids = pl.Series(dtype=pl.Int64)
             for id in ids:
+                removed_ids = pl.concat(
+                    [removed_ids, pl.Series(obj._agentsets[id].index)]
+                )
                 obj._agentsets.pop(id)
+
         else:  # IDsLike
-            deleted = 0
             if isinstance(agents, int):
                 agents = [agents]
+            elif isinstance(agents, DataFrame):
+                agents = agents["unique_id"]
+            removed_ids = pl.Series(agents)
+            deleted = 0
+
             for agentset in obj._agentsets:
                 initial_len = len(agentset)
-                agentset.discard(agents, inplace=True)
+                agentset._discard(removed_ids)
                 deleted += initial_len - len(agentset)
-            if deleted < len(list(agents)):  # TODO: fix type hint
+                if deleted == len(removed_ids):
+                    break
+            if deleted < len(removed_ids):  # TODO: fix type hint
                 raise KeyError(
                     "There exist some IDs which are not present in any agentset"
                 )
+        try:
+            obj.space.remove_agents(removed_ids, inplace=True)
+        except ValueError:
+            pass
+        obj._ids = obj._ids.is_in(removed_ids).not_()
         return obj
 
     def select(

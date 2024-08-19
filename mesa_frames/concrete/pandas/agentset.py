@@ -185,23 +185,6 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             if isinstance(attr_names, Collection):
                 return self._agents.loc[mask, list(attr_names)]
 
-    def remove(
-        self,
-        ids: PandasIdsLike,
-        inplace: bool = True,
-    ) -> Self:
-        obj = self._get_obj(inplace)
-        initial_len = len(obj._agents)
-        mask = obj._get_bool_mask(ids)
-        remove_ids = obj._agents[mask].index
-        original_active_indices = obj._mask.index[obj._mask].copy()
-        obj._agents.drop(remove_ids, inplace=True)
-        if len(obj._agents) == initial_len:
-            raise KeyError("Some IDs were not found in agent set.")
-
-        self._update_mask(original_active_indices)
-        return obj
-
     def set(
         self,
         attr_names: str | dict[str, Any] | Collection[str] | None = None,
@@ -325,10 +308,12 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             )
         elif isinstance(mask, list):
             return pd.Series(self._agents.index.isin(mask), index=self._agents.index)
-        elif mask is None or mask == "all":
+        elif mask is None or isinstance(mask, str) and mask == "all":
             return pd.Series(True, index=self._agents.index)
-        elif mask == "active":
+        elif isinstance(mask, str) and mask == "active":
             return self._mask
+        elif isinstance(mask, Collection):
+            return pd.Series(self._agents.index.isin(mask), index=self._agents.index)
         else:
             return pd.Series(self._agents.index.isin([mask]), index=self._agents.index)
 
@@ -372,6 +357,17 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         self, obj: pd.Series | pd.DataFrame | pd.Index
     ) -> pd.Series | pd.DataFrame | pd.Index:
         return obj.copy()
+
+    def _discard(
+        self,
+        ids: PandasIdsLike,
+    ) -> Self:
+        mask = self._get_bool_mask(ids)
+        remove_ids = self._agents[mask].index
+        original_active_indices = self._mask.index[self._mask].copy()
+        self._agents.drop(remove_ids, inplace=True)
+        self._update_mask(original_active_indices)
+        return self
 
     def _update_mask(
         self,

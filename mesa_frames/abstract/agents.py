@@ -892,8 +892,14 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     """A single step of the AgentSetDF. This method should be overridden by subclasses."""
 
-    @abstractmethod
-    def remove(self, agents: IdsLike, inplace: bool = True) -> Self: ...
+    def remove(self, agents: IdsLike, inplace: bool = True) -> Self:
+        agents = self._df_index(self._get_masked_df(agents), "unique_id")
+        agentsdf = self.model.agents.remove(agents, inplace=inplace)
+        # TODO: Refactor AgentsDF to return dict[str, AgentSetDF] instead of dict[AgentSetDF, DataFrame]
+        # And assign a name to AgentSetDF? This has to be replaced by a nicer API of AgentsDF
+        for agentset in agentsdf.agents.keys():
+            if isinstance(agentset, self.__class__):
+                return agentset
 
     @abstractmethod
     def _concatenate_agentsets(
@@ -947,6 +953,22 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     def _get_obj_copy(
         self, obj: DataFrame | Series | Index
     ) -> DataFrame | Series | Index: ...
+
+    @abstractmethod
+    def _discard(self, ids: IdsLike) -> Self:
+        """Removes an agent from the DataFrame of the AgentSetDF. Gets called by self.model.agents.remove and self.model.agents.discard.
+
+
+        Parameters
+        ----------
+        ids : IdsLike
+            The ids to remove
+
+        Returns
+        -------
+        Self
+        """
+        ...
 
     @abstractmethod
     def _update_mask(

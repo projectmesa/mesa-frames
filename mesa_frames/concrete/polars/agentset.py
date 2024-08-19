@@ -199,22 +199,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             return masked_df[masked_df.columns[0]]
         return masked_df
 
-    def remove(self, ids: PolarsIdsLike, inplace: bool = True) -> Self:
-        obj = self._get_obj(inplace=inplace)
-        initial_len = len(obj._agents)
-        mask = obj._get_bool_mask(ids)
-
-        if isinstance(obj._mask, pl.Series):
-            original_active_indices = obj._agents.filter(obj._mask)["unique_id"]
-
-        obj._agents = obj._agents.filter(mask.not_())
-        if len(obj._agents) == initial_len:
-            raise KeyError(f"IDs {ids} not found in agent set.")
-
-        if isinstance(obj._mask, pl.Series):
-            obj._update_mask(original_active_indices)
-        return obj
-
     def set(
         self,
         attr_names: str | Collection[str] | dict[str, Any] | None = None,
@@ -468,6 +452,19 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     def _get_obj_copy(self, obj: pl.Series | pl.DataFrame) -> pl.Series | pl.DataFrame:
         return obj.clone()
+
+    def _discard(self, ids: PolarsIdsLike) -> Self:
+        mask = self._get_bool_mask(ids)
+
+        if isinstance(self._mask, pl.Series):
+            original_active_indices = self._agents.filter(self._mask)["unique_id"]
+
+        self._agents = self._agents.filter(mask.not_())
+
+        if isinstance(self._mask, pl.Series):
+            self._update_mask(original_active_indices)
+
+        return self
 
     def _update_mask(
         self, original_active_indices: pl.Series, new_indices: pl.Series | None = None

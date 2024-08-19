@@ -39,7 +39,22 @@ def fix2_AgentSetPolars() -> ExampleAgentSetPolars:
     agents.add({"unique_id": [4, 5, 6, 7]})
     agents["wealth"] = agents.starting_wealth + 10
     agents["age"] = [100, 200, 300, 400]
+
+    model.agents.add(agents)
+    space = GridPandas(model, dimensions=[3, 3], capacity=2)
+    model.space = space
+    space.place_agents(agents=[4, 5], pos=[[2, 1], [1, 2]])
     return agents
+
+
+@pytest.fixture
+def fix1_AgentSetPolars_with_pos(
+    fix1_AgentSetPolars: ExampleAgentSetPolars,
+) -> ExampleAgentSetPolars:
+    space = GridPandas(fix1_AgentSetPolars.model, dimensions=[3, 3], capacity=2)
+    fix1_AgentSetPolars.model.space = space
+    space.place_agents(agents=[0, 1], pos=[[0, 0], [1, 1]])
+    return fix1_AgentSetPolars
 
 
 class Test_AgentSetPolars:
@@ -102,25 +117,38 @@ class Test_AgentSetPolars:
         agents2.test_list[0].append(4)
         assert agents.test_list[-1] != agents2.test_list[-1]
 
-    def test_discard(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
-        agents = fix1_AgentSetPolars
+    def test_discard(self, fix1_AgentSetPolars_with_pos: ExampleAgentSetPolars):
+        agents = fix1_AgentSetPolars_with_pos
 
         # Test with a single value
         result = agents.discard(0, inplace=False)
         assert result.agents["unique_id"].to_list() == [1, 2, 3]
+        assert result.pos["unique_id"].to_list() == [1, 2, 3]
+        assert result.pos["dim_0"].to_list() == [1, None, None]
+        assert result.pos["dim_1"].to_list() == [1, None, None]
+        result += pl.DataFrame({"unique_id": [0]})
 
         # Test with a list
         result = agents.discard([0, 1], inplace=False)
         assert result.agents["unique_id"].to_list() == [2, 3]
+        assert result.pos["unique_id"].to_list() == [2, 3]
+        assert result.pos["dim_0"].to_list() == [None, None]
+        assert result.pos["dim_1"].to_list() == [None, None]
 
         # Test with a pl.DataFrame
         result = agents.discard(pl.DataFrame({"unique_id": [0, 1]}), inplace=False)
         assert result.agents["unique_id"].to_list() == [2, 3]
+        assert result.pos["unique_id"].to_list() == [2, 3]
+        assert result.pos["dim_0"].to_list() == [None, None]
+        assert result.pos["dim_1"].to_list() == [None, None]
 
         # Test with active_agents
         agents.active_agents = [0, 1]
         result = agents.discard("active", inplace=False)
         assert result.agents["unique_id"].to_list() == [2, 3]
+        assert result.pos["unique_id"].to_list() == [2, 3]
+        assert result.pos["dim_0"].to_list() == [None, None]
+        assert result.pos["dim_1"].to_list() == [None, None]
 
     def test_do(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
@@ -428,11 +456,8 @@ class Test_AgentSetPolars:
         agents.select(agents.agents["wealth"] > 2, inplace=True)
         assert agents.inactive_agents["unique_id"].to_list() == [0, 1]
 
-    def test_pos(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
-        space = GridPandas(fix1_AgentSetPolars.model, dimensions=[3, 3], capacity=2)
-        fix1_AgentSetPolars.model.space = space
-        space.place_agents(agents=[0, 1], pos=[[0, 0], [1, 1]])
-        pos = fix1_AgentSetPolars.pos
+    def test_pos(self, fix1_AgentSetPolars_with_pos: ExampleAgentSetPolars):
+        pos = fix1_AgentSetPolars_with_pos.pos
         assert isinstance(pos, pl.DataFrame)
         assert pos["unique_id"].to_list() == [0, 1, 2, 3]
         assert pos.columns == ["unique_id", "dim_0", "dim_1"]
