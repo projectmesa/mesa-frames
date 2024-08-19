@@ -19,7 +19,6 @@ from mesa_frames.types_ import (
     DiscreteCoordinate,
     DiscreteCoordinates,
     DiscreteSpaceCapacity,
-    GeoDataFrame,
     GridCapacity,
     GridCoordinate,
     GridCoordinates,
@@ -91,7 +90,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     """
 
     _model: "ModelDF"
-    _agents: DataFrame | GeoDataFrame  # Stores the agents placed in the space
+    _agents: DataFrame  # | GeoDataFrame  # Stores the agents placed in the space
     _center_col_names: list[
         str
     ]  # The column names of the center pos/agents in the neighbors/neighborhood method (eg. ['dim_0_center', 'dim_1_center', ...] in Grids, ['node_id_center', 'edge_id_center'] in Networks)
@@ -490,7 +489,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     def __str__(self) -> str: ...
 
     @property
-    def agents(self) -> DataFrame | GeoDataFrame:
+    def agents(self) -> DataFrame:  # | GeoDataFrame:
         """Get the ids of the agents placed in the cell set, along with their coordinates or geometries
 
         Returns
