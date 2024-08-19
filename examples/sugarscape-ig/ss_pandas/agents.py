@@ -1,12 +1,26 @@
 import numpy as np
-from mesa_frames import AgentSetPandas, ModelDF
-
 import pandas as pd
+from mesa_frames import AgentSetPandas, ModelDF
 
 
 class AntPandas(AgentSetPandas):
-    def __init__(self, model: ModelDF, n_agents: int):
+    def __init__(
+        self,
+        model: ModelDF,
+        n_agents: int,
+        initial_sugar: np.ndarray | None = None,
+        metabolism: np.ndarray | None = None,
+        vision: np.ndarray | None = None,
+    ):
         super().__init__(model)
+
+        if initial_sugar is None:
+            initial_sugar = model.random.integers(6, 25, n_agents)
+        if metabolism is None:
+            metabolism = model.random.integers(2, 4, n_agents)
+        if vision is None:
+            vision = model.random.integers(1, 6, n_agents)
+
         agents = pd.DataFrame(
             {
                 "unique_id": np.arange(n_agents),
@@ -54,8 +68,10 @@ class AntPandas(AgentSetPandas):
             neighborhood["agent_order"] >= neighborhood["blocking_agent_order"]
         ]
 
-        # Sort cells by sugar
-        neighborhood = neighborhood.sort_values("sugar", ascending=False)
+        # Sort cells by sugar and radius (nearest first)
+        neighborhood = neighborhood.sort_values(
+            "sugar", "radius", ascending=[False, True]
+        )
 
         best_moves = pd.DataFrame()
 

@@ -1,21 +1,36 @@
 import numpy as np
-from agents import AntPandas
+import pandas as pd
 from mesa_frames import GridPandas, ModelDF
 
-import pandas as pd
+from .agents import AntPandas
 
 
 class SugarscapePandas(ModelDF):
-    def __init__(self, grid_dimensions: list[int], n_agents: int):
+    def __init__(
+        self,
+        n_agents: int,
+        sugar_grid: np.ndarray | None = None,
+        initial_sugar: np.ndarray | None = None,
+        metabolism: np.ndarray | None = None,
+        vision: np.ndarray | None = None,
+        width: int | None = None,
+        height: int | None = None,
+    ):
         super().__init__()
+
+        if sugar_grid is None:
+            sugar_grid = self.random.integers(0, 4, (width, height))
+        else:
+            grid_dimensions = sugar_grid.shape
         self.space = GridPandas(
             self, grid_dimensions, neighborhood_type="von_neumann", capacity=1
         )
+
         # NOTE: set_cells should automatically broadcast the property if the dimensions of DF
         # are same as the grid so there is no need to pass the dimensions with pd.MultiIndex
         sugar_grid = pd.DataFrame(
             {
-                "sugar": self.random.integers(0, 4, grid_dimensions).flatten(),
+                "sugar": sugar_grid.flatten(),
             },
             index=pd.MultiIndex.from_product(
                 [np.arange(grid_dimensions[0]), np.arange(grid_dimensions[1])],
@@ -23,13 +38,9 @@ class SugarscapePandas(ModelDF):
             ),
         )
         self.space.set_cells(sugar_grid)
-        self.agents += AntPandas(self, n_agents)
+        self.agents += AntPandas(self, n_agents, initial_sugar, metabolism, vision)
         self.space.place_to_empty(self.agents)
 
     def run_model(self, steps: int) -> list[int]:
-        agents_count = []
-        for i in range(steps):
-            print(f"Step {i}")
+        for _ in range(steps):
             self.step()
-            agents_count.append(len(self.agents))
-        return agents_count
