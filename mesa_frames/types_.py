@@ -1,8 +1,8 @@
 from collections.abc import Collection, Sequence
 from typing import Literal
 
-import geopandas as gpd
-import geopolars as gpl
+# import geopandas as gpd
+# import geopolars as gpl
 import pandas as pd
 import polars as pl
 from numpy import ndarray
@@ -30,7 +30,7 @@ PolarsIdsLike = AgnosticIds | pl.Series
 PolarsGridCapacity = list[pl.Expr]
 
 ###----- Generic -----###
-GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
+# GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 DataFrame = pd.DataFrame | pl.DataFrame
 Series = pd.Series | pl.Series
 Index = pd.Index | pl.Series
