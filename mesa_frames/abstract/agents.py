@@ -416,9 +416,11 @@ class AgentContainer(CopyMixin):
         if isinstance(key, tuple):
             return self.get(mask=key[0], attr_names=key[1])
         else:
-            try:
+            if isinstance(key, str) or (
+                isinstance(key, Collection) and all(isinstance(k, str) for k in key)
+            ):
                 return self.get(attr_names=key)
-            except KeyError:
+            else:
                 return self.get(mask=key)
 
     def __iadd__(self, other) -> Self:
