@@ -1,9 +1,7 @@
 from abc import abstractmethod
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
 from typing import TYPE_CHECKING, Literal
-
-from collections.abc import Sized
 from warnings import warn
 
 import numpy as np
@@ -890,7 +888,7 @@ class DiscreteSpaceDF(SpaceDF):
         if __debug__:
             # Check ids presence in model
             b_contained = self.model.agents.contains(agents)
-            if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
+            if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
                 raise ValueError("Some agents are not in the model")
@@ -1461,7 +1459,7 @@ class GridDF(DiscreteSpaceDF):
         if __debug__:
             # Check ids presence in model
             b_contained = obj.model.agents.contains(agents)
-            if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
+            if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
                 raise ValueError("Some agents are not in the model")
@@ -1624,14 +1622,16 @@ class GridDF(DiscreteSpaceDF):
                 agents = self._get_ids_srs(agents)
                 # Check ids presence in model
                 b_contained = self.model.agents.contains(agents)
-                if (isinstance(b_contained, pl.Series) and not b_contained.all()) or (
+                if (isinstance(b_contained, Series) and not b_contained.all()) or (
                     isinstance(b_contained, bool) and not b_contained
                 ):
                     raise ValueError("Some agents are not present in the model")
 
                 # Check ids presence in the grid
                 b_contained = self._df_contains(self._agents, "agent_id", agents)
-                if not b_contained.all():
+                if (isinstance(b_contained, Series) and not b_contained.all()) or (
+                    isinstance(b_contained, bool) and not b_contained
+                ):
                     raise ValueError("Some agents are not placed in the grid")
                 # Check ids are unique
                 agents = pl.Series(agents)
@@ -1698,7 +1698,9 @@ class GridDF(DiscreteSpaceDF):
 
             # Check if agents are present in the model
             b_contained = self.model.agents.contains(agents)
-            if not b_contained.all():
+            if (isinstance(b_contained, Series) and not b_contained.all()) or (
+                isinstance(b_contained, bool) and not b_contained
+            ):
                 raise ValueError("Some agents are not present in the model")
 
             # Check if there is enough capacity
