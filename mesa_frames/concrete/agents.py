@@ -264,7 +264,7 @@ class AgentsDF(AgentContainer):
             obj.space.remove_agents(removed_ids, inplace=True)
         except ValueError:
             pass
-        obj._ids = obj._ids.is_in(removed_ids).not_()
+        obj._ids = obj._ids.filter(obj._ids.is_in(removed_ids).not_())
         return obj
 
     def select(
