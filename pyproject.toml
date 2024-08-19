@@ -19,11 +19,11 @@ dependencies = [
 pandas = [
   "pandas~=2.2",
   "pyarrow",
-  "geopandas"
+  #"geopandas" (only after GeoGrid / ContinousSpace is implemented)
 ]
 polars = [
   "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
-  "geopolars"
+  #"geopolars" (currently in pre-alpha)
 ]
 
 dev = [
