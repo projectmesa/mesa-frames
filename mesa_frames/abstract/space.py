@@ -2,13 +2,15 @@ from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from itertools import product
 from typing import TYPE_CHECKING, Literal
+
+from collections.abc import Sized
 from warnings import warn
 
 import numpy as np
+import polars as pl
 from numpy.random import Generator
 from typing_extensions import Any, Self
 
-import polars as pl
 from mesa_frames import AgentsDF
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
@@ -435,6 +437,8 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     def _get_ids_srs(
         self, agents: IdsLike | AgentContainer | Collection[AgentContainer]
     ) -> Series:
+        if isinstance(agents, Sized) and len(agents) == 0:
+            return self._srs_constructor([], name="agent_id")
         if isinstance(agents, AgentSetDF):
             return self._srs_constructor(
                 self._df_index(agents, "unique_id"), name="agent_id"
