@@ -150,6 +150,10 @@ class Test_AgentSetPolars:
         assert result.pos["dim_0"].to_list() == [None, None]
         assert result.pos["dim_1"].to_list() == [None, None]
 
+        # Test with empty list
+        result = agents.discard([], inplace=False)
+        assert result.agents["unique_id"].to_list() == [0, 1, 2, 3]
+
     def test_do(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
 

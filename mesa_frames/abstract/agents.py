@@ -895,6 +895,8 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     """A single step of the AgentSetDF. This method should be overridden by subclasses."""
 
     def remove(self, agents: IdsLike, inplace: bool = True) -> Self:
+        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
+            return self._get_obj(inplace)
         agents = self._df_index(self._get_masked_df(agents), "unique_id")
         agentsdf = self.model.agents.remove(agents, inplace=inplace)
         # TODO: Refactor AgentsDF to return dict[str, AgentSetDF] instead of dict[AgentSetDF, DataFrame]

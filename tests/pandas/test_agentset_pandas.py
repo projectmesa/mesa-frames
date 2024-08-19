@@ -152,6 +152,10 @@ class Test_AgentSetPandas:
         assert all(math.isnan(val) for val in result.pos["dim_1"].to_list())
         result += pd.DataFrame({"unique_id": 0, "wealth": 1, "age": 10}, index=[0])
 
+        # Test with empty list
+        result = agents.discard([], inplace=False)
+        assert result.agents.index.to_list() == [0, 1, 2, 3]
+
     def test_do(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
         agents = fix1_AgentSetPandas
 

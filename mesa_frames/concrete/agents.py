@@ -227,6 +227,8 @@ class AgentsDF(AgentContainer):
         self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike, inplace: bool = True
     ) -> Self:
         obj = self._get_obj(inplace)
+        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
+            return obj
         if isinstance(agents, AgentSetDF):
             agents = [agents]
         if isinstance(agents, Iterable) and isinstance(next(iter(agents)), AgentSetDF):
