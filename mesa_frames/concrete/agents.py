@@ -140,18 +140,20 @@ class AgentsDF(AgentContainer):
     def contains(
         self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]
     ) -> bool | pl.Series:
-        if isinstance(agents, AgentSetDF):
+        if isinstance(agents, int):
+            return agents in self._ids
+        elif isinstance(agents, AgentSetDF):
             return self._check_agentsets_presence([agents]).any()
-        elif isinstance(agents, Iterable) and isinstance(
-            next(iter(agents)), AgentSetDF
-        ):
-            agents = cast(Iterable[AgentSetDF], agents)
-            return self._check_agentsets_presence(list(agents))
-        else:
-            agents = cast(IdsLike, agents)
-            if isinstance(agents, int):
-                return agents in self._ids
-            return pl.Series(agents).is_in(self._ids)
+        elif isinstance(agents, Iterable):
+            if len(agents) == 0:
+                return True
+            elif isinstance(next(iter(agents)), AgentSetDF):
+                agents = cast(Iterable[AgentSetDF], agents)
+                return self._check_agentsets_presence(list(agents))
+            else:  # IDsLike
+                agents = cast(IdsLike, agents)
+
+                return pl.Series(agents).is_in(self._ids)
 
     @overload
     def do(
