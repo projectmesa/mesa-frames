@@ -30,7 +30,6 @@ docs = [
   "perfplot", #readme_script
   "seaborn", #readme_script
   "mkdocs-material",
-  "mkdocstrings[python]",
   "mkdocs-jupyter",
   "mkdocs-git-revision-date-localized-plugin",
   "mkdocs-minify-plugin"

@@ -43,14 +43,6 @@ theme:
 # Plugins
 plugins:
   - search
-  - mkdocstrings:
-      handlers:
-        python:
-          setup_commands:
-            - import sys
-            - sys.path.append("../mesa-frames")
-          options:
-            docstring_style: numpy
   - mkdocs-jupyter
   - git-revision-date-localized:
       enable_creation_date: true
@@ -114,11 +106,7 @@ nav:
   - User Guide:
     - Getting Started: user-guide/getting-started.md
     - Tutorial: user-guide/tutorial.md
-  - API Reference:
-    - Introduction: api/introduction.md
-    - Agents: api/agents.md
-    - Model: api/model.md
-    - Space: api/space.md
+  - API Reference: api/index.html
   - Development:
     - Contributing: development/contributing.md
     - Changelog: development/changelog.md
