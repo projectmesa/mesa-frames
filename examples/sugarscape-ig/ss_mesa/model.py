@@ -28,6 +28,12 @@ class SugarscapeMesa(mesa.Model):
         # Set parameters
         if sugar_grid is None:
             sugar_grid = np.random.randint(0, 4, (width, height))
+        if initial_sugar is None:
+            initial_sugar = np.random.randint(6, 25, n_agents)
+        if metabolism is None:
+            metabolism = np.random.randint(2, 4, n_agents)
+        if vision is None:
+            vision = np.random.randint(1, 6, n_agents)
 
         self.width, self.height = sugar_grid.shape
         self.n_agents = n_agents
