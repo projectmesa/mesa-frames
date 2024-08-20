@@ -32,6 +32,7 @@ PolarsGridCapacity = list[pl.Expr]
 ###----- Generic -----###
 # GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 DataFrame = pd.DataFrame | pl.DataFrame
+DataFrameInput = dict[str, Any] | Sequence[Sequence] | DataFrame
 Series = pd.Series | pl.Series
 Index = pd.Index | pl.Series
 BoolSeries = pd.Series | pl.Series
