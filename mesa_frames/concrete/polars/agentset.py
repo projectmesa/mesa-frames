@@ -108,10 +108,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         ----------
         model : ModelDF
             The model that the agent set belongs to.
-
-        Returns
-        -------
-        None
         """
         self._model = model
         self._agents = pl.DataFrame(schema={"unique_id": pl.Int64})
@@ -126,7 +122,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
         Parameters
         ----------
-        other : pl.DataFrame | Sequence[Any] | dict[str, Any]
+        agents : pl.DataFrame | Sequence[Any] | dict[str, Any]
             The agents to add.
         inplace : bool, optional
             Whether to add the agents in place, by default True.

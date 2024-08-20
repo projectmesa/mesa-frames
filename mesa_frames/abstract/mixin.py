@@ -11,23 +11,11 @@ from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series
 class CopyMixin(ABC):
     """A mixin class that provides a fast copy method for the class that inherits it.
 
-    Attributes
-    ----------
-    _copy_with_method : dict[str, tuple[str, list[str]]]
-        A dictionary that maps the attribute name to a tuple containing the method name and the arguments to be passed to the method. This is used to copy attributes that use a specific method to be called for copying (eg pd.DataFrame.copy() method).
-    _copy_only_reference : list[str]
-        A list of attribute names that should only be copied by reference.
-
     Methods
     -------
     copy(deep: bool = False, memo: dict | None = None) -> Self
         Create a copy of the object. If deep is True, a deep copy is created. If deep is False, a shallow copy is created.
 
-
-    Returns
-    -------
-    _type_
-        _description_
     """
 
     _copy_with_method: dict[str, tuple[str, list[str]]] = {}
@@ -113,7 +101,7 @@ class CopyMixin(ABC):
             If inplace, return self. Otherwise, return a copy.
 
         Returns
-        ----------
+        -------
         Self
             The object to perform operations on.
         """

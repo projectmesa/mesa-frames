@@ -103,13 +103,13 @@ class AgentsDF(AgentContainer):
 
         Parameters
         ----------
-        agentsets : AgentSetDF | Iterable[AgentSetDF]
+        agents : AgentSetDF | Iterable[AgentSetDF]
             The AgentSetDF to add.
-        inplace : bool
+        inplace : bool, optional
             Whether to add the AgentSetDF in place.
 
         Returns
-        ----------
+        -------
         Self
             The updated AgentsDF.
 
@@ -335,7 +335,7 @@ class AgentsDF(AgentContainer):
         ]
         return obj
 
-    def step(self, inplace=True) -> Self:
+    def step(self, inplace: bool = True) -> Self:
         """Advance the state of the agents in the AgentsDF by one step.
 
         Parameters
@@ -393,6 +393,11 @@ class AgentsDF(AgentContainer):
         other : list[AgentSetDF]
             The AgentSetDFs to check.
 
+        Returns
+        -------
+        pl.Series
+            A boolean Series indicating if the agent sets are present.
+
         Raises
         ------
         ValueError
@@ -439,7 +444,7 @@ class AgentsDF(AgentContainer):
 
         Returns
         -------
-        AgentsDF
+        Self
             A new AgentsDF with the added AgentSetDFs.
         """
         return super().__add__(other)
@@ -478,20 +483,20 @@ class AgentsDF(AgentContainer):
     ) -> dict[str, Series] | dict[str, DataFrame]:
         return super().__getitem__(key)
 
-    def __iadd__(self, other: AgentSetDF | Iterable[AgentSetDF]) -> Self:
+    def __iadd__(self, agents: AgentSetDF | Iterable[AgentSetDF]) -> Self:
         """Add AgentSetDFs to the AgentsDF through the += operator.
 
         Parameters
         ----------
-        other : Self | AgentSetDF | Iterable[AgentSetDF]
+        agents : AgentSetDF | Iterable[AgentSetDF]
             The AgentSetDFs to add.
 
         Returns
         -------
-        AgentsDF
+        Self
             The updated AgentsDF.
         """
-        return super().__iadd__(other)
+        return super().__iadd__(agents)
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         return (agent for agentset in self._agentsets for agent in iter(agentset))
@@ -541,17 +546,17 @@ class AgentsDF(AgentContainer):
     def __str__(self) -> str:
         return "\n".join([str(agentset) for agentset in self._agentsets])
 
-    def __sub__(self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike) -> Self:
+    def __sub__(self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]) -> Self:
         """Remove AgentSetDFs from a new AgentsDF through the - operator.
 
         Parameters
         ----------
-        other : AgentSetDF | Iterable[AgentSetDF] | IdsLike
+        agents : IdsLike | AgentSetDF | Iterable[AgentSetDF]
             The AgentSetDFs to remove.
 
         Returns
         -------
-        AgentsDF
+        Self
             A new AgentsDF with the removed AgentSetDFs.
         """
         return super().__sub__(agents)

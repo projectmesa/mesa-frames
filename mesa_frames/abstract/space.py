@@ -87,6 +87,10 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         agents1: IdsLike | AgentContainer | Collection[AgentContainer],
     ) -> Self
         Swap the positions of the agents in the space.
+
+    Parameters
+    ----------
+    model : 'ModelDF'
     """
 
     _model: "ModelDF"
@@ -99,16 +103,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     ]  # The column names of the positions in the _agents dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
 
     def __init__(self, model: "ModelDF") -> None:
-        """Create a new SpaceDF object.
-
-        Parameters
-        ----------
-        model : 'ModelDF'
-
-        Returns
-        -------
-        None
-        """
         self._model = model
 
     def move_agents(
@@ -210,6 +204,8 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             The first set of agents to swap
         agents1 : IdsLike | AgentContainer | Collection[AgentContainer]
             The second set of agents to swap
+        inplace : bool, optional
+            Whether to perform the operation inplace, by default True
 
         Returns
         -------
@@ -285,7 +281,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
         agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
         agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-    ) -> Series:
+    ) -> DataFrame:
         """Returns the distances from pos0 to pos1 or agents0 and agents1.
         If the space is a Network, the distance is the number of nodes of the shortest path between the two nodes.
         In all other cases, the distance is Euclidean/l2/Frobenius norm.
@@ -297,9 +293,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             The starting positions
         pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
             The ending positions
-        agents0 : IdsLike | AgentContainer | Collection[AgentContainer], optional
+        agents0 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
             The starting agents
-        agents1 : IdsLike | AgentContainer | Collection[AgentContainer], optional
+        agents1 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
             The ending agents
 
         Returns
@@ -307,7 +303,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         DataFrame
             A DataFrame where each row represents the distance from pos0 to pos1 or agents0 to agents1
         """
-        ...
+        return ...
 
     @abstractmethod
     def get_neighbors(
@@ -410,7 +406,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
-    ):
+    ) -> Self:
         """Remove agents from the space.
 
         Parameters
@@ -429,7 +425,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         -------
         Self
         """
-        ...
+        return ...
 
     def _get_ids_srs(
         self, agents: IdsLike | AgentContainer | Collection[AgentContainer]
@@ -494,7 +490,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
         Returns
         -------
-        AgentsDF
+        DataFrame
         """
         return self._agents
 
@@ -577,7 +573,7 @@ class DiscreteSpaceDF(SpaceDF):
 
         Parameters
         ----------
-        pos : GridCoordinate | GridCoordinates
+        pos : DiscreteCoordinate | DiscreteCoordinates
             The positions to check for
 
         Returns
@@ -592,7 +588,7 @@ class DiscreteSpaceDF(SpaceDF):
 
         Parameters
         ----------
-        pos : GridCoordinate | GridCoordinates
+        pos : DiscreteCoordinate | DiscreteCoordinates
             The positions to check for
 
         Returns
@@ -607,7 +603,7 @@ class DiscreteSpaceDF(SpaceDF):
 
         Parameters
         ----------
-        pos : GridCoordinate | GridCoordinates
+        pos : DiscreteCoordinate | DiscreteCoordinates
             The positions to check for
 
         Returns
@@ -913,7 +909,9 @@ class DiscreteSpaceDF(SpaceDF):
         Parameters
         ----------
         pos : DiscreteCoordinate | DiscreteCoordinates | None, optional
-        agents : IdsLike | AgentContainer | Collection[AgentContainer], optional
+            The positions to get the DataFrame from, by default None
+        agents : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+            The agents to get the DataFrame from, by default None
 
         Returns
         -------
@@ -981,6 +979,8 @@ class DiscreteSpaceDF(SpaceDF):
         ----------
         agents : DataFrame
             The moved agents with their new positions
+        operation : Literal["movement", "removal"]
+            The operation that was performed on the agents
 
         Returns
         -------
@@ -1593,7 +1593,11 @@ class GridDF(DiscreteSpaceDF):
         Parameters
         ----------
         pos : GridCoordinate | GridCoordinates | None, optional
-        agents : int | Sequence[int] | None, optional
+            The positions to get the DataFrame from, by default None
+        agents : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+            The agents to get the DataFrame from, by default None
+        check_bounds: bool, optional
+            If the positions should be checked for out-of-bounds in non-toroidal grids, by default True
 
         Returns
         -------
@@ -1742,6 +1746,9 @@ class GridDF(DiscreteSpaceDF):
         Parameters
         ----------
         dimensions : Sequence[int]
+            The dimensions of the grid
+        capacity : int
+            The capacity of the grid
 
         Returns
         -------
