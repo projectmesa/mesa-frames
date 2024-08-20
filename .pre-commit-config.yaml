@@ -32,7 +32,7 @@ repos:
         "--ignore-words",
         ".codespellignore",
       ]
-- repo: https://github.com/DavidAnson/markdownlint-cli2
+- repo: https://github.com/DavidAnson/markdownlint-cli2 #For formatting markdown for documentation
   rev: v0.13.0
   hooks:
     - id: markdownlint-cli2
@@ -41,7 +41,7 @@ repos:
         "--config",
         ".markdownlint.json",
       ]
-- repo: https://github.com/jsh9/pydoclint
+- repo: https://github.com/jsh9/pydoclint #For checking docstrings
   rev: 0.5.6
   hooks:
     - id: pydoclint
