@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import numpy as np
-from typing_extensions import Any
 
 from mesa_frames.abstract.space import SpaceDF
 from mesa_frames.concrete.agents import AgentsDF
@@ -17,24 +16,6 @@ class ModelDF:
     This class serves as a foundational structure for creating agent-based models.
     It includes the basic attributes and methods necessary for initializing and
     running a simulation model.
-
-    Attributes
-    ----------
-    running : bool
-        A boolean indicating if the model should continue running.
-    schedule : Any
-        An object to manage the order and execution of agent steps.
-    current_id : int
-        A counter for assigning unique IDs to agents.
-    _agents : AgentsDF
-        A mapping of each agent type to a dict of its instances.
-
-    Properties
-    ----------
-    agents : AgentsDF
-        An AgentSet containing all agents in the model, generated from the _agents attribute.
-    agent_types : list of type
-        A list of different agent types present in the model.
 
     Methods
     -------
@@ -54,29 +35,34 @@ class ModelDF:
         Run the model until the end condition is reached.
     step(self) -> None
         Execute a single step of the model's simulation process (needs to be overridden in a subclass).
+
+    Properties
+    ----------
+    agents : AgentsDF
+        An AgentSet containing all agents in the model, generated from the _agents attribute.
+    agent_types : list of type
+        A list of different agent types present in the model.
     """
 
     random: np.random.Generator
-    _seed: int | Sequence[int]
     running: bool
-    _agents: AgentsDF
+    _seed: int | Sequence[int]
+    _agents: AgentsDF  # Where the agents are stored
     _space: SpaceDF | None  # This will be a MultiSpaceDF object
 
-    def __new__(
-        cls, seed: int | Sequence[int] | None = None, *args: Any, **kwargs: Any
-    ) -> Any:
-        """Create a new model object and instantiate its RNG automatically."""
-        obj = object.__new__(cls)
-        obj.reset_randomizer(seed)
-        return obj
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, seed: int | Sequence[int] | None = None) -> None:
         """Create a new model. Overload this method with the actual code to
-        start the model. Always start with super().__init__() to initialize the
+        start the model. Always start with super().__init__(seed) to initialize the
         model object properly.
+
+        Parameters
+        ----------
+        seed : int | Sequence[int] | None, optional
+            The seed for the model's generator
         """
+        self.random = None
+        self.reset_randomizer(seed)
         self.running = True
-        self.schedule = None
         self.current_id = 0
         self._agents = AgentsDF(self)
         self._space = None

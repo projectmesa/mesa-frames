@@ -13,6 +13,7 @@ from mesa_frames.types_ import (
     AgentMask,
     BoolSeries,
     DataFrame,
+    DataFrameInput,
     IdsLike,
     Index,
     Series,
@@ -26,11 +27,6 @@ if TYPE_CHECKING:
 
 class AgentContainer(CopyMixin):
     """An abstract class for containing agents. Defines the common interface for AgentSetDF and AgentsDF.
-
-    Attributes
-    ----------
-    _model : ModelDF
-        The model that the AgentContainer belongs to.
 
     Methods
     -------
@@ -79,18 +75,22 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def __init__(self) -> None: ...
 
-    def discard(self, agents, inplace: bool = True) -> Self:
+    def discard(
+        self,
+        agents: IdsLike | AgentSetDF | Collection[AgentSetDF],
+        inplace: bool = True,
+    ) -> Self:
         """Removes agents from the AgentContainer. Does not raise an error if the agent is not found.
 
         Parameters
         ----------
-        agents
+        agents : IdsLike | 'AgentSetDF' | Collection['AgentSetDF']
             The agents to remove
         inplace : bool
             Whether to remove the agent in place. Defaults to True.
 
         Returns
-        ----------
+        -------
         Self
         """
         with suppress(KeyError, ValueError):
@@ -98,12 +98,16 @@ class AgentContainer(CopyMixin):
         return self._get_obj(inplace)
 
     @abstractmethod
-    def add(self, agents, inplace: bool = True) -> Self:
+    def add(
+        self,
+        agents: DataFrameInput | AgentSetDF | Collection[AgentSetDF],
+        inplace: bool = True,
+    ) -> Self:
         """Add agents to the AgentContainer.
 
         Parameters
         ----------
-        agents
+        agents : DataFrameInput | AgentSetDF | Collection[AgentSetDF]
             The agents to add.
         inplace : bool
             Whether to add the agents in place. Defaults to True.
@@ -166,11 +170,11 @@ class AgentContainer(CopyMixin):
     def do(
         self,
         method_name: str,
-        *args,
+        *args: Any,
         mask: AgentMask | None = None,
         return_results: bool = False,
         inplace: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Self | Any | dict[AgentSetDF, Any]:
         """Invoke a method on the AgentContainer.
 
@@ -180,16 +184,18 @@ class AgentContainer(CopyMixin):
             The name of the method to invoke.
         *args : Any
             Positional arguments to pass to the method
-        mask : AgentMask, optional
+        mask : AgentMask | None, optional
             The subset of agents on which to apply the method
         return_results : bool, optional
             Whether to return the result of the method, by default False
         inplace : bool, optional
             Whether the operation should be done inplace, by default False
+        **kwargs : Any
+            Keyword arguments to pass to the method
 
         Returns
         -------
-        Self | Any
+        Self | Any | dict[AgentSetDF, Any]
             The updated AgentContainer or the result of the method.
         """
         ...
@@ -200,43 +206,49 @@ class AgentContainer(CopyMixin):
 
     @abstractmethod
     @overload
-    def get(self, attr_names: Collection[str]) -> DataFrame | dict[str, DataFrame]: ...
+    def get(
+        self, attr_names: Collection[str] | None = None
+    ) -> DataFrame | dict[str, DataFrame]: ...
 
     @abstractmethod
     def get(
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
-    ) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]:
+    ) -> Series | dict[str, Series] | DataFrame | dict[str, DataFrame]:
         """Retrieves the value of a specified attribute for each agent in the AgentContainer.
 
         Parameters
         ----------
-        attr_names : str | Collection[str] | None
+        attr_names : str | Collection[str] | None, optional
             The attributes to retrieve. If None, all attributes are retrieved. Defaults to None.
-        AgentMask : AgentMask | None
+        mask : AgentMask | None, optional
             The AgentMask of agents to retrieve the attribute for. If None, attributes of all agents are returned. Defaults to None.
 
         Returns
-        ----------
-        Series | DataFrame | dict[str, Series | DataFrame]
+        -------
+        Series | dict[str, Series] | DataFrame | dict[str, DataFrame]
             The attribute values.
         """
         ...
 
     @abstractmethod
-    def remove(self, agents, inplace: bool = True) -> Self:
+    def remove(
+        self,
+        agents: IdsLike | AgentSetDF | Collection[AgentSetDF],
+        inplace: bool = True,
+    ) -> Self:
         """Removes the agents from the AgentContainer
 
         Parameters
         ----------
-        agents
+        agents : IdsLike | AgentSetDF | Collection[AgentSetDF]
             The agents to remove.
-        inplace : bool
+        inplace : bool, optional
             Whether to remove the agent in place.
 
         Returns
-        ----------
+        -------
         Self
             The updated AgentContainer.
         """
@@ -259,7 +271,7 @@ class AgentContainer(CopyMixin):
             The AgentMask of agents to be selected, by default None
         filter_func : Callable[[Self], AgentMask] | None, optional
             A function which takes as input the AgentContainer and returns a AgentMask, by default None
-        n : int, optional
+        n : int | None, optional
             The maximum number of agents to be selected, by default None
         negate : bool, optional
             If the selection should be negated, by default False
@@ -296,7 +308,7 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def set(
         self,
-        attr_names: str | dict[str, Any] | Collection[str],
+        attr_names: DataFrameInput | str | Collection[str],
         values: Any | None = None,
         mask: AgentMask | None = None,
         inplace: bool = True,
@@ -305,12 +317,12 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        attr_names : str | dict[str, Any] | Collection[str] | None
+        attr_names : DataFrameInput | str | Collection[str]
             The key can be:
             - A string: sets the specified column of the agents in the AgentContainer.
             - A collection of strings: sets the specified columns of the agents in the AgentContainer.
             - A dictionary: keys should be attributes and values should be the values to set. Value should be None.
-        value : Any | None
+        values : Any | None
             The value to set the attribute to. If None, attr_names must be a dictionary.
         mask : AgentMask | None
             The AgentMask of agents to set the attribute for.
@@ -318,7 +330,7 @@ class AgentContainer(CopyMixin):
             Whether to set the attribute in place.
 
         Returns
-        ----------
+        -------
         Self
             The updated agent set.
         """
@@ -334,7 +346,7 @@ class AgentContainer(CopyMixin):
             Whether to shuffle the agents in place.
 
         Returns
-        ----------
+        -------
         Self
             A new or updated AgentContainer.
         """
@@ -362,7 +374,7 @@ class AgentContainer(CopyMixin):
             Keyword arguments to pass to the sort
 
         Returns
-        ----------
+        -------
         Self
             A new or updated AgentContainer.
         """
@@ -370,12 +382,12 @@ class AgentContainer(CopyMixin):
     def __add__(self, other) -> Self:
         return self.add(agents=other, inplace=False)
 
-    def __contains__(self, agents: int | IdsLike | AgentSetDF) -> bool:
+    def __contains__(self, agents: int | AgentSetDF) -> bool:
         """Check if an agent is in the AgentContainer.
 
         Parameters
         ----------
-        id : int | IdsLike | AgentSetDF
+        agents : int | AgentSetDF
             The ID(s) or AgentSetDF to check for.
 
         Returns
@@ -384,6 +396,16 @@ class AgentContainer(CopyMixin):
             True if the agent is in the AgentContainer, False otherwise.
         """
         return self.contains(agents=agents)
+
+    @overload
+    def __getitem__(
+        self, key: str | tuple[AgentMask, str]
+    ) -> Series | dict[str, Series]: ...
+
+    @overload
+    def __getitem__(
+        self, key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]]
+    ) -> DataFrame | dict[str, DataFrame]: ...
 
     def __getitem__(
         self,
@@ -399,17 +421,17 @@ class AgentContainer(CopyMixin):
 
         The key can be:
         - An attribute or collection of attributes (eg. AgentContainer["str"], AgentContainer[["str1", "str2"]]): returns the specified column(s) of the agents in the AgentContainer.
-        - A AgentMask (eg. AgentContainer[AgentMask]): returns the agents in the AgentContainer that satisfy the AgentMask.
+        - An AgentMask (eg. AgentContainer[AgentMask]): returns the agents in the AgentContainer that satisfy the AgentMask.
         - A tuple (eg. AgentContainer[AgentMask, "str"]): returns the specified column of the agents in the AgentContainer that satisfy the AgentMask.
 
         Parameters
         ----------
-        key : Attributes | AgentMask | tuple[AgentMask, Attributes]
+        key : str| Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]]
             The key to retrieve.
 
         Returns
         -------
-        Series | DataFrame
+        Series | DataFrame | dict[str, Series] | dict[str, DataFrame]
             The attribute values.
         """
         # TODO: fix types
@@ -423,12 +445,14 @@ class AgentContainer(CopyMixin):
             else:
                 return self.get(mask=key)
 
-    def __iadd__(self, other) -> Self:
+    def __iadd__(
+        self, other: DataFrameInput | AgentSetDF | Collection[AgentSetDF]
+    ) -> Self:
         """Add agents to the AgentContainer through the += operator.
 
         Parameters
         ----------
-        other
+        other : DataFrameInput | AgentSetDF | Collection[AgentSetDF]
             The agents to add.
 
         Returns
@@ -438,12 +462,12 @@ class AgentContainer(CopyMixin):
         """
         return self.add(agents=other, inplace=True)
 
-    def __isub__(self, other: AgentSetDF | IdsLike) -> Self:
+    def __isub__(self, other: IdsLike | AgentSetDF | Collection[AgentSetDF]) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
 
         Parameters
         ----------
-        other : AgentMask
+        other : IdsLike | AgentSetDF | Collection[AgentSetDF]
             The agents to remove.
 
         Returns
@@ -453,12 +477,12 @@ class AgentContainer(CopyMixin):
         """
         return self.discard(other, inplace=True)
 
-    def __sub__(self, other: AgentSetDF | IdsLike) -> Self:
+    def __sub__(self, other: IdsLike | AgentSetDF | Collection[AgentSetDF]) -> Self:
         """Remove agents from a new AgentContainer through the - operator.
 
         Parameters
         ----------
-        other : DataFrame | ListLike
+        other : IdsLike | AgentSetDF | Collection[AgentSetDF]
             The agents to remove.
 
         Returns
@@ -486,7 +510,7 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        key : str | list[str] | AgentMask | tuple[AgentMask, str | list[str]]
+        key : str | Collection[str] | AgentMask | tuple[AgentMask, str | Collection[str]]
             The key to set.
         values : Any
             The values to set for the specified key.
@@ -526,7 +550,7 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        Iterator
+        Iterator[dict[str, Any]]
             An iterator over the agents.
         """
         ...
@@ -631,7 +655,7 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        DataFrame
+        DataFrame | dict[str, DataFrame]
         """
 
     @active_agents.setter
@@ -656,7 +680,7 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        DataFrame
+        DataFrame | dict[AgentSetDF, DataFrame]
         """
 
     @property
@@ -666,7 +690,7 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        Series | dict[str, Series]
+        Index | dict[AgentSetDF, Index]
         """
         ...
 
@@ -684,19 +708,6 @@ class AgentContainer(CopyMixin):
 
 class AgentSetDF(AgentContainer, DataFrameMixin):
     """The AgentSetDF class is a container for agents of the same type.
-
-    Attributes
-    ----------
-    _agents : DataFrame
-        The agents in the AgentSetDF.
-    _copy_only_reference : list[str]
-        A list of attributes to copy with a reference only.
-    _copy_with_method : dict[str, tuple[str, list[str]]]
-        A dictionary of attributes to copy with a specified method and arguments.
-    _mask : AgentMask
-        The underlying mask used for the active agents in the AgentSetDF.
-    _model : ModelDF
-        The model that the AgentSetDF belongs to.
 
     Methods
     -------
@@ -757,43 +768,38 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         Get the model associated with the AgentSetDF.
     random(self) -> Generator
         Get the random number generator associated with the model.
+
+    Parameters
+    ----------
+    model : ModelDF
+        The model that the agent set belongs to.
     """
 
-    _agents: DataFrame
-    _mask: AgentMask
-    _model: ModelDF
+    _agents: DataFrame  # The agents in the AgentSetDF
+    _mask: (
+        AgentMask  # The underlying mask used for the active agents in the AgentSetDF.
+    )
+    _model: ModelDF  # The model that the AgentSetDF belongs to.
 
     @abstractmethod
-    def __init__(self, model: ModelDF) -> None:
-        """Create a new AgentSetDF.
-
-        Parameters
-        ----------
-        model : ModelDF
-            The model that the agent set belongs to.
-
-        Returns
-        -------
-        None
-        """
-        ...
+    def __init__(self, model: ModelDF) -> None: ...
 
     @abstractmethod
     def add(
         self,
-        agents: DataFrame | Sequence[Any] | dict[str, Any],
+        agents: DataFrameInput,
         inplace: bool = True,
     ) -> Self:
         """Add agents to the AgentSetDF
 
-        Other can be:
+        Agents can be the input to the DataFrame constructor. So, the input can be:
         - A DataFrame: adds the agents from the DataFrame.
-        - A Sequence[Any]: should be one single agent to add.
         - A dictionary: keys should be attributes and values should be the values to add.
+        - A Sequence[Sequence]: each inner sequence should be one single agent to add.
 
         Parameters
         ----------
-        other : DataFrame | Sequence[Any] | dict[str, Any]
+        agents : DataFrameInput
             The agents to add.
         inplace : bool, optional
             If True, perform the operation in place, by default True
