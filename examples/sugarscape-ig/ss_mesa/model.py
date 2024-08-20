@@ -27,12 +27,9 @@ class SugarscapeMesa(mesa.Model):
 
         # Set parameters
         if sugar_grid is None:
-            sugar_grid = self.random.integers(0, 4, (width, height))
-            self.width = width
-            self.height = height
-        else:
-            self.width, self.height = sugar_grid.shape
+            sugar_grid = np.random.randint(0, 4, (width, height))
 
+        self.width, self.height = sugar_grid.shape
         self.n_agents = n_agents
         self.grid = mesa.space.MultiGrid(self.width, self.height, torus=False)
         self.agents: list = []

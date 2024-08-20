@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+
 from mesa_frames import GridPandas, ModelDF
 
 from .agents import AntPandas
@@ -20,8 +21,9 @@ class SugarscapePandas(ModelDF):
 
         if sugar_grid is None:
             sugar_grid = self.random.integers(0, 4, (width, height))
-        else:
-            grid_dimensions = sugar_grid.shape
+
+        grid_dimensions = sugar_grid.shape
+
         self.space = GridPandas(
             self, grid_dimensions, neighborhood_type="von_neumann", capacity=1
         )
