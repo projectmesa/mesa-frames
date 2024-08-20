@@ -33,6 +33,7 @@ class SugarscapePandas(ModelDF):
         sugar_grid = pd.DataFrame(
             {
                 "sugar": sugar_grid.flatten(),
+                "max_sugar": sugar_grid.flatten(),
             },
             index=pd.MultiIndex.from_product(
                 [np.arange(grid_dimensions[0]), np.arange(grid_dimensions[1])],
@@ -45,4 +46,13 @@ class SugarscapePandas(ModelDF):
 
     def run_model(self, steps: int) -> list[int]:
         for _ in range(steps):
+            if len(self.agents) == 0:
+                return
             self.step()
+            empty_cells = self.space.empty_cells
+            full_cells = self.space.full_cells
+            max_sugar = self.space.cells.merge(empty_cells, on=["dim_0", "dim_1"])[
+                "max_sugar"
+            ]
+            self.space.set_cells(full_cells, {"sugar": 0})
+            self.space.set_cells(empty_cells, {"sugar": max_sugar})
