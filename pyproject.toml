@@ -26,10 +26,14 @@ polars = [
   #"geopolars" (currently in pre-alpha)
 ]
 
-dev = [
-  "mesa_frames[pandas,polars]",
+docs = [
   "perfplot", #readme_script
   "seaborn", #readme_script
+  "mkdocs-material"
+]
+
+dev = [
+  "mesa_frames[pandas, polars, docs]",
   "pytest",
   "pytest-cov",
   "typeguard",
