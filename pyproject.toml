@@ -31,7 +31,9 @@ docs = [
   "seaborn", #readme_script
   "mkdocs-material",
   "mkdocstrings[python]",
-  "mkdocs-jupyter"
+  "mkdocs-jupyter",
+  "mkdocs-git-revision-date-localized-plugin",
+  "mkdocs-minify-plugin"
 ]
 
 dev = [
