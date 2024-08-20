@@ -1,0 +1,3 @@
+mkdocs-jupyter
+mkdocs-git-revision-date-localized-plugin
+mkdocs-minify-plugin
