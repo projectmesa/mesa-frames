@@ -38,4 +38,4 @@ repos:
   rev: 0.5.6
   hooks:
     - id: pydoclint
-      args: [--style=numpy, --skip-checking-raises=True]
+      args: [--style=numpy, --skip-checking-raises=True, --allow-init-docstring=True]
