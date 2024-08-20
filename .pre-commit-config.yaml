@@ -31,6 +31,4 @@ repos:
       args: [
         "--ignore-words",
         ".codespellignore",
-        "--exclude-file",
-        "docs/api/search.js",
       ]
