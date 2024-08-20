@@ -69,4 +69,6 @@ class SugarscapeMesa(mesa.Model):
 
     def run_model(self, step_count=200):
         for i in range(step_count):
+            if len(self.agents) == 0:
+                return
             self.step()
