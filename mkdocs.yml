@@ -114,7 +114,11 @@ nav:
   - User Guide:
     - Getting Started: user-guide/getting-started.md
     - Tutorial: user-guide/tutorial.md
-  - API Reference: api-reference.md
+  - API Reference:
+    - Introduction: api/introduction.md
+    - Agents: api/agents.md
+    - Model: api/model.md
+    - Space: api/space.md
   - Development:
     - Contributing: development/contributing.md
     - Changelog: development/changelog.md
