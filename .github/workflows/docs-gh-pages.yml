@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - material-for-mkdocs
 
 jobs:
   build:
