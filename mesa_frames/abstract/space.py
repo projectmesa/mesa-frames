@@ -1,3 +1,52 @@
+"""
+Abstract base classes for spatial components in mesa-frames.
+
+This module defines the core abstractions for spatial structures in the mesa-frames
+extension. It provides the foundation for implementing various types of spaces,
+including discrete spaces and grids, using DataFrame-based approaches for improved
+performance and scalability.
+
+Classes:
+    SpaceDF(CopyMixin, DataFrameMixin):
+        An abstract base class that defines the common interface for all space
+        classes in mesa-frames. It combines fast copying functionality with
+        DataFrame operations.
+
+    DiscreteSpaceDF(SpaceDF):
+        An abstract base class for discrete space implementations, such as grids
+        and networks. It extends SpaceDF with methods specific to discrete spaces.
+
+    GridDF(DiscreteSpaceDF):
+        An abstract base class for grid-based spaces. It inherits from
+        DiscreteSpaceDF and adds grid-specific functionality.
+
+These abstract classes are designed to be subclassed by concrete implementations
+that use specific DataFrame libraries (e.g., pandas, Polars) as their backend.
+They provide a common interface and shared functionality across different types
+of spatial structures in agent-based models.
+
+Usage:
+    These classes should not be instantiated directly. Instead, they should be
+    subclassed to create concrete implementations:
+
+    from mesa_frames.abstract.space import GridDF
+
+    class GridPandas(GridDF):
+        def __init__(self, width, height, model):
+            super().__init__(width, height, model)
+            # Implementation using pandas DataFrame
+            ...
+
+        # Implement other abstract methods
+
+Note:
+    The abstract methods in these classes use Python's @abstractmethod decorator,
+    ensuring that concrete subclasses must implement these methods.
+
+Attributes and methods of each class are documented in their respective docstrings.
+For more detailed information on each class, refer to their individual docstrings.
+"""
+
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
@@ -111,8 +160,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         pos: SpaceCoordinate | SpaceCoordinates,
         inplace: bool = True,
     ) -> Self:
-        """Move agents in the Space to the specified coordinates. If some agents are not placed,
-        raises a RuntimeWarning.
+        """Move agents in the Space to the specified coordinates.
+
+        If some agents are not placed,raises a RuntimeWarning.
 
         Parameters
         ----------
@@ -196,6 +246,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         inplace: bool = True,
     ) -> Self:
         """Swap the positions of the agents in the space.
+
         agents0 and agents1 must have the same length and all agents must be placed in the space.
 
         Parameters
@@ -249,7 +300,8 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
         normalize: bool = False,
     ) -> DataFrame:
-        """Returns the directions from pos0 to pos1 or agents0 and agents1.
+        """Return the directions from pos0 to pos1 or agents0 and agents1.
+
         If the space is a Network, the direction is the shortest path between the two nodes.
         In all other cases, the direction is the direction vector between the two positions.
         Either positions (pos0, pos1) or agents (agents0, agents1) must be specified, not both and they must have the same length.
@@ -282,7 +334,8 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
         agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
     ) -> DataFrame:
-        """Returns the distances from pos0 to pos1 or agents0 and agents1.
+        """Return the distances from pos0 to pos1 or agents0 and agents1.
+
         If the space is a Network, the distance is the number of nodes of the shortest path between the two nodes.
         In all other cases, the distance is Euclidean/l2/Frobenius norm.
         You should specify either positions (pos0, pos1) or agents (agents0, agents1), not both and they must have the same length.
@@ -314,6 +367,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         include_center: bool = False,
     ) -> DataFrame:
         """Get the neighboring agents from given positions or agents according to the specified radiuses.
+
         Either positions (pos0, pos1) or agents (agents0, agents1) must be specified, not both and they must have the same length.
 
         Parameters
@@ -409,6 +463,8 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     ) -> Self:
         """Remove agents from the space.
 
+        Does not remove the agents from the model.
+
         Parameters
         ----------
         agents : IdsLike | AgentContainer | Collection[AgentContainer]
@@ -462,7 +518,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         pos: SpaceCoordinate | SpaceCoordinates,
         is_move: bool,
     ) -> Self:
-        """A unique method for moving or placing agents (only the RuntimeWarning changes).
+        """Move or place agents.
+
+        Only the runtime warning change.
 
         Parameters
         ----------
@@ -479,14 +537,28 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         """
 
     @abstractmethod
-    def __repr__(self) -> str: ...
+    def __repr__(self) -> str:
+        """Return a string representation of the SpaceDF.
+
+        Returns
+        -------
+        str
+        """
+        ...
 
     @abstractmethod
-    def __str__(self) -> str: ...
+    def __str__(self) -> str:
+        """Return a string representation of the SpaceDF.
+
+        Returns
+        -------
+        str
+        """
+        ...
 
     @property
     def agents(self) -> DataFrame:  # | GeoDataFrame:
-        """Get the ids of the agents placed in the cell set, along with their coordinates or geometries
+        """Get the ids of the agents placed in the cell set, along with their coordinates or geometries.
 
         Returns
         -------
@@ -555,6 +627,7 @@ class DiscreteSpaceDF(SpaceDF):
         capacity: int | None = None,
     ):
         """Create a DiscreteSpaceDF object.
+
         NOTE: The capacity specified here is the default capacity,
         it can be set also per cell through the set_cells method.
 
@@ -569,7 +642,7 @@ class DiscreteSpaceDF(SpaceDF):
         self._capacity = capacity
 
     def is_available(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
-        """Check whether the input positions are available (there exists at least one remaining spot in the cells)
+        """Check whether the input positions are available (there exists at least one remaining spot in the cells).
 
         Parameters
         ----------
@@ -584,7 +657,7 @@ class DiscreteSpaceDF(SpaceDF):
         return self._check_cells(pos, "available")
 
     def is_empty(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
-        """Check whether the input positions are empty (there isn't any single agent in the cells)
+        """Check whether the input positions are empty (there isn't any single agent in the cells).
 
         Parameters
         ----------
@@ -599,7 +672,7 @@ class DiscreteSpaceDF(SpaceDF):
         return self._check_cells(pos, "empty")
 
     def is_full(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
-        """Check whether the input positions are full (there isn't any spot available in the cells)
+        """Check whether the input positions are full (there isn't any spot available in the cells).
 
         Parameters
         ----------
@@ -613,7 +686,7 @@ class DiscreteSpaceDF(SpaceDF):
         """
         return self._check_cells(pos, "full")
 
-    def move_to_empty(
+    def move_to_empty(  # noqa: D102
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
@@ -646,7 +719,7 @@ class DiscreteSpaceDF(SpaceDF):
             agents, cell_type="available", is_move=True
         )
 
-    def place_to_empty(
+    def place_to_empty(  # noqa: D102
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
@@ -656,7 +729,7 @@ class DiscreteSpaceDF(SpaceDF):
             agents, cell_type="empty", is_move=False
         )
 
-    def place_to_available(
+    def place_to_available(  # noqa: D102
         self,
         agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
@@ -666,7 +739,7 @@ class DiscreteSpaceDF(SpaceDF):
             agents, cell_type="available", is_move=False
         )
 
-    def random_pos(self, n: int) -> DataFrame | pl.DataFrame:
+    def random_pos(self, n: int) -> DataFrame | pl.DataFrame:  # noqa: D102
         return self.sample_cells(n, cell_type="any", with_replacement=True)
 
     def sample_cells(
@@ -718,6 +791,7 @@ class DiscreteSpaceDF(SpaceDF):
         inplace: bool = True,
     ) -> Self:
         """Set the properties of the specified cells.
+
         This method mirrors the functionality of mesa's PropertyLayer, but allows also to set properties only of specific cells.
         Either the cells DF must contain both the cells' coordinates and the properties
         or the cells' coordinates can be specified separately with the cells argument.
@@ -778,6 +852,7 @@ class DiscreteSpaceDF(SpaceDF):
         include_center: bool = False,
     ) -> DataFrame:
         """Get the neighborhood cells from the given positions (pos) or agents according to the specified radiuses.
+
         Either positions (pos) or agents must be specified, not both.
 
         Parameters
@@ -989,21 +1064,54 @@ class DiscreteSpaceDF(SpaceDF):
         """
         ...
 
-    def __getitem__(self, cells: DiscreteCoordinate | DiscreteCoordinates):
+    def __getitem__(self, cells: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
+        """Get the properties and agents of the specified cells.
+
+        Parameters
+        ----------
+        cells : DiscreteCoordinate | DiscreteCoordinates
+            The cells to get the properties for
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the properties and agents of the cells
+        """
         return self.get_cells(cells)
 
     def __getattr__(self, key: str) -> DataFrame:
+        """Get the properties of the cells.
+
+        Parameters
+        ----------
+        key : str
+            The property to get
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the properties of the cells
+        """
         # Fallback, if key (property) is not found in the object,
         # then it must mean that it's in the _cells dataframe
         return self._cells[key]
 
     def __setitem__(self, cells: DiscreteCoordinates, properties: DataFrame):
+        """Set the properties of the specified cells.
+
+        Parameters
+        ----------
+        cells : DiscreteCoordinates
+            The cells to set the properties for
+        properties : DataFrame
+            The properties to set
+        """
         self.set_cells(cells=cells, properties=properties, inplace=True)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # noqa: D105
         return f"{self.__class__.__name__}\nCells:\n{self._cells.__repr__()}\nAgents:\n{self._agents.__repr__()}"
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # noqa: D105
         return (
             f"{self.__class__.__name__}\nCells:\n{self._cells}\nAgents:\n{self._agents}"
         )
@@ -1011,6 +1119,8 @@ class DiscreteSpaceDF(SpaceDF):
     @property
     def cells(self) -> DataFrame:
         """
+        Obtain the properties and agents of the cells in the grid.
+
         Returns
         -------
         DataFrame
@@ -1024,18 +1134,39 @@ class DiscreteSpaceDF(SpaceDF):
 
     @property
     def empty_cells(self) -> DataFrame:
+        """Get the empty cells (cells without any agent) in the grid.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the empty cells
+        """
         return self._sample_cells(
             None, with_replacement=False, condition=self._empty_cell_condition
         )
 
     @property
     def available_cells(self) -> DataFrame:
+        """Get the available cells (cells with at least one spot available) in the grid.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the available cells
+        """
         return self._sample_cells(
             None, with_replacement=False, condition=self._available_cell_condition
         )
 
     @property
     def full_cells(self) -> DataFrame:
+        """Get the full cells (cells without any spot available) in the grid.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame with the full cells
+        """
         return self._sample_cells(
             None, with_replacement=False, condition=self._full_cell_condition
         )
@@ -1055,6 +1186,7 @@ class DiscreteSpaceDF(SpaceDF):
 
 class GridDF(DiscreteSpaceDF):
     """The GridDF class is an abstract class that defines the interface for all grid classes in mesa-frames.
+
     Inherits from DiscreteSpaceDF.
 
     Warning
@@ -1172,7 +1304,7 @@ class GridDF(DiscreteSpaceDF):
         self._cells_capacity = self._generate_empty_grid(dimensions, capacity)
         self._neighborhood_type = neighborhood_type
 
-    def get_directions(
+    def get_directions(  # noqa: D102
         self,
         pos0: GridCoordinate | GridCoordinates | None = None,
         pos1: GridCoordinate | GridCoordinates | None = None,
@@ -1185,7 +1317,7 @@ class GridDF(DiscreteSpaceDF):
             result = self._df_div(result, other=self._df_norm(result))
         return result
 
-    def get_distances(
+    def get_distances(  # noqa: D102
         self,
         pos0: GridCoordinate | GridCoordinates | None = None,
         pos1: GridCoordinate | GridCoordinates | None = None,
@@ -1195,7 +1327,7 @@ class GridDF(DiscreteSpaceDF):
         result = self._calculate_differences(pos0, pos1, agents0, agents1)
         return self._df_norm(result, "distance", True)
 
-    def get_neighbors(
+    def get_neighbors(  # noqa: D102
         self,
         radius: int | Sequence[int],
         pos: GridCoordinate | GridCoordinates | None = None,
@@ -1211,7 +1343,7 @@ class GridDF(DiscreteSpaceDF):
             mask=neighborhood_df,
         )
 
-    def get_neighborhood(
+    def get_neighborhood(  # noqa: D102
         self,
         radius: int | Sequence[int] | ArrayLike,
         pos: GridCoordinate | GridCoordinates | None = None,
@@ -1389,7 +1521,7 @@ class GridDF(DiscreteSpaceDF):
 
         return neighbors_df
 
-    def get_cells(
+    def get_cells(  # noqa: D102
         self, coords: GridCoordinate | GridCoordinates | None = None
     ) -> DataFrame:
         # TODO : Consider whether not outputting the agents at all (fastest),
@@ -1446,7 +1578,7 @@ class GridDF(DiscreteSpaceDF):
             objs=[pos_df, self._srs_to_df(out_of_bounds)], how="horizontal"
         )
 
-    def remove_agents(
+    def remove_agents(  # noqa: D102
         self,
         agents: AgentContainer | Collection[AgentContainer] | int | Sequence[int],
         inplace: bool = True,
@@ -1758,12 +1890,38 @@ class GridDF(DiscreteSpaceDF):
 
     @property
     def dimensions(self) -> Sequence[int]:
+        """The dimensions of the grid.
+
+        They are set uniquely at the creation of the grid.
+
+        Returns
+        -------
+        Sequence[int]
+            The dimensions of the grid
+        """
         return self._dimensions
 
     @property
-    def neighborhood_type(self) -> str:
+    def neighborhood_type(self) -> Literal["moore", "von_neumann", "hexagonal"]:
+        """The type of neighborhood to consider (moore, von_neumann, hexagonal).
+
+        It is set uniquely at the creation of the grid.
+
+        Returns
+        -------
+        Literal['moore', 'von_neumann', 'hexagonal']
+        """
         return self._neighborhood_type
 
     @property
     def torus(self) -> bool:
+        """If the grid is a torus (wraps around at the edges).
+
+        Can be set uniquely at the creation of the grid.
+
+        Returns
+        -------
+        bool
+            Whether the grid is a torus
+        """
         return self._torus
