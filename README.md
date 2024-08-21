@@ -4,10 +4,10 @@ mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) f
 
 ## Why DataFrames?
 
-DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). At the moment, mesa-frames supports the use of two main libraries: Pandas and Polars.
+DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). At the moment, mesa-frames supports the use of two main libraries: pandas and Polars.
 
-- [Pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. Pandas is known for its ease of use, allowing for declarative programming and high performance.
-- [Polars](https://pola.rs/) is a new DataFrame library with a syntax similar to Pandas but with several innovations, including a backend implemented in Rust, the Apache Arrow memory format, query optimization, and support for larger-than-memory DataFrames.
+- [pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. pandas is known for its ease of use, allowing for declarative programming and high performance.
+- [Polars](https://pola.rs/) is a new DataFrame library with a syntax similar to pandas but with several innovations, including a backend implemented in Rust, the Apache Arrow memory format, query optimization, and support for larger-than-memory DataFrames.
 
 The following is a performance graph showing execution time using mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
 
@@ -43,6 +43,7 @@ conda activate myenv
 ```
 
 Then, to install mesa-frames itself:
+
 ```bash
 # For pandas backend
 pip install -e .[pandas]
@@ -66,13 +67,13 @@ source myenv/bin/activate  # On Windows, use `myenv\Scripts\activate`
 ```
 
 Then, to install mesa-frames itself:
+
 ```bash
 # For pandas backend
 pip install -e .[pandas]
 # Alternatively, for Polars backend
 pip install -e .[polars]
 ```
-
 
 ## Usage
 

@@ -15,7 +15,7 @@ AgnosticMask = (
 AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
 AgnosticIds = int | Collection[int]
 
-###----- Pandas Types -----###
+###----- pandas Types -----###
 
 PandasMask = pd.Series | pd.DataFrame | AgnosticMask
 AgentPandasMask = AgnosticAgentMask | pd.Series | pd.DataFrame
