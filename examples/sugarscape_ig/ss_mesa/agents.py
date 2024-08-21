@@ -67,7 +67,7 @@ class AntMesa(mesa.Agent):
         self.eat()
         if self.sugar <= 0:
             self.model.grid.remove_agent(self)
-            self.model.schedule.remove(self)
+            self.model.agents.remove(self)
 
 
 class Sugar(mesa.Agent):
@@ -77,4 +77,7 @@ class Sugar(mesa.Agent):
         self.max_sugar = max_sugar
 
     def step(self):
-        self.amount = self.max_sugar
+        if self.model.grid.is_cell_empty(self.pos):
+            self.amount = self.max_sugar
+        else:
+            self.amount = 0

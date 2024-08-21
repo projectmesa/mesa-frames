@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+
 from mesa_frames import AgentSetPandas, ModelDF
 
 
@@ -70,7 +71,7 @@ class AntPandas(AgentSetPandas):
 
         # Sort cells by sugar and radius (nearest first)
         neighborhood = neighborhood.sort_values(
-            "sugar", "radius", ascending=[False, True]
+            ["sugar", "radius"], ascending=[False, True]
         )
 
         best_moves = pd.DataFrame()

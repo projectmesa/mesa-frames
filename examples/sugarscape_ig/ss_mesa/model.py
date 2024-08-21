@@ -27,12 +27,15 @@ class SugarscapeMesa(mesa.Model):
 
         # Set parameters
         if sugar_grid is None:
-            sugar_grid = self.random.integers(0, 4, (width, height))
-            self.width = width
-            self.height = height
-        else:
-            self.width, self.height = sugar_grid.shape
+            sugar_grid = np.random.randint(0, 4, (width, height))
+        if initial_sugar is None:
+            initial_sugar = np.random.randint(6, 25, n_agents)
+        if metabolism is None:
+            metabolism = np.random.randint(2, 4, n_agents)
+        if vision is None:
+            vision = np.random.randint(1, 6, n_agents)
 
+        self.width, self.height = sugar_grid.shape
         self.n_agents = n_agents
         self.grid = mesa.space.MultiGrid(self.width, self.height, torus=False)
         self.agents: list = []
@@ -66,4 +69,6 @@ class SugarscapeMesa(mesa.Model):
 
     def run_model(self, step_count=200):
         for i in range(step_count):
+            if len(self.agents) == 0:
+                return
             self.step()
