@@ -1,3 +1,45 @@
+"""
+Abstract base classes for agent containers in mesa-frames.
+
+This module defines the core abstractions for agent containers in the mesa-frames
+extension. It provides the foundation for implementing agent storage and
+manipulation using DataFrame-based approaches.
+
+Classes:
+    AgentContainer(CopyMixin):
+        An abstract base class that defines the common interface for all agent
+        containers in mesa-frames. It inherits from CopyMixin to provide fast
+        copying functionality.
+
+    AgentSetDF(AgentContainer, DataFrameMixin):
+        An abstract base class for agent sets that use DataFrames as the underlying
+        storage mechanism. It inherits from both AgentContainer and DataFrameMixin
+        to combine agent container functionality with DataFrame operations.
+
+These abstract classes are designed to be subclassed by concrete implementations
+that use specific DataFrame libraries (e.g., pandas, Polars) as their backend.
+
+Usage:
+    These classes should not be instantiated directly. Instead, they should be
+    subclassed to create concrete implementations:
+
+    from mesa_frames.abstract.agents import AgentSetDF
+
+    class AgentSetPandas(AgentSetDF):
+        def __init__(self, model):
+            super().__init__(model)
+            # Implementation using pandas DataFrame
+            ...
+
+        # Implement other abstract methods
+
+Note:
+    The abstract methods in these classes use Python's @abstractmethod decorator,
+    ensuring that concrete subclasses must implement these methods.
+
+Attributes and methods of each class are documented in their respective docstrings.
+"""
+
 from __future__ import annotations  # PEP 563: postponed evaluation of type annotations
 
 from abc import abstractmethod
@@ -33,7 +75,7 @@ class AgentContainer(CopyMixin):
     copy(deep: bool = False, memo: dict | None = None) -> Self
         Create a copy of the AgentContainer.
     discard(ids: IdsLike, inplace: bool = True) -> Self
-        Removes an agent from the AgentContainer. Does not raise an error if the agent is not found.
+        Remove an agent from the AgentContainer. Does not raise an error if the agent is not found.
     add(other: Any, inplace: bool = True) -> Self
         Add agents to the AgentContainer.
     contains(ids: IdsLike) -> bool | BoolSeries
@@ -43,11 +85,11 @@ class AgentContainer(CopyMixin):
     get(attr_names: str | Collection[str] | None = None, mask: AgentMask | None = None) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]
         Retrieve the value of a specified attribute for each agent in the AgentContainer.
     remove(ids: IdsLike, inplace: bool = True) -> Self
-        Removes an agent from the AgentContainer.
+        Remove an agent from the AgentContainer.
     select(mask: AgentMask | None = None, filter_func: Callable[[Self], AgentMask] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentContainer based on the given criteria.
     set(attr_names: str | dict[str, Any] | Collection[str], values: Any | None = None, mask: AgentMask | None = None, inplace: bool = True) -> Self
-        Sets the value of a specified attribute or attributes for each agent in the mask in AgentContainer.
+        Set the value of a specified attribute or attributes for each agent in the mask in AgentContainer.
     shuffle(inplace: bool = False) -> Self
         Shuffles the order of agents in the AgentContainer.
     sort(by: str | Sequence[str], ascending: bool | Sequence[bool] = True, inplace: bool = True, **kwargs) -> Self
@@ -80,7 +122,7 @@ class AgentContainer(CopyMixin):
         agents: IdsLike | AgentSetDF | Collection[AgentSetDF],
         inplace: bool = True,
     ) -> Self:
-        """Removes agents from the AgentContainer. Does not raise an error if the agent is not found.
+        """Remove agents from the AgentContainer. Does not raise an error if the agent is not found.
 
         Parameters
         ----------
@@ -216,7 +258,7 @@ class AgentContainer(CopyMixin):
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
     ) -> Series | dict[str, Series] | DataFrame | dict[str, DataFrame]:
-        """Retrieves the value of a specified attribute for each agent in the AgentContainer.
+        """Retrieve the value of a specified attribute for each agent in the AgentContainer.
 
         Parameters
         ----------
@@ -238,7 +280,7 @@ class AgentContainer(CopyMixin):
         agents: IdsLike | AgentSetDF | Collection[AgentSetDF],
         inplace: bool = True,
     ) -> Self:
-        """Removes the agents from the AgentContainer
+        """Remove the agents from the AgentContainer.
 
         Parameters
         ----------
@@ -313,7 +355,7 @@ class AgentContainer(CopyMixin):
         mask: AgentMask | None = None,
         inplace: bool = True,
     ) -> Self:
-        """Sets the value of a specified attribute or attributes for each agent in the mask in AgentContainer.
+        """Set the value of a specified attribute or attributes for each agent in the mask in AgentContainer.
 
         Parameters
         ----------
@@ -379,7 +421,21 @@ class AgentContainer(CopyMixin):
             A new or updated AgentContainer.
         """
 
-    def __add__(self, other) -> Self:
+    def __add__(
+        self, other: DataFrameInput | AgentSetDF | Collection[AgentSetDF]
+    ) -> Self:
+        """Add agents to a new AgentContainer through the + operator.
+
+        Parameters
+        ----------
+        other : DataFrameInput | AgentSetDF | Collection[AgentSetDF]
+            The agents to add.
+
+        Returns
+        -------
+        Self
+            A new AgentContainer with the added agents.
+        """
         return self.add(agents=other, inplace=False)
 
     def __contains__(self, agents: int | AgentSetDF) -> bool:
@@ -417,7 +473,7 @@ class AgentContainer(CopyMixin):
             | tuple[AgentMask, Collection[str]]
         ),
     ) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]:
-        """Implements the [] operator for the AgentContainer.
+        """Implement the [] operator for the AgentContainer.
 
         The key can be:
         - An attribute or collection of attributes (eg. AgentContainer["str"], AgentContainer[["str1", "str2"]]): returns the specified column(s) of the agents in the AgentContainer.
@@ -531,7 +587,7 @@ class AgentContainer(CopyMixin):
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any | dict[str, Any]:
-        """Fallback for retrieving attributes of the AgentContainer. Retrieves an attribute of the underlying DataFrame(s).
+        """Fallback for retrieving attributes of the AgentContainer. Retrieve an attribute of the underlying DataFrame(s).
 
         Parameters
         ----------
@@ -615,7 +671,8 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        Generator"""
+        Generator
+        """
         return self.model.random
 
     @property
@@ -720,17 +777,17 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     copy(self, deep: bool = False, memo: dict | None = None) -> Self
         Create a copy of the AgentSetDF.
     discard(self, ids: AgentMask, inplace: bool = True) -> Self
-        Removes an agent from the AgentSetDF. Does not raise an error if the agent is not found.
+        Remove an agent from the AgentSetDF. Does not raise an error if the agent is not found.
     do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
         Invoke a method on the AgentSetDF.
     get(self, attr_names: str | Collection[str] | None = None, mask: AgentMask | None = None) -> Series | DataFrame
         Retrieve the value of a specified attribute for each agent in the AgentSetDF.
     remove(self, ids: AgentMask, inplace: bool = True) -> Self
-        Removes an agent from the AgentSetDF.
+        Remove an agent from the AgentSetDF.
     select(self, mask: AgentMask | None = None, filter_func: Callable[[Self], AgentMask] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
         Select agents in the AgentSetDF based on the given criteria.
     set(self, attr_names: str | dict[str, Any] | Collection[str], values: Any | None = None, mask: AgentMask | None = None, inplace: bool = True) -> Self
-        Sets the value of a specified attribute or attributes for each agent in the mask in AgentSetDF.
+        Set the value of a specified attribute or attributes for each agent in the mask in AgentSetDF.
     shuffle(self, inplace: bool = False) -> Self
         Shuffles the order of agents in the AgentSetDF.
     sort(self, by: str | Sequence[str], ascending: bool | Sequence[bool] = True, inplace: bool = True, **kwargs) -> Self
@@ -790,7 +847,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         agents: DataFrameInput,
         inplace: bool = True,
     ) -> Self:
-        """Add agents to the AgentSetDF
+        """Add agents to the AgentSetDF.
 
         Agents can be the input to the DataFrame constructor. So, the input can be:
         - A DataFrame: adds the agents from the DataFrame.
@@ -812,6 +869,20 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         ...
 
     def discard(self, agents: IdsLike, inplace: bool = True) -> Self:
+        """Remove an agent from the AgentSetDF. Does not raise an error if the agent is not found.
+
+        Parameters
+        ----------
+        agents : IdsLike
+            The ids to remove
+        inplace : bool, optional
+            Whether to remove the agent in place, by default True
+
+        Returns
+        -------
+        Self
+            The updated AgentSetDF.
+        """
         return super().discard(agents, inplace)
 
     @overload
@@ -836,7 +907,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         **kwargs,
     ) -> Any: ...
 
-    def do(
+    def do(  # noqa: D102
         self,
         method_name: str,
         *args,
@@ -889,18 +960,18 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     ) -> DataFrame: ...
 
     @abstractmethod
-    def get(
+    def get(  # noqa: D102
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
     ) -> Series | DataFrame: ...
 
     @abstractmethod
-    def step(self) -> None: ...
+    def step(self) -> None:
+        """Run a single step of the AgentSetDF. This method should be overridden by subclasses."""
+        ...
 
-    """A single step of the AgentSetDF. This method should be overridden by subclasses."""
-
-    def remove(self, agents: IdsLike, inplace: bool = True) -> Self:
+    def remove(self, agents: IdsLike, inplace: bool = True) -> Self:  # noqa: D102
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
             return self._get_obj(inplace)
         agents = self._df_index(self._get_masked_df(agents), "unique_id")
@@ -922,7 +993,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def _get_bool_mask(self, mask: AgentMask) -> BoolSeries:
-        """Get the equivalent boolean mask based on the input mask
+        """Get the equivalent boolean mask based on the input mask.
 
         Parameters
         ----------
@@ -936,7 +1007,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def _get_masked_df(self, mask: AgentMask) -> DataFrame:
-        """Get the df filtered by the input mask
+        """Get the df filtered by the input mask.
 
         Parameters
         ----------
@@ -966,8 +1037,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def _discard(self, ids: IdsLike) -> Self:
-        """Removes an agent from the DataFrame of the AgentSetDF. Gets called by self.model.agents.remove and self.model.agents.discard.
-
+        """Remove an agent from the DataFrame of the AgentSetDF. Gets called by self.model.agents.remove and self.model.agents.discard.
 
         Parameters
         ----------
@@ -1027,7 +1097,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         return super().__iadd__(other)
 
     @abstractmethod
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> Any:  # noqa: D105
         if name == "_agents":
             raise RuntimeError(
                 "The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
@@ -1042,7 +1112,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
     ) -> DataFrame: ...
 
-    def __getitem__(
+    def __getitem__(  # noqa: D105
         self,
         key: (
             str
@@ -1050,26 +1120,26 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
             | AgentMask
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
-        ),
+        ),  # noqa: D105
     ) -> Series | DataFrame:
         attr = super().__getitem__(key)
         assert isinstance(attr, (Series, DataFrame, Index))
         return attr
 
-    def __len__(self) -> int:
+    def __len__(self) -> int:  # noqa: D105
         return len(self._agents)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # noqa: D105
         return f"{self.__class__.__name__}\n {str(self._agents)}"
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # noqa: D105
         return f"{self.__class__.__name__}\n {str(self._agents)}"
 
-    def __reversed__(self) -> Iterator:
+    def __reversed__(self) -> Iterator:  # noqa: D105
         return reversed(self._agents)
 
     @property
-    def agents(self) -> DataFrame:
+    def agents(self) -> DataFrame:  # noqa: D102
         return self._agents
 
     @agents.setter
@@ -1085,17 +1155,17 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @property
     @abstractmethod
-    def active_agents(self) -> DataFrame: ...
+    def active_agents(self) -> DataFrame: ...  # noqa: D102
 
     @property
     @abstractmethod
-    def inactive_agents(self) -> DataFrame: ...
+    def inactive_agents(self) -> DataFrame: ...  # noqa: D102
 
     @property
-    def index(self) -> Index: ...
+    def index(self) -> Index: ...  # noqa: D102
 
     @property
-    def pos(self) -> DataFrame:
+    def pos(self) -> DataFrame:  # noqa: D102
         pos = self._df_constructor(self.space.agents, index_cols="agent_id")
         pos = self._df_get_masked_df(df=pos, index_cols="agent_id", mask=self.index)
         pos = self._df_reindex(
