@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
-
 from mesa_frames import GridPandas, ModelDF
-
 from .agents import AntPandas
 
 
@@ -18,18 +16,12 @@ class SugarscapePandas(ModelDF):
         height: int | None = None,
     ):
         super().__init__()
-
         if sugar_grid is None:
             sugar_grid = self.random.integers(0, 4, (width, height))
-
         grid_dimensions = sugar_grid.shape
-
         self.space = GridPandas(
             self, grid_dimensions, neighborhood_type="von_neumann", capacity=1
         )
-
-        # NOTE: set_cells should automatically broadcast the property if the dimensions of DF
-        # are same as the grid so there is no need to pass the dimensions with pd.MultiIndex
         sugar_grid = pd.DataFrame(
             {
                 "sugar": sugar_grid.flatten(),
