@@ -48,3 +48,9 @@ features = ["dev"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["mesa_frames"]
+
+[tool.ruff.lint]
+select = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
