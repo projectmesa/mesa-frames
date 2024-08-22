@@ -32,8 +32,8 @@ Usage:
     from mesa_frames.abstract.space import GridDF
 
     class GridPandas(GridDF):
-        def __init__(self, width, height, model):
-            super().__init__(width, height, model)
+        def __init__(self, model, dimensions, torus, capacity, neighborhood_type):
+            super().__init__(model, dimensions, torus, capacity, neighborhood_type)
             # Implementation using pandas DataFrame
             ...
 
