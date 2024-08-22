@@ -140,7 +140,7 @@ class AgentsDF(AgentContainer):
     @overload
     def contains(self, agents: IdsLike | Iterable[AgentSetDF]) -> pl.Series: ...
 
-    def contains(  # noqa: D102
+    def contains(
         self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]
     ) -> bool | pl.Series:
         if isinstance(agents, int):
@@ -180,7 +180,7 @@ class AgentsDF(AgentContainer):
         **kwargs,
     ) -> dict[AgentSetDF, Any]: ...
 
-    def do(  # noqa: D102
+    def do(
         self,
         method_name: str,
         *args,
@@ -217,7 +217,7 @@ class AgentsDF(AgentContainer):
             ]
             return obj
 
-    def get(  # noqa: D102
+    def get(
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
@@ -228,7 +228,7 @@ class AgentsDF(AgentContainer):
             for agentset, mask in agentsets_masks.items()
         }
 
-    def remove(  # noqa: D102
+    def remove(
         self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike, inplace: bool = True
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -272,7 +272,7 @@ class AgentsDF(AgentContainer):
         obj._ids = obj._ids.filter(obj._ids.is_in(removed_ids).not_())
         return obj
 
-    def select(  # noqa: D102
+    def select(
         self,
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         filter_func: Callable[[AgentSetDF], AgentMask] | None = None,
@@ -292,7 +292,7 @@ class AgentsDF(AgentContainer):
         ]
         return obj
 
-    def set(  # noqa: D102
+    def set(
         self,
         attr_names: str | dict[AgentSetDF, Any] | Collection[str],
         values: Any | None = None,
@@ -319,12 +319,12 @@ class AgentsDF(AgentContainer):
             ]
         return obj
 
-    def shuffle(self, inplace: bool = True) -> Self:  # noqa: D102
+    def shuffle(self, inplace: bool = True) -> Self:
         obj = self._get_obj(inplace)
         obj._agentsets = [agentset.shuffle(inplace=True) for agentset in obj._agentsets]
         return obj
 
-    def sort(  # noqa: D102
+    def sort(
         self,
         by: str | Sequence[str],
         ascending: bool | Sequence[bool] = True,
@@ -565,7 +565,7 @@ class AgentsDF(AgentContainer):
         return super().__sub__(agents)
 
     @property
-    def agents(self) -> dict[AgentSetDF, DataFrame]:  # noqa: D102
+    def agents(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.agents for agentset in self._agentsets}
 
     @agents.setter
@@ -580,7 +580,7 @@ class AgentsDF(AgentContainer):
         self._agentsets = list(other)
 
     @property
-    def active_agents(self) -> dict[AgentSetDF, DataFrame]:  # noqa: D102
+    def active_agents(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.active_agents for agentset in self._agentsets}
 
     @active_agents.setter
@@ -612,13 +612,13 @@ class AgentsDF(AgentContainer):
         return dictionary
 
     @property
-    def inactive_agents(self) -> dict[AgentSetDF, DataFrame]:  # noqa: D102
+    def inactive_agents(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.inactive_agents for agentset in self._agentsets}
 
     @property
-    def index(self) -> dict[AgentSetDF, Index]:  # noqa: D102
+    def index(self) -> dict[AgentSetDF, Index]:
         return {agentset: agentset.index for agentset in self._agentsets}
 
     @property
-    def pos(self) -> dict[AgentSetDF, DataFrame]:  # noqa: D102
+    def pos(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.pos for agentset in self._agentsets}

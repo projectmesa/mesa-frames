@@ -63,7 +63,7 @@ from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 
 
-class GridPandas(GridDF, PandasMixin):  # noqa: D101
+class GridPandas(GridDF, PandasMixin):
     _agents: pd.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("copy", ["deep"]),
@@ -217,7 +217,7 @@ class GridPandas(GridDF, PandasMixin):  # noqa: D101
         return self._cells_capacity
 
     @property
-    def remaining_capacity(self) -> int:  # noqa: D102
+    def remaining_capacity(self) -> int:
         if not self._capacity:
             return np.inf
         return self._cells_capacity.sum()

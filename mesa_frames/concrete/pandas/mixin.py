@@ -49,7 +49,7 @@ from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import DataFrame, PandasMask
 
 
-class PandasMixin(DataFrameMixin):  # noqa: D101
+class PandasMixin(DataFrameMixin):
     def _df_add(
         self,
         df: pd.DataFrame,

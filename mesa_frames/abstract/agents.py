@@ -835,7 +835,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         **kwargs,
     ) -> Any: ...
 
-    def do(  # noqa: D102
+    def do(
         self,
         method_name: str,
         *args,
@@ -888,7 +888,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     ) -> DataFrame: ...
 
     @abstractmethod
-    def get(  # noqa: D102
+    def get(
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
@@ -899,7 +899,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """Run a single step of the AgentSetDF. This method should be overridden by subclasses."""
         ...
 
-    def remove(self, agents: IdsLike, inplace: bool = True) -> Self:  # noqa: D102
+    def remove(self, agents: IdsLike, inplace: bool = True) -> Self:
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
             return self._get_obj(inplace)
         agents = self._df_index(self._get_masked_df(agents), "unique_id")
@@ -1067,7 +1067,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         return reversed(self._agents)
 
     @property
-    def agents(self) -> DataFrame:  # noqa: D102
+    def agents(self) -> DataFrame:
         return self._agents
 
     @agents.setter
@@ -1083,17 +1083,17 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @property
     @abstractmethod
-    def active_agents(self) -> DataFrame: ...  # noqa: D102
+    def active_agents(self) -> DataFrame: ...
 
     @property
     @abstractmethod
-    def inactive_agents(self) -> DataFrame: ...  # noqa: D102
+    def inactive_agents(self) -> DataFrame: ...
 
     @property
-    def index(self) -> Index: ...  # noqa: D102
+    def index(self) -> Index: ...
 
     @property
-    def pos(self) -> DataFrame:  # noqa: D102
+    def pos(self) -> DataFrame:
         pos = self._df_constructor(self.space.agents, index_cols="agent_id")
         pos = self._df_get_masked_df(df=pos, index_cols="agent_id", mask=self.index)
         pos = self._df_reindex(
