@@ -86,57 +86,6 @@ if TYPE_CHECKING:
 class SpaceDF(CopyMixin, DataFrameMixin):
     """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames.
 
-    Methods
-    -------
-    __init__(model: 'ModelDF')
-        Create a new SpaceDF object.
-    random_agents(n: int) -> DataFrame
-        Return a random sample of agents from the space.
-    get_directions(
-        pos0: SpaceCoordinate | SpaceCoordinates | None = None,
-        pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        normalize: bool = False,
-    ) -> DataFrame
-        Returns the directions from pos0 to pos1 or agents0 and agents1.
-    get_distances(
-        pos0: SpaceCoordinate | SpaceCoordinates | None = None,
-        pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-    ) -> DataFrame
-        Returns the distances from pos0 to pos1 or agents0 and agents1.
-    get_neighbors(
-        radius: int | float | Sequence[int] | Sequence[float] | ArrayLike,
-        pos: Space
-    ) -> DataFrame
-        Get the neighboring agents from given positions or agents according to the specified radiuses.
-    move_agents(
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        pos
-    ) -> Self
-        Place agents in the space according to the specified coordinates.
-    move_to_empty(
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        inplace: bool = True,
-    ) -> Self
-        Move agents to empty cells/positions in the space.
-    random_pos(
-        n: int,
-    ) -> DataFrame
-        Return a random sample of positions from the space.
-    remove_agents(
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
-        inplace: bool = True,
-    )
-        Remove agents from the space.
-    swap_agents(
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer],
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer],
-    ) -> Self
-        Swap the positions of the agents in the space.
-
     Parameters
     ----------
     model : 'ModelDF'
@@ -588,31 +537,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
 
 class DiscreteSpaceDF(SpaceDF):
-    """The DiscreteSpaceDF class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames.
-
-    Methods
-    -------
-    __init__(model: 'ModelDF', capacity: int | None = None)
-        Create a new DiscreteSpaceDF object.
-    is_available(pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame
-        Check whether the input positions are available (there exists at least one remaining spot in the cells).
-    is_empty(pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame
-        Check whether the input positions are empty (there isn't any single agent in the cells).
-    is_full(pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame
-        Check whether the input positions are full (there isn't any spot available in the cells).
-    move_to_empty(agents: IdsLike | AgentContainer | Collection[AgentContainer], inplace: bool = True) -> Self
-        Move agents to empty cells in the space (cells where there isn't any single agent).
-    move_to_available(agents: IdsLike | AgentContainer | Collection[AgentContainer], inplace: bool = True) -> Self
-        Move agents to available cells in the space (cells where there is at least one spot available).
-    sample_cells(n: int, cell_type: Literal["any", "empty", "available", "full"] = "any", with_replacement: bool = True) -> DataFrame
-        Sample cells from the grid according to the specified cell_type.
-    get_neighborhood(radius: int | float | Sequence[int] | Sequence[float] | ArrayLike, pos: DiscreteCoordinate | DiscreteCoordinates | None = None, agents: IdsLike | AgentContainer | Collection[AgentContainer] = None, include_center: bool = False) -> DataFrame
-        Get the neighborhood cells from the given positions (pos) or agents according to the specified radiuses.
-    get_cells(coords: DiscreteCoordinate | DiscreteCoordinates | None = None) -> DataFrame
-        Retrieve a dataframe of specified cells with their properties and agents.
-    set_cells(properties: DataFrame, cells: DiscreteCoordinates | None = None, inplace: bool = True) -> Self
-        Set the properties of the specified cells.
-    """
+    """The DiscreteSpaceDF class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames."""
 
     _agents: DataFrame
     _capacity: int | None  # The maximum capacity for cells (default is infinite)
@@ -1208,13 +1133,6 @@ class GridDF(DiscreteSpaceDF):
     .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
     .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
 
-
-    Methods
-    -------
-    __init__(model: 'ModelDF', dimensions: Sequence[int], torus: bool = False, capacity: int | None = None, neighborhood_type: str = 'moore')
-        Create a new GridDF object.
-    out_of_bounds(pos: GridCoordinate | GridCoordinates) -> DataFrame
-        Check whether the input positions are out of bounds in a non-toroidal grid.
 
     Properties
     ----------

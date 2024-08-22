@@ -83,50 +83,6 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
     random(self) -> Generator
         Get the random number generator associated with the model.
 
-    Methods
-    -------
-    __init__(self, model: ModelDF) -> None
-        Initialize a new AgentSetPandas.
-    add(self, other: pd.DataFrame | Sequence[Any] | dict[str, Any], inplace: bool = True) -> Self
-        Add agents to the AgentSetPandas.
-    contains(self, ids: PandasIdsLike) -> bool | pd.Series
-        Check if agents with the specified IDs are in the AgentSetPandas.
-    copy(self, deep: bool = False, memo: dict | None = None) -> Self
-        Create a copy of the AgentSetPandas.
-    discard(self, ids: PandasIdsLike, inplace: bool = True) -> Self
-        Remove an agent from the AgentSetPandas. Does not raise an error if the agent is not found.
-    do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
-        Invoke a method on the AgentSetPandas.
-    get(self, attr_names: str | Collection[str] | None, mask: PandasMaskLike = None) -> pd.Series | pd.DataFrame
-        Retrieve the value of a specified attribute for each agent in the AgentSetPandas.
-    remove(self, ids: PandasIdsLike, inplace: bool = True) -> Self
-        Remove agents from the AgentSetPandas.
-    select(self, mask: PandasMaskLike = None, filter_func: Callable[[Self], PandasMaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
-        Select agents in the AgentSetPandas based on the given criteria.
-    set(self, attr_names: str | Collection[str] | dict[str, Any] | None = None, values: Any | None = None, mask: PandasMaskLike | None = None, inplace: bool = True) -> Self
-        Set the value of a specified attribute or attributes for each agent in the mask in the AgentSetPandas.
-    shuffle(self, inplace: bool = True) -> Self
-        Shuffle the order of agents in the AgentSetPandas.
-    sort(self, by: str | Sequence[str], ascending: bool | Sequence[bool] = True, inplace: bool = True, **kwargs) -> Self
-        Sort the agents in the AgentSetPandas based on the given criteria.
-    to_polars(self) -> "AgentSetPolars"
-        Convert the AgentSetPandas to an AgentSetPolars.
-    _get_bool_mask(self, mask: PandasMaskLike = None) -> pd.Series
-        Get a boolean mask for selecting agents.
-    _get_masked_df(self, mask: PandasMaskLike = None) -> pd.DataFrame
-        Get a DataFrame of agents that match the mask.
-    __getattr__(self, key: str) -> pd.Series
-        Retrieve an attribute of the underlying DataFrame.
-    __iter__(self) -> Iterator
-        Get an iterator for the agents in the AgentSetPandas.
-    __len__(self) -> int
-        Get the number of agents in the AgentSetPandas.
-    __repr__(self) -> str
-        Get the string representation of the AgentSetPandas.
-    __reversed__(self) -> Iterator
-        Get a reversed iterator for the agents in the AgentSetPandas.
-    __str__(self) -> str
-        Get the string representation of the AgentSetPandas.
     """
 
     _agents: pd.DataFrame

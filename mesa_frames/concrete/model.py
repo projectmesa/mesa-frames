@@ -59,25 +59,6 @@ class ModelDF:
     It includes the basic attributes and methods necessary for initializing and
     running a simulation model.
 
-    Methods
-    -------
-    __new__(cls, seed: int | Sequence[int] | None = None, *args: Any, **kwargs: Any) -> Any
-        Create a new model object and instantiate its RNG automatically.
-    __init__(self, *args: Any, **kwargs: Any) -> None
-        Create a new model. Overload this method with the actual code to start the model.
-    get_agents_of_type(self, agent_type: type) -> AgentSetDF
-        Retrieve the AgentSetDF of a specified type.
-    initialize_data_collector(self, model_reporters: dict | None = None, agent_reporters: dict | None = None, tables: dict | None = None) -> None
-        Initialize the data collector for the model (not implemented yet).
-    next_id(self) -> int
-        Generate and return the next unique identifier for an agent (not implemented yet).
-    reset_randomizer(self, seed: int | Sequence[int] | None) -> None
-        Reset the model random number generator with a new or existing seed.
-    run_model(self) -> None
-        Run the model until the end condition is reached.
-    step(self) -> None
-        Execute a single step of the model's simulation process (needs to be overridden in a subclass).
-
     Properties
     ----------
     agents : AgentsDF

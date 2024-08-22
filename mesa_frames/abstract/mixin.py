@@ -53,14 +53,7 @@ from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series
 
 
 class CopyMixin(ABC):
-    """A mixin class that provides a fast copy method for the class that inherits it.
-
-    Methods
-    -------
-    copy(deep: bool = False, memo: dict | None = None) -> Self
-        Create a copy of the object. If deep is True, a deep copy is created. If deep is False, a shallow copy is created.
-
-    """
+    """A mixin class that provides a fast copy method for the class that inherits it."""
 
     _copy_with_method: dict[str, tuple[str, list[str]]] = {}
     _copy_only_reference: list[str] = [

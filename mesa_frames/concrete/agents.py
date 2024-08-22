@@ -82,50 +82,6 @@ class AgentsDF(AgentContainer):
     random(self) -> np.random.Generator
         Get the random number generator associated with the model.
 
-    Methods
-    -------
-    __init__(self, model: ModelDF)
-        Initialize a new AgentsDF.
-    add(self, other: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True) -> Self
-        Add agents to the AgentsDF.
-    contains(self, ids: IdsLike) -> bool | pl.Series
-        Check if agents with the specified IDs are in the AgentsDF.
-    copy(self, deep: bool = False, memo: dict | None = None) -> Self
-        Create a copy of the AgentsDF.
-    discard(self, ids: IdsLike, inplace: bool = True) -> Self
-        Remove an agent from the AgentsDF. Does not raise an error if the agent is not found.
-    do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
-        Invoke a method on the AgentsDF.
-    get(self, attr_names: str | Collection[str] | None = None, mask: AgentMask = None) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]
-        Retrieve the value of a specified attribute for each agent in the AgentsDF.
-    remove(self, ids: IdsLike, inplace: bool = True) -> Self
-        Remove agents from the AgentsDF.
-    select(self, mask: AgentMask = None, filter_func: Callable[[Self], AgentMask] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
-        Select agents in the AgentsDF based on the given criteria.
-    set(self, attr_names: str | Collection[str] | dict[AgentSetDF, Any] | None = None, values: Any | None = None, mask: AgentMask | None = None, inplace: bool = True) -> Self
-        Set the value of a specified attribute or attributes for each agent in the mask in the AgentsDF.
-    shuffle(self, inplace: bool = True) -> Self
-        Shuffle the order of agents in the AgentsDF.
-    sort(self, by: str | Sequence[str], ascending: bool | Sequence[bool] = True, inplace: bool = True, **kwargs) -> Self
-        Sort the agents in the AgentsDF based on the given criteria.
-    _check_ids(self, other: AgentSetDF | Iterable[AgentSetDF]) -> None
-        Check if the IDs of the agents to be added are unique.
-    __add__(self, other: AgentSetDF | Iterable[AgentSetDF]) -> Self
-        Add AgentSetDFs to a new AgentsDF through the + operator.
-    __getattr__(self, key: str) -> Any
-        Retrieve an attribute of the underlying agent sets.
-    __iadd__(self, other: AgentSetDF | Iterable[AgentSetDF]) -> Self
-        Add AgentSetDFs to the AgentsDF through the += operator.
-    __iter__(self) -> Iterator
-        Get an iterator for the agents in the AgentsDF.
-    __len__(self) -> int
-        Get the number of agents in the AgentsDF.
-    __repr__(self) -> str
-        Get the string representation of the AgentsDF.
-    __reversed__(self) -> Iterator
-        Get a reversed iterator for the agents in the AgentsDF.
-    __str__(self) -> str
-        Get the string representation of the AgentsDF.
     """
 
     _agentsets: list[AgentSetDF]

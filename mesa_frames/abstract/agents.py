@@ -70,31 +70,6 @@ if TYPE_CHECKING:
 class AgentContainer(CopyMixin):
     """An abstract class for containing agents. Defines the common interface for AgentSetDF and AgentsDF.
 
-    Methods
-    -------
-    copy(deep: bool = False, memo: dict | None = None) -> Self
-        Create a copy of the AgentContainer.
-    discard(ids: IdsLike, inplace: bool = True) -> Self
-        Remove an agent from the AgentContainer. Does not raise an error if the agent is not found.
-    add(other: Any, inplace: bool = True) -> Self
-        Add agents to the AgentContainer.
-    contains(ids: IdsLike) -> bool | BoolSeries
-        Check if agents with the specified IDs are in the AgentContainer.
-    do(method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any | dict[str, Any]
-        Invoke a method on the AgentContainer.
-    get(attr_names: str | Collection[str] | None = None, mask: AgentMask | None = None) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]
-        Retrieve the value of a specified attribute for each agent in the AgentContainer.
-    remove(ids: IdsLike, inplace: bool = True) -> Self
-        Remove an agent from the AgentContainer.
-    select(mask: AgentMask | None = None, filter_func: Callable[[Self], AgentMask] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
-        Select agents in the AgentContainer based on the given criteria.
-    set(attr_names: str | dict[str, Any] | Collection[str], values: Any | None = None, mask: AgentMask | None = None, inplace: bool = True) -> Self
-        Set the value of a specified attribute or attributes for each agent in the mask in AgentContainer.
-    shuffle(inplace: bool = False) -> Self
-        Shuffles the order of agents in the AgentContainer.
-    sort(by: str | Sequence[str], ascending: bool | Sequence[bool] = True, inplace: bool = True, **kwargs) -> Self
-        Sorts the agents in the agent set based on the given criteria.
-
     Properties
     ----------
     model : ModelDF
@@ -765,53 +740,6 @@ class AgentContainer(CopyMixin):
 
 class AgentSetDF(AgentContainer, DataFrameMixin):
     """The AgentSetDF class is a container for agents of the same type.
-
-    Methods
-    -------
-    __init__(self, model: ModelDF) -> None
-        Create a new AgentSetDF.
-    add(self, other: DataFrame | Sequence[Any] | dict[str, Any], inplace: bool = True) -> Self
-        Add agents to the AgentSetDF.
-    contains(self, ids: Hashable | Collection[Hashable]) -> bool | BoolSeries
-        Check if agents with the specified IDs are in the AgentSetDF.
-    copy(self, deep: bool = False, memo: dict | None = None) -> Self
-        Create a copy of the AgentSetDF.
-    discard(self, ids: AgentMask, inplace: bool = True) -> Self
-        Remove an agent from the AgentSetDF. Does not raise an error if the agent is not found.
-    do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
-        Invoke a method on the AgentSetDF.
-    get(self, attr_names: str | Collection[str] | None = None, mask: AgentMask | None = None) -> Series | DataFrame
-        Retrieve the value of a specified attribute for each agent in the AgentSetDF.
-    remove(self, ids: AgentMask, inplace: bool = True) -> Self
-        Remove an agent from the AgentSetDF.
-    select(self, mask: AgentMask | None = None, filter_func: Callable[[Self], AgentMask] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
-        Select agents in the AgentSetDF based on the given criteria.
-    set(self, attr_names: str | dict[str, Any] | Collection[str], values: Any | None = None, mask: AgentMask | None = None, inplace: bool = True) -> Self
-        Set the value of a specified attribute or attributes for each agent in the mask in AgentSetDF.
-    shuffle(self, inplace: bool = False) -> Self
-        Shuffles the order of agents in the AgentSetDF.
-    sort(self, by: str | Sequence[str], ascending: bool | Sequence[bool] = True, inplace: bool = True, **kwargs) -> Self
-        Sorts the agents in the AgentSetDF based on the given criteria.
-    _get_obj(self, inplace: bool) -> Self
-        Get the appropriate object, either the current instance or a copy, based on the `inplace` parameter.
-    __add__(self, other: Self | DataFrame | Sequence[Any] | dict[str, Any]) -> Self
-        Add agents to a new AgentSetDF through the + operator.
-    __iadd__(self, other: Self | DataFrame | Sequence[Any] | dict[str, Any]) -> Self
-        Add agents to the AgentSetDF through the += operator.
-    __getattr__(self, name: str) -> Any
-        Retrieve an attribute of the AgentSetDF.
-    __getitem__(self, key: str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]]) -> Series | DataFrame
-        Retrieve an item from the AgentSetDF.
-    __iter__(self) -> Iterator
-        Get an iterator for the agents in the AgentSetDF.
-    __len__(self) -> int
-        Get the number of agents in the AgentSetDF.
-    __repr__(self) -> str
-        Get the string representation of the AgentSetDF.
-    __reversed__(self) -> Iterator
-        Get a reversed iterator for the agents in the AgentSetDF.
-    __str__(self) -> str
-        Get the string representation of the AgentSetDF.
 
     Properties
     ----------
