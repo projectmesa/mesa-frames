@@ -55,3 +55,8 @@ ignore = ["D101", "D102", "D105"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"test/*" = ["D"]
+"examples/*" = ["D"]
+"docs/*" = ["D"]
