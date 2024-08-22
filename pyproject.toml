@@ -27,12 +27,18 @@ polars = [
 ]
 
 docs = [
-  "perfplot", #readme_script
-  "seaborn", #readme_script
+  # Readme Script
+  "perfplot",
+  "seaborn",
+  # General Docs
   "mkdocs-material",
   "mkdocs-jupyter",
   "mkdocs-git-revision-date-localized-plugin",
-  "mkdocs-minify-plugin"
+  "mkdocs-minify-plugin",
+  # API Docs
+  "sphinx",
+  "sphinx-rtd-theme",
+  "numpydoc"
 ]
 
 dev = [
