@@ -1,3 +1,45 @@
+"""
+Concrete implementation of the model class for mesa-frames.
+
+This module provides the concrete implementation of the base model class for
+the mesa-frames library. It defines the ModelDF class, which serves as the
+foundation for creating agent-based models using DataFrame-based agent storage.
+
+Classes:
+    ModelDF:
+        The base class for models in the mesa-frames library. This class
+        provides the core functionality for initializing and running
+        agent-based simulations using DataFrame-backed agent sets.
+
+The ModelDF class is designed to be subclassed by users to create specific
+model implementations. It provides the basic structure and methods necessary
+for setting up and running simulations, while leveraging the performance
+benefits of DataFrame-based agent storage.
+
+Usage:
+    To create a custom model, subclass ModelDF and implement the necessary
+    methods:
+
+    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.agents import AgentSetPandas
+
+    class MyCustomModel(ModelDF):
+        def __init__(self, num_agents):
+            super().__init__()
+            self.agents += AgentSetPandas(self)
+            # Initialize your model-specific attributes and agent sets
+
+        def run_model(self):
+            # Implement the logic for a single step of your model
+            for _ in range(10):
+                self.step()
+
+        # Add any other custom methods for your model
+
+For more detailed information on the ModelDF class and its methods, refer to
+the class docstring.
+"""
+
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -51,7 +93,9 @@ class ModelDF:
     _space: SpaceDF | None  # This will be a MultiSpaceDF object
 
     def __init__(self, seed: int | Sequence[int] | None = None) -> None:
-        """Create a new model. Overload this method with the actual code to
+        """Create a new model.
+
+        Overload this method with the actual code to
         start the model. Always start with super().__init__(seed) to initialize the
         model object properly.
 
@@ -85,25 +129,12 @@ class ModelDF:
                 return agentset
         raise ValueError(f"No agents of type {agent_type} found in the model.")
 
-    def initialize_data_collector(
-        self,
-        model_reporters: dict | None = None,
-        agent_reporters: dict | None = None,
-        tables: dict | None = None,
-    ) -> None:
-        raise NotImplementedError(
-            "initialize_data_collector() method not implemented yet for ModelDF"
-        )
-
-    def next_id(self) -> int:
-        raise NotImplementedError("next_id() method not implemented for ModelDF")
-
     def reset_randomizer(self, seed: int | Sequence[int] | None) -> None:
         """Reset the model random number generator.
 
-        Parameters:
+        Parameters
         ----------
-        seed : int | None
+        seed : int | Sequence[int] | None
             A new seed for the RNG; if None, reset using the current seed
         """
         if seed is None:
@@ -113,18 +144,34 @@ class ModelDF:
         self.random = np.random.default_rng(seed=self._seed)
 
     def run_model(self) -> None:
-        """Run the model until the end condition is reached. Overload as
-        needed.
+        """Run the model until the end condition is reached.
+
+        Overload as needed.
         """
         while self.running:
             self.step()
 
     def step(self) -> None:
-        """A single step. The default method calls the step() method of all agents. Overload as needed."""
+        """Run a single step.
+
+        The default method calls the step() method of all agents. Overload as needed.
+        """
         self.agents.step()
 
     @property
     def agents(self) -> AgentsDF:
+        """Get the AgentsDF object containing all agents in the model.
+
+        Returns
+        -------
+        AgentsDF
+            The AgentsDF object containing all agents in the model.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been initialized properly with super().__init__().
+        """
         try:
             return self._agents
         except AttributeError:
@@ -140,10 +187,29 @@ class ModelDF:
 
     @property
     def agent_types(self) -> list[type]:
+        """Get a list of different agent types present in the model.
+
+        Returns
+        -------
+        list[type]
+            A list of the different agent types present in the model.
+        """
         return [agent.__class__ for agent in self._agents._agentsets]
 
     @property
     def space(self) -> SpaceDF:
+        """Get the space object associated with the model.
+
+        Returns
+        -------
+        SpaceDF
+            The space object associated with the model.
+
+        Raises
+        ------
+        ValueError
+            If the space has not been set for the model.
+        """
         if not self._space:
             raise ValueError(
                 "You haven't set the space for the model. Use model.space = your_space"
