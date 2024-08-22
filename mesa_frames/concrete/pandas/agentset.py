@@ -1,42 +1,74 @@
+"""
+Pandas-based implementation of AgentSet for mesa-frames.
+
+This module provides a concrete implementation of the AgentSet class using pandas
+as the backend for DataFrame operations. It defines the AgentSetPandas class,
+which combines the abstract AgentSetDF functionality with pandas-specific
+operations for efficient agent management and manipulation.
+
+Classes:
+    AgentSetPandas(AgentSetDF, PandasMixin):
+        A pandas-based implementation of the AgentSet. This class uses pandas
+        DataFrames to store and manipulate agent data, providing high-performance
+        operations for large numbers of agents.
+
+The AgentSetPandas class is designed to be used within ModelDF instances or as
+part of an AgentsDF collection. It leverages the power of pandas for fast and
+efficient data operations on agent attributes and behaviors.
+
+Usage:
+    The AgentSetPandas class can be used directly in a model or as part of an
+    AgentsDF collection:
+
+    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.pandas.agentset import AgentSetPandas
+    import numpy as np
+
+    class MyAgents(AgentSetPandas):
+        def __init__(self, model):
+            super().__init__(model)
+            # Initialize with some agents
+            self.add({'unique_id': np.arange(100), 'wealth': 10})
+
+        def step(self):
+            # Implement step behavior using pandas operations
+            self.agents['wealth'] += 1
+
+    class MyModel(ModelDF):
+        def __init__(self):
+            super().__init__()
+            self.agents += MyAgents(self)
+
+        def step(self):
+            self.agents.step()
+
+Note:
+    This implementation relies on pandas, so users should ensure that pandas
+    is installed and imported. The performance characteristics of this class
+    will depend on the pandas version and the specific operations used.
+
+For more detailed information on the AgentSetPandas class and its methods,
+refer to the class docstring.
+"""
+
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
 import pandas as pd
 import polars as pl
+from typing_extensions import Any, Self, overload
+
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 from mesa_frames.concrete.polars.agentset import AgentSetPolars
 from mesa_frames.types_ import AgentPandasMask, PandasIdsLike
-from typing_extensions import Any, Self, overload
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
 
 
 class AgentSetPandas(AgentSetDF, PandasMixin):
-    _agents: pd.DataFrame
-    _mask: pd.Series
-    _copy_with_method: dict[str, tuple[str, list[str]]] = {
-        "_agents": ("copy", ["deep"]),
-        "_mask": ("copy", ["deep"]),
-    }
     """A pandas-based implementation of the AgentSet.
-
-    Attributes
-    ----------
-    _agents : pd.DataFrame
-        The agents in the AgentSet.
-    _copy_only_reference : list[str] = ['_model']
-        A list of attributes to copy with a reference only.
-    _copy_with_method: dict[str, tuple[str, list[str]]] = {
-        "_agents": ("copy", ["deep"]),
-        "_mask": ("copy", ["deep"]),
-    }
-        A dictionary of attributes to copy with a specified method and arguments.
-    _mask : pd.Series
-        A boolean mask indicating which agents are active.
-    _model : ModelDF
-        The model that the AgentSetDF belongs to.
 
     Properties
     ----------
@@ -97,7 +129,23 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         Get the string representation of the AgentSetPandas.
     """
 
+    _agents: pd.DataFrame
+    _mask: pd.Series
+    _copy_with_method: dict[str, tuple[str, list[str]]] = {
+        "_agents": ("copy", ["deep"]),
+        "_mask": ("copy", ["deep"]),
+    }
+
     def __init__(self, model: "ModelDF") -> None:
+        """Initialize a new AgentSetPandas.
+
+        Overload this method to add custom initialization logic but make sure to call super().__init__(model).
+
+        Parameters
+        ----------
+        model : ModelDF
+            The model associated with the AgentSetPandas.
+        """
         self._model = model
         self._agents = (
             pd.DataFrame(columns=["unique_id"])
@@ -106,7 +154,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         )
         self._mask = pd.Series(True, index=self._agents.index, dtype=pd.BooleanDtype())
 
-    def add(
+    def add(  # noqa : D102
         self,
         agents: pd.DataFrame | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
@@ -156,7 +204,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
     @overload
     def contains(self, agents: PandasIdsLike) -> pd.Series: ...
 
-    def contains(self, agents: PandasIdsLike) -> bool | pd.Series:
+    def contains(self, agents: PandasIdsLike) -> bool | pd.Series:  # noqa : D102
         if isinstance(agents, pd.Series):
             return agents.isin(self._agents.index)
         elif isinstance(agents, pd.Index):
@@ -168,7 +216,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         else:
             return agents in self._agents.index
 
-    def get(
+    def get(  # noqa : D102
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgentPandasMask = None,
@@ -184,7 +232,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             if isinstance(attr_names, Collection):
                 return self._agents.loc[mask, list(attr_names)]
 
-    def set(
+    def set(  # noqa : D102
         self,
         attr_names: str | dict[str, Any] | Collection[str] | None = None,
         values: Any | None = None,
@@ -222,7 +270,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         obj._agents = obj._agents.reindex(original_index)
         return obj
 
-    def select(
+    def select(  # noqa : D102
         self,
         mask: AgentPandasMask = None,
         filter_func: Callable[[Self], AgentPandasMask] | None = None,
@@ -244,12 +292,12 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         obj._mask = bool_mask
         return obj
 
-    def shuffle(self, inplace: bool = True) -> Self:
+    def shuffle(self, inplace: bool = True) -> Self:  # noqa : D102
         obj = self._get_obj(inplace)
         obj._agents = obj._agents.sample(frac=1)
         return obj
 
-    def sort(
+    def sort(  # noqa : D102
         self,
         by: str | Sequence[str],
         ascending: bool | Sequence[bool] = True,
@@ -261,6 +309,15 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         return obj
 
     def to_polars(self) -> AgentSetPolars:
+        """Convert the AgentSetPandas to an AgentSetPolars.
+
+        NOTE: If a methods is not backend-agnostic (i.e., it uses pandas-specific functionality), when the method is called on the Polars version of the object, it will raise an error.
+
+        Returns
+        -------
+        AgentSetPolars
+            An AgentSetPolars object with the same agents and active agents as the AgentSetPandas.
+        """
         new_obj = AgentSetPolars(self._model)
         new_obj._agents = pl.DataFrame(self._agents)
         new_obj._mask = pl.Series(self._mask)
@@ -388,24 +445,24 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
                 dtype=pd.BooleanDtype(),
             )
 
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> Any:  # noqa : D105
         super().__getattr__(name)
         return getattr(self._agents, name)
 
-    def __iter__(self) -> Iterator[dict[str, Any]]:
+    def __iter__(self) -> Iterator[dict[str, Any]]:  # noqa : D105
         for index, row in self._agents.iterrows():
             row_dict = row.to_dict()
             row_dict["unique_id"] = index
             yield row_dict
 
-    def __len__(self) -> int:
+    def __len__(self) -> int:  # noqa : D105
         return len(self._agents)
 
-    def __reversed__(self) -> Iterator:
+    def __reversed__(self) -> Iterator:  # noqa : D105
         return iter(self._agents[::-1].iterrows())
 
     @property
-    def agents(self) -> pd.DataFrame:
+    def agents(self) -> pd.DataFrame:  # noqa : D105
         return self._agents
 
     @agents.setter
@@ -419,7 +476,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         self._agents = new_agents
 
     @property
-    def active_agents(self) -> pd.DataFrame:
+    def active_agents(self) -> pd.DataFrame:  # noqa : D102
         return self._agents.loc[self._mask]
 
     @active_agents.setter
@@ -427,13 +484,13 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         self.select(mask=mask, inplace=True)
 
     @property
-    def inactive_agents(self) -> pd.DataFrame:
+    def inactive_agents(self) -> pd.DataFrame:  # noqa : D102
         return self._agents.loc[~self._mask]
 
     @property
-    def index(self) -> pd.Index:
+    def index(self) -> pd.Index:  # noqa : D102
         return self._agents.index
 
     @property
-    def pos(self) -> pd.DataFrame:
+    def pos(self) -> pd.DataFrame:  # noqa : D102
         return super().pos
