@@ -68,22 +68,7 @@ if TYPE_CHECKING:
 
 
 class AgentSetPandas(AgentSetDF, PandasMixin):
-    """A pandas-based implementation of the AgentSet.
-
-    Properties
-    ----------
-    active_agents(self) -> pd.DataFrame
-        Get the active agents in the AgentSetPandas.
-    agents(self) -> pd.DataFrame
-        Get or set the agents in the AgentSetPandas.
-    inactive_agents(self) -> pd.DataFrame
-        Get the inactive agents in the AgentSetPandas.
-    model(self) -> ModelDF
-        Get the model associated with the AgentSetPandas.
-    random(self) -> Generator
-        Get the random number generator associated with the model.
-
-    """
+    """A pandas-based implementation of AgentSetDF."""
 
     _agents: pd.DataFrame
     _mask: pd.Series
