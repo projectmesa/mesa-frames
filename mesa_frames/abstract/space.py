@@ -84,12 +84,7 @@ if TYPE_CHECKING:
 
 
 class SpaceDF(CopyMixin, DataFrameMixin):
-    """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames.
-
-    Parameters
-    ----------
-    model : 'ModelDF'
-    """
+    """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames."""
 
     _model: "ModelDF"
     _agents: DataFrame  # | GeoDataFrame  # Stores the agents placed in the space
@@ -101,6 +96,12 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     ]  # The column names of the positions in the _agents dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
 
     def __init__(self, model: "ModelDF") -> None:
+        """Create a new SpaceDF.
+
+        Parameters
+        ----------
+        model : ModelDF
+        """
         self._model = model
 
     def move_agents(
@@ -551,17 +552,14 @@ class DiscreteSpaceDF(SpaceDF):
         model: "ModelDF",
         capacity: int | None = None,
     ):
-        """Create a DiscreteSpaceDF object.
-
-        NOTE: The capacity specified here is the default capacity,
-        it can be set also per cell through the set_cells method.
+        """Create a new DiscreteSpaceDF.
 
         Parameters
         ----------
         model : ModelDF
             The model to which the space belongs
         capacity : int | None, optional
-            The maximum capacity for cells, by default None (infinite)
+            The maximum capacity for cells (default is infinite), by default None
         """
         super().__init__(model)
         self._capacity = capacity
@@ -1132,16 +1130,6 @@ class GridDF(DiscreteSpaceDF):
 
     .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
     .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
-
-
-    Properties
-    ----------
-    dimensions : Sequence[int]
-        The dimensions of the grid
-    neighborhood_type : Literal['moore', 'von_neumann', 'hexagonal']
-        The type of neighborhood to consider
-    torus : bool
-        If the grid is a torus
     """
 
     _cells_capacity: (
@@ -1161,42 +1149,20 @@ class GridDF(DiscreteSpaceDF):
         capacity: int | None = None,
         neighborhood_type: str = "moore",
     ):
-        """Create a new GridDF object.
-
-        Warning
-        -------
-        For rectangular grids:
-        In this implementation, [0, ..., 0] is the bottom-left corner and
-        [dimensions[0]-1, ..., dimensions[n-1]-1] is the top-right corner, consistent with
-        Cartesian coordinates and Matplotlib/Seaborn plot outputs.
-        The convention is different from `np.genfromtxt`_ and its use in the
-        `mesa-examples Sugarscape model`_, where [0, ..., 0] is the top-left corner
-        and [dimensions[0]-1, ..., dimensions[n-1]-1] is the bottom-right corner.
-
-        For hexagonal grids:
-        The coordinates are ordered according to the axial coordinate system.
-        In this system, the hexagonal grid uses two axes (q and r) at 60 degrees to each other.
-        The q-axis points to the right, and the r-axis points up and to the right.
-        The [0, 0] coordinate is at the bottom-left corner of the grid.
-
-        .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
-        .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
+        """Create a new GridDF.
 
         Parameters
         ----------
-        model : 'ModelDF'
-            The model object to which the grid belongs
-        dimensions: Sequence[int]
-            The dimensions of the grid. For hexagonal grids, this should be [q_max, r_max].
+        model : ModelDF
+            The model to which the space belongs
+        dimensions : Sequence[int]
+            The dimensions of the grid
         torus : bool, optional
-            If the grid should be a torus, by default False
+            If the grid is a torus, by default False
         capacity : int | None, optional
-            The maximum number of agents that can be placed in a cell, by default None
-        neighborhood_type: str, optional
-            The type of neighborhood to consider, by default 'moore'.
-            If 'moore', the neighborhood is the 8 cells around the center cell (up, down, left, right, and diagonals).
-            If 'von_neumann', the neighborhood is the 4 cells around the center cell (up, down, left, right).
-            If 'hexagonal', the neighborhood are 6 cells around the center cell distributed in a hexagonal shape.
+            The maximum capacity for cells (default is infinite), by default None
+        neighborhood_type : str, optional
+            The type of neighborhood to consider, by default "moore"
         """
         super().__init__(model, capacity)
         self._dimensions = dimensions
