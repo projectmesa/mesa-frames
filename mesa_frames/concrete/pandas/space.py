@@ -63,9 +63,7 @@ from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 
 
-class GridPandas(GridDF, PandasMixin):
-    """A pandas-based implementation of GridDF."""
-
+class GridPandas(GridDF, PandasMixin):  # noqa: D101
     _agents: pd.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("copy", ["deep"]),
