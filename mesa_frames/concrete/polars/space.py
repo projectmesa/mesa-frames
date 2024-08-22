@@ -1,8 +1,52 @@
+"""
+Polars-based implementation of spatial structures for mesa-frames.
+
+This module provides concrete implementations of spatial structures using Polars
+as the backend for DataFrame operations. It defines the GridPolars class, which
+implements a 2D grid structure using Polars DataFrames for efficient spatial
+operations and agent positioning.
+
+Classes:
+    GridPolars(GridDF, PolarsMixin):
+        A Polars-based implementation of a 2D grid. This class uses Polars
+        DataFrames to store and manipulate spatial data, providing high-performance
+        operations for large-scale spatial simulations.
+
+The GridPolars class is designed to be used within ModelDF instances to represent
+the spatial environment of the simulation. It leverages the power of Polars for
+fast and efficient data operations on spatial attributes and agent positions.
+
+Usage:
+    The GridPolars class can be used directly in a model to represent the
+    spatial environment:
+
+    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.polars.space import GridPolars
+    from mesa_frames.concrete.polars.agentset import AgentSetPolars
+
+    class MyAgents(AgentSetPolars):
+        # ... agent implementation ...
+
+    class MyModel(ModelDF):
+        def __init__(self, width, height):
+            super().__init__()
+            self.space = GridPolars(self, [width, height])
+            self.agents += MyAgents(self)
+
+        def step(self):
+            # Move agents
+            self.space.move_agents(self.agents)
+            # ... other model logic ...
+
+For more detailed information on the GridPolars class and its methods,
+refer to the class docstring.
+"""
+
 from collections.abc import Callable, Sequence
+from typing import Literal
 
 import numpy as np
 import polars as pl
-from typing import Literal
 
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.polars.mixin import PolarsMixin
