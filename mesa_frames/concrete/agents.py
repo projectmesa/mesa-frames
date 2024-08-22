@@ -1,3 +1,49 @@
+"""
+Concrete implementation of the agents collection for mesa-frames.
+
+This module provides the concrete implementation of the agents collection class
+for the mesa-frames library. It defines the AgentsDF class, which serves as a
+container for all agent sets in a model, leveraging DataFrame-based storage for
+improved performance.
+
+Classes:
+    AgentsDF(AgentContainer):
+        A collection of AgentSetDFs. This class acts as a container for all
+        agents in the model, organizing them into separate AgentSetDF instances
+        based on their types.
+
+The AgentsDF class is designed to be used within ModelDF instances to manage
+all agents in the simulation. It provides methods for adding, removing, and
+accessing agents and agent sets, while taking advantage of the performance
+benefits of DataFrame-based agent storage.
+
+Usage:
+    The AgentsDF class is typically instantiated and used within a ModelDF subclass:
+
+    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.agents import AgentsDF
+    from mesa_frames.concrete.pandas import AgentSetPandas
+
+    class MyCustomModel(ModelDF):
+        def __init__(self):
+            super().__init__()
+            # Adding agent sets to the collection
+            self.agents += AgentSetPandas(self)
+            self.agents += AnotherAgentSetPandas(self)
+
+        def step(self):
+            # Step all agent sets
+            self.agents.do("step")
+
+Note:
+    This concrete implementation builds upon the abstract AgentContainer class
+    defined in the mesa_frames.abstract package, providing a ready-to-use
+    agents collection that integrates with the DataFrame-based agent storage system.
+
+For more detailed information on the AgentsDF class and its methods, refer to
+the class docstring.
+"""
+
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING, Literal, cast
@@ -21,16 +67,7 @@ if TYPE_CHECKING:
 
 
 class AgentsDF(AgentContainer):
-    _agentsets: list[AgentSetDF]
-    _ids: pl.Series
     """A collection of AgentSetDFs. All agents of the model are stored here.
-
-    Attributes
-    ----------
-    _agentsets : list[AgentSetDF]
-        The agent sets contained in this collection.
-    _copy_with_method : dict[AgentSetDF, tuple[str, list[str]]]
-        A dictionary of attributes to copy with a specified method and arguments.
 
     Properties
     ----------
@@ -47,7 +84,7 @@ class AgentsDF(AgentContainer):
 
     Methods
     -------
-    __init__(self) -> None
+    __init__(self, model: ModelDF)
         Initialize a new AgentsDF.
     add(self, other: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True) -> Self
         Add agents to the AgentsDF.
@@ -91,7 +128,17 @@ class AgentsDF(AgentContainer):
         Get the string representation of the AgentsDF.
     """
 
+    _agentsets: list[AgentSetDF]
+    _ids: pl.Series
+
     def __init__(self, model: "ModelDF") -> None:
+        """Initialize a new AgentsDF.
+
+        Parameters
+        ----------
+        model : ModelDF
+            The model associated with the AgentsDF.
+        """
         self._model = model
         self._agentsets = []
         self._ids = pl.Series(name="unique_id", dtype=pl.Int64)
@@ -137,7 +184,7 @@ class AgentsDF(AgentContainer):
     @overload
     def contains(self, agents: IdsLike | Iterable[AgentSetDF]) -> pl.Series: ...
 
-    def contains(
+    def contains(  # noqa: D102
         self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]
     ) -> bool | pl.Series:
         if isinstance(agents, int):
@@ -177,7 +224,7 @@ class AgentsDF(AgentContainer):
         **kwargs,
     ) -> dict[AgentSetDF, Any]: ...
 
-    def do(
+    def do(  # noqa: D102
         self,
         method_name: str,
         *args,
@@ -214,7 +261,7 @@ class AgentsDF(AgentContainer):
             ]
             return obj
 
-    def get(
+    def get(  # noqa: D102
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
@@ -225,7 +272,7 @@ class AgentsDF(AgentContainer):
             for agentset, mask in agentsets_masks.items()
         }
 
-    def remove(
+    def remove(  # noqa: D102
         self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike, inplace: bool = True
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -269,7 +316,7 @@ class AgentsDF(AgentContainer):
         obj._ids = obj._ids.filter(obj._ids.is_in(removed_ids).not_())
         return obj
 
-    def select(
+    def select(  # noqa: D102
         self,
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         filter_func: Callable[[AgentSetDF], AgentMask] | None = None,
@@ -289,7 +336,7 @@ class AgentsDF(AgentContainer):
         ]
         return obj
 
-    def set(
+    def set(  # noqa: D102
         self,
         attr_names: str | dict[AgentSetDF, Any] | Collection[str],
         values: Any | None = None,
@@ -316,12 +363,12 @@ class AgentsDF(AgentContainer):
             ]
         return obj
 
-    def shuffle(self, inplace: bool = True) -> Self:
+    def shuffle(self, inplace: bool = True) -> Self:  # noqa: D102
         obj = self._get_obj(inplace)
         obj._agentsets = [agentset.shuffle(inplace=True) for agentset in obj._agentsets]
         return obj
 
-    def sort(
+    def sort(  # noqa: D102
         self,
         by: str | Sequence[str],
         ascending: bool | Sequence[bool] = True,
@@ -422,7 +469,7 @@ class AgentsDF(AgentContainer):
     def _return_agentsets_list(
         self, agentsets: AgentSetDF | Iterable[AgentSetDF]
     ) -> list[AgentSetDF]:
-        """Convert the agentsets to a list of AgentSetDF
+        """Convert the agentsets to a list of AgentSetDF.
 
         Parameters
         ----------
@@ -449,7 +496,7 @@ class AgentsDF(AgentContainer):
         """
         return super().__add__(other)
 
-    def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
+    def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:  # noqa: D105
         if name.startswith("_"):  # Avoids infinite recursion of private attributes
             raise AttributeError(
                 f"'{self.__class__.__name__}' object has no attribute '{name}'"
@@ -470,7 +517,7 @@ class AgentsDF(AgentContainer):
         | tuple[dict[AgentSetDF, AgentMask], Collection[str]],
     ) -> dict[str, DataFrame]: ...
 
-    def __getitem__(
+    def __getitem__(  # noqa: D105
         self,
         key: (
             str
@@ -498,7 +545,7 @@ class AgentsDF(AgentContainer):
         """
         return super().__iadd__(agents)
 
-    def __iter__(self) -> Iterator[dict[str, Any]]:
+    def __iter__(self) -> Iterator[dict[str, Any]]:  # noqa: D105
         return (agent for agentset in self._agentsets for agent in iter(agentset))
 
     def __isub__(self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike) -> Self:
@@ -516,20 +563,20 @@ class AgentsDF(AgentContainer):
         """
         return super().__isub__(agents)
 
-    def __len__(self) -> int:
+    def __len__(self) -> int:  # noqa: D105
         return sum(len(agentset._agents) for agentset in self._agentsets)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # noqa: D105
         return "\n".join([repr(agentset) for agentset in self._agentsets])
 
-    def __reversed__(self) -> Iterator:
+    def __reversed__(self) -> Iterator:  # noqa: D105
         return (
             agent
             for agentset in self._agentsets
             for agent in reversed(agentset._backend)
         )
 
-    def __setitem__(
+    def __setitem__(  # noqa: D105
         self,
         key: (
             str
@@ -543,7 +590,7 @@ class AgentsDF(AgentContainer):
     ) -> None:
         super().__setitem__(key, values)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:  # noqa: D105
         return "\n".join([str(agentset) for agentset in self._agentsets])
 
     def __sub__(self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]) -> Self:
@@ -562,7 +609,7 @@ class AgentsDF(AgentContainer):
         return super().__sub__(agents)
 
     @property
-    def agents(self) -> dict[AgentSetDF, DataFrame]:
+    def agents(self) -> dict[AgentSetDF, DataFrame]:  # noqa: D102
         return {agentset: agentset.agents for agentset in self._agentsets}
 
     @agents.setter
@@ -577,7 +624,7 @@ class AgentsDF(AgentContainer):
         self._agentsets = list(other)
 
     @property
-    def active_agents(self) -> dict[AgentSetDF, DataFrame]:
+    def active_agents(self) -> dict[AgentSetDF, DataFrame]:  # noqa: D102
         return {agentset: agentset.active_agents for agentset in self._agentsets}
 
     @active_agents.setter
@@ -588,6 +635,14 @@ class AgentsDF(AgentContainer):
 
     @property
     def agentsets_by_type(self) -> dict[type[AgentSetDF], Self]:
+        """Get the agent sets in the AgentsDF grouped by type.
+
+        Returns
+        -------
+        dict[type[AgentSetDF], Self]
+            A dictionary mapping agent set types to the corresponding AgentsDF.
+        """
+
         def copy_without_agentsets() -> Self:
             return self.copy(deep=False, skip=["_agentsets"])
 
@@ -601,13 +656,13 @@ class AgentsDF(AgentContainer):
         return dictionary
 
     @property
-    def inactive_agents(self) -> dict[AgentSetDF, DataFrame]:
+    def inactive_agents(self) -> dict[AgentSetDF, DataFrame]:  # noqa: D102
         return {agentset: agentset.inactive_agents for agentset in self._agentsets}
 
     @property
-    def index(self) -> dict[AgentSetDF, Index]:
+    def index(self) -> dict[AgentSetDF, Index]:  # noqa: D102
         return {agentset: agentset.index for agentset in self._agentsets}
 
     @property
-    def pos(self) -> dict[AgentSetDF, DataFrame]:
+    def pos(self) -> dict[AgentSetDF, DataFrame]:  # noqa: D102
         return {agentset: agentset.pos for agentset in self._agentsets}
