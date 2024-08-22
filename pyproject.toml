@@ -26,19 +26,26 @@ polars = [
   #"geopolars" (currently in pre-alpha)
 ]
 
-docs = [
-  # Readme Script
-  "perfplot",
-  "seaborn",
-  # General Docs
+mkdocs = [
   "mkdocs-material",
   "mkdocs-jupyter",
   "mkdocs-git-revision-date-localized-plugin",
   "mkdocs-minify-plugin",
-  # API Docs
+]
+
+sphinx = [
   "sphinx",
   "sphinx-rtd-theme",
-  "numpydoc"
+  "numpydoc",
+  "pydata-sphinx-theme",
+  "sphinx-copybutton",
+]
+
+docs = [
+  "mesa_frames[mkdocs, sphinx]",
+  # Readme Script
+  "perfplot",
+  "seaborn"
 ]
 
 dev = [
