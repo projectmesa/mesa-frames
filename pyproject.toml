@@ -51,7 +51,7 @@ packages = ["mesa_frames"]
 
 [tool.ruff.lint]
 select = ["D"]
-ignore = ["D101", "D102"]
+ignore = ["D101", "D102", "D105"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

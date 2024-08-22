@@ -1031,10 +1031,10 @@ class DiscreteSpaceDF(SpaceDF):
         """
         self.set_cells(cells=cells, properties=properties, inplace=True)
 
-    def __repr__(self) -> str:  # noqa: D105
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}\nCells:\n{self._cells.__repr__()}\nAgents:\n{self._agents.__repr__()}"
 
-    def __str__(self) -> str:  # noqa: D105
+    def __str__(self) -> str:
         return (
             f"{self.__class__.__name__}\nCells:\n{self._cells}\nAgents:\n{self._agents}"
         )

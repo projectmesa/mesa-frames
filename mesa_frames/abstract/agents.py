@@ -1025,7 +1025,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         return super().__iadd__(other)
 
     @abstractmethod
-    def __getattr__(self, name: str) -> Any:  # noqa: D105
+    def __getattr__(self, name: str) -> Any:
         if name == "_agents":
             raise RuntimeError(
                 "The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
@@ -1040,7 +1040,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
     ) -> DataFrame: ...
 
-    def __getitem__(  # noqa: D105
+    def __getitem__(
         self,
         key: (
             str
@@ -1048,22 +1048,22 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
             | AgentMask
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
-        ),  # noqa: D105
+        ),
     ) -> Series | DataFrame:
         attr = super().__getitem__(key)
         assert isinstance(attr, (Series, DataFrame, Index))
         return attr
 
-    def __len__(self) -> int:  # noqa: D105
+    def __len__(self) -> int:
         return len(self._agents)
 
-    def __repr__(self) -> str:  # noqa: D105
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}\n {str(self._agents)}"
 
-    def __str__(self) -> str:  # noqa: D105
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}\n {str(self._agents)}"
 
-    def __reversed__(self) -> Iterator:  # noqa: D105
+    def __reversed__(self) -> Iterator:
         return reversed(self._agents)
 
     @property

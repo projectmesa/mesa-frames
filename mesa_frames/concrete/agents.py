@@ -452,7 +452,7 @@ class AgentsDF(AgentContainer):
         """
         return super().__add__(other)
 
-    def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:  # noqa: D105
+    def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
         if name.startswith("_"):  # Avoids infinite recursion of private attributes
             raise AttributeError(
                 f"'{self.__class__.__name__}' object has no attribute '{name}'"
@@ -473,7 +473,7 @@ class AgentsDF(AgentContainer):
         | tuple[dict[AgentSetDF, AgentMask], Collection[str]],
     ) -> dict[str, DataFrame]: ...
 
-    def __getitem__(  # noqa: D105
+    def __getitem__(
         self,
         key: (
             str
@@ -501,7 +501,7 @@ class AgentsDF(AgentContainer):
         """
         return super().__iadd__(agents)
 
-    def __iter__(self) -> Iterator[dict[str, Any]]:  # noqa: D105
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         return (agent for agentset in self._agentsets for agent in iter(agentset))
 
     def __isub__(self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike) -> Self:
@@ -519,20 +519,20 @@ class AgentsDF(AgentContainer):
         """
         return super().__isub__(agents)
 
-    def __len__(self) -> int:  # noqa: D105
+    def __len__(self) -> int:
         return sum(len(agentset._agents) for agentset in self._agentsets)
 
-    def __repr__(self) -> str:  # noqa: D105
+    def __repr__(self) -> str:
         return "\n".join([repr(agentset) for agentset in self._agentsets])
 
-    def __reversed__(self) -> Iterator:  # noqa: D105
+    def __reversed__(self) -> Iterator:
         return (
             agent
             for agentset in self._agentsets
             for agent in reversed(agentset._backend)
         )
 
-    def __setitem__(  # noqa: D105
+    def __setitem__(
         self,
         key: (
             str
@@ -546,7 +546,7 @@ class AgentsDF(AgentContainer):
     ) -> None:
         super().__setitem__(key, values)
 
-    def __str__(self) -> str:  # noqa: D105
+    def __str__(self) -> str:
         return "\n".join([str(agentset) for agentset in self._agentsets])
 
     def __sub__(self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]) -> Self:
