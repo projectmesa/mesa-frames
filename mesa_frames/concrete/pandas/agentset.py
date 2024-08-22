@@ -67,9 +67,7 @@ if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
 
 
-class AgentSetPandas(AgentSetDF, PandasMixin):
-    """A pandas-based implementation of AgentSetDF."""
-
+class AgentSetPandas(AgentSetDF, PandasMixin):  # noqa : D101
     _agents: pd.DataFrame
     _mask: pd.Series
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
