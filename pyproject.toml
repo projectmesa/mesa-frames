@@ -44,7 +44,7 @@ sphinx = [
 ]
 
 docs = [
-  "mesa_frames[mkdocs, sphinx]",
+  "mesa_frames[pandas, polars, mkdocs, sphinx]",
   # Readme Script
   "perfplot",
   "seaborn"
