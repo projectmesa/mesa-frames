@@ -3,8 +3,7 @@ name: Build and Deploy Documentation
 on:
   push:
     branches:
-      # - main
-      - 72-api-documentation-with-sphinx
+      - main
 
 jobs:
   build-and-deploy-docs:
