@@ -154,8 +154,8 @@ class TestGridPolars:
 
         # Test with IdsLike
         grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
-        print(grid_moore.agents)
-        print(grid_moore.cells)
+        agents = grid_moore.agents.sort("agent_id")
+
         assert grid_moore.agents["agent_id"].to_list() == [0, 1, 4, 5, 6, 7]
         assert grid_moore.agents["dim_0"].to_list() == [0, 1, 0, 0, 1, 1]
         assert grid_moore.agents["dim_1"].to_list() == [0, 1, 1, 2, 0, 2]
