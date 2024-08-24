@@ -43,7 +43,14 @@ dev = [
   "mesa",
 ]
 
+[tool.hatch.build]
+extra-index-url = ["https://pypi.nvidia.com"]
+
 [tool.hatch.envs.dev] #Allows installing dev as virtual env
+features = ["dev"]
+
+[tool.hatch.envs.gpu]
+python = "3.11"
 features = ["dev"]
 
 [tool.hatch.build.targets.wheel]
