@@ -22,5 +22,6 @@ jobs:
       - name: Deploy sphinx (API) documentation
         uses: sphinx-notes/pages@v3
         with:
+          checkout: false
           publish: false
           documentation_path: docs/api
