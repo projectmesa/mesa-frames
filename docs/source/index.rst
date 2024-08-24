@@ -1,17 +1,24 @@
-.. mesa-frames documentation master file, created by
-   sphinx-quickstart on Thu Aug 22 14:21:57 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+This page provides a high-level overview of all public mesa-frames objects, functions, and methods. All classes and functions exposed in the ``mesa_frames.*`` namespace are public.
 
-mesa-frames documentation
-=========================
+.. grid::
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+    .. grid-item-card::
 
+        .. toctree::
+            :maxdepth: 2
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+            api/agents/index
 
+    .. grid-item-card::
+
+        .. toctree::
+           :maxdepth: 1
+
+           api/model
+
+    .. grid-item-card::
+
+        .. toctree::
+            :maxdepth: 3
+
+            api/space/index
