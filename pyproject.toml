@@ -39,6 +39,8 @@ sphinx = [
   "numpydoc",
   "pydata-sphinx-theme",
   "sphinx-copybutton",
+  "sphinx-design",
+  "autodocsumm"
 ]
 
 docs = [
