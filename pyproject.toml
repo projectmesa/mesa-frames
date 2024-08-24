@@ -29,6 +29,7 @@ polars = [
 docs = [
   "perfplot", #readme_script
   "seaborn", #readme_script
+  "matplotlib", #readme_script
   "mkdocs-material",
   "mkdocs-jupyter",
   "mkdocs-git-revision-date-localized-plugin",
