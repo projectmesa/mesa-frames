@@ -1,3 +1,5 @@
+"""Type aliases for the mesa_frames package."""
+
 from collections.abc import Collection, Sequence
 from typing import Literal
 

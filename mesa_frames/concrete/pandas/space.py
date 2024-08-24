@@ -1,8 +1,64 @@
+"""
+Pandas-based implementation of spatial structures for mesa-frames.
+
+This module provides concrete implementations of spatial structures using pandas
+as the backend for DataFrame operations. It defines the GridPandas class, which
+implements a 2D grid structure using pandas DataFrames for efficient spatial
+operations and agent positioning.
+
+Classes:
+    GridPandas(GridDF, PandasMixin):
+        A pandas-based implementation of a 2D grid. This class uses pandas
+        DataFrames to store and manipulate spatial data, providing high-performance
+        operations for large-scale spatial simulations.
+
+The GridPandas class is designed to be used within ModelDF instances to represent
+the spatial environment of the simulation. It leverages the power of pandas for
+fast and efficient data operations on spatial attributes and agent positions.
+
+Usage:
+    The GridPandas class can be used directly in a model to represent the
+    spatial environment:
+
+    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.pandas.space import GridPandas
+    from mesa_frames.concrete.pandas.agentset import AgentSetPandas
+
+    class MyAgents(AgentSetPandas):
+        # ... agent implementation ...
+
+    class MyModel(ModelDF):
+        def __init__(self, width, height):
+            super().__init__()
+            self.space = GridPandas(self, [width, height])
+            self.agents += MyAgents(self)
+
+        def step(self):
+            # Move agents
+            self.space.move_agents(self.agents, positions)
+            # ... other model logic ...
+
+Features:
+    - Efficient storage and retrieval of agent positions
+    - Fast operations for moving agents and querying neighborhoods
+    - Seamless integration with pandas-based agent sets
+    - Support for various boundary conditions (e.g., wrapped, bounded)
+
+Note:
+    This implementation relies on pandas, so users should ensure that pandas
+    is installed and imported. The performance characteristics of this class
+    will depend on the pandas version and the specific operations used.
+
+For more detailed information on the GridPandas class and its methods,
+refer to the class docstring.
+"""
+
 from collections.abc import Callable, Sequence
 from typing import Literal
 
 import numpy as np
 import pandas as pd
+
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 

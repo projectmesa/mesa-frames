@@ -1,3 +1,48 @@
+"""
+Polars-specific mixin for DataFrame operations in mesa-frames.
+
+This module provides a concrete implementation of the DataFrameMixin using Polars
+as the backend for DataFrame operations. It defines the PolarsMixin class, which
+implements DataFrame operations specific to Polars, offering efficient data
+manipulation and analysis capabilities for mesa-frames components.
+
+Classes:
+    PolarsMixin(DataFrameMixin):
+        A Polars-based implementation of DataFrame operations. This class provides
+        methods for manipulating and analyzing data stored in Polars DataFrames,
+        tailored for use in mesa-frames components like AgentSetPolars and GridPolars.
+
+The PolarsMixin class is designed to be used as a mixin with other mesa-frames
+classes, providing them with Polars-specific DataFrame functionality. It implements
+the abstract methods defined in the DataFrameMixin, ensuring consistent DataFrame
+operations across the mesa-frames package.
+
+Usage:
+    The PolarsMixin is typically used in combination with other base classes:
+
+    from mesa_frames.abstract import AgentSetDF
+    from mesa_frames.concrete.polars.mixin import PolarsMixin
+
+    class AgentSetPolars(AgentSetDF, PolarsMixin):
+        def __init__(self, model):
+            super().__init__(model)
+            self.agents = pl.DataFrame()  # Initialize empty DataFrame
+
+        def some_method(self):
+            # Use Polars operations provided by the mixin
+            result = self._df_groupby(self.agents, 'some_column')
+            # ... further processing ...
+
+Features:
+    - High-performance DataFrame operations using Polars
+    - Support for both eager and lazy evaluation
+    - Efficient memory usage and fast computation
+    - Integration with Polars' query optimization capabilities
+
+For more detailed information on the PolarsMixin class and its methods, refer to
+the class docstring.
+"""
+
 from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 

@@ -1,13 +1,52 @@
+"""
+Pandas-specific mixin for DataFrame operations in mesa-frames.
+
+This module provides a concrete implementation of the DataFrameMixin using pandas
+as the backend for DataFrame operations. It defines the PandasMixin class, which
+implements DataFrame operations specific to pandas.
+
+Classes:
+    PandasMixin(DataFrameMixin):
+        A pandas-based implementation of DataFrame operations. This class provides
+        methods for manipulating data stored in pandas DataFrames,
+        tailored for use in mesa-frames components like AgentSetPandas and GridPandas.
+
+The PandasMixin class is designed to be used as a mixin with other mesa-frames
+classes, providing them with pandas-specific DataFrame functionality. It implements
+the abstract methods defined in the DataFrameMixin, ensuring consistent DataFrame
+operations across the mesa-frames package.
+
+Usage:
+    The PandasMixin is typically used in combination with other base classes:
+
+    from mesa_frames.abstract import AgentSetDF
+    from mesa_frames.concrete.pandas.mixin import PandasMixin
+
+    class AgentSetPandas(AgentSetDF, PandasMixin):
+        def __init__(self, model):
+            super().__init__(model)
+            ...
+
+        def _some_private_method(self):
+            # Use pandas operations provided by the mixin
+            result = self._df_add(self.agents, 10)
+            # ... further processing ...
+
+
+For more detailed information on the PandasMixin class and its methods, refer to
+the class docstring.
+"""
+
 from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import numpy as np
-from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import DataFrame, PandasMask
-from typing_extensions import Any, overload
-
 import pandas as pd
 import polars as pl
+from typing_extensions import Any, overload
+
+from mesa_frames.abstract.mixin import DataFrameMixin
+from mesa_frames.types_ import DataFrame, PandasMask
 
 
 class PandasMixin(DataFrameMixin):

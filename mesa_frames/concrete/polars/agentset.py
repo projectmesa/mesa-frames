@@ -1,3 +1,62 @@
+"""
+Polars-based implementation of AgentSet for mesa-frames.
+
+This module provides a concrete implementation of the AgentSet class using Polars
+as the backend for DataFrame operations. It defines the AgentSetPolars class,
+which combines the abstract AgentSetDF functionality with Polars-specific
+operations for efficient agent management and manipulation.
+
+Classes:
+    AgentSetPolars(AgentSetDF, PolarsMixin):
+        A Polars-based implementation of the AgentSet. This class uses Polars
+        DataFrames to store and manipulate agent data, providing high-performance
+        operations for large numbers of agents.
+
+The AgentSetPolars class is designed to be used within ModelDF instances or as
+part of an AgentsDF collection. It leverages the power of Polars for fast and
+efficient data operations on agent attributes and behaviors.
+
+Usage:
+    The AgentSetPolars class can be used directly in a model or as part of an
+    AgentsDF collection:
+
+    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.polars.agentset import AgentSetPolars
+    import polars as pl
+
+    class MyAgents(AgentSetPolars):
+        def __init__(self, model):
+            super().__init__(model)
+            # Initialize with some agents
+            self.add(pl.DataFrame({'id': range(100), 'wealth': 10}))
+
+        def step(self):
+            # Implement step behavior using Polars operations
+            self.agents = self.agents.with_columns(new_wealth = pl.col('wealth') + 1)
+
+    class MyModel(ModelDF):
+        def __init__(self):
+            super().__init__()
+            self.agents += MyAgents(self)
+
+        def step(self):
+            self.agents.step()
+
+Features:
+    - Efficient storage and manipulation of large agent populations
+    - Fast vectorized operations on agent attributes
+    - Support for lazy evaluation and query optimization
+    - Seamless integration with other mesa-frames components
+
+Note:
+    This implementation relies on Polars, so users should ensure that Polars
+    is installed and imported. The performance characteristics of this class
+    will depend on the Polars version and the specific operations used.
+
+For more detailed information on the AgentSetPolars class and its methods,
+refer to the class docstring.
+"""
+
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
@@ -21,85 +80,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     }
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
-
-    """A polars-based implementation of the AgentSet.
-
-    Attributes
-    ----------
-    _agents : pl.DataFrame
-        The agents in the AgentSet.
-    _copy_only_reference : list[str] = ["_model", "_mask"]
-        A list of attributes to copy with a reference only.
-    _copy_with_method: dict[str, tuple[str, list[str]]] = {
-        "_agents": ("copy", ["deep"]),
-        "_mask": ("copy", ["deep"]),
-    }
-        A dictionary of attributes to copy with a specified method and arguments.
-    model : ModelDF
-        The model to which the AgentSet belongs.
-    _mask : pl.Series
-        A boolean mask indicating which agents are active.
-
-    Properties
-    ----------
-    active_agents(self) -> pl.DataFrame
-        Get the active agents in the AgentSetPolars.
-    agents(self) -> pl.DataFrame
-        Get or set the agents in the AgentSetPolars.
-    inactive_agents(self) -> pl.DataFrame
-        Get the inactive agents in the AgentSetPolars.
-    model(self) -> ModelDF
-        Get the model associated with the AgentSetPolars.
-    random(self) -> Generator
-        Get the random number generator associated with the model.
-
-
-    Methods
-    -------
-    __init__(self, model: ModelDF) -> None
-        Initialize a new AgentSetPolars.
-    add(self, other: pl.DataFrame | Sequence[Any] | dict[str, Any], inplace: bool = True) -> Self
-        Add agents to the AgentSetPolars.
-    contains(self, ids: PolarsIdsLike) -> bool | pl.Series
-        Check if agents with the specified IDs are in the AgentSetPolars.
-    copy(self, deep: bool = False, memo: dict | None = None) -> Self
-        Create a copy of the AgentSetPolars.
-    discard(self, ids: PolarsIdsLike, inplace: bool = True) -> Self
-        Remove an agent from the AgentSetPolars. Does not raise an error if the agent is not found.
-    do(self, method_name: str, *args, return_results: bool = False, inplace: bool = True, **kwargs) -> Self | Any
-        Invoke a method on the AgentSetPolars.
-    get(self, attr_names: IntoExpr | Iterable[IntoExpr] | None, mask: PolarsMaskLike = None) -> pl.Series | pl.DataFrame
-        Retrieve the value of a specified attribute for each agent in the AgentSetPolars.
-    remove(self, ids: PolarsIdsLike, inplace: bool = True) -> Self
-        Remove agents from the AgentSetPolars.
-    select(self, mask: PolarsMaskLike = None, filter_func: Callable[[Self], PolarsMaskLike] | None = None, n: int | None = None, negate: bool = False, inplace: bool = True) -> Self
-        Select agents in the AgentSetPolars based on the given criteria.
-    set(self, attr_names: str | Collection[str] | dict[str, Any] | None = None, values: Any | None = None, mask: PolarsMaskLike | None = None, inplace: bool = True) -> Self
-        Set the value of a specified attribute or attributes for each agent in the mask in the AgentSetPolars.
-    shuffle(self, inplace: bool = True) -> Self
-        Shuffle the order of agents in the AgentSetPolars.
-    sort(self, by: str | Sequence[str], ascending: bool | Sequence[bool] = True, inplace: bool = True, **kwargs) -> Self
-        Sort the agents in the AgentSetPolars based on the given criteria.
-    to_pandas(self) -> "AgentSetPandas"
-        Convert the AgentSetPolars to an AgentSetPandas.
-    _get_bool_mask(self, mask: PolarsMaskLike = None) -> pl.Series | pl.Expr
-        Get a boolean mask for selecting agents.
-    _get_masked_df(self, mask: PolarsMaskLike = None) -> pl.DataFrame
-        Get a DataFrame of agents that match the mask.
-    __getattr__(self, key: str) -> pl.Series
-        Retrieve an attribute of the underlying DataFrame.
-    __iter__(self) -> Iterator
-        Get an iterator for the agents in the AgentSetPolars.
-    __len__(self) -> int
-        Get the number of agents in the AgentSetPolars.
-    __repr__(self) -> str
-        Get the string representation of the AgentSetPolars.
-    __reversed__(self) -> Iterator
-        Get a reversed iterator for the agents in the AgentSetPolars.
-    __str__(self) -> str
-        Get the string representation of the AgentSetPolars.
-
-    """
 
     def __init__(self, model: "ModelDF") -> None:
         """Initialize a new AgentSetPolars.
