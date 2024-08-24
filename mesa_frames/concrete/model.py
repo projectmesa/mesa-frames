@@ -59,12 +59,6 @@ class ModelDF:
     It includes the basic attributes and methods necessary for initializing and
     running a simulation model.
 
-    Properties
-    ----------
-    agents : AgentsDF
-        An AgentSet containing all agents in the model, generated from the _agents attribute.
-    agent_types : list of type
-        A list of different agent types present in the model.
     """
 
     random: np.random.Generator

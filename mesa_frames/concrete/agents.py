@@ -67,22 +67,7 @@ if TYPE_CHECKING:
 
 
 class AgentsDF(AgentContainer):
-    """A collection of AgentSetDFs. All agents of the model are stored here.
-
-    Properties
-    ----------
-    active_agents(self) -> dict[AgentSetDF, pd.DataFrame]
-        Get the active agents in the AgentsDF.
-    agents(self) -> dict[AgentSetDF, pd.DataFrame]
-        Get or set the agents in the AgentsDF.
-    inactive_agents(self) -> dict[AgentSetDF, pd.DataFrame]
-        Get the inactive agents in the AgentsDF.
-    model(self) -> ModelDF
-        Get the model associated with the AgentsDF.
-    random(self) -> np.random.Generator
-        Get the random number generator associated with the model.
-
-    """
+    """A collection of AgentSetDFs. All agents of the model are stored here."""
 
     _agentsets: list[AgentSetDF]
     _ids: pl.Series

@@ -68,21 +68,7 @@ if TYPE_CHECKING:
 
 
 class AgentContainer(CopyMixin):
-    """An abstract class for containing agents. Defines the common interface for AgentSetDF and AgentsDF.
-
-    Properties
-    ----------
-    model : ModelDF
-        Get the model associated with the AgentContainer.
-    random : Generator
-        Get the random number generator associated with the model.
-    agents : DataFrame | dict[str, DataFrame]
-        Get or set the agents in the AgentContainer.
-    active_agents : DataFrame | dict[str, DataFrame]
-        Get or set the active agents in the AgentContainer.
-    inactive_agents : DataFrame | dict[str, DataFrame]
-        Get the inactive agents in the AgentContainer.
-    """
+    """An abstract class for containing agents. Defines the common interface for AgentSetDF and AgentsDF."""
 
     _copy_only_reference: list[str] = [
         "_model",
@@ -740,19 +726,6 @@ class AgentContainer(CopyMixin):
 
 class AgentSetDF(AgentContainer, DataFrameMixin):
     """The AgentSetDF class is a container for agents of the same type.
-
-    Properties
-    ----------
-    active_agents(self) -> DataFrame
-        Get the active agents in the AgentSetDF.
-    agents(self) -> DataFrame
-        Get or set the agents in the AgentSetDF.
-    inactive_agents(self) -> DataFrame
-        Get the inactive agents in the AgentSetDF.
-    model(self) -> ModelDF
-        Get the model associated with the AgentSetDF.
-    random(self) -> Generator
-        Get the random number generator associated with the model.
 
     Parameters
     ----------
