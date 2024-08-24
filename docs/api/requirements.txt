@@ -1,0 +1,7 @@
+sphinx
+sphinx-rtd-theme
+numpydoc
+pydata-sphinx-theme
+sphinx-copybutton
+sphinx-design
+autodocsumm
