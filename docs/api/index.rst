@@ -7,18 +7,18 @@ This page provides a high-level overview of all public mesa-frames objects, func
         .. toctree::
             :maxdepth: 2
 
-            agents/index
+            reference/agents/index
 
     .. grid-item-card::
 
         .. toctree::
            :maxdepth: 1
 
-           model
+           reference/model
 
     .. grid-item-card::
 
         .. toctree::
             :maxdepth: 3
 
-            space/index
+            reference/space/index
