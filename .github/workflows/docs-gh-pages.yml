@@ -7,7 +7,7 @@ on:
       - 72-api-documentation-with-sphinx
 
 jobs:
-  build-and-deploy:
+  build-and-deploy-docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,10 +24,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install .[docs]
 
-      - name: Build MkDocs site
+      - name: Build MkDocs site (general documentation)
         run: mkdocs build --config-file mkdocs.yml --site-dir ./site
 
-      - name: Build Sphinx docs
+      - name: Build Sphinx docs (api documentation)
         run: |
           sphinx-build -b html docs/api site/api
 
