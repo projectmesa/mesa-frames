@@ -1,0 +1,26 @@
+name: Publish documentation via GitHub Pages
+on:
+  push:
+    branches:
+      - main
+      - 72-api-documentation-with-sphinx
+
+jobs:
+  build:
+    name: Deploy docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v2
+
+      - name: Deploy mkdocs (general) documentation
+        uses: mhausenblas/mkdocs-deploy-gh-pages@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIREMENTS: docs/general/requirements.txt
+
+      - name: Deploy sphinx (API) documentation
+        uses: sphinx-notes/pages@v3
+        with:
+          publish: false
+          documentation_path: docs/api
