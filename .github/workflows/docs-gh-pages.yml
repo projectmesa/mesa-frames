@@ -1,27 +1,39 @@
-name: Publish documentation via GitHub Pages
+name: Build and Deploy Documentation
+
 on:
   push:
     branches:
-      - main
+      - main  # or your default branch
       - 72-api-documentation-with-sphinx
 
 jobs:
-  build:
-    name: Deploy docs
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v2
-
-      - name: Deploy mkdocs (general) documentation
-        uses: mhausenblas/mkdocs-deploy-gh-pages@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REQUIREMENTS: docs/general/requirements.txt
-
-      - name: Deploy sphinx (API) documentation
-        uses: sphinx-notes/pages@v3
+      - uses: actions/checkout@v4
         with:
-          checkout: false
-          publish: false
-          documentation_path: docs/api
+          fetch-depth: 0  # Fetch all history for .git-restore-mtime to work correctly
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[docs]
+
+      - name: Build MkDocs site
+        run: mkdocs build --config-file mkdocs.yml --site-dir ./site
+
+      - name: Build Sphinx docs
+        run: |
+          sphinx-build -b html docs/api site/api
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true
