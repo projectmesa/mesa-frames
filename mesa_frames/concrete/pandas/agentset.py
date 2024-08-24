@@ -62,12 +62,16 @@ from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 from mesa_frames.concrete.polars.agentset import AgentSetPolars
 from mesa_frames.types_ import AgentPandasMask, PandasIdsLike
+from mesa_frames.utils import copydoc
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
 
 
-class AgentSetPandas(AgentSetDF, PandasMixin):  # noqa : D101
+@copydoc(AgentSetDF)
+class AgentSetPandas(AgentSetDF, PandasMixin):
+    """pandas-based implementation of AgentSetDF."""
+
     _agents: pd.DataFrame
     _mask: pd.Series
     _copy_with_method: dict[str, tuple[str, list[str]]] = {

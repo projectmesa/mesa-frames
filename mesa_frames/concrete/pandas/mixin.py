@@ -50,6 +50,8 @@ from mesa_frames.types_ import DataFrame, PandasMask
 
 
 class PandasMixin(DataFrameMixin):
+    """pandas-based implementation of DataFrame operations."""
+
     def _df_add(
         self,
         df: pd.DataFrame,

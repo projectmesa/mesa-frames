@@ -3,6 +3,7 @@ site_name: mesa-frames
 site_url: https://adamamer20.github.io/mesa-frames
 repo_url: https://github.com/adamamer20/mesa-frames
 repo_name: adamamer20/mesa-frames
+docs_dir: docs/general
 
 # Theme configuration
 theme:
