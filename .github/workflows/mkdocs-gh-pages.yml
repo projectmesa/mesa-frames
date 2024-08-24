@@ -1,4 +1,4 @@
-name: Publish mkdocs via GitHub Pages
+name: Publish general documentation (mkdocs) via GitHub Pages
 on:
   push:
     branches:
@@ -16,4 +16,4 @@ jobs:
         uses: mhausenblas/mkdocs-deploy-gh-pages@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REQUIREMENTS: docs/mkdocs_requirements.txt
+          REQUIREMENTS: docs/general/requirements.txt
