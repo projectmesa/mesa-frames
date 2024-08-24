@@ -67,12 +67,14 @@ from typing_extensions import Any, Self, overload
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.polars.mixin import PolarsMixin
 from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
+from mesa_frames.utils import copydoc
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
     from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
 
+@copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
     _agents: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {

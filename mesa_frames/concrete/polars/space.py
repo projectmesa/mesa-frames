@@ -50,8 +50,10 @@ import polars as pl
 
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.polars.mixin import PolarsMixin
+from mesa_frames.utils import copydoc
 
 
+@copydoc(GridDF)
 class GridPolars(GridDF, PolarsMixin):
     _agents: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
