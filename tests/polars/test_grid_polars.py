@@ -134,7 +134,7 @@ class TestGridPolars:
         fix1_AgentSetPandas: ExampleAgentSetPandas,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
-        """# Test with GridCoordinate
+        # Test with GridCoordinate
         dir = grid_moore.get_directions(pos0=[1, 1], pos1=[2, 2])
         assert isinstance(dir, pl.DataFrame)
         assert dir.select(pl.col("dim_0")).to_series().to_list() == [1]
@@ -150,15 +150,15 @@ class TestGridPolars:
         with pytest.raises(ValueError):
             grid_moore.get_directions(
                 agents0=fix1_AgentSetPandas, agents1=fix2_AgentSetPolars
-            )"""
+            )
 
         # Test with IdsLike
         grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
-        """print(grid_moore.agents)
-        print(grid_moore.cells)
-        assert grid_moore.agents["agent_id"].to_list() == [1, 0, 4, 5, 6, 7]
-        assert grid_moore.agents["dim_0"].to_list() == [1, 0, 0, 0, 1, 1]
-        assert grid_moore.agents["dim_1"].to_list() == [1, 0, 1, 2, 0, 2]"""
+        agents = grid_moore.agents.sort("agent_id")
+
+        assert agents["agent_id"].to_list() == [0, 1, 4, 5, 6, 7]
+        assert agents["dim_0"].to_list() == [0, 1, 0, 0, 1, 1]
+        assert agents["dim_1"].to_list() == [0, 1, 1, 2, 0, 2]
         dir = grid_moore.get_directions(agents0=[0, 1], agents1=[4, 5])
         print(dir)
         assert isinstance(dir, pl.DataFrame)
