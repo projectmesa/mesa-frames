@@ -69,7 +69,9 @@ if TYPE_CHECKING:
 
 
 @copydoc(AgentSetDF)
-class AgentSetPandas(AgentSetDF, PandasMixin):  # noqa : D101
+class AgentSetPandas(AgentSetDF, PandasMixin):
+    """pandas-based implementation of AgentSetDF."""
+
     _agents: pd.DataFrame
     _mask: pd.Series
     _copy_with_method: dict[str, tuple[str, list[str]]] = {

@@ -55,6 +55,8 @@ from mesa_frames.types_ import DataFrame, PolarsMask
 
 
 class PolarsMixin(DataFrameMixin):
+    """Polars-specific implementation of DataFrame operations."""
+
     # TODO: complete with other dtypes
     _dtypes_mapping: dict[str, Any] = {"int64": pl.Int64, "bool": pl.Boolean}
 

@@ -76,6 +76,8 @@ if TYPE_CHECKING:
 
 @copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
+    """Polars-based implementation of AgentSetDF."""
+
     _agents: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("clone", []),

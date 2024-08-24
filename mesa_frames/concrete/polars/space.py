@@ -55,6 +55,8 @@ from mesa_frames.utils import copydoc
 
 @copydoc(GridDF)
 class GridPolars(GridDF, PolarsMixin):
+    """Polars-based implementation of GridDF."""
+
     _agents: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("clone", []),

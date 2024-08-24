@@ -66,6 +66,8 @@ from mesa_frames.utils import copydoc
 
 @copydoc(GridDF)
 class GridPandas(GridDF, PandasMixin):
+    """pandas-based implementation of GridDF."""
+
     _agents: pd.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("copy", ["deep"]),
