@@ -3,10 +3,12 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import perfplot
+import seaborn as sns
 from ss_mesa.model import SugarscapeMesa
 from ss_pandas.model import SugarscapePandas
 from ss_polars.model import SugarscapePolars
-
+import cudf.pandas
+cudf.pandas.install()
 
 class SugarScapeSetup:
     def __init__(self, n: int):
@@ -61,30 +63,30 @@ def plot_and_print_benchmark(labels, kernels, n_range, title, image_path):
 
 
 def main():
-    """# Mesa comparison
+    # Mesa comparison
     sns.set_theme(style="whitegrid")
     labels_0 = [
         "mesa",
-        # "mesa-frames (pd concise)",
+        "mesa-frames (cuDF concise)",
         "mesa-frames (pl concise)",
     ]
     kernels_0 = [
         mesa_implementation,
-        # mesa_frames_pandas_concise,
+        mesa_frames_pandas_concise,
         mesa_frames_polars_concise,
     ]
     n_range_0 = [k for k in range(1, 100002, 10000)]
     title_0 = "100 steps of the SugarScape IG model:\n" + " vs ".join(labels_0)
     image_path_0 = "benchmark_plot_0.png"
-    plot_and_print_benchmark(labels_0, kernels_0, n_range_0, title_0, image_path_0)"""
+    plot_and_print_benchmark(labels_0, kernels_0, n_range_0, title_0, image_path_0)
 
     # FLAME2-GPU comparison
     labels_1 = [
-        # "mesa-frames (pd concise)",
+        "mesa-frames (cuDF concise)",
         "mesa-frames (pl concise)",
     ]
     kernels_1 = [
-        # mesa_frames_pandas_concise,
+        mesa_frames_pandas_concise,
         mesa_frames_polars_concise,
     ]
     n_range_1 = [k for k in range(1, 3 * 10**6 + 2, 10**6)]
