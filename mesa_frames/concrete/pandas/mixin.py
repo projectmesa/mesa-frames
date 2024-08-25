@@ -309,13 +309,14 @@ class PandasMixin(DataFrameMixin):
     ) -> pd.DataFrame:
         # Preparing the DF allows to speed up the merge operation
         # https://stackoverflow.com/questions/40860457/improve-pandas-merge-performance
+        # Tried sorting the index after, but it did not improve the performance
         def _prepare_df(df: pd.DataFrame, on: str | list[str] | None) -> pd.DataFrame:
             if df.index.name == on or df.index.names == on:
                 return df
             # Reset index if it is not used as a key to keep it in the DataFrame
             if df.index.name is not None or df.index.names[0] is not None:
                 df = df.reset_index()
-            df = df.set_index(on)
+            df  = df.set_index(on)
             return df
 
         left_index = False
@@ -336,9 +337,9 @@ class PandasMixin(DataFrameMixin):
             suffixes=("", suffix),
         )
         if how != "cross":
-            df = df.reset_index()
+            df.reset_index(inplace=True)
         if index_cols is not None:
-            df = df.set_index(index_cols)
+            df.set_index(index_cols, inplace=True)
         return df
 
     def _df_lt(
