@@ -316,7 +316,7 @@ class PandasMixin(DataFrameMixin):
             # Reset index if it is not used as a key to keep it in the DataFrame
             if df.index.name is not None or df.index.names[0] is not None:
                 df = df.reset_index()
-            df  = df.set_index(on)
+            df = df.set_index(on)
             return df
 
         left_index = False
