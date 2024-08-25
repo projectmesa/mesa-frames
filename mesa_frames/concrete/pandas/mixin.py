@@ -1,16 +1,57 @@
+"""
+Pandas-specific mixin for DataFrame operations in mesa-frames.
+
+This module provides a concrete implementation of the DataFrameMixin using pandas
+as the backend for DataFrame operations. It defines the PandasMixin class, which
+implements DataFrame operations specific to pandas.
+
+Classes:
+    PandasMixin(DataFrameMixin):
+        A pandas-based implementation of DataFrame operations. This class provides
+        methods for manipulating data stored in pandas DataFrames,
+        tailored for use in mesa-frames components like AgentSetPandas and GridPandas.
+
+The PandasMixin class is designed to be used as a mixin with other mesa-frames
+classes, providing them with pandas-specific DataFrame functionality. It implements
+the abstract methods defined in the DataFrameMixin, ensuring consistent DataFrame
+operations across the mesa-frames package.
+
+Usage:
+    The PandasMixin is typically used in combination with other base classes:
+
+    from mesa_frames.abstract import AgentSetDF
+    from mesa_frames.concrete.pandas.mixin import PandasMixin
+
+    class AgentSetPandas(AgentSetDF, PandasMixin):
+        def __init__(self, model):
+            super().__init__(model)
+            ...
+
+        def _some_private_method(self):
+            # Use pandas operations provided by the mixin
+            result = self._df_add(self.agents, 10)
+            # ... further processing ...
+
+
+For more detailed information on the PandasMixin class and its methods, refer to
+the class docstring.
+"""
+
 from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import numpy as np
-from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import DataFrame, PandasMask
-from typing_extensions import Any, overload
-
 import pandas as pd
 import polars as pl
+from typing_extensions import Any, overload
+
+from mesa_frames.abstract.mixin import DataFrameMixin
+from mesa_frames.types_ import DataFrame, PandasMask
 
 
 class PandasMixin(DataFrameMixin):
+    """pandas-based implementation of DataFrame operations."""
+
     def _df_add(
         self,
         df: pd.DataFrame,
@@ -117,7 +158,17 @@ class PandasMixin(DataFrameMixin):
         elif isinstance(data, pl.DataFrame):
             df = data.to_pandas()
         else:
-            df = pd.DataFrame(data=data, columns=columns, index=index)
+            # We need to try setting the index after,
+            # otherwise if data contains DF/SRS, the values will not be aligned to the index
+            try:
+                df = pd.DataFrame(data=data, columns=columns)
+                if index is not None:
+                    df.index = index
+            except ValueError as e:
+                if str(e) == "If using all scalar values, you must pass an index":
+                    df = pd.DataFrame(data=data, columns=columns, index=index)
+                else:
+                    raise e
         if dtypes:
             df = df.astype(dtypes)
         if index_cols:
@@ -256,35 +307,40 @@ class PandasMixin(DataFrameMixin):
         | Literal["cross"] = "left",
         suffix="_right",
     ) -> pd.DataFrame:
+        # Preparing the DF allows to speed up the merge operation
+        # https://stackoverflow.com/questions/40860457/improve-pandas-merge-performance
+        # Tried sorting the index after, but it did not improve the performance
+        def _prepare_df(df: pd.DataFrame, on: str | list[str] | None) -> pd.DataFrame:
+            if df.index.name == on or df.index.names == on:
+                return df
+            # Reset index if it is not used as a key to keep it in the DataFrame
+            if df.index.name is not None or df.index.names[0] is not None:
+                df = df.reset_index()
+            df  = df.set_index(on)
+            return df
+
         left_index = False
         right_index = False
         if on:
             left_on = on
             right_on = on
-        if left.index.name and left.index.name == left_on:
+        if how != "cross":
+            left = _prepare_df(left, left_on)
+            right = _prepare_df(right, right_on)
             left_index = True
-            left_on = None
-        if right.index.name and right.index.name == right_on:
             right_index = True
-            right_on = None
-        # Reset index if it is not used as a key to keep it in the DataFrame
-        if not left_index and left.index.name:
-            left = left.reset_index()
-        if not right_index and right.index.name:
-            right = right.reset_index()
         df = left.merge(
             right,
             how=how,
-            left_on=left_on,
-            right_on=right_on,
             left_index=left_index,
             right_index=right_index,
             suffixes=("", suffix),
         )
-        if index_cols:
-            return df.set_index(index_cols)
-        else:
-            return df
+        if how != "cross":
+            df.reset_index(inplace=True)
+        if index_cols is not None:
+            df.set_index(index_cols, inplace=True)
+        return df
 
     def _df_lt(
         self,
