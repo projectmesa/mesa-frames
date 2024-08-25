@@ -756,10 +756,9 @@ class DiscreteSpaceDF(SpaceDF):
                 )
 
         if properties:
-            properties = obj._df_constructor(
+            cells_df = obj._df_constructor(
                 data=properties, index=self._df_index(cells_df, obj._pos_col_names)
             )
-            cells_df = obj._df_join(cells_df, properties, on=obj._pos_col_names)
 
         if "capacity" in obj._df_column_names(cells_df):
             obj._cells_capacity = obj._update_capacity_cells(cells_df)
