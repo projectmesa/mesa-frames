@@ -8,11 +8,11 @@ mesa-frames offers significant performance improvements over the original mesa f
 
 ### Comparison with mesa
 
-![Performance Graph BW](https://github.com/adamamer20/mesa-frames/blob/main/docs/general/images/readme_plot_0.png)
+![Performance Graph BW](https://github.com/adamamer20/mesa-frames/raw/main/docs/general/images/readme_plot_0.png)
 
 ### Comparison of mesa-frames implementations
 
-![Performance Graph BW without Mesa](https://github.com/adamamer20/mesa-frames/blob/main/docs/general/images/readme_plot_1.png)
+![Performance Graph BW without Mesa](https://github.com/adamamer20/mesa-frames/raw/main/docs/general/images/readme_plot_1.png)
 
 ## SugarScape with Instantaneous Growback 🍬
 
