@@ -266,35 +266,39 @@ class PandasMixin(DataFrameMixin):
         | Literal["cross"] = "left",
         suffix="_right",
     ) -> pd.DataFrame:
+        # Preparing the DF allows to speed up the merge operation
+        # https://stackoverflow.com/questions/40860457/improve-pandas-merge-performance
+        def _prepare_df(df: pd.DataFrame, on: str | list[str] | None) -> pd.DataFrame:
+            if df.index.name == on or df.index.names == on:
+                return df
+            # Reset index if it is not used as a key to keep it in the DataFrame
+            if df.index.name is not None or df.index.names[0] is not None:
+                df = df.reset_index()
+            df = df.set_index(on)
+            return df
+
         left_index = False
         right_index = False
         if on:
             left_on = on
             right_on = on
-        if left.index.name and left.index.name == left_on:
+        if how != "cross":
+            left = _prepare_df(left, left_on)
+            right = _prepare_df(right, right_on)
             left_index = True
-            left_on = None
-        if right.index.name and right.index.name == right_on:
             right_index = True
-            right_on = None
-        # Reset index if it is not used as a key to keep it in the DataFrame
-        if not left_index and left.index.name:
-            left = left.reset_index()
-        if not right_index and right.index.name:
-            right = right.reset_index()
         df = left.merge(
             right,
             how=how,
-            left_on=left_on,
-            right_on=right_on,
             left_index=left_index,
             right_index=right_index,
             suffixes=("", suffix),
         )
-        if index_cols:
-            return df.set_index(index_cols)
-        else:
-            return df
+        if how != "cross":
+            df = df.reset_index()
+        if index_cols is not None:
+            df = df.set_index(index_cols)
+        return df
 
     def _df_lt(
         self,
