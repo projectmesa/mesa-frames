@@ -43,13 +43,17 @@ dependencies = [
   #"geopolars" (currently in pre-alpha)
 ]
 requires-python = ">=3.8"
+dynamic = [
+  "version"
+]
+
+
 
 [project.urls]
 Documentation = "https://adamamer20.github.io/mesa-frames"
 Repository = "https://github.com/adamamer20/mesa-frames.git"
 
 [project.optional-dependencies]
-
 mkdocs = [
   "mkdocs-material",
   "mkdocs-jupyter",
