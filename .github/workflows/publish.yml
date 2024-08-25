@@ -34,45 +34,17 @@ jobs:
       run: hatch build
     - name: Run tests
       run: hatch run test:pytest
-    - name: Retrieve and mint OIDC token
-    # (https://docs.pypi.org/trusted-publishers/using-a-publisher/)
-      run: |
-        # retrieve the ambient OIDC token
-        resp=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=pypi")
-        oidc_token=$(jq -r '.value' <<< "${resp}")
-
-        # exchange the OIDC token for an API token
-        resp=$(curl -X POST https://pypi.org/_/oidc/mint-token -d "{\"token\": \"${oidc_token}\"}")
-        api_token=$(jq -r '.token' <<< "${resp}")
-
-        # mask the newly minted API token, so that we don't accidentally leak it
-        echo "::add-mask::${api_token}"
-
-        # see the next step in the workflow for an example of using this step output
-        echo "api-token=${api_token}" >> "${GITHUB_OUTPUT}"
-    - name: Publish to PyPI
-      env:
-        PYPI_API_TOKEN: ${{ steps.mint-token.outputs.api-token }}
-      run: |
-        hatch publish -u __token__ -a $PYPI_API_TOKEN
-    - name: Upload Release Asset
-      uses: ncipollo/release-action@v1
-      with:
-        allowUpdates: true
-        artifacts: "dist/*"
-        token: ${{ secrets.GITHUB_TOKEN }}
-        omitBodyDuringUpdate: true
-        omitNameDuringUpdate: true
-        omitPrereleaseDuringUpdate: true
-    - name: Verify PyPI Release and Update to Next Version
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+    - name: Verify PyPI Release
       run: |
         # Verify PyPI release
         PACKAGE_NAME="mesa_frames"
         CURRENT_VERSION=$(hatch version)
         pip install $PACKAGE_NAME==$CURRENT_VERSION
         python -c "import mesa_frames; print(mesa_frames.__version__)"
-
+    - name: Update to Next Version
+      run: |
         # Bump to next development version
         hatch version patch
         hatch version dev
