@@ -50,8 +50,15 @@ docs = [
   "seaborn"
 ]
 
+profiling = [
+  "py-spy",
+  "scalene",
+  "memray"
+]
+
+
 dev = [
-  "mesa_frames[pandas, polars, docs]",
+  "mesa_frames[pandas, polars, docs, profiling]",
   "pytest",
   "pytest-cov",
   "typeguard",
