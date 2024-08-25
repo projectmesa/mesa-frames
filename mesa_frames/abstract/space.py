@@ -1245,8 +1245,11 @@ class GridDF(DiscreteSpaceDF):
         ## Create all possible neighbors by multiplying offsets by the radius and adding original pos
 
         # If radius is a sequence, get the maximum radius (we will drop unnecessary neighbors later, time-efficient but memory-inefficient)
-        if isinstance(radius, ArrayLike):
-            radius_srs = self._srs_constructor(radius, name="radius")
+        if isinstance(radius, ArrayLike | DataFrame):
+            if isinstance(radius, DataFrame):
+                radius_srs = radius[radius.columns[0]]
+            else:
+                radius_srs = self._srs_constructor(radius, name="radius")
             radius_df = self._srs_to_df(radius_srs)
             max_radius = radius_srs.max()
         else:
@@ -1652,7 +1655,7 @@ class GridDF(DiscreteSpaceDF):
                 ):
                     raise ValueError("Some agents are not placed in the grid")
                 # Check ids are unique
-                agents = pl.Series(agents)
+                agents = pl.Series(agents.to_list())
                 if agents.n_unique() != len(agents):
                     raise ValueError("Some agents are present multiple times")
         if agents is not None:

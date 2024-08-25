@@ -111,7 +111,7 @@ class AgentsDF(AgentContainer):
         if obj._check_agentsets_presence(other_list).any():
             raise ValueError("Some agentsets are already present in the AgentsDF.")
         new_ids = pl.concat(
-            [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
+            [obj._ids] + [pl.Series(agentset["unique_id"].to_list()) for agentset in other_list]
         )
         if new_ids.is_duplicated().any():
             raise ValueError("Some of the agent IDs are not unique.")
@@ -141,7 +141,7 @@ class AgentsDF(AgentContainer):
             else:  # IDsLike
                 agents = cast(IdsLike, agents)
 
-                return pl.Series(agents).is_in(self._ids)
+                return pl.Series(agents.to_list()).is_in(self._ids)
 
     @overload
     def do(
@@ -237,7 +237,7 @@ class AgentsDF(AgentContainer):
                 agents = [agents]
             elif isinstance(agents, DataFrame):
                 agents = agents["unique_id"]
-            removed_ids = pl.Series(agents)
+            removed_ids = pl.Series(agents.to_list())
             deleted = 0
 
             for agentset in obj._agentsets:

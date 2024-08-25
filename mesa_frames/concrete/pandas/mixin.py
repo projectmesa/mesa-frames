@@ -161,7 +161,10 @@ class PandasMixin(DataFrameMixin):
             # We need to try setting the index after,
             # otherwise if data contains DF/SRS, the values will not be aligned to the index
             try:
-                df = pd.DataFrame(data=data, columns=columns)
+                if isinstance(data, dict) and isinstance(data["sugar"], int):
+                    df = pd.DataFrame(columns=columns)
+                else:
+                    df = pd.DataFrame(data=data, columns=columns)
                 if index is not None:
                     df.index = index
             except ValueError as e:
@@ -316,7 +319,7 @@ class PandasMixin(DataFrameMixin):
             # Reset index if it is not used as a key to keep it in the DataFrame
             if df.index.name is not None or df.index.names[0] is not None:
                 df = df.reset_index()
-            df  = df.set_index(on)
+            df = df.set_index(on)
             return df
 
         left_index = False
