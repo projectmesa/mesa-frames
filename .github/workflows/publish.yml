@@ -2,7 +2,7 @@ name: Update Version, Test, Publish to PyPI, and Upload Release Artifacts
 
 on:
   release:
-    types: [created]
+    types: [created, edited]
 
 jobs:
   build-test-publish-upload:
