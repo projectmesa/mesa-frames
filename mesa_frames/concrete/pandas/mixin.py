@@ -158,7 +158,17 @@ class PandasMixin(DataFrameMixin):
         elif isinstance(data, pl.DataFrame):
             df = data.to_pandas()
         else:
-            df = pd.DataFrame(data=data, columns=columns, index=index)
+            # We need to try setting the index after,
+            # otherwise if data contains DF/SRS, the values will not be aligned to the index
+            try:
+                df = pd.DataFrame(data=data, columns=columns)
+                if index is not None:
+                    df.index = index
+            except ValueError as e:
+                if str(e) == "If using all scalar values, you must pass an index":
+                    df = pd.DataFrame(data=data, columns=columns, index=index)
+                else:
+                    raise e
         if dtypes:
             df = df.astype(dtypes)
         if index_cols:
