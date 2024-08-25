@@ -24,9 +24,7 @@ Check out our performance graphs comparing mesa and mesa-frames for the [Boltzma
 ```bash
 git clone https://github.com/adamamer20/mesa_frames.git
 cd mesa_frames
-pip install -e .[pandas]  # For pandas backend
-# or
-pip install -e .[polars]  # For Polars backend
+pip install -e .
 ```
 
 ### Basic Usage

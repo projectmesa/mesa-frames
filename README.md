@@ -45,10 +45,7 @@ conda activate myenv
 Then, to install mesa-frames itself:
 
 ```bash
-# For pandas backend
-pip install -e .[pandas]
-# Alternatively, for Polars backend
-pip install -e .[polars]
+pip install -e .
 ```
 
 ### Installing in a Python Virtual Environment
@@ -69,10 +66,7 @@ source myenv/bin/activate  # On Windows, use `myenv\Scripts\activate`
 Then, to install mesa-frames itself:
 
 ```bash
-# For pandas backend
-pip install -e .[pandas]
-# Alternatively, for Polars backend
-pip install -e .[polars]
+pip install -e .
 ```
 
 ## Usage
