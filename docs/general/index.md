@@ -2,6 +2,8 @@
 
 mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax.
 
+You can get a model which is multiple orders of magnitude faster based on the number of agents - the more agents, the faster the relative performance.
+
 ## Why DataFrames? 📊
 
 DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). Currently, mesa-frames supports two main libraries:
@@ -9,32 +11,31 @@ DataFrames are optimized for simultaneous operations through [SIMD processing](h
 - [pandas](https://pandas.pydata.org/): A popular data-manipulation Python library, known for its ease of use and high performance.
 - [Polars](https://pola.rs/): A new DataFrame library with a Rust backend, offering innovations like Apache Arrow memory format and support for larger-than-memory DataFrames.
 
-## Performance Boost 🏎️
-
-Check out our performance graphs comparing mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html):
-
-![Performance Graph](images/readme_plot_0.png)
-
-![Performance Graph without Mesa](images/readme_plot_1.png)
-
 ## Quick Start 🚀
 
 ### Installation
 
+#### Installing from PyPI
+
+```bash
+pip install mesa-frames
+```
+
+#### Installing from Source
+
 ```bash
 git clone https://github.com/adamamer20/mesa_frames.git
 cd mesa_frames
-pip install -e .[pandas]  # For pandas backend
-# or
-pip install -e .[polars]  # For Polars backend
+pip install -e .
 ```
 
 ### Basic Usage
 
-Here's a quick example of how to create an agent set using mesa-frames:
+Here's a quick example of how to create a model using mesa-frames:
 
 ```python
-from mesa-frames import AgentSetPolars, ModelDF
+from mesa_frames import AgentSetPolars, ModelDF
+import polars as pl
 
 class MoneyAgentPolars(AgentSetPolars):
     def __init__(self, n: int, model: ModelDF):
@@ -65,10 +66,12 @@ class MoneyModelDF(ModelDF):
 ## What's Next? 🔮
 
 - API refinement for seamless transition from mesa
-- Support for default mesa functions
-- GPU functionality (cuDF and Rapids)
+- Support for mesa functions
+- Multiple other spaces: GeoGrid, ContinuousSpace, Network...
+- Additional backends: Dask, cuDF (GPU), Dask-cuDF (GPU)...
+- More examples: Schelling model, ...
 - Automatic vectorization of existing mesa models
-- Backend-independent AgentSet class
+- Backend-agnostic AgentSet class
 
 ## Get Involved! 🤝
 

@@ -105,11 +105,9 @@ extra:
 nav:
   - Home: index.md
   - User Guide:
-    - Getting Started: user-guide/getting-started.md
-    - Tutorial: user-guide/tutorial.md
+    - Getting Started: user-guide/0_getting-started.md
+    - Classes: user-guide/1_classes.md
+    - Introductory Tutorial: user-guide/2_introductory-tutorial.md
+    - Advanced Tutorial: user-guide/3_advanced-tutorial.md
   - API Reference: api/index.html
-  - Development:
-    - Contributing: development/contributing.md
-    - Changelog: development/changelog.md
-  - About:
-    - License: about/license.md
+  - Development: development/index.md
