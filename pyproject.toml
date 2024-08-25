@@ -4,7 +4,6 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mesa_frames"
-version = "mesa-frames/__init__.py"
 description = "An extension to the Mesa framework which uses pandas/Polars DataFrames for enhanced performance"
 authors = [
   { name = "Adam Amer"},
@@ -95,6 +94,9 @@ features = ["dev"]
 [tool.hatch.build.targets.wheel]
 packages = ["mesa_frames"]
 
+[tool.hatch.version]
+path = "mesa_frames/__init__.py"
+
 [tool.ruff.lint]
 select = ["D"]
 ignore = ["D101", "D102", "D105"]
@@ -106,3 +108,4 @@ convention = "numpy"
 "tests/*" = ["D"]
 "examples/*" = ["D"]
 "docs/*" = ["D"]
+
