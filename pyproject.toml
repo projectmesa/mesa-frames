@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mesa_frames"
-version = "0.1.0-alpha1"
+version = "mesa-frames/__init__.py"
 description = "An extension to the Mesa framework which uses pandas/Polars DataFrames for enhanced performance"
 authors = [
   { name = "Adam Amer" },
