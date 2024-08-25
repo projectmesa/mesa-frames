@@ -1,0 +1,88 @@
+name: Update Version, Test, Publish to PyPI, and Upload Release Artifacts
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-test-publish-upload:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install hatch
+    - name: Set release version
+      run: |
+        # Get the tag from the GitHub release
+        TAG=${GITHUB_REF#refs/tags/}
+        # Remove 'v' prefix if present
+        VERSION=${TAG#v}
+        hatch version $VERSION
+    - name: Build package
+      run: hatch build
+    - name: Run tests
+      run: hatch run test:pytest
+    - name: Retrieve and mint OIDC token
+    # (https://docs.pypi.org/trusted-publishers/using-a-publisher/)
+      run: |
+        # retrieve the ambient OIDC token
+        resp=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=pypi")
+        oidc_token=$(jq -r '.value' <<< "${resp}")
+
+        # exchange the OIDC token for an API token
+        resp=$(curl -X POST https://pypi.org/_/oidc/mint-token -d "{\"token\": \"${oidc_token}\"}")
+        api_token=$(jq -r '.token' <<< "${resp}")
+
+        # mask the newly minted API token, so that we don't accidentally leak it
+        echo "::add-mask::${api_token}"
+
+        # see the next step in the workflow for an example of using this step output
+        echo "api-token=${api_token}" >> "${GITHUB_OUTPUT}"
+    - name: Publish to PyPI
+      env:
+        PYPI_API_TOKEN: ${{ steps.mint-token.outputs.api-token }}
+      run: |
+        hatch publish -u __token__ -a $PYPI_API_TOKEN
+    - name: Upload Release Asset
+      uses: ncipollo/release-action@v1
+      with:
+        allowUpdates: true
+        artifacts: "dist/*"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        omitBodyDuringUpdate: true
+        omitNameDuringUpdate: true
+        omitPrereleaseDuringUpdate: true
+    - name: Verify PyPI Release and Update to Next Version
+      run: |
+        # Verify PyPI release
+        PACKAGE_NAME="mesa_frames"
+        CURRENT_VERSION=$(hatch version)
+        pip install $PACKAGE_NAME==$CURRENT_VERSION
+        python -c "import mesa_frames; print(mesa_frames.__version__)"
+
+        # Bump to next development version
+        hatch version patch
+        hatch version dev
+
+        # Get the new version
+        NEW_VERSION=$(hatch version)
+
+        # Commit and push the version bump
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add mesa-frames/__init__.py
+        git commit -m "Bump version to $NEW_VERSION [skip ci]"
+        git push
