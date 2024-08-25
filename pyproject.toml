@@ -34,7 +34,14 @@ classifiers = [
 ]
 dependencies = [
   "numpy~=1.26",
-  "typing-extensions>=4.9" #typing-extensions.Self added in 4.9
+  "typing-extensions>=4.9", #typing-extensions.Self added in 4.9
+  ## pandas
+  "pandas>=2.2",
+  "pyarrow", #for conversion to pandas
+  #"geopandas" (only after GeoGrid / ContinousSpace is implemented)
+  ## polars
+  "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
+  #"geopolars" (currently in pre-alpha)
 ]
 requires-python = ">=3.8"
 
@@ -43,15 +50,6 @@ Documentation = "https://adamamer20.github.io/mesa-frames"
 Repository = "https://github.com/adamamer20/mesa-frames.git"
 
 [project.optional-dependencies]
-pandas = [
-  "pandas>=2.2",
-  "pyarrow", #for conversion to pandas
-  #"geopandas" (only after GeoGrid / ContinousSpace is implemented)
-]
-polars = [
-  "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
-  #"geopolars" (currently in pre-alpha)
-]
 
 mkdocs = [
   "mkdocs-material",
@@ -71,19 +69,25 @@ sphinx = [
 ]
 
 docs = [
-  "mesa_frames[pandas, polars, mkdocs, sphinx]",
+  "mesa_frames[mkdocs, sphinx]",
   # Readme Script
   "perfplot",
   "seaborn"
 ]
 
-dev = [
-  "mesa_frames[pandas, polars, docs]",
+test = [
   "pytest",
   "pytest-cov",
   "typeguard",
+]
+
+dev = [
+  "mesa_frames[test, docs]",
   "mesa",
 ]
+
+[tool.hatch.envs.test]
+features = ["test"]
 
 [tool.hatch.envs.dev] #Allows installing dev as virtual env
 features = ["dev"]
