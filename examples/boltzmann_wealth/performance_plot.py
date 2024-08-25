@@ -284,7 +284,7 @@ def plot_and_print_benchmark(labels, kernels, n_range, title, image_path):
     )
 
     plt.ylabel("Execution time (s)")
-    out.save(image_path)
+    out.save(image_path, transparent=False)
 
     print("\nExecution times:")
     for i, label in enumerate(labels):
@@ -313,7 +313,7 @@ def main():
     ]
     n_range_0 = [k for k in range(0, 100001, 10000)]
     title_0 = "100 steps of the Boltzmann Wealth model:\n" + " vs ".join(labels_0)
-    image_path_0 = "docs/images/readme_plot_0.png"
+    image_path_0 = "boltzmann_with_mesa.png"
 
     plot_and_print_benchmark(labels_0, kernels_0, n_range_0, title_0, image_path_0)
 
@@ -331,7 +331,7 @@ def main():
     ]
     n_range_1 = [k for k in range(100000, 1000001, 100000)]
     title_1 = "100 steps of the Boltzmann Wealth model:\n" + " vs ".join(labels_1)
-    image_path_1 = "docs/images/readme_plot_1.png"
+    image_path_1 = "boltzmann_no_mesa.png"
 
     plot_and_print_benchmark(labels_1, kernels_1, n_range_1, title_1, image_path_1)
 
