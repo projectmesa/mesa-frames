@@ -9,7 +9,7 @@ Unlike traditional mesa models where each agent is an individual Python object, 
 This approach allows for:
 
 - Efficient memory usage
-- Improved performance through vectorized operations on agent attributes (This is what makes mesa-frames fast)
+- Improved performance through vectorized operations on agent attributes (This is what makes `mesa-frames` fast)
 
 Objects can be easily subclassed to respect mesa's object-oriented philosophy.
 
@@ -22,6 +22,8 @@ mesa-frames leverages the power of vectorized operations provided by DataFrame l
 - Complex behaviors can be expressed in fewer lines of code
 
 You should never use loops to iterate through your agents. Instead, use vectorized operations and implemented methods. If you need to loop, loop through vectorized operations (see the advanced tutorial SugarScape IG for more information).
+
+It's important to note that in traditional `mesa` models, the order in which agents are activated can significantly impact the results of the model (see [Comer, 2014](http://mars.gmu.edu/bitstream/handle/1920/9070/Comer_gmu_0883E_10539.pdf)). `mesa-frames`, by default, doesn't have this issue as all agents are processed simultaneously. However, this comes with the trade-off of needing to carefully implement conflict resolution mechanisms when sequential processing is required. We'll discuss how to handle these situations later in this guide.
 
 Check out these resources to understand vectorization and why it speeds up the code:
 
