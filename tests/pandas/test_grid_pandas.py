@@ -101,24 +101,24 @@ class TestGridPandas:
         # Test with None (all cells)
         result = grid_moore.get_cells()
         assert isinstance(result, pd.DataFrame)
-        assert result.reset_index()["dim_0"].tolist() == [0, 1]
-        assert result.reset_index()["dim_1"].tolist() == [0, 1]
+        assert result["dim_0"].tolist() == [0, 1]
+        assert result["dim_1"].tolist() == [0, 1]
         assert result["capacity"].tolist() == [1, 3]
         assert result["property_0"].tolist() == ["value_0", "value_0"]
 
         # Test with GridCoordinate
         result = grid_moore.get_cells([0, 0])
         assert isinstance(result, pd.DataFrame)
-        assert result.reset_index()["dim_0"].tolist() == [0]
-        assert result.reset_index()["dim_1"].tolist() == [0]
+        assert result["dim_0"].tolist() == [0]
+        assert result["dim_1"].tolist() == [0]
         assert result["capacity"].tolist() == [1]
         assert result["property_0"].tolist() == ["value_0"]
 
         # Test with GridCoordinates
         result = grid_moore.get_cells([[0, 0], [1, 1]])
         assert isinstance(result, pd.DataFrame)
-        assert result.reset_index()["dim_0"].tolist() == [0, 1]
-        assert result.reset_index()["dim_1"].tolist() == [0, 1]
+        assert result["dim_0"].tolist() == [0, 1]
+        assert result["dim_1"].tolist() == [0, 1]
         assert result["capacity"].tolist() == [1, 3]
         assert result["property_0"].tolist() == ["value_0", "value_0"]
 
@@ -445,50 +445,45 @@ class TestGridPandas:
         # Test with radius = int, pos=GridCoordinate
         neighbors = grid_moore.get_neighbors(radius=1, pos=[1, 1])
         assert isinstance(neighbors, pd.DataFrame)
-        assert neighbors.index.name == "agent_id"
-        assert neighbors.columns.to_list() == ["dim_0", "dim_1"]
-        assert neighbors.shape == (8, 2)
+        assert neighbors.columns.to_list() == ["agent_id", "dim_0", "dim_1"]
+        assert neighbors.shape == (8, 3)
         assert neighbors["dim_0"].to_list() == [0, 0, 0, 1, 1, 2, 2, 2]
         assert neighbors["dim_1"].to_list() == [0, 1, 2, 0, 2, 0, 1, 2]
-        assert set(neighbors.index) == {0, 1, 2, 3, 4, 5, 6, 7}
+        assert set(neighbors["agent_id"]) == {0, 1, 2, 3, 4, 5, 6, 7}
 
         # Test with Sequence[int], pos=Sequence[GridCoordinate]
         neighbors = grid_moore.get_neighbors(radius=[1, 2], pos=[[1, 1], [2, 2]])
         assert isinstance(neighbors, pd.DataFrame)
-        assert neighbors.index.name == "agent_id"
-        assert neighbors.shape == (8, 2)
+        assert neighbors.shape == (8, 3)
         neighbors = neighbors.sort_values(["dim_0", "dim_1"])
         assert neighbors["dim_0"].to_list() == [0, 0, 0, 1, 1, 2, 2, 2]
         assert neighbors["dim_1"].to_list() == [0, 1, 2, 0, 2, 0, 1, 2]
-        assert set(neighbors.index) == {0, 1, 2, 3, 4, 5, 6, 7}
+        assert set(neighbors["agent_id"]) == {0, 1, 2, 3, 4, 5, 6, 7}
 
         # Test with agent=int
         neighbors = grid_moore.get_neighbors(radius=1, agents=0)
         assert isinstance(neighbors, pd.DataFrame)
-        assert neighbors.index.name == "agent_id"
-        assert neighbors.shape == (2, 2)
+        assert neighbors.shape == (2, 3)
         assert neighbors["dim_0"].to_list() == [0, 1]
         assert neighbors["dim_1"].to_list() == [1, 0]
-        assert set(neighbors.index) == {1, 3}
+        assert set(neighbors["agent_id"]) == {1, 3}
 
         # Test with agent=Sequence[int]
         neighbors = grid_moore.get_neighbors(radius=[1, 2], agents=[0, 7])
         assert isinstance(neighbors, pd.DataFrame)
-        assert neighbors.index.name == "agent_id"
-        assert neighbors.shape == (7, 2)
+        assert neighbors.shape == (7, 3)
         neighbors = neighbors.sort_values(["dim_0", "dim_1"])
         assert neighbors["dim_0"].to_list() == [0, 0, 0, 1, 1, 2, 2]
         assert neighbors["dim_1"].to_list() == [0, 1, 2, 0, 2, 0, 1]
-        assert set(neighbors.index) == {0, 1, 2, 3, 4, 5, 6}
+        assert set(neighbors["agent_id"]) == {0, 1, 2, 3, 4, 5, 6}
 
         # Test with include_center
         neighbors = grid_moore.get_neighbors(radius=1, pos=[1, 1], include_center=True)
         assert isinstance(neighbors, pd.DataFrame)
-        assert neighbors.index.name == "agent_id"
-        assert neighbors.shape == (8, 2)  # No agent at [1, 1], so still 8 neighbors
+        assert neighbors.shape == (8, 3)  # No agent at [1, 1], so still 8 neighbors
         assert neighbors["dim_0"].to_list() == [0, 0, 0, 1, 1, 2, 2, 2]
         assert neighbors["dim_1"].to_list() == [0, 1, 2, 0, 2, 0, 1, 2]
-        assert set(neighbors.index) == {0, 1, 2, 3, 4, 5, 6, 7}
+        assert set(neighbors["agent_id"]) == {0, 1, 2, 3, 4, 5, 6, 7}
 
         # Test with torus
         grid_moore_torus.move_agents(
@@ -497,11 +492,10 @@ class TestGridPandas:
         )
         neighbors = grid_moore_torus.get_neighbors(radius=1, pos=[0, 0])
         assert isinstance(neighbors, pd.DataFrame)
-        assert neighbors.index.name == "agent_id"
-        assert neighbors.shape == (8, 2)
+        assert neighbors.shape == (8, 3)
         assert neighbors["dim_0"].to_list() == [2, 2, 2, 0, 0, 1, 1, 1]
         assert neighbors["dim_1"].to_list() == [2, 0, 1, 2, 1, 2, 0, 1]
-        assert set(neighbors.index) == {0, 1, 2, 3, 4, 5, 6, 7}
+        assert set(neighbors["agent_id"]) == {0, 1, 2, 3, 4, 5, 6, 7}
 
         # Test with radius and pos of different length
         with pytest.raises(ValueError):
@@ -511,11 +505,10 @@ class TestGridPandas:
         grid_von_neumann.move_agents([0, 1, 2, 3], [[0, 1], [1, 0], [1, 2], [2, 1]])
         neighbors = grid_von_neumann.get_neighbors(radius=1, pos=[1, 1])
         assert isinstance(neighbors, pd.DataFrame)
-        assert neighbors.index.name == "agent_id"
-        assert neighbors.shape == (4, 2)
+        assert neighbors.shape == (4, 3)
         assert neighbors["dim_0"].to_list() == [0, 1, 1, 2]
         assert neighbors["dim_1"].to_list() == [1, 0, 2, 1]
-        assert set(neighbors.index) == {0, 1, 2, 3}
+        assert set(neighbors["agent_id"]) == {0, 1, 2, 3}
 
         # Test with hexagonal neighborhood (odd cell [5,4] and even cell [5,5])
         grid_hexagonal.move_agents(
@@ -523,8 +516,7 @@ class TestGridPandas:
         )
         neighbors = grid_hexagonal.get_neighbors(radius=[2, 3], pos=[[5, 4], [5, 5]])
         assert isinstance(neighbors, pd.DataFrame)
-        assert neighbors.index.name == "agent_id"
-        assert neighbors.shape == (8, 2)  # All agents are within the neighborhood
+        assert neighbors.shape == (8, 3)  # All agents are within the neighborhood
 
         # Sort the neighbors for consistent ordering
         neighbors = neighbors.sort_values(["dim_0", "dim_1"]).reset_index(drop=True)
@@ -540,7 +532,7 @@ class TestGridPandas:
             6,
         ]
         assert neighbors["dim_1"].to_list() == [4, 5, 3, 4, 5, 6, 3, 4]
-        assert set(neighbors.index) == set(range(8))
+        assert set(neighbors["agent_id"]) == set(range(8))
 
     def test_is_available(self, grid_moore: GridPandas):
         # Test with GridCoordinate
@@ -588,7 +580,7 @@ class TestGridPandas:
         space = grid_moore.move_agents(agents=1, pos=[1, 1], inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
-        assert space.agents.index.to_list() == [0, 1]
+        assert space.agents["agent_id"].to_list() == [0, 1]
         assert space.agents["dim_0"].to_list() == [0, 1]
         assert space.agents["dim_1"].to_list() == [0, 1]
 
@@ -601,7 +593,7 @@ class TestGridPandas:
             )
             assert space.remaining_capacity == (2 * 3 * 3 - 6)
             assert len(space.agents) == 6
-            assert space.agents.index.to_list() == [0, 1, 4, 5, 6, 7]
+            assert space.agents["agent_id"].to_list() == [0, 1, 4, 5, 6, 7]
             assert space.agents["dim_0"].to_list() == [0, 1, 0, 1, 2, 0]
             assert space.agents["dim_1"].to_list() == [0, 1, 0, 0, 0, 1]
 
@@ -614,7 +606,7 @@ class TestGridPandas:
             )
         assert space.remaining_capacity == (2 * 3 * 3 - 8)
         assert len(space.agents) == 8
-        assert space.agents.index.to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
+        assert space.agents["agent_id"].to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
         assert space.agents["dim_0"].to_list() == [0, 1, 2, 0, 1, 2, 0, 1]
         assert space.agents["dim_1"].to_list() == [2, 2, 2, 1, 1, 1, 0, 0]
 
@@ -641,7 +633,7 @@ class TestGridPandas:
             )
         assert space.remaining_capacity == (2 * 3 * 3 - 8)
         assert len(space.agents) == 8
-        assert space.agents.index.to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
+        assert space.agents["agent_id"].to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
         assert space.agents["dim_0"].to_list() == [0, 1, 2, 0, 1, 2, 0, 1]
         assert space.agents["dim_1"].to_list() == [2, 2, 2, 1, 1, 1, 0, 0]
 
@@ -650,7 +642,7 @@ class TestGridPandas:
         space = grid_moore.move_agents(agents=1, pos=pos, inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
-        assert space.agents.index.to_list() == [0, 1]
+        assert space.agents["agent_id"].to_list() == [0, 1]
         assert space.agents["dim_0"].to_list() == [0, 0]
         assert space.agents["dim_1"].to_list() == [0, 2]
 
@@ -771,7 +763,7 @@ class TestGridPandas:
             )
         assert space.remaining_capacity == (2 * 3 * 3 - 3)
         assert len(space.agents) == 3
-        assert space.agents.index.to_list() == [0, 1, 2]
+        assert space.agents["agent_id"].to_list() == [0, 1, 2]
         assert space.agents["dim_0"].to_list() == [0, 1, 2]
         assert space.agents["dim_1"].to_list() == [0, 1, 2]
 
@@ -791,7 +783,7 @@ class TestGridPandas:
         )
         assert space.remaining_capacity == (2 * 3 * 3 - 6)
         assert len(space.agents) == 6
-        assert space.agents.index.to_list() == [0, 1, 4, 5, 6, 7]
+        assert space.agents["agent_id"].to_list() == [0, 1, 4, 5, 6, 7]
         assert space.agents["dim_0"].to_list() == [0, 1, 0, 1, 2, 0]
         assert space.agents["dim_1"].to_list() == [0, 1, 0, 0, 0, 1]
 
@@ -804,7 +796,7 @@ class TestGridPandas:
             )
         assert space.remaining_capacity == (2 * 3 * 3 - 8)
         assert len(space.agents) == 8
-        assert space.agents.index.to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
+        assert space.agents["agent_id"].to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
         assert space.agents["dim_0"].to_list() == [0, 1, 2, 0, 1, 2, 0, 1]
         assert space.agents["dim_1"].to_list() == [2, 2, 2, 1, 1, 1, 0, 0]
 
@@ -825,7 +817,7 @@ class TestGridPandas:
             )
         assert space.remaining_capacity == (2 * 3 * 3 - 8)
         assert len(space.agents) == 8
-        assert space.agents.index.to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
+        assert space.agents["agent_id"].to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
         assert space.agents["dim_0"].to_list() == [0, 1, 2, 0, 1, 2, 0, 1]
         assert space.agents["dim_1"].to_list() == [2, 2, 2, 1, 1, 1, 0, 0]
 
@@ -835,7 +827,7 @@ class TestGridPandas:
             space = grid_moore.place_agents(agents=1, pos=pos, inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
-        assert space.agents.index.to_list() == [0, 1]
+        assert space.agents["agent_id"].to_list() == [0, 1]
         assert space.agents["dim_0"].to_list() == [0, 0]
         assert space.agents["dim_1"].to_list() == [0, 2]
 
@@ -964,18 +956,18 @@ class TestGridPandas:
         capacity = grid_moore.remaining_capacity
         # Test with IdsLike
         space = grid_moore.remove_agents([1, 2], inplace=False)
-        assert space.agents.shape == (6, 2)
+        assert space.agents.shape == (6, 3)
         assert space.remaining_capacity == capacity + 2
-        assert space.agents.index.to_list() == [0, 3, 4, 5, 6, 7]
+        assert space.agents["agent_id"].to_list() == [0, 3, 4, 5, 6, 7]
         assert [
             x for id in space.model.agents.index.values() for x in id.to_list()
         ] == [x for x in range(8)]
 
         # Test with AgentSetDF
         space = grid_moore.remove_agents(fix1_AgentSetPandas, inplace=False)
-        assert space.agents.shape == (4, 2)
+        assert space.agents.shape == (4, 3)
         assert space.remaining_capacity == capacity + 4
-        assert space.agents.index.to_list() == [4, 5, 6, 7]
+        assert space.agents["agent_id"].to_list() == [4, 5, 6, 7]
         assert [
             x for id in space.model.agents.index.values() for x in id.to_list()
         ] == [x for x in range(8)]
@@ -1161,18 +1153,22 @@ class TestGridPandas:
         )
         # Test with IdsLike
         space = grid_moore.swap_agents([0, 1], [2, 3], inplace=False)
-        assert space.agents.loc[0].tolist() == grid_moore.agents.loc[2].tolist()
-        assert space.agents.loc[1].tolist() == grid_moore.agents.loc[3].tolist()
-        assert space.agents.loc[2].tolist() == grid_moore.agents.loc[0].tolist()
-        assert space.agents.loc[3].tolist() == grid_moore.agents.loc[1].tolist()
+        original_agents = grid_moore.agents.set_index("agent_id")
+        new_agents = space.agents.set_index("agent_id")
+        assert new_agents.loc[0].tolist() == original_agents.loc[2].tolist()
+        assert new_agents.loc[1].tolist() == original_agents.loc[3].tolist()
+        assert new_agents.loc[2].tolist() == original_agents.loc[0].tolist()
+        assert new_agents.loc[3].tolist() == original_agents.loc[1].tolist()
         # Test with AgentSetDFs
         space = grid_moore.swap_agents(
             fix1_AgentSetPandas, fix2_AgentSetPolars, inplace=False
         )
-        assert space.agents.loc[0].to_list() == grid_moore.agents.loc[4].to_list()
-        assert space.agents.loc[1].to_list() == grid_moore.agents.loc[5].to_list()
-        assert space.agents.loc[2].to_list() == grid_moore.agents.loc[6].to_list()
-        assert space.agents.loc[3].tolist() == grid_moore.agents.loc[7].tolist()
+        original_agents = grid_moore.agents.set_index("agent_id")
+        new_agents = space.agents.set_index("agent_id")
+        assert new_agents.loc[0].to_list() == original_agents.loc[4].to_list()
+        assert new_agents.loc[1].to_list() == original_agents.loc[5].to_list()
+        assert new_agents.loc[2].to_list() == original_agents.loc[6].to_list()
+        assert new_agents.loc[3].tolist() == original_agents.loc[7].tolist()
 
     def test_torus_adj(self, grid_moore: GridPandas, grid_moore_torus: GridPandas):
         # Test with non-toroidal grid
@@ -1202,19 +1198,27 @@ class TestGridPandas:
         # Test with GridCoordinate
         df = grid_moore[[0, 0]]
         assert isinstance(df, pd.DataFrame)
-        assert df.index.names == ["dim_0", "dim_1"]
-        assert df.index.to_list() == [(0, 0)]
-        assert df.columns.to_list() == ["capacity", "property_0", "agent_id"]
-        assert df.iloc[0].to_list() == [1, "value_0", 0]
+        assert df.columns.to_list() == [
+            "dim_0",
+            "dim_1",
+            "agent_id",
+            "capacity",
+            "property_0",
+        ]
+        assert df.iloc[0].to_list() == [0, 0, 0, 1, "value_0"]
 
         # Test with GridCoordinates
         df = grid_moore[[[0, 0], [1, 1]]]
         assert isinstance(df, pd.DataFrame)
-        assert df.index.names == ["dim_0", "dim_1"]
-        assert df.index.to_list() == [(0, 0), (1, 1)]
-        assert df.columns.to_list() == ["capacity", "property_0", "agent_id"]
-        assert df.iloc[0].to_list() == [1, "value_0", 0]
-        assert df.iloc[1].to_list() == [3, "value_0", 1]
+        assert df.columns.to_list() == [
+            "dim_0",
+            "dim_1",
+            "agent_id",
+            "capacity",
+            "property_0",
+        ]
+        assert df.iloc[0].to_list() == [0, 0, 0, 1, "value_0"]
+        assert df.iloc[1].to_list() == [1, 1, 1, 3, "value_0"]
 
     def test___setitem__(self, grid_moore: GridPandas):
         # Test with out-of-bounds
@@ -1231,9 +1235,8 @@ class TestGridPandas:
     # Property tests
     def test_agents(self, grid_moore: GridPandas):
         assert isinstance(grid_moore.agents, pd.DataFrame)
-        assert grid_moore.agents.index.name == "agent_id"
-        assert grid_moore.agents.index.to_list() == [0, 1]
-        assert grid_moore.agents.columns.to_list() == ["dim_0", "dim_1"]
+        assert grid_moore.agents.columns.to_list() == ["agent_id", "dim_0", "dim_1"]
+        assert grid_moore.agents["agent_id"].to_list() == [0, 1]
         assert grid_moore.agents["dim_0"].to_list() == [0, 1]
         assert grid_moore.agents["dim_1"].to_list() == [0, 1]
 
@@ -1246,9 +1249,15 @@ class TestGridPandas:
     def test_cells(self, grid_moore: GridPandas):
         result = grid_moore.cells
         assert isinstance(result, pd.DataFrame)
-        assert result.index.names == ["dim_0", "dim_1"]
-        assert result.columns.to_list() == ["capacity", "property_0", "agent_id"]
-        assert result.index.to_list() == [(0, 0), (1, 1)]
+        assert result.columns.to_list() == [
+            "dim_0",
+            "dim_1",
+            "agent_id",
+            "capacity",
+            "property_0",
+        ]
+        assert result["dim_0"].to_list() == [0, 1]
+        assert result["dim_1"].to_list() == [0, 1]
         assert result["capacity"].to_list() == [1, 3]
         assert result["property_0"].to_list() == ["value_0", "value_0"]
         assert result["agent_id"].to_list() == [0, 1]

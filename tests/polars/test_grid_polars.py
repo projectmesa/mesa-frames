@@ -1748,15 +1748,15 @@ class TestGridPolars:
         # Test with GridCoordinate
         df = grid_moore[[0, 0]]
         assert isinstance(df, pl.DataFrame)
-        assert df.columns == ["dim_0", "dim_1", "capacity", "property_0", "agent_id"]
-        assert df.row(0) == (0, 0, 1, "value_0", 0)
+        assert df.columns == ["capacity", "property_0", "dim_0", "dim_1", "agent_id"]
+        assert df.row(0) == (1, "value_0", 0, 0, 0)
 
         # Test with GridCoordinates
         df = grid_moore[[[0, 0], [1, 1]]]
         assert isinstance(df, pl.DataFrame)
-        assert df.columns == ["dim_0", "dim_1", "capacity", "property_0", "agent_id"]
-        assert df.row(0) == (0, 0, 1, "value_0", 0)
-        assert df.row(1) == (1, 1, 3, "value_0", 1)
+        assert df.columns == ["capacity", "property_0", "dim_0", "dim_1", "agent_id"]
+        assert df.row(0) == (1, "value_0", 0, 0, 0)
+        assert df.row(1) == (3, "value_0", 1, 1, 1)
 
     def test___setitem__(self, grid_moore: GridPolars):
         # Test with out-of-bounds
@@ -1793,10 +1793,10 @@ class TestGridPolars:
         result = grid_moore.cells
         assert isinstance(result, pl.DataFrame)
         assert result.columns == [
-            "dim_0",
-            "dim_1",
             "capacity",
             "property_0",
+            "dim_0",
+            "dim_1",
             "agent_id",
         ]
         assert result.select(pl.col("dim_0")).to_series().to_list() == [0, 1]
