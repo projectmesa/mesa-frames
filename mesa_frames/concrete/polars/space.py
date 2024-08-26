@@ -60,11 +60,9 @@ class GridPolars(GridDF, PolarsMixin):
     _agents: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("clone", []),
-        "_cells": ("clone", []),
         "_cells_capacity": ("copy", []),
         "_offsets": ("clone", []),
     }
-    _cells: pl.DataFrame
     _cells_capacity: np.ndarray
     _offsets: pl.DataFrame
 
@@ -189,7 +187,7 @@ class GridPolars(GridDF, PolarsMixin):
 
         # Get the current capacity of updatable cells
         current_capacity = (
-            coords.join(self._cells, on=self._pos_col_names, how="left")
+            coords.join(self._agents, on=self._pos_col_names, how="left")
             .fill_null(self._capacity)["capacity"]
             .to_numpy()
         )

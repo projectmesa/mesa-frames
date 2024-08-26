@@ -71,11 +71,9 @@ class GridPandas(GridDF, PandasMixin):
     _agents: pd.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("copy", ["deep"]),
-        "_cells": ("copy", ["deep"]),
         "_cells_capacity": ("copy", []),
         "_offsets": ("copy", ["deep"]),
     }
-    _cells: pd.DataFrame
     _cells_capacity: np.ndarray
     _offsets: pd.DataFrame
 
@@ -198,12 +196,20 @@ class GridPandas(GridDF, PandasMixin):
 
     def _update_capacity_cells(self, cells: pd.DataFrame) -> np.ndarray:
         # Get the coordinates of the cells to update
+
+        if cells.index.names != self._pos_col_names:
+            cells = cells.set_index(self._pos_col_names)
         coords = cells.index
 
         # Get the current capacity of updatable cells
-        current_capacity = self._cells.reindex(coords, fill_value=self._capacity)[
-            "capacity"
-        ].to_numpy()
+        current_capacity = (
+            self._df_set_index(
+                self._agents.drop_duplicates(self._pos_col_names),
+                index_name=self._pos_col_names,
+            )
+            .reindex(coords, fill_value=self._capacity)["capacity"]
+            .to_numpy()
+        )
 
         # Calculate the number of agents currently in each cell
         agents_in_cells = current_capacity - self._cells_capacity[tuple(zip(*coords))]

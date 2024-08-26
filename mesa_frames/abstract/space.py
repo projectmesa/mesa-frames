@@ -187,7 +187,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             A DataFrame with the sampled agents
         """
         seed = self.random.integers(np.iinfo(np.int32).max)
-        return self._df_sample(self._agents, n=n, seed=seed)
+        return self._df_sample(self._agents, n=n, seed=seed)["agent_id"]
 
     def swap_agents(
         self,
@@ -230,8 +230,17 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         agents1_df = obj._df_get_masked_df(
             obj._agents, index_cols="agent_id", mask=agents1
         )
-        agents0_df = obj._df_set_index(agents0_df, "agent_id", agents1)
-        agents1_df = obj._df_set_index(agents1_df, "agent_id", agents0)
+        agents0_df = obj._df_with_columns(
+            agents0_df,
+            data=agents1,
+            new_columns="agent_id",
+        )
+        agents1_df = obj._df_with_columns(
+            agents1_df,
+            data=agents0,
+            new_columns="agent_id",
+        )
+
         obj._agents = obj._df_combine_first(
             agents0_df, obj._agents, index_cols="agent_id"
         )
@@ -514,7 +523,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         -------
         DataFrame
         """
-        return self._agents
+        return self._agents[["agent_id"] + self._pos_col_names]
 
     @property
     def model(self) -> "ModelDF":
@@ -542,7 +551,6 @@ class DiscreteSpaceDF(SpaceDF):
 
     _agents: DataFrame
     _capacity: int | None  # The maximum capacity for cells (default is infinite)
-    _cells: DataFrame  # Stores the properties of the cells
     _cells_capacity: (
         DiscreteSpaceCapacity  # Storing the remaining capacity of the cells in the grid
     )
@@ -742,7 +750,6 @@ class DiscreteSpaceDF(SpaceDF):
             cells_df = cells
         else:
             cells_df = obj._get_df_coords(cells)
-        cells_df = obj._df_set_index(cells_df, index_name=obj._pos_col_names)
 
         if __debug__:
             if isinstance(cells_df, DataFrame) and any(
@@ -753,16 +760,25 @@ class DiscreteSpaceDF(SpaceDF):
                 )
 
         if properties:
-            cells_df = obj._df_constructor(
-                data=properties, index=self._df_index(cells_df, obj._pos_col_names)
+            properties = obj._df_reset_index(
+                obj._df_constructor(
+                    data=properties, index=self._srs_range("index", 0, len(cells_df))
+                ),
+                "index",
+                drop=True,
+            )
+            cells_df = obj._df_with_columns(
+                properties,
+                cells_df[obj._pos_col_names],
             )
 
         if "capacity" in obj._df_column_names(cells_df):
             obj._cells_capacity = obj._update_capacity_cells(cells_df)
 
-        obj._cells = obj._df_combine_first(
-            cells_df, obj._cells, index_cols=obj._pos_col_names
+        obj._agents = obj._df_combine_first(
+            cells_df, obj._agents, index_cols=obj._pos_col_names
         )
+
         return obj
 
     @abstractmethod
@@ -1016,7 +1032,7 @@ class DiscreteSpaceDF(SpaceDF):
         """
         # Fallback, if key (property) is not found in the object,
         # then it must mean that it's in the _cells dataframe
-        return self._cells[key]
+        return self._agents[key]
 
     def __setitem__(self, cells: DiscreteCoordinates, properties: DataFrame):
         """Set the properties of the specified cells.
@@ -1046,7 +1062,7 @@ class DiscreteSpaceDF(SpaceDF):
         DataFrame
             A Dataframe with all cells, their properties and their agents
         """
-        return self.get_cells()
+        return self._agents
 
     @cells.setter
     def cells(self, df: DataFrame):
@@ -1166,21 +1182,16 @@ class GridDF(DiscreteSpaceDF):
         self._torus = torus
         self._pos_col_names = [f"dim_{k}" for k in range(len(dimensions))]
         self._center_col_names = [x + "_center" for x in self._pos_col_names]
-        self._agents = self._df_constructor(
-            columns=["agent_id"] + self._pos_col_names,
-            index_cols="agent_id",
-            dtypes={col: int for col in ["agent_id"] + self._pos_col_names},
-        )
 
-        cells_df_dtypes = {col: int for col in self._pos_col_names}
-        cells_df_dtypes.update(
+        agents_df_dtypes = {col: int for col in ["agent_id"] + self._pos_col_names}
+        agents_df_dtypes.update(
             {"capacity": float}  # Capacity can be float if we want to represent np.nan
         )
-        self._cells = self._df_constructor(
-            columns=self._pos_col_names + ["capacity"],
-            index_cols=self._pos_col_names,
-            dtypes=cells_df_dtypes,
+        self._agents = self._df_constructor(
+            columns=["agent_id"] + self._pos_col_names + ["capacity"],
+            dtypes=agents_df_dtypes,
         )
+
         self._offsets = self._compute_offsets(neighborhood_type)
         self._cells_capacity = self._generate_empty_grid(dimensions, capacity)
         self._neighborhood_type = neighborhood_type
@@ -1222,6 +1233,7 @@ class GridDF(DiscreteSpaceDF):
             df=self._agents,
             index_cols=self._pos_col_names,
             mask=neighborhood_df,
+            columns=["agent_id"] + self._pos_col_names,
         )
 
     def get_neighborhood(
@@ -1409,18 +1421,12 @@ class GridDF(DiscreteSpaceDF):
         # outputting a single agent per cell (current)
         # or outputting all agents per cell in a imploded list (slowest, https://stackoverflow.com/a/66018377)
         if not coords:
-            cells_df = self._cells
+            return self._agents
         else:
             coords_df = self._get_df_coords(pos=coords)
-            cells_df = self._df_get_masked_df(
-                df=self._cells, index_cols=self._pos_col_names, mask=coords_df
+            return self._df_get_masked_df(
+                df=self._agents, index_cols=self._pos_col_names, mask=coords_df
             )
-        return self._df_join(
-            left=cells_df,
-            right=self._agents,
-            index_cols=self._pos_col_names,
-            on=self._pos_col_names,
-        )
 
     def out_of_bounds(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
         """Check if a position is out of bounds in a non-toroidal grid.
@@ -1529,8 +1535,8 @@ class GridDF(DiscreteSpaceDF):
         ValueError
             If objects do not have the same length
         """
-        pos0_df = self._get_df_coords(pos0, agents0)
-        pos1_df = self._get_df_coords(pos1, agents1)
+        pos0_df = self._df_reset_index(self._get_df_coords(pos0, agents0), drop=True)
+        pos1_df = self._df_reset_index(self._get_df_coords(pos1, agents1), drop=True)
         if __debug__ and len(pos0_df) != len(pos1_df):
             raise ValueError("objects must have the same length")
         return pos1_df - pos0_df
@@ -1654,11 +1660,15 @@ class GridDF(DiscreteSpaceDF):
                 if agents.n_unique() != len(agents):
                     raise ValueError("Some agents are present multiple times")
         if agents is not None:
-            df = self._df_get_masked_df(
-                self._agents, index_cols="agent_id", mask=agents
+            return self._df_reset_index(
+                self._df_get_masked_df(
+                    self._agents,
+                    index_cols="agent_id",
+                    mask=agents,
+                    columns=self._pos_col_names,
+                ),
+                drop=True,
             )
-            df = self._df_reindex(df, agents, "agent_id")
-            return self._df_reset_index(df, index_cols="agent_id", drop=True)
         if isinstance(pos, DataFrame):
             return self._df_reset_index(pos[self._pos_col_names], drop=True)
         elif (
@@ -1739,15 +1749,18 @@ class GridDF(DiscreteSpaceDF):
             if len(agents_df) != len(pos_df):
                 raise ValueError("The number of agents and positions must be equal")
 
-        new_df = self._df_concat(
-            [agents_df, pos_df], how="horizontal", index_cols="agent_id"
-        )
+        new_df = self._df_concat([agents_df, pos_df], how="horizontal")
         self._cells_capacity = self._update_capacity_agents(
             new_df, operation="movement"
         )
-        self._agents = self._df_combine_first(
-            new_df, self._agents, index_cols="agent_id"
-        )
+        cells_df = self._df_combine_first(new_df, self._agents, index_cols="agent_id")
+        if self._capacity is not None:
+            cells_df = self._df_with_columns(
+                cells_df,
+                self._srs_fill_na(cells_df["capacity"], self._capacity),
+                "capacity",
+            )
+        self._agents = cells_df
         return self
 
     @abstractmethod
