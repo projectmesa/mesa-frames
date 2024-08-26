@@ -486,6 +486,9 @@ class DataFrameMixin(ABC):
     ) -> BoolSeries: ...
 
     @abstractmethod
+    def _srs_fill_na(self, srs: Series, value: Any) -> Series: ...
+
+    @abstractmethod
     def _srs_range(self, name: str, start: int, end: int, step: int = 1) -> Series: ...
 
     @abstractmethod

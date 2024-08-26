@@ -180,7 +180,13 @@ class PolarsMixin(DataFrameMixin):
         if dtypes is not None:
             dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
         if isinstance(data, pd.DataFrame):
-            data = data.reset_index()
+            if (
+                isinstance(index, str)
+                and data.index.name == index
+                or isinstance(index, list)
+                and data.index.names == index
+            ):
+                index = data.index
         df = pl.DataFrame(
             data=data, schema=columns, schema_overrides=dtypes, orient="row"
         )
@@ -618,6 +624,9 @@ class PolarsMixin(DataFrameMixin):
         if not isinstance(values, Collection):
             values = [values]
         return pl.Series(values).is_in(srs)
+
+    def _srs_fill_na(self, srs: pl.Series, value: Any) -> pl.Series:
+        return srs.fill_null(value)
 
     def _srs_range(
         self,

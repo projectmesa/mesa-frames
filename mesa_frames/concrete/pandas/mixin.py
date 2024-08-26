@@ -98,11 +98,18 @@ class PandasMixin(DataFrameMixin):
         ):
             original_df = original_df.set_index(index_cols)
 
-        if (isinstance(index_cols, str) and index_cols != original_df.index.name) or (
-            isinstance(index_cols, list) and index_cols != original_df.index.names
+        if (isinstance(index_cols, str) and index_cols != new_df.index.name) or (
+            isinstance(index_cols, list) and index_cols != new_df.index.names
         ):
             new_df = new_df.set_index(index_cols)
-        return original_df.combine_first(new_df)
+        all_columns = original_df.columns.union(new_df.columns).drop(
+            index_cols, errors="ignore"
+        )
+        if new_df.empty:
+            return original_df.reindex(columns=all_columns).reset_index()
+        elif original_df.empty:
+            return new_df.reindex(columns=all_columns).reset_index()
+        return original_df.combine_first(new_df).reset_index()
 
     @overload
     def _df_concat(
@@ -166,7 +173,10 @@ class PandasMixin(DataFrameMixin):
                     df.index = index
             except ValueError as e:
                 if str(e) == "If using all scalar values, you must pass an index":
-                    df = pd.DataFrame(data=data, columns=columns, index=index)
+                    if index is not None:
+                        df = pd.DataFrame(data=data, columns=columns, index=index)
+                    else:
+                        df = pd.DataFrame(data=data, columns=columns, index=[0])
                 else:
                     raise e
         if dtypes:
@@ -534,6 +544,9 @@ class PandasMixin(DataFrameMixin):
             return pd.Series(values, index=values).isin(srs)
         else:
             return pd.Series(values, index=[values]).isin(srs)
+
+    def _srs_fill_na(self, srs: pd.Series, value: Any) -> pd.Series:
+        return srs.fillna(value)
 
     def _srs_range(
         self,
