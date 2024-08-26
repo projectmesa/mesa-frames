@@ -11,6 +11,14 @@ DataFrames are optimized for simultaneous operations through [SIMD processing](h
 - [pandas](https://pandas.pydata.org/): A popular data-manipulation Python library, known for its ease of use and high performance.
 - [Polars](https://pola.rs/): A new DataFrame library with a Rust backend, offering innovations like Apache Arrow memory format and support for larger-than-memory DataFrames.
 
+## Performance Boost 🏎️
+
+Check out our performance graphs comparing mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html):
+
+![Performance Graph with Mesa](https://github.com/adamamer20/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
+
+![Performance Graph without Mesa](https://github.com/adamamer20/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
+
 ## Quick Start 🚀
 
 ### Installation
