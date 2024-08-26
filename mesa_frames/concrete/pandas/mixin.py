@@ -337,6 +337,9 @@ class PandasMixin(DataFrameMixin):
         if how != "cross":
             left = _prepare_df(left, left_on)
             right = _prepare_df(right, right_on)
+        if how != "cross":
+            left = _prepare_df(left, left_on)
+            right = _prepare_df(right, right_on)
             left_index = True
             right_index = True
         df = left.merge(
@@ -346,6 +349,11 @@ class PandasMixin(DataFrameMixin):
             right_index=right_index,
             suffixes=("", suffix),
         )
+        if how != "cross":
+            df.reset_index(inplace=True)
+        if index_cols is not None:
+            df.set_index(index_cols, inplace=True)
+        return df
         if how != "cross":
             df.reset_index(inplace=True)
         if index_cols is not None:
