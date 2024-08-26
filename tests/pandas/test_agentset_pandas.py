@@ -121,7 +121,7 @@ class Test_AgentSetPandas:
         # Test with a single value
         result = agents.discard(0, inplace=False)
         assert result.agents.index.to_list() == [1, 2, 3]
-        assert result.pos.index.to_list() == [1, 2, 3]
+        assert result.pos["unique_id"].to_list() == [1, 2, 3]
         assert result.pos["dim_0"].to_list()[0] == 1
         assert result.pos["dim_1"].to_list()[0] == 1
         assert all(math.isnan(val) for val in result.pos["dim_0"].to_list()[1:])
@@ -131,7 +131,7 @@ class Test_AgentSetPandas:
         # Test with a list
         result = agents.discard([0, 1], inplace=False)
         assert result.agents.index.tolist() == [2, 3]
-        assert result.pos.index.tolist() == [2, 3]
+        assert result.pos["unique_id"].tolist() == [2, 3]
         assert all(math.isnan(val) for val in result.pos["dim_0"].to_list())
         assert all(math.isnan(val) for val in result.pos["dim_1"].to_list())
         result += pd.DataFrame({"unique_id": 0, "wealth": 1, "age": 10}, index=[0])
@@ -139,7 +139,7 @@ class Test_AgentSetPandas:
         # Test with a pd.DataFrame
         result = agents.discard(pd.DataFrame({"unique_id": [0, 1]}), inplace=False)
         assert result.agents.index.to_list() == [2, 3]
-        assert result.pos.index.to_list() == [2, 3]
+        assert result.pos["unique_id"].to_list() == [2, 3]
         assert all(math.isnan(val) for val in result.pos["dim_0"].to_list())
         assert all(math.isnan(val) for val in result.pos["dim_1"].to_list())
 
@@ -147,7 +147,7 @@ class Test_AgentSetPandas:
         agents.active_agents = [0, 1]
         result = agents.discard("active", inplace=False)
         assert result.agents.index.to_list() == [2, 3]
-        assert result.pos.index.to_list() == [2, 3]
+        assert result.pos["unique_id"].to_list() == [2, 3]
         assert all(math.isnan(val) for val in result.pos["dim_0"].to_list())
         assert all(math.isnan(val) for val in result.pos["dim_1"].to_list())
         result += pd.DataFrame({"unique_id": 0, "wealth": 1, "age": 10}, index=[0])
@@ -461,8 +461,8 @@ class Test_AgentSetPandas:
     def test_pos(self, fix1_AgentSetPandas_with_pos: ExampleAgentSetPandas):
         pos = fix1_AgentSetPandas_with_pos.pos
         assert isinstance(pos, pd.DataFrame)
-        assert pos.index.tolist() == [0, 1, 2, 3]
-        assert pos.columns.tolist() == ["dim_0", "dim_1"]
+        assert pos["unique_id"].tolist() == [0, 1, 2, 3]
+        assert pos.columns.tolist() == ["unique_id", "dim_0", "dim_1"]
         assert pos["dim_0"].tolist()[:2] == [0, 1]
         assert all(math.isnan(val) for val in pos["dim_0"].tolist()[2:])
         assert pos["dim_1"].tolist()[:2] == [0, 1]
