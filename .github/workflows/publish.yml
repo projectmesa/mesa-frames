@@ -1,11 +1,11 @@
-name: Update Version, Test, Publish to PyPI, and Upload Release Artifacts
+name: Update Version, Test, Publish to PyPI, and Update GitHub Release
 
 on:
   release:
     types: [created, edited]
 
 jobs:
-  build-test-publish-upload:
+  build-test-publish-release:
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -39,7 +39,7 @@ jobs:
     - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-          skip-existing: true
+        skip-existing: true
     - name: Verify PyPI Release
       run: |
         # Verify PyPI release
@@ -47,11 +47,13 @@ jobs:
         CURRENT_VERSION=$(hatch version)
         pip install $PACKAGE_NAME==$CURRENT_VERSION
         python -c "import mesa_frames; print(mesa_frames.__version__)"
-    - name: Upload package as artifact to GitHub
-      uses: actions/upload-artifact@v4
+    - name: Update GitHub Release
+      uses: softprops/action-gh-release@v1
       with:
-        name: package
-        path: dist/
+        files: |
+          dist/*
+        tag_name: ${{ github.ref }}
+        name: ${{ github.ref }}
     - name: Create or recreate version branch
       run: |
         CURRENT_VERSION=$(hatch version)
