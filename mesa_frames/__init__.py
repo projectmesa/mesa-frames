@@ -58,4 +58,4 @@ __all__ = [
     "GridPolars",
 ]
 
-__version__ = "0.1.0alpha"
+__version__ = "0.1.0-alpha"
