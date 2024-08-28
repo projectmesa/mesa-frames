@@ -57,3 +57,5 @@ __all__ = [
     "GridPandas",
     "GridPolars",
 ]
+
+__version__ = "0.1.0alpha"

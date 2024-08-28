@@ -1,0 +1,79 @@
+name: Update Version, Test, Publish to PyPI, and Upload Release Artifacts
+
+on:
+  release:
+    types: [created, edited]
+
+jobs:
+  build-test-publish-upload:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install hatch
+    - name: Set release version
+      run: |
+        # Get the tag from the GitHub release
+        TAG=${GITHUB_REF#refs/tags/}
+        # Remove 'v' prefix if present
+        VERSION=${TAG#v}
+        hatch version $VERSION
+    - name: Build package
+      run: hatch build
+    - name: Run tests
+      run: hatch run test:pytest
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+    - name: Verify PyPI Release
+      run: |
+        # Verify PyPI release
+        PACKAGE_NAME="mesa_frames"
+        CURRENT_VERSION=$(hatch version)
+        pip install $PACKAGE_NAME==$CURRENT_VERSION
+        python -c "import mesa_frames; print(mesa_frames.__version__)"
+          - name: Create or recreate version branch
+    - name: Create or recreate version branch
+      run: |
+        CURRENT_VERSION=$(hatch version)
+        BRANCH_NAME="v$CURRENT_VERSION"
+
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+
+        # Delete the branch if it exists (both locally and remotely)
+        git branch -D $BRANCH_NAME || true
+        git push origin --delete $BRANCH_NAME || true
+
+        # Create and push the new branch
+        git checkout -b $BRANCH_NAME
+        git push -u origin $BRANCH_NAME
+
+        # Switch back to the main branch
+        git checkout main
+    - name: Update to Next Version
+      run: |
+        # Bump to next development version
+        hatch version patch
+        hatch version dev
+
+        # Get the new version
+        NEW_VERSION=$(hatch version)
+
+        # Commit and push the version bump
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add mesa-frames/__init__.py
+        git commit -m "Bump version to $NEW_VERSION [skip ci]"
+        git push
