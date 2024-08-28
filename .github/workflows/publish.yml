@@ -36,6 +36,8 @@ jobs:
       run: hatch run test:pytest
     - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+          skip-existing: true
     - name: Verify PyPI Release
       run: |
         # Verify PyPI release
