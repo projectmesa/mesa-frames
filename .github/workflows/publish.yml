@@ -43,7 +43,6 @@ jobs:
         CURRENT_VERSION=$(hatch version)
         pip install $PACKAGE_NAME==$CURRENT_VERSION
         python -c "import mesa_frames; print(mesa_frames.__version__)"
-          - name: Create or recreate version branch
     - name: Create or recreate version branch
       run: |
         CURRENT_VERSION=$(hatch version)
