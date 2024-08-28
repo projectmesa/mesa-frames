@@ -26,14 +26,28 @@ polars = [
   #"geopolars" (currently in pre-alpha)
 ]
 
-docs = [
-  "perfplot", #readme_script
-  "seaborn", #readme_script
-  "matplotlib", #readme_script
+mkdocs = [
   "mkdocs-material",
   "mkdocs-jupyter",
   "mkdocs-git-revision-date-localized-plugin",
-  "mkdocs-minify-plugin"
+  "mkdocs-minify-plugin",
+]
+
+sphinx = [
+  "sphinx",
+  "sphinx-rtd-theme",
+  "numpydoc",
+  "pydata-sphinx-theme",
+  "sphinx-copybutton",
+  "sphinx-design",
+  "autodocsumm"
+]
+
+docs = [
+  "mesa_frames[pandas, polars, mkdocs, sphinx]",
+  # Readme Script
+  "perfplot",
+  "seaborn"
 ]
 
 dev = [
@@ -49,3 +63,15 @@ features = ["dev"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["mesa_frames"]
+
+[tool.ruff.lint]
+select = ["D"]
+ignore = ["D101", "D102", "D105"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"examples/*" = ["D"]
+"docs/*" = ["D"]

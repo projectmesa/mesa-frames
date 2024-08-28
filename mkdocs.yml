@@ -3,6 +3,7 @@ site_name: mesa-frames
 site_url: https://adamamer20.github.io/mesa-frames
 repo_url: https://github.com/adamamer20/mesa-frames
 repo_name: adamamer20/mesa-frames
+docs_dir: docs/general
 
 # Theme configuration
 theme:
@@ -104,11 +105,10 @@ extra:
 nav:
   - Home: index.md
   - User Guide:
-    - Getting Started: user-guide/getting-started.md
-    - Tutorial: user-guide/tutorial.md
+    - Getting Started: user-guide/0_getting-started.md
+    - Classes: user-guide/1_classes.md
+    - Introductory Tutorial: user-guide/2_introductory-tutorial.md
+    - Advanced Tutorial: user-guide/3_advanced-tutorial.md
+    - Benchmarks: user-guide/4_benchmarks.md
   - API Reference: api/index.html
-  - Development:
-    - Contributing: development/contributing.md
-    - Changelog: development/changelog.md
-  - About:
-    - License: about/license.md
+  - Development: development/index.md

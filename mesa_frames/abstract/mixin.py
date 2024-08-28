@@ -1,3 +1,47 @@
+"""
+Mixin classes for mesa-frames abstract components.
+
+This module defines mixin classes that provide common functionality and interfaces
+for various components in the mesa-frames extension. These mixins are designed to
+be used with the abstract base classes to create flexible and extensible
+implementations.
+
+Classes:
+    CopyMixin(ABC):
+        A mixin class that provides a fast copy method for classes that inherit it.
+        This is useful for creating efficient copies of large data structures, such
+        as DataFrames containing agent data.
+
+    DataFrameMixin(ABC):
+        A mixin class that defines an interface for DataFrame operations. This mixin
+        provides a common set of methods that should be implemented by concrete
+        backend classes (e.g., pandas or Polars implementations) to ensure consistent
+        DataFrame manipulation across the mesa-frames package.
+
+These mixin classes are not meant to be instantiated directly. Instead, they should
+be inherited alongside other base classes to add specific functionality or to
+enforce a common interface.
+
+Usage:
+    Mixin classes are typically used in multiple inheritance scenarios:
+
+    from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
+
+    class MyDataFrameClass(SomeBaseClass, CopyMixin, DataFrameMixin):
+        def __init__(self):
+            super().__init__()
+            # Implementation
+
+        # Implement abstract methods from DataFrameMixin
+
+Note:
+    The DataFrameMixin uses Python's @abstractmethod decorator for its methods,
+    ensuring that classes inheriting from it must implement these methods.
+
+Attributes and methods of each mixin class are documented in their respective
+docstrings.
+"""
+
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Hashable, Iterator, Sequence
 from copy import copy, deepcopy
@@ -9,14 +53,7 @@ from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series
 
 
 class CopyMixin(ABC):
-    """A mixin class that provides a fast copy method for the class that inherits it.
-
-    Methods
-    -------
-    copy(deep: bool = False, memo: dict | None = None) -> Self
-        Create a copy of the object. If deep is True, a deep copy is created. If deep is False, a shallow copy is created.
-
-    """
+    """A mixin class that provides a fast copy method for the class that inherits it."""
 
     _copy_with_method: dict[str, tuple[str, list[str]]] = {}
     _copy_only_reference: list[str] = [
@@ -137,6 +174,8 @@ class CopyMixin(ABC):
 
 
 class DataFrameMixin(ABC):
+    """A mixin class which defines an interface for DataFrame operations. Most methods are abstract and should be implemented by the concrete backend."""
+
     def _df_remove(self, df: DataFrame, mask: Mask, index_cols: str) -> DataFrame:
         return self._df_get_masked_df(df, index_cols, mask, negate=True)
 
