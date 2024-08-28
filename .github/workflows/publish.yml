@@ -2,7 +2,7 @@ name: Update Version, Test, Publish to PyPI, and Update GitHub Release
 
 on:
   release:
-    types: [created, edited]
+    types: [created]
 
 jobs:
   build-test-publish-release:
