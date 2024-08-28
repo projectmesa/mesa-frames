@@ -19,7 +19,16 @@ The following is a performance graph showing execution time using mesa and mesa-
 
 ## Installation
 
-### Cloning the Repository
+### Install from PyPI
+```bash
+pip install mesa-frames
+```
+
+### Install from Source
+
+To install the most updated version of mesa-frames, you can clone the respository and install the package in editable mode.
+
+#### Cloning the Repository
 
 To get started with mesa-frames, first clone the repository from GitHub:
 
@@ -28,7 +37,7 @@ git clone https://github.com/adamamer20/mesa_frames.git
 cd mesa_frames
 ```
 
-### Installing in a Conda Environment
+#### Installing in a Conda Environment
 
 If you want to install it into a new environment:
 
@@ -48,7 +57,7 @@ Then, to install mesa-frames itself:
 pip install -e .
 ```
 
-### Installing in a Python Virtual Environment
+#### Installing in a Python Virtual Environment
 
 If you want to install it into a new environment:
 
