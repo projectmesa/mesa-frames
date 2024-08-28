@@ -76,6 +76,6 @@ jobs:
         # Commit and push the version bump
         git config user.name github-actions
         git config user.email github-actions@github.com
-        git add mesa-frames/__init__.py
+        git add mesa_frames/__init__.py
         git commit -m "Bump version to $NEW_VERSION [skip ci]"
         git push
