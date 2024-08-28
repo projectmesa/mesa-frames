@@ -46,6 +46,11 @@ jobs:
         CURRENT_VERSION=$(hatch version)
         pip install $PACKAGE_NAME==$CURRENT_VERSION
         python -c "import mesa_frames; print(mesa_frames.__version__)"
+    - name: Upload package as artifact to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: package
+        path: dist/
     - name: Create or recreate version branch
       run: |
         CURRENT_VERSION=$(hatch version)
@@ -64,6 +69,7 @@ jobs:
 
         # Switch back to the main branch
         git checkout main
+
     - name: Update to Next Version
       run: |
         # Bump to next development version
