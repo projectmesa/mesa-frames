@@ -1,3 +1,4 @@
+import numba as nb
 import numpy as np
 import polars as pl
 
@@ -32,6 +33,20 @@ class AntPolars(AgentSetPolars):
         )
         self.add(agents)
 
+    def eat(self):
+        cells = self.space.cells.filter(pl.col("agent_id").is_not_null())
+        self[cells["agent_id"], "sugar"] = (
+            self[cells["agent_id"], "sugar"]
+            + cells["sugar"]
+            - self[cells["agent_id"], "metabolism"]
+        )
+
+    def step(self):
+        self.shuffle().do("move").do("eat")
+        self.discard(self.agents.filter(pl.col("sugar") <= 0))
+
+
+class AntPolarsLoop(AntPolars):
     def move(self):
         neighborhood: pl.DataFrame = self.space.get_neighborhood(
             radius=self["vision"], agents=self, include_center=True
