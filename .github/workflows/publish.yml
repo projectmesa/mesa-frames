@@ -43,6 +43,25 @@ jobs:
         CURRENT_VERSION=$(hatch version)
         pip install $PACKAGE_NAME==$CURRENT_VERSION
         python -c "import mesa_frames; print(mesa_frames.__version__)"
+          - name: Create or recreate version branch
+    - name: Create or recreate version branch
+      run: |
+        CURRENT_VERSION=$(hatch version)
+        BRANCH_NAME="v$CURRENT_VERSION"
+
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+
+        # Delete the branch if it exists (both locally and remotely)
+        git branch -D $BRANCH_NAME || true
+        git push origin --delete $BRANCH_NAME || true
+
+        # Create and push the new branch
+        git checkout -b $BRANCH_NAME
+        git push -u origin $BRANCH_NAME
+
+        # Switch back to the main branch
+        git checkout main
     - name: Update to Next Version
       run: |
         # Bump to next development version
