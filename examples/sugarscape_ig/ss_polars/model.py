@@ -9,6 +9,7 @@ from .agents import AntPolars
 class SugarscapePolars(ModelDF):
     def __init__(
         self,
+        agent_type: type[AntPolarsLoop] | type[AntPolarsNumba],
         n_agents: int,
         sugar_grid: np.ndarray | None = None,
         initial_sugar: np.ndarray | None = None,
@@ -30,7 +31,7 @@ class SugarscapePolars(ModelDF):
             sugar=sugar_grid.flatten(), max_sugar=sugar_grid.flatten()
         )
         self.space.set_cells(sugar_grid)
-        self.agents += AntPolars(self, n_agents, initial_sugar, metabolism, vision)
+        self.agents += agent_type(self, n_agents, initial_sugar, metabolism, vision)
         self.space.place_to_empty(self.agents)
 
     def run_model(self, steps: int) -> list[int]:
