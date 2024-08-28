@@ -1,8 +1,8 @@
-# mesa-frames
+# mesa-frames 🚀
 
-mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax. mesa-frames allows for the use of [vectorized functions](https://vegibit.com/what-is-a-vectorized-operation-in-pandas/) whenever simultaneous activation of agents is possible.
+mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax. mesa-frames allows for the use of [vectorized functions](https://stackoverflow.com/a/1422198) which significantly speeds up operations whenever simultaneous activation of agents is possible.
 
-## Why DataFrames?
+## Why DataFrames? 📊
 
 DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). At the moment, mesa-frames supports the use of two main libraries: pandas and Polars.
 
@@ -11,11 +11,11 @@ DataFrames are optimized for simultaneous operations through [SIMD processing](h
 
 The following is a performance graph showing execution time using mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
 
-![Performance Graph](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot_0.png)
+![Performance Graph with Mesa](https://github.com/adamamer20/mesa_frames/blob/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
 
-![Performance Graph without Mesa](https://github.com/adamamer20/mesa_frames/blob/main/docs/images/readme_plot_1.png)
+![Performance Graph without Mesa](https://github.com/adamamer20/mesa_frames/blob/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
 
-(The script used to generate the graph can be found [here](https://github.com/adamamer20/mesa_frames/blob/main/docs/scripts/readme_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
+(The script used to generate the graph can be found [here](https://github.com/adamamer20/mesa_frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
 
 ## Installation
 
@@ -135,11 +135,11 @@ class MoneyModelDF(ModelDF):
             self.step()
 ```
 
-## What's Next?
+## What's Next? 🔮
 
 - Refine the API to make it more understandable for someone who is already familiar with the mesa package. The goal is to provide a seamless experience for users transitioning to or incorporating mesa-frames.
 - Adding support for default mesa functions to ensure that the standard mesa functionality is preserved.
-- Adding GPU functionality (cuDF and Rapids).
+- Adding GPU functionality (cuDF and Dask-cuDF).
 - Creating a decorator that will automatically vectorize an existing mesa model. This feature will allow users to easily tap into the performance enhancements that mesa-frames offers without significant code alterations.
 - Creating a unique class for AgentSet, independent of the backend implementation.
 
