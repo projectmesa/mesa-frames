@@ -3,13 +3,13 @@ import polars as pl
 
 from mesa_frames import GridPolars, ModelDF
 
-from .agents import AntPolars
+from .agents import AntPolarsBase
 
 
 class SugarscapePolars(ModelDF):
     def __init__(
         self,
-        agent_type: type[AntPolarsLoop] | type[AntPolarsNumba],
+        agent_type: type[AntPolarsBase],
         n_agents: int,
         sugar_grid: np.ndarray | None = None,
         initial_sugar: np.ndarray | None = None,
