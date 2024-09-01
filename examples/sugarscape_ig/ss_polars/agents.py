@@ -303,4 +303,4 @@ class AntPolarsNumbaParallel(AntPolarsNumba):
 
 
 class AntPolarsNumbaGPU(AntPolarsNumba):
-    numba_target = "gpu"
+    numba_target = "cuda"
