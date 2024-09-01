@@ -142,7 +142,7 @@ def main():
         "mesa-frames (pl loop no vec)",
         "mesa-frames (pl numba CPU)",
         "mesa-frames (pl numba parallel)",
-        # "mesa-frames (pl numba GPU)",
+        #"mesa-frames (pl numba GPU)",
     ]
     # Polars best_moves (non-vectorized loop vs DF loop vs numba loop)
     kernels_1 = [
@@ -151,7 +151,7 @@ def main():
         mesa_frames_polars_loop_no_vec,
         mesa_frames_polars_numba_cpu,
         mesa_frames_polars_numba_parallel,
-        # mesa_frames_polars_numba_gpu,
+        #mesa_frames_polars_numba_gpu,
     ]
     n_range_1 = [k for k in range(1, 2 * 10**6 + 2, 10**6)]
     # n_range_1 = [k for k in range(10000, 100002, 10000)]
