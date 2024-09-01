@@ -3,8 +3,16 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import perfplot
+import seaborn as sns
 from ss_mesa.model import SugarscapeMesa
 from ss_pandas.model import SugarscapePandas
+from ss_polars.agents import (
+    AntPolarsLoopDF,
+    AntPolarsLoopNoVec,
+    AntPolarsNumbaCPU,
+    AntPolarsNumbaGPU,
+    AntPolarsNumbaParallel,
+)
 from ss_polars.model import SugarscapePolars
 
 
@@ -34,9 +42,58 @@ def mesa_frames_pandas_concise(setup: SugarScapeSetup):
     ).run_model(100)
 
 
-def mesa_frames_polars_concise(setup: SugarScapeSetup):
+def mesa_frames_polars_loop_DF(setup: SugarScapeSetup):
     return SugarscapePolars(
-        setup.n, setup.sugar_grid, setup.initial_sugar, setup.metabolism, setup.vision
+        AntPolarsLoopDF,
+        setup.n,
+        setup.sugar_grid,
+        setup.initial_sugar,
+        setup.metabolism,
+        setup.vision,
+    ).run_model(100)
+
+
+def mesa_frames_polars_loop_no_vec(setup: SugarScapeSetup):
+    return SugarscapePolars(
+        AntPolarsLoopNoVec,
+        setup.n,
+        setup.sugar_grid,
+        setup.initial_sugar,
+        setup.metabolism,
+        setup.vision,
+    ).run_model(100)
+
+
+def mesa_frames_polars_numba_cpu(setup: SugarScapeSetup):
+    return SugarscapePolars(
+        AntPolarsNumbaCPU,
+        setup.n,
+        setup.sugar_grid,
+        setup.initial_sugar,
+        setup.metabolism,
+        setup.vision,
+    ).run_model(100)
+
+
+def mesa_frames_polars_numba_gpu(setup: SugarScapeSetup):
+    return SugarscapePolars(
+        AntPolarsNumbaGPU,
+        setup.n,
+        setup.sugar_grid,
+        setup.initial_sugar,
+        setup.metabolism,
+        setup.vision,
+    ).run_model(100)
+
+
+def mesa_frames_polars_numba_parallel(setup: SugarScapeSetup):
+    return SugarscapePolars(
+        AntPolarsNumbaParallel,
+        setup.n,
+        setup.sugar_grid,
+        setup.initial_sugar,
+        setup.metabolism,
+        setup.vision,
     ).run_model(100)
 
 
@@ -61,9 +118,9 @@ def plot_and_print_benchmark(labels, kernels, n_range, title, image_path):
 
 
 def main():
-    """# Mesa comparison
+    # Mesa comparison
     sns.set_theme(style="whitegrid")
-    labels_0 = [
+    """labels_0 = [
         "mesa",
         # "mesa-frames (pd concise)",
         "mesa-frames (pl concise)",
@@ -81,15 +138,25 @@ def main():
     # FLAME2-GPU comparison
     labels_1 = [
         # "mesa-frames (pd concise)",
-        "mesa-frames (pl concise)",
+        "mesa-frames (pl loop DF)",
+        "mesa-frames (pl loop no vec)",
+        "mesa-frames (pl numba CPU)",
+        "mesa-frames (pl numba parallel)",
+        # "mesa-frames (pl numba GPU)",
     ]
+    # Polars best_moves (non-vectorized loop vs DF loop vs numba loop)
     kernels_1 = [
         # mesa_frames_pandas_concise,
-        mesa_frames_polars_concise,
+        mesa_frames_polars_loop_DF,
+        mesa_frames_polars_loop_no_vec,
+        mesa_frames_polars_numba_cpu,
+        mesa_frames_polars_numba_parallel,
+        # mesa_frames_polars_numba_gpu,
     ]
-    n_range_1 = [k for k in range(1, 3 * 10**6 + 2, 10**6)]
+    n_range_1 = [k for k in range(1, 2 * 10**6 + 2, 10**6)]
+    # n_range_1 = [k for k in range(10000, 100002, 10000)]
     title_1 = "100 steps of the SugarScape IG model:\n" + " vs ".join(labels_1)
-    image_path_1 = "benchmark_plot_1.png"
+    image_path_1 = "polars_comparison.png"
     plot_and_print_benchmark(labels_1, kernels_1, n_range_1, title_1, image_path_1)
 
 
