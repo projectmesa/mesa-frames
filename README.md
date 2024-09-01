@@ -20,6 +20,7 @@ The following is a performance graph showing execution time using mesa and mesa-
 ## Installation
 
 ### Install from PyPI
+
 ```bash
 pip install mesa-frames
 ```
