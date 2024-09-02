@@ -39,7 +39,7 @@ For more detailed information, refer to the full documentation and API reference
 
 Developed by: Project Mesa, Adam Amer
 License: MIT
-GitHub: https://github.com/projectmesa/mesa_frames
+GitHub: https://github.com/projectmesa/mesa-frames
 """
 
 from mesa_frames.concrete.agents import AgentsDF

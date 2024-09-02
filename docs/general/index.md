@@ -32,7 +32,7 @@ pip install mesa-frames
 #### Installing from Source
 
 ```bash
-git clone https://github.com/projectmesa/mesa_frames.git
+git clone https://github.com/projectmesa/mesa-frames.git
 cd mesa_frames
 pip install -e .
 ```
@@ -83,8 +83,8 @@ class MoneyModelDF(ModelDF):
 
 ## Get Involved! 🤝
 
-mesa-frames is in its early stages, and we welcome your feedback and contributions! Check out our [GitHub repository](https://github.com/projectmesa/mesa_frames) to get started.
+mesa-frames is in its early stages, and we welcome your feedback and contributions! Check out our [GitHub repository](https://github.com/projectmesa/mesa-frames) to get started.
 
 ## License
 
-mesa-frames is available under the MIT License. See the [LICENSE](https://github.com/projectmesa/mesa_frames/blob/main/LICENSE) file for full details.
+mesa-frames is available under the MIT License. See the [LICENSE](https://github.com/projectmesa/mesa-frames/blob/main/LICENSE) file for full details.
