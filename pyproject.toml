@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 name = "mesa_frames"
 description = "An extension to the Mesa framework which uses pandas/Polars DataFrames for enhanced performance"
 authors = [
+  { name = "Project Mesa Team", email = "projectmesa@googlegroups.com" },
   { name = "Adam Amer"},
 ]
 license = { text = "MIT" }

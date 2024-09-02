@@ -37,7 +37,7 @@ Note: mesa-frames is in early development. API and usage patterns may change.
 
 For more detailed information, refer to the full documentation and API reference.
 
-Developed by: Adam Amer
+Developed by: Project Mesa, Adam Amer
 License: MIT
 GitHub: https://github.com/projectmesa/mesa_frames
 """
