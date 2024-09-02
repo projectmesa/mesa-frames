@@ -11,11 +11,11 @@ DataFrames are optimized for simultaneous operations through [SIMD processing](h
 
 The following is a performance graph showing execution time using mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
 
-![Performance Graph with Mesa](https://github.com/adamamer20/mesa_frames/blob/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
+![Performance Graph with Mesa](https://github.com/projectmesa/mesa_frames/blob/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
 
-![Performance Graph without Mesa](https://github.com/adamamer20/mesa_frames/blob/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
+![Performance Graph without Mesa](https://github.com/projectmesa/mesa_frames/blob/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
 
-(The script used to generate the graph can be found [here](https://github.com/adamamer20/mesa_frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
+(The script used to generate the graph can be found [here](https://github.com/projectmesa/mesa_frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
 
 ## Installation
 
@@ -33,7 +33,7 @@ To install the most updated version of mesa-frames, you can clone the respositor
 To get started with mesa-frames, first clone the repository from GitHub:
 
 ```bash
-git clone https://github.com/adamamer20/mesa_frames.git
+git clone https://github.com/projectmesa/mesa_frames.git
 cd mesa_frames
 ```
 
@@ -159,4 +159,4 @@ mesa-frames is made available under the MIT License. This license allows you to 
 - The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 - The software is provided "as is", without warranty of any kind.
 
-For the full license text, see the [LICENSE](https://github.com/adamamer20/mesa_frames/blob/main/LICENSE) file in the GitHub repository.
+For the full license text, see the [LICENSE](https://github.com/projectmesa/mesa_frames/blob/main/LICENSE) file in the GitHub repository.
