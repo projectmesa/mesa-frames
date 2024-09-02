@@ -51,7 +51,7 @@ dynamic = [
 
 [project.urls]
 Documentation = "https://adamamer20.github.io/mesa-frames"
-Repository = "https://github.com/adamamer20/mesa-frames.git"
+Repository = "https://github.com/projectmesa/mesa-frames.git"
 
 [project.optional-dependencies]
 mkdocs = [

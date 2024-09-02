@@ -87,7 +87,7 @@ Users can choose the backend that best suits their needs:
     ```
 
 Currently, there are two implementations of AgentSetDF and GridDF, one for each backend implementation: AgentSetPandas and AgentSetPolars, and GridPandas and GridPolars.
-We encourage you to use the Polars implementation for increased performance. We are working on creating a unique interface [here](https://github.com/adamamer20/mesa-frames/discussions/12). Let us know what you think!
+We encourage you to use the Polars implementation for increased performance. We are working on creating a unique interface [here](https://github.com/projectmesa/mesa-frames/discussions/12). Let us know what you think!
 
 Soon we will also have multiple other backends like Dask, cuDF, and Dask-cuDF!
 

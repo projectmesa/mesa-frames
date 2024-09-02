@@ -56,7 +56,7 @@ autodoc_member_order = "bysource"
 autodoc_default_options = {"special-members": True, "exclude-members": "__weakref__"}
 
 # -- GitHub link and user guide settings -------------------------------------
-github_root = "https://github.com/adamamer20/mesa-frames"
+github_root = "https://github.com/projectmesa/mesa-frames"
 web_root = "https://adamamer20.github.io/mesa-frames"
 
 html_theme_options = {
