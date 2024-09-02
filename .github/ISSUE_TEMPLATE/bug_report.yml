@@ -1,7 +1,7 @@
 name: 🐛 Bug Report
 description: File a bug report for mesa-frames
 title: "[Bug]: "
-labels: ["bug"]
+labels: ["triage", "bug"]
 assignees: []
 body:
   - type: markdown

@@ -1,7 +1,7 @@
 name: ✨ Feature Request
 description: Suggest a feature for mesa-frames
 title: "[Feature]: "
-labels: ["feature"]
+labels: ["triage", "feature"]
 assignees: []
 body:
   - type: markdown
