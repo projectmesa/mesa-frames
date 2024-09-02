@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 name = "mesa_frames"
 description = "An extension to the Mesa framework which uses pandas/Polars DataFrames for enhanced performance"
 authors = [
+  { name = "Project Mesa Team", email = "projectmesa@googlegroups.com" },
   { name = "Adam Amer"},
 ]
 license = { text = "MIT" }
@@ -50,8 +51,8 @@ dynamic = [
 
 
 [project.urls]
-Documentation = "https://adamamer20.github.io/mesa-frames"
-Repository = "https://github.com/adamamer20/mesa-frames.git"
+Documentation = "https://projectmesa.github.io/mesa-frames"
+Repository = "https://github.com/projectmesa/mesa-frames.git"
 
 [project.optional-dependencies]
 mkdocs = [
