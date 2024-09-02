@@ -1,4 +1,4 @@
-name: Feature Request
+name: ✨ Feature Request
 description: Suggest a feature for mesa-frames
 title: "[Feature]: "
 labels: ["feature"]
@@ -7,49 +7,44 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this feature request!
+        Thanks for taking the time to fill out this feature request! 🙏
         We appreciate your ideas to improve our project.
-
   - type: textarea
     id: problem
     attributes:
-      label: Is your feature request related to a problem? Please describe.
+      label: 🤔 Is your feature request related to a problem? Please describe.
       description: A clear and concise description of what the problem is.
       placeholder: I'm always frustrated when [...]
     validations:
       required: true
-
   - type: textarea
     id: solution
     attributes:
-      label: Describe the solution you'd like
+      label: 💡 Describe the solution you'd like
       description: A clear and concise description of what you want to happen.
       placeholder: In this situation, I would like [...]
     validations:
       required: true
-
   - type: textarea
     id: alternatives
     attributes:
-      label: Describe alternatives you've considered
+      label: 🔄 Describe alternatives you've considered
       description: A clear and concise description of any alternative solutions or features you've considered.
       placeholder: I have also thought about [...]
-
   - type: dropdown
     id: priority
     attributes:
-      label: Priority
+      label: 🚀 Priority
       description: How important is this feature to you?
       options:
-        - Low (Nice to have)
-        - Medium (Important)
-        - High (Critical)
+        - 🟢 Low (Nice to have)
+        - 🟡 Medium (Important)
+        - 🔴 High (Critical)
     validations:
       required: true
-
   - type: textarea
     id: additional
     attributes:
-      label: Additional context
+      label: ➕ Additional context
       description: Add any other context or screenshots about the feature request here.
       placeholder: Any other relevant information...
