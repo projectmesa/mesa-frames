@@ -1,6 +1,6 @@
 # Project information
 site_name: mesa-frames
-site_url: https://adamamer20.github.io/mesa-frames
+site_url: https://projectmesa.github.io/mesa-frames
 repo_url: https://github.com/projectmesa/mesa-frames
 repo_name: projectmesa/mesa-frames
 docs_dir: docs/general
@@ -73,7 +73,7 @@ markdown_extensions:
   - pymdownx.keys
   - pymdownx.magiclink:
       repo_url_shorthand: true
-      user: adamamer20
+      user: projectmesa
       repo: mesa-frames
   - pymdownx.mark
   - pymdownx.smartsymbols
@@ -97,7 +97,7 @@ extra_javascript:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/adamamer20
+      link: https://github.com/projectmesa
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/mesa-frames/
 

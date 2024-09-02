@@ -57,7 +57,7 @@ autodoc_default_options = {"special-members": True, "exclude-members": "__weakre
 
 # -- GitHub link and user guide settings -------------------------------------
 github_root = "https://github.com/projectmesa/mesa-frames"
-web_root = "https://adamamer20.github.io/mesa-frames"
+web_root = "https://projectmesa.github.io/mesa-frames"
 
 html_theme_options = {
     "external_links": [
