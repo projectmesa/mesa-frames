@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path("..").resolve()))
 
 # -- Project information -----------------------------------------------------
 project = "mesa-frames"
-author = ["Project Mesa", "Adam Amer"]
+author = "Project Mesa, Adam Amer"
 copyright = f"2023, {author}"
 
 # -- General configuration ---------------------------------------------------
