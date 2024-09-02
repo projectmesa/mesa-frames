@@ -4,7 +4,7 @@ mesa-frames offers significant performance improvements over the original mesa f
 
 ## Boltzmann Wealth Model 💰
 
-[View the benchmark script](https://github.com/projectmesa/mesa-frames/blob/main/docs/scripts/readme_plot.py)
+[View the benchmark script](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py)
 
 ### Comparison with mesa
 
