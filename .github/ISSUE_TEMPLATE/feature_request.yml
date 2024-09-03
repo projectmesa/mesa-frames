@@ -9,42 +9,21 @@ body:
       value: |
         Thanks for taking the time to fill out this feature request! 🙏
         We appreciate your ideas to improve our project.
-  - type: textarea
-    id: problem
-    attributes:
-      label: 🤔 Is your feature request related to a problem? Please describe.
-      description: A clear and concise description of what the problem is.
-      placeholder: I'm always frustrated when [...]
-    validations:
-      required: true
-  - type: textarea
-    id: solution
-    attributes:
-      label: 💡 Describe the solution you'd like
-      description: A clear and concise description of what you want to happen.
-      placeholder: In this situation, I would like [...]
-    validations:
-      required: true
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: 🔄 Describe alternatives you've considered
-      description: A clear and concise description of any alternative solutions or features you've considered.
-      placeholder: I have also thought about [...]
-  - type: dropdown
-    id: priority
-    attributes:
-      label: 🚀 Priority
-      description: How important is this feature to you?
-      options:
-        - 🟢 Low (Nice to have)
-        - 🟡 Medium (Important)
-        - 🔴 High (Critical)
-    validations:
-      required: true
-  - type: textarea
-    id: additional
-    attributes:
-      label: ➕ Additional context
-      description: Add any other context or screenshots about the feature request here.
-      placeholder: Any other relevant information...
+        
+        Please use the following suggested headers to structure your feature request.
+        Feel free to modify or add sections as needed to best communicate your idea.
+
+        ## 🤔 Problem Description
+        [Is your feature request related to a problem? Please provide a clear and concise description of what the problem is.]
+
+        ## 💡 Proposed Solution
+        [Describe the solution you'd like. What do you want to happen?]
+
+        ## 🔄 Alternatives Considered
+        [Have you considered any alternative solutions or features? If so, please describe them.]
+
+        ## 🚀 Priority
+        [How important is this feature to you? Low/Medium/High]
+
+        ## ➕ Additional Context
+        [Add any other context, screenshots, or examples about the feature request here.]
