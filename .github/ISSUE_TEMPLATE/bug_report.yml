@@ -17,7 +17,7 @@ body:
         [Provide a clear and concise description of the bug]
 
         ## 🔄 Steps to Reproduce
-        [Provide a minimal code example that reproduces the error]
+        [Provide a minimal code example that reproduces the error, see https://stackoverflow.com/help/minimal-reproducible-example]
         ```python
         # Your code here
         ```
