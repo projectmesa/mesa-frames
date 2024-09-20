@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import perfplot
+import polars as pl
 import seaborn as sns
 from ss_mesa.model import SugarscapeMesa
 from ss_pandas.model import SugarscapePandas
@@ -28,6 +29,24 @@ class SugarScapeSetup:
         self.initial_sugar = np.random.randint(6, 25, n)
         self.metabolism = np.random.randint(2, 4, n)
         self.vision = np.random.randint(1, 6, n)
+self.initial_positions = pl.DataFrame(
+            schema={"dim_0": pl.Int64, "dim_1": pl.Int64}
+        )
+        while self.initial_positions.shape[0] < n:
+            initial_pos_0 = np.random.randint(
+                0, dimension, n - self.initial_positions.shape[0]
+            )
+            initial_pos_1 = np.random.randint(
+                0, dimension, n - self.initial_positions.shape[0]
+            )
+            self.initial_positions = self.initial_positions.vstack(
+                pl.DataFrame(
+                    {
+                        "dim_0": initial_pos_0,
+                        "dim_1": initial_pos_1,
+                    }
+                )
+            ).unique()
 
 
 def mesa_implementation(setup: SugarScapeSetup):
@@ -43,58 +62,68 @@ def mesa_frames_pandas_concise(setup: SugarScapeSetup):
 
 
 def mesa_frames_polars_loop_DF(setup: SugarScapeSetup):
-    return SugarscapePolars(
+    model = SugarscapePolars(
         AntPolarsLoopDF,
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
         setup.metabolism,
         setup.vision,
-    ).run_model(100)
+    setup.initial_positions,
+    )
+    model.run_model(100)
 
 
 def mesa_frames_polars_loop_no_vec(setup: SugarScapeSetup):
-    return SugarscapePolars(
+    model = SugarscapePolars(
         AntPolarsLoopNoVec,
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
         setup.metabolism,
         setup.vision,
-    ).run_model(100)
+    setup.initial_positions,
+    )
+    model.run_model(100)
 
 
 def mesa_frames_polars_numba_cpu(setup: SugarScapeSetup):
-    return SugarscapePolars(
+    model = SugarscapePolars(
         AntPolarsNumbaCPU,
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
         setup.metabolism,
         setup.vision,
-    ).run_model(100)
+    setup.initial_positions,
+    )
+    model.run_model(100)
 
 
 def mesa_frames_polars_numba_gpu(setup: SugarScapeSetup):
-    return SugarscapePolars(
+    model = SugarscapePolars(
         AntPolarsNumbaGPU,
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
         setup.metabolism,
         setup.vision,
-    ).run_model(100)
+    setup.initial_positions,
+    )
+    model.run_model(100)
 
 
 def mesa_frames_polars_numba_parallel(setup: SugarScapeSetup):
-    return SugarscapePolars(
+    model = SugarscapePolars(
         AntPolarsNumbaParallel,
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
         setup.metabolism,
         setup.vision,
-    ).run_model(100)
+    setup.initial_positions,
+    )
+    model.run_model(100)
 
 
 def plot_and_print_benchmark(labels, kernels, n_range, title, image_path):

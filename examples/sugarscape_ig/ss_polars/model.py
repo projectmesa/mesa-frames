@@ -15,6 +15,7 @@ class SugarscapePolars(ModelDF):
         initial_sugar: np.ndarray | None = None,
         metabolism: np.ndarray | None = None,
         vision: np.ndarray | None = None,
+initial_positions: pl.DataFrame | None = None,
         width: int | None = None,
         height: int | None = None,
     ):
@@ -32,6 +33,9 @@ class SugarscapePolars(ModelDF):
         )
         self.space.set_cells(sugar_grid)
         self.agents += agent_type(self, n_agents, initial_sugar, metabolism, vision)
+if initial_positions is not None:
+            self.space.place_agents(self.agents, initial_positions)
+        else:
         self.space.place_to_empty(self.agents)
 
     def run_model(self, steps: int) -> list[int]:
