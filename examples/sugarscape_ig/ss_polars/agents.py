@@ -267,6 +267,10 @@ class AntPolarsNumba(AntPolarsLoop):
             "(n), (m), (p), (p), (p), (n)->(n)",
             nopython=True,
             target=self.numba_target,
+writable_args=(
+                "free_cells",
+                "processed_agents",
+            ),  # Writable inputs have to be declared
         )
         def vectorized_get_best_moves(
             occupied_cells,
