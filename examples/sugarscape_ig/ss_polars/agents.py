@@ -183,7 +183,7 @@ class AntPolarsLoop(AntPolarsBase):
                 target_cells.astype(np.int32),
                 df.struct.field("agent_order"),
                 df.struct.field("blocking_agent_order"),
-                processed_agents,
+                processed_agents.astype(np.bool_),
             )
 
         best_moves = (
@@ -260,7 +260,7 @@ class AntPolarsNumba(AntPolarsLoop):
                     int32[:],
                     int32[:],
                     int32[:],
-                    int32[:],
+                    b1[:],
                     int32[:],
                 )
             ],
