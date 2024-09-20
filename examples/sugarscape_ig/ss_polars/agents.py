@@ -200,16 +200,20 @@ class AntPolarsLoop(AntPolarsBase):
             )
             .drop("agent_order")
         )
+assert best_moves.n_unique() == len(
+            best_moves
+        ), "Duplicates found in best_moves"
         return best_moves
 
     def _prepare_cells(self, neighborhood: pl.DataFrame):
         occupied_cells = (
-            neighborhood[["agent_id_center"]]
+            neighborhood[["agent_id_center", "agent_order"]]
             .unique()
             .join(self.pos, left_on="agent_id_center", right_on="unique_id")
             .with_columns(
                 flattened=(pl.col("dim_0") * self.space.dimensions[1] + pl.col("dim_1"))
-            )["flattened"]
+            ).sort("agent_order")
+["flattened"]
             .to_numpy()
         )
         free_cells = np.ones(
