@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 import numpy as np
 import polars as pl
-from numba import b1, guvectorize, int64
+from numba import b1, guvectorize, int32
 
 from mesa_frames import AgentSetPolars, ModelDF
 
@@ -155,15 +155,10 @@ class AntPolarsLoopDF(AntPolarsBase):
         return best_moves.select(["dim_0", "dim_1"])
 
 
-import numpy as np
-import polars as pl
-from numba import guvectorize, int64
-
-
 class AntPolarsLoop(AntPolarsBase):
     numba_target = None
 
-    def get_best_moves(self, neighborhood, agent_order):
+    def get_best_moves(self, neighborhood: pl.DataFrame, agent_order):
         occupied_cells, free_cells, target_cells = self._prepare_cells(neighborhood)
         best_moves_func = self._get_best_moves()
 
@@ -178,14 +173,14 @@ class AntPolarsLoop(AntPolarsBase):
                 df.struct.field("agent_order"),
                 df.struct.field("blocking_agent_order"),
                 processed_agents,
-                best_moves=np.full(len(self.agents), -1, dtype=np.int64),
+                best_moves=np.full(len(self.agents), -1, dtype=np.int32),
             )
         else:
             # Vectorized case: Polars will create the output array (best_moves) automatically
             map_batches_func = lambda df: best_moves_func(
-                occupied_cells,
-                free_cells,
-                target_cells,
+                occupied_cells.astype(np.int32),
+                free_cells.astype(np.bool_),
+                target_cells.astype(np.int32),
                 df.struct.field("agent_order"),
                 df.struct.field("blocking_agent_order"),
                 processed_agents,
@@ -193,6 +188,7 @@ class AntPolarsLoop(AntPolarsBase):
 
         best_moves = (
             neighborhood.fill_null(-1)
+.cast({"agent_order": pl.Int32, "blocking_agent_order": pl.Int32})
             .select(
                 pl.struct(["agent_order", "blocking_agent_order"]).map_batches(
                     map_batches_func
@@ -242,7 +238,7 @@ class AntPolarsLoopNoVec(AntPolarsLoop):
         ) -> np.ndarray:
             for i, agent in enumerate(agent_id_center):
                 if not processed_agents[agent]:
-                    if free_cells[target_cells[i]] or blocking_agent[i] == agent:
+                    if free_cells[target_cells[i]] or (blocking_agent[i] == agent):
                         best_moves[agent] = target_cells[i]
                         # Free current cell
                         free_cells[occupied_cells[agent]] = True
@@ -259,13 +255,13 @@ class AntPolarsNumba(AntPolarsLoop):
         @guvectorize(
             [
                 (
-                    int64[:],
-                    int64[:],
-                    int64[:],
-                    int64[:],
-                    int64[:],
-                    int64[:],
-                    int64[:],
+                    int32[:],
+                    b1[:],
+                    int32[:],
+                    int32[:],
+                    int32[:],
+                    int32[:],
+                    int32[:],
                 )
             ],
             "(n), (m), (p), (p), (p), (n)->(n)",
@@ -283,7 +279,7 @@ class AntPolarsNumba(AntPolarsLoop):
         ):
             for i, agent in enumerate(agent_id_center):
                 if not processed_agents[agent]:
-                    if free_cells[target_cells[i]] or blocking_agent[i] == agent:
+                    if free_cells[target_cells[i]] or (blocking_agent[i] == agent):
                         best_moves[agent] = target_cells[i]
                         # Free current cell
                         free_cells[occupied_cells[agent]] = True
