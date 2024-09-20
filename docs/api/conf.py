@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path("..").resolve()))
 
 # -- Project information -----------------------------------------------------
 project = "mesa-frames"
-author = "Adam Amer"
+author = "Project Mesa, Adam Amer"
 copyright = f"2023, {author}"
 
 # -- General configuration ---------------------------------------------------
@@ -56,8 +56,8 @@ autodoc_member_order = "bysource"
 autodoc_default_options = {"special-members": True, "exclude-members": "__weakref__"}
 
 # -- GitHub link and user guide settings -------------------------------------
-github_root = "https://github.com/adamamer20/mesa-frames"
-web_root = "https://adamamer20.github.io/mesa-frames"
+github_root = "https://github.com/projectmesa/mesa-frames"
+web_root = "https://projectmesa.github.io/mesa-frames"
 
 html_theme_options = {
     "external_links": [

@@ -1,0 +1,46 @@
+name: 🐛 Bug Report
+description: File a bug report for mesa-frames
+title: "[Bug]: "
+labels: ["triage", "bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! 🙏
+        Please provide as much detail as possible to help us address the issue.
+
+        Use the following suggested headers to structure your bug report.
+        Feel free to modify or add sections as needed to best communicate the issue.
+
+        ## 📝 Description
+        [Provide a clear and concise description of the bug]
+
+        ## 🔄 Steps to Reproduce
+        [Provide a minimal code example that reproduces the error, see https://stackoverflow.com/help/minimal-reproducible-example]
+        ```python
+        # Your code here
+        ```
+
+        ## 🎯 Expected Behavior
+        [What did you expect to happen?]
+
+        ## 🚨 Actual Behavior
+        [What actually happened? Include any error messages or unexpected output]
+
+        ## 🖥️ Environment Information
+        Python version:
+        Operating System:
+        
+        Relevant packages (output of `pip list` or the specific packages related to this issue):
+        ```
+        # Paste your pip list output or relevant package versions here
+        ```
+
+        ## 📊 Relevant log output
+        ```
+        # Paste any relevant log output here
+        ```
+
+        ## ➕ Additional Context
+        [Add any other context about the problem here]

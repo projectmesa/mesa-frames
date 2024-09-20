@@ -4,18 +4,18 @@ mesa-frames offers significant performance improvements over the original mesa f
 
 ## Boltzmann Wealth Model 💰
 
-[View the benchmark script](https://github.com/adamamer20/mesa-frames/blob/main/docs/scripts/readme_plot.py)
+[View the benchmark script](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py)
 
 ### Comparison with mesa
 
-![Performance Graph BW](https://github.com/adamamer20/mesa-frames/raw/main/docs/general/images/readme_plot_0.png)
+![Performance Graph BW](https://github.com/projectmesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
 
 ### Comparison of mesa-frames implementations
 
-![Performance Graph BW without Mesa](https://github.com/adamamer20/mesa-frames/raw/main/docs/general/images/readme_plot_1.png)
+![Performance Graph BW without Mesa](https://github.com/projectmesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
 
 ## SugarScape with Instantaneous Growback 🍬
 
-[View the benchmark script](https://github.com/adamamer20/mesa-frames/blob/main/examples/sugarscape_ig/performance_comparison.py)
+[View the benchmark script](https://github.com/projectmesa/mesa-frames/blob/main/examples/sugarscape_ig/performance_comparison.py)
 
-![Performance Graph SS IG](https://github.com/adamamer20/mesa-frames/raw/main/examples/benchmark_plot_0.png)
+![Performance Graph SS IG](https://github.com/projectmesa/mesa-frames/raw/main/examples/sugarscape_ig/benchmark_plot_0.png)
