@@ -54,6 +54,7 @@ refer to the class docstring.
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 import polars as pl
 from typing_extensions import Any, Self, overload
@@ -237,7 +238,9 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
 
     def shuffle(self, inplace: bool = True) -> Self:  # noqa : D102
         obj = self._get_obj(inplace)
-        obj._agents = obj._agents.sample(frac=1)
+        obj._agents = obj._agents.sample(
+            frac=1, random_state=obj.random.integers(np.iinfo(np.int32).max)
+        )
         return obj
 
     def sort(  # noqa : D102
