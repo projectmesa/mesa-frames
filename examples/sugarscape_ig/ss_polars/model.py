@@ -43,13 +43,11 @@ if initial_positions is not None:
         for _ in range(steps):
             if len(self.agents) == 0:
                 return
-            self.step()
-            empty_cells = self.space.empty_cells
+                        empty_cells = self.space.empty_cells
             full_cells = self.space.full_cells
-
             max_sugar = self.space.cells.join(
                 empty_cells, on=["dim_0", "dim_1"]
             ).select(pl.col("max_sugar"))
-
             self.space.set_cells(full_cells, {"sugar": 0})
             self.space.set_cells(empty_cells, {"sugar": max_sugar})
+self.step()
