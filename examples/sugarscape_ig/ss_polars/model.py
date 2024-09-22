@@ -15,7 +15,7 @@ class SugarscapePolars(ModelDF):
         initial_sugar: np.ndarray | None = None,
         metabolism: np.ndarray | None = None,
         vision: np.ndarray | None = None,
-initial_positions: pl.DataFrame | None = None,
+        initial_positions: pl.DataFrame | None = None,
         seed: int | None = None,
         width: int | None = None,
         height: int | None = None,
@@ -34,20 +34,20 @@ initial_positions: pl.DataFrame | None = None,
         )
         self.space.set_cells(sugar_grid)
         self.agents += agent_type(self, n_agents, initial_sugar, metabolism, vision)
-if initial_positions is not None:
+        if initial_positions is not None:
             self.space.place_agents(self.agents, initial_positions)
         else:
-        self.space.place_to_empty(self.agents)
+            self.space.place_to_empty(self.agents)
 
     def run_model(self, steps: int) -> list[int]:
         for _ in range(steps):
             if len(self.agents) == 0:
                 return
-                        empty_cells = self.space.empty_cells
+            empty_cells = self.space.empty_cells
             full_cells = self.space.full_cells
             max_sugar = self.space.cells.join(
                 empty_cells, on=["dim_0", "dim_1"]
             ).select(pl.col("max_sugar"))
             self.space.set_cells(full_cells, {"sugar": 0})
             self.space.set_cells(empty_cells, {"sugar": max_sugar})
-self.step()
+            self.step()

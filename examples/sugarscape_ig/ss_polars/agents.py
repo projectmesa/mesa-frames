@@ -104,7 +104,7 @@ class AntPolarsBase(AgentSetPolars):
             (pl.col("agent_order") >= pl.col("blocking_agent_order"))
             | pl.col("blocking_agent_order").is_null()
         )
-        
+
         # Sort neighborhood by agent_order & max_sugar (max_sugar because we will check anyway if the cell is empty)
         # However, we need to make sure that the current agent cell is ordered by current sugar (since it's 0 until agent hasn't moved)
         neighborhood = neighborhood.with_columns(
@@ -113,9 +113,9 @@ class AntPolarsBase(AgentSetPolars):
             .otherwise(pl.col("max_sugar"))
         ).sort(
             ["agent_order", "max_sugar", "radius", "dim_0"],
-descending=[False, True, False, False],
+            descending=[False, True, False, False],
         )
-return neighborhood
+        return neighborhood
 
     def get_best_moves(self, neighborhood, agent_order):
         raise NotImplementedError("This method should be implemented by subclasses")
@@ -127,7 +127,7 @@ class AntPolarsLoopDF(AntPolarsBase):
         # While there are agents that do not have a best move, keep looking for one
 
         while len(best_moves) < len(self.agents):
-# Check if there are previous agents that might make the same move
+            # Check if there are previous agents that might make the same move
             neighborhood = neighborhood.with_columns(
                 priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
             )
@@ -137,16 +137,16 @@ class AntPolarsLoopDF(AntPolarsBase):
             new_best_moves = (
                 neighborhood.group_by("agent_id_center", maintain_order=True)
                 .first()
-                                .unique(subset=["dim_0", "dim_1"], keep="first", maintain_order=True)
+                .unique(subset=["dim_0", "dim_1"], keep="first", maintain_order=True)
             )
             # Agents can make the move if:
             # - There is no blocking agent
             # - The agent is in its own cell
             # - The blocking agent has moved before him
-# - There isn't a higher priority agent that might make the same move
+            # - There isn't a higher priority agent that might make the same move
 
             condition = (
-pl.col("blocking_agent_id").is_null()
+                pl.col("blocking_agent_id").is_null()
                 | (pl.col("blocking_agent_id") == pl.col("agent_id_center"))
             ) & (pl.col("priority") == 1)
             if len(best_moves) > 0:
@@ -167,7 +167,7 @@ pl.col("blocking_agent_id").is_null()
                 best_moves.select(["dim_0", "dim_1"]), on=["dim_0", "dim_1"], how="anti"
             )
 
-# Recompute priority
+            # Recompute priority
             neighborhood = neighborhood.with_columns(
                 priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
             )
@@ -208,7 +208,7 @@ class AntPolarsLoop(AntPolarsBase):
 
         best_moves = (
             neighborhood.fill_null(-1)
-.cast({"agent_order": pl.Int32, "blocking_agent_order": pl.Int32})
+            .cast({"agent_order": pl.Int32, "blocking_agent_order": pl.Int32})
             .select(
                 pl.struct(["agent_order", "blocking_agent_order"]).map_batches(
                     map_batches_func
@@ -220,7 +220,7 @@ class AntPolarsLoop(AntPolarsBase):
             )
             .drop("agent_order")
         )
-assert best_moves.n_unique() == len(
+        assert best_moves.n_unique() == len(
             best_moves
         ), "Duplicates found in best_moves"
         return best_moves
@@ -233,7 +233,7 @@ assert best_moves.n_unique() == len(
             .with_columns(
                 flattened=(pl.col("dim_0") * self.space.dimensions[1] + pl.col("dim_1"))
             )
-.sort("agent_order")["flattened"]
+            .sort("agent_order")["flattened"]
             .to_numpy()
         )
         free_cells = np.ones(
@@ -262,9 +262,9 @@ class AntPolarsLoopNoVec(AntPolarsLoop):
             best_moves: np.ndarray,
         ) -> np.ndarray:
             for i, agent in enumerate(agent_id_center):
-# If the agent has not moved yet
+                # If the agent has not moved yet
                 if not processed_agents[agent]:
-# If the target cell is free
+                    # If the target cell is free
                     if free_cells[target_cells[i]] or blocking_agent[i] == agent:
                         best_moves[agent] = target_cells[i]
                         # Free current cell
@@ -294,7 +294,7 @@ class AntPolarsNumba(AntPolarsLoop):
             "(n), (m), (p), (p), (p), (n)->(n)",
             nopython=True,
             target=self.numba_target,
-writable_args=(
+            writable_args=(
                 "free_cells",
                 "processed_agents",
             ),  # Writable inputs have to be declared
@@ -309,9 +309,9 @@ writable_args=(
             best_moves,
         ):
             for i, agent in enumerate(agent_id_center):
-# If the agent has not moved yet
+                # If the agent has not moved yet
                 if not processed_agents[agent]:
-# If the target cell is free
+                    # If the target cell is free
                     if free_cells[target_cells[i]] or blocking_agent[i] == agent:
                         best_moves[agent] = target_cells[i]
                         # Free current cell
