@@ -99,16 +99,23 @@ class AntPolarsBase(AgentSetPolars):
             how="left",
         ).rename({"agent_id": "blocking_agent_id"})
 
-        # Filter impossible moves
+        # Filter possible moves
         neighborhood = neighborhood.filter(
             (pl.col("agent_order") >= pl.col("blocking_agent_order"))
             | pl.col("blocking_agent_order").is_null()
         )
-        # Sort cells by agent_order, sugar and radius (nearest first)
-
-        return neighborhood.sort(
-            ["agent_order", "sugar", "radius"], descending=[False, True, False]
+        
+        # Sort neighborhood by agent_order & max_sugar (max_sugar because we will check anyway if the cell is empty)
+        # However, we need to make sure that the current agent cell is ordered by current sugar (since it's 0 until agent hasn't moved)
+        neighborhood = neighborhood.with_columns(
+            max_sugar=pl.when(pl.col("blocking_agent_id") == pl.col("agent_id_center"))
+            .then(pl.lit(0))
+            .otherwise(pl.col("max_sugar"))
+        ).sort(
+            ["agent_order", "max_sugar", "radius", "dim_0"],
+descending=[False, True, False, False],
         )
+return neighborhood
 
     def get_best_moves(self, neighborhood, agent_order):
         raise NotImplementedError("This method should be implemented by subclasses")
