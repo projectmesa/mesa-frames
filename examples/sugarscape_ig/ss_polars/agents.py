@@ -262,8 +262,10 @@ class AntPolarsLoopNoVec(AntPolarsLoop):
             best_moves: np.ndarray,
         ) -> np.ndarray:
             for i, agent in enumerate(agent_id_center):
+# If the agent has not moved yet
                 if not processed_agents[agent]:
-                    if free_cells[target_cells[i]] or (blocking_agent[i] == agent):
+# If the target cell is free
+                    if free_cells[target_cells[i]] or blocking_agent[i] == agent:
                         best_moves[agent] = target_cells[i]
                         # Free current cell
                         free_cells[occupied_cells[agent]] = True
@@ -307,8 +309,10 @@ writable_args=(
             best_moves,
         ):
             for i, agent in enumerate(agent_id_center):
+# If the agent has not moved yet
                 if not processed_agents[agent]:
-                    if free_cells[target_cells[i]] or (blocking_agent[i] == agent):
+# If the target cell is free
+                    if free_cells[target_cells[i]] or blocking_agent[i] == agent:
                         best_moves[agent] = target_cells[i]
                         # Free current cell
                         free_cells[occupied_cells[agent]] = True
