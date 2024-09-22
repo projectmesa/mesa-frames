@@ -122,26 +122,33 @@ return neighborhood
 
 
 class AntPolarsLoopDF(AntPolarsBase):
-    def get_best_moves(self, neighborhood, agent_order):
+    def get_best_moves(self, neighborhood: pl.DataFrame, agent_order):
         best_moves = pl.DataFrame()
         # While there are agents that do not have a best move, keep looking for one
 
         while len(best_moves) < len(self.agents):
-            # Get the best moves for each agent and if duplicates are found, select the one with the highest order
+# Check if there are previous agents that might make the same move
+            neighborhood = neighborhood.with_columns(
+                priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
+            )
+
+            # Get the best moves for each agent:
+            # If duplicates are found, select the one with the highest order
             new_best_moves = (
                 neighborhood.group_by("agent_id_center", maintain_order=True)
                 .first()
-                .sort("agent_order")
-                .unique(subset=["dim_0", "dim_1"], keep="first")
+                                .unique(subset=["dim_0", "dim_1"], keep="first", maintain_order=True)
             )
             # Agents can make the move if:
             # - There is no blocking agent
             # - The agent is in its own cell
             # - The blocking agent has moved before him
+# - There isn't a higher priority agent that might make the same move
 
-            condition = pl.col("blocking_agent_id").is_null() | (
-                pl.col("blocking_agent_id") == pl.col("agent_id_center")
-            )
+            condition = (
+pl.col("blocking_agent_id").is_null()
+                | (pl.col("blocking_agent_id") == pl.col("agent_id_center"))
+            ) & (pl.col("priority") == 1)
             if len(best_moves) > 0:
                 condition = condition | pl.col("blocking_agent_id").is_in(
                     best_moves["agent_id_center"]
@@ -154,12 +161,18 @@ class AntPolarsLoopDF(AntPolarsBase):
             neighborhood = neighborhood.filter(
                 ~pl.col("agent_id_center").is_in(best_moves["agent_id_center"])
             )
+
             # Remove cells that have been already selected
             neighborhood = neighborhood.join(
                 best_moves.select(["dim_0", "dim_1"]), on=["dim_0", "dim_1"], how="anti"
             )
 
-        return best_moves.select(["dim_0", "dim_1"])
+# Recompute priority
+            neighborhood = neighborhood.with_columns(
+                priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
+            )
+
+        return best_moves.sort("agent_order").select(["dim_0", "dim_1"])
 
 
 class AntPolarsLoop(AntPolarsBase):
