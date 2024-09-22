@@ -16,10 +16,11 @@ class SugarscapePolars(ModelDF):
         metabolism: np.ndarray | None = None,
         vision: np.ndarray | None = None,
 initial_positions: pl.DataFrame | None = None,
+        seed: int | None = None,
         width: int | None = None,
         height: int | None = None,
     ):
-        super().__init__()
+        super().__init__(seed)
         if sugar_grid is None:
             sugar_grid = self.random.integers(0, 4, (width, height))
         grid_dimensions = sugar_grid.shape

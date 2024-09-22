@@ -24,19 +24,21 @@ class SugarScapeSetup:
         else:
             density = 0.04  # mesa
         self.n = n
+self.seed = 42
         dimension = math.ceil(math.sqrt(n / density))
-        self.sugar_grid = np.random.randint(0, 4, (dimension, dimension))
-        self.initial_sugar = np.random.randint(6, 25, n)
-        self.metabolism = np.random.randint(2, 4, n)
-        self.vision = np.random.randint(1, 6, n)
+random_gen = np.random.default_rng(self.seed)
+        self.sugar_grid = random_gen.integers(0, 4, (dimension, dimension))
+        self.initial_sugar = random_gen.integers(6, 25, n)
+        self.metabolism = random_gen.integers(2, 4, n)
+        self.vision = random_gen.integers(1, 6, n)
 self.initial_positions = pl.DataFrame(
             schema={"dim_0": pl.Int64, "dim_1": pl.Int64}
         )
         while self.initial_positions.shape[0] < n:
-            initial_pos_0 = np.random.randint(
+            initial_pos_0 = random_gen.integers(
                 0, dimension, n - self.initial_positions.shape[0]
             )
-            initial_pos_1 = np.random.randint(
+            initial_pos_1 = random_gen.integers(
                 0, dimension, n - self.initial_positions.shape[0]
             )
             self.initial_positions = self.initial_positions.vstack(
@@ -46,18 +48,29 @@ self.initial_positions = pl.DataFrame(
                         "dim_1": initial_pos_1,
                     }
                 )
-            ).unique()
+            ).unique(maintain_order=True)
+        return
 
 
 def mesa_implementation(setup: SugarScapeSetup):
     return SugarscapeMesa(
-        setup.n, setup.sugar_grid, setup.initial_sugar, setup.metabolism, setup.vision
+        setup.n,
+setup.sugar_grid,
+setup.initial_sugar,
+setup.metabolism,
+setup.vision,
+        setup.seed,
     ).run_model(100)
 
 
 def mesa_frames_pandas_concise(setup: SugarScapeSetup):
     return SugarscapePandas(
-        setup.n, setup.sugar_grid, setup.initial_sugar, setup.metabolism, setup.vision
+        setup.n,
+setup.sugar_grid,
+setup.initial_sugar,
+setup.metabolism,
+setup.vision,
+        setup.seed,
     ).run_model(100)
 
 
@@ -70,6 +83,7 @@ def mesa_frames_polars_loop_DF(setup: SugarScapeSetup):
         setup.metabolism,
         setup.vision,
     setup.initial_positions,
+setup.seed,
     )
     model.run_model(100)
 
@@ -83,6 +97,7 @@ def mesa_frames_polars_loop_no_vec(setup: SugarScapeSetup):
         setup.metabolism,
         setup.vision,
     setup.initial_positions,
+setup.seed,
     )
     model.run_model(100)
 
@@ -96,6 +111,7 @@ def mesa_frames_polars_numba_cpu(setup: SugarScapeSetup):
         setup.metabolism,
         setup.vision,
     setup.initial_positions,
+setup.seed,
     )
     model.run_model(100)
 
@@ -109,6 +125,7 @@ def mesa_frames_polars_numba_gpu(setup: SugarScapeSetup):
         setup.metabolism,
         setup.vision,
     setup.initial_positions,
+setup.seed,
     )
     model.run_model(100)
 
@@ -122,6 +139,7 @@ def mesa_frames_polars_numba_parallel(setup: SugarScapeSetup):
         setup.metabolism,
         setup.vision,
     setup.initial_positions,
+setup.seed,
     )
     model.run_model(100)
 
