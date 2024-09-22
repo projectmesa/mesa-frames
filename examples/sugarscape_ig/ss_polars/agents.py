@@ -232,14 +232,15 @@ assert best_moves.n_unique() == len(
             .join(self.pos, left_on="agent_id_center", right_on="unique_id")
             .with_columns(
                 flattened=(pl.col("dim_0") * self.space.dimensions[1] + pl.col("dim_1"))
-            ).sort("agent_order")
-["flattened"]
+            )
+.sort("agent_order")["flattened"]
             .to_numpy()
         )
         free_cells = np.ones(
             self.space.dimensions[0] * self.space.dimensions[1], dtype=np.bool_
         )
         free_cells[occupied_cells] = False
+
         target_cells = (
             neighborhood["dim_0"] * self.space.dimensions[1] + neighborhood["dim_1"]
         ).to_numpy()
