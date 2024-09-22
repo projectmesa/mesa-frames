@@ -73,6 +73,8 @@ if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
     from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
+import numpy as np
+
 
 @copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
@@ -255,7 +257,11 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     def shuffle(self, inplace: bool = True) -> Self:
         obj = self._get_obj(inplace)
-        obj._agents = obj._agents.sample(fraction=1, shuffle=True)
+        obj._agents = obj._agents.sample(
+            fraction=1,
+            shuffle=True,
+            seed=obj.random.integers(np.iinfo(np.int32).max),
+        )
         return obj
 
     def sort(
