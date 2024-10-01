@@ -5,6 +5,7 @@ import numpy as np
 import perfplot
 import polars as pl
 import seaborn as sns
+from polars.testing import assert_frame_equal
 from ss_mesa.model import SugarscapeMesa
 from ss_pandas.model import SugarscapePandas
 from ss_polars.agents import (
@@ -67,14 +68,17 @@ def mesa_implementation(setup: SugarScapeSetup):
 
 
 def mesa_frames_pandas_concise(setup: SugarScapeSetup):
-    return SugarscapePandas(
+    model = SugarscapePandas(
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
         setup.metabolism,
         setup.vision,
+        setup.initial_positions,
         setup.seed,
-    ).run_model(100)
+    )
+    model.run_model(100)
+    return model
 
 
 def mesa_frames_polars_loop_DF(setup: SugarScapeSetup):
@@ -89,6 +93,7 @@ def mesa_frames_polars_loop_DF(setup: SugarScapeSetup):
         setup.seed,
     )
     model.run_model(100)
+    return model
 
 
 def mesa_frames_polars_loop_no_vec(setup: SugarScapeSetup):
@@ -103,6 +108,7 @@ def mesa_frames_polars_loop_no_vec(setup: SugarScapeSetup):
         setup.seed,
     )
     model.run_model(100)
+    return model
 
 
 def mesa_frames_polars_numba_cpu(setup: SugarScapeSetup):
@@ -117,6 +123,7 @@ def mesa_frames_polars_numba_cpu(setup: SugarScapeSetup):
         setup.seed,
     )
     model.run_model(100)
+    return model
 
 
 def mesa_frames_polars_numba_gpu(setup: SugarScapeSetup):
@@ -131,6 +138,7 @@ def mesa_frames_polars_numba_gpu(setup: SugarScapeSetup):
         setup.seed,
     )
     model.run_model(100)
+    return model
 
 
 def mesa_frames_polars_numba_parallel(setup: SugarScapeSetup):
@@ -145,16 +153,24 @@ def mesa_frames_polars_numba_parallel(setup: SugarScapeSetup):
         setup.seed,
     )
     model.run_model(100)
+    return model
 
 
-def plot_and_print_benchmark(labels, kernels, n_range, title, image_path):
+def plot_and_print_benchmark(
+    labels: list[str],
+    kernels: list[callable],
+    n_range: list[int],
+    title: str,
+    image_path: str,
+    equality_check: callable | None = None,
+):
     out = perfplot.bench(
         setup=SugarScapeSetup,
         kernels=kernels,
         labels=labels,
         n_range=n_range,
         xlabel="Number of agents",
-        equality_check=None,
+        equality_check=equality_check,
         title=title,
     )
     plt.ylabel("Execution time (s)")
@@ -165,6 +181,12 @@ def plot_and_print_benchmark(labels, kernels, n_range, title, image_path):
         for n, t in zip(out.n_range, out.timings_s[i]):
             print(f"  Number of agents: {n}, Time: {t:.2f} seconds")
         print("---------------")
+
+
+def polars_equality_check(a: SugarscapePolars, b: SugarscapePolars):
+    assert_frame_equal(a.agents, b.agents, check_row_order=False)
+    assert_frame_equal(a.space, b.space, check_row_order=False)
+    return True
 
 
 def main():
@@ -192,7 +214,7 @@ def main():
         "mesa-frames (pl loop no vec)",
         "mesa-frames (pl numba CPU)",
         "mesa-frames (pl numba parallel)",
-        # "mesa-frames (pl numba GPU)",
+        "mesa-frames (pl numba GPU)",
     ]
     # Polars best_moves (non-vectorized loop vs DF loop vs numba loop)
     kernels_1 = [
@@ -201,13 +223,20 @@ def main():
         mesa_frames_polars_loop_no_vec,
         mesa_frames_polars_numba_cpu,
         mesa_frames_polars_numba_parallel,
-        # mesa_frames_polars_numba_gpu,
+        mesa_frames_polars_numba_gpu,
     ]
     n_range_1 = [k for k in range(1, 2 * 10**6 + 2, 10**6)]
     # n_range_1 = [k for k in range(10000, 100002, 10000)]
     title_1 = "100 steps of the SugarScape IG model:\n" + " vs ".join(labels_1)
     image_path_1 = "polars_comparison.png"
-    plot_and_print_benchmark(labels_1, kernels_1, n_range_1, title_1, image_path_1)
+    plot_and_print_benchmark(
+        labels_1,
+        kernels_1,
+        n_range_1,
+        title_1,
+        image_path_1,
+        equality_check=polars_equality_check,
+    )
 
 
 if __name__ == "__main__":
