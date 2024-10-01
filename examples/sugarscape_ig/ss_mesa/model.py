@@ -42,16 +42,17 @@ class SugarscapeMesa(mesa.Model):
 
         self.width, self.height = sugar_grid.shape
         self.n_agents = n_agents
-        self.grid = mesa.space.MultiGrid(self.width, self.height, torus=False)
+        self.space = mesa.space.MultiGrid(self.width, self.height, torus=False)
         self.agents: list = []
 
         agent_id = 0
         self.sugars = []
-        for _, (x, y) in self.grid.coord_iter():
+
+        for _, (x, y) in self.space.coord_iter():
             max_sugar = sugar_grid[x, y]
             sugar = Sugar(agent_id, self, max_sugar)
             agent_id += 1
-            self.grid.place_agent(sugar, (x, y))
+            self.space.place_agent(sugar, (x, y))
             self.sugars.append(sugar)
 
         # Create agent:
@@ -66,7 +67,7 @@ class SugarscapeMesa(mesa.Model):
                 agent_id, self, False, initial_sugar[i], metabolism[i], vision[i]
             )
             agent_id += 1
-            self.grid.place_agent(ssa, (x, y))
+            self.space.place_agent(ssa, (x, y))
             self.agents.append(ssa)
 
         self.running = True
