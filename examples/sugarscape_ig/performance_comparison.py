@@ -53,14 +53,17 @@ class SugarScapeSetup:
 
 
 def mesa_implementation(setup: SugarScapeSetup):
-    return SugarscapeMesa(
+    model = SugarscapeMesa(
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
         setup.metabolism,
         setup.vision,
+        setup.initial_positions,
         setup.seed,
-    ).run_model(100)
+    )
+    model.run_model(100)
+    return model
 
 
 def mesa_frames_pandas_concise(setup: SugarScapeSetup):
