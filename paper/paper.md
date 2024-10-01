@@ -52,25 +52,17 @@ performing numerical orbit integration).
 
 # Statement of need
 
-`Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
-enables wrapping low-level languages (e.g., C) for speed without losing
-flexibility or ease-of-use in the user-interface. The API for `Gala` was
-designed to provide a class-based and user-friendly interface to fast (C or
-Cython-optimized) implementations of common operations such as gravitational
-potential and force evaluation, orbit integration, dynamical transformations,
-and chaos indicators for nonlinear dynamics. `Gala` also relies heavily on and
-interfaces well with the implementations of physical units and astronomical
-coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and
-`astropy.coordinates`).
+`mesa-frames` is an extension to the `mesa` [@python-mesa-2020] agent-based modeling framework in Python, designed to enhance performance and scalability for complex simulations involving millions of agents.
 
-`Gala` was designed to be used by both astronomical researchers and by
-students in courses on gravitational dynamics or astronomy. It has already been
-used in a number of scientific publications [@Pearson:2017] and has also been
-used in graduate courses on Galactic dynamics to, e.g., provide interactive
-visualizations of textbook material [@Binney:2008]. The combination of speed,
-design, and support for Astropy functionality in `Gala` will enable exciting
-scientific explorations of forthcoming data releases from the *Gaia* mission
-[@gaia] by students and experts alike.
+`mesa` has become the most widely used framework for agent-based modeling in Python thanks to its easy-to-use API and object-oriented philosophy. However, iterating through each agent's behavior becomes computationally expensive when the number of agents reaches thousands [@app13010013]. This has led to the development of other frameworks like Agents.jl [@Agents.jl], which requires developing in another language, Julia. mesa-frames aims to achieve performance similar to that of Agents.jl (NOTE: this needs to be proved) but with a much simpler syntax in Python.
+
+By storing agents in tabular structures, with agents as rows and attributes as columns, mesa-frames can leverage vectorized operations implemented with speed in mind in lower-level languages. This is achieved through the Ibis library, while maintaining a familiar syntax for existing `mesa` users and providing an easy-to-use, expressive API thanks to many out-of-the-box functions implemented in this data manipulation library.
+
+This approach is particularly beneficial for models where agents can "act" simultaneously, a common scenario in fields such as economics, ecology, and social sciences.
+
+Thanks to Ibis being backend-agnostic, even if new, faster DataFrame backends are implemented in the future, changes to the code will be minimal because the API will remain largely unchanged. Additionally, the choice of backends allows very large models to be run in a distributed manner on clusters or using GPUs for acceleration.
+
+The framework's ability to handle large numbers of agents efficiently opens up new possibilities for studying complex systems, from financial markets to epidemiological models, at scales previously challenging with standard `mesa` implementations. This is achieved without requiring efforts to reimplement the code in a lower-level language with more optimizations.
 
 # Mathematics
 
