@@ -89,7 +89,6 @@ dev = [
   "mesa_frames[test, docs]",
   "mesa",
   "numba",
-  "py-spy",
 ]
 
 [tool.hatch.envs.test]
