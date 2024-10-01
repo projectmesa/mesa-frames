@@ -51,7 +51,7 @@ class AntPolarsBase(AgentSetPolars):
         neighborhood = self._get_neighborhood()
         agent_order = self._get_agent_order(neighborhood)
         neighborhood = self._prepare_neighborhood(neighborhood, agent_order)
-        best_moves = self.get_best_moves(neighborhood, agent_order)
+        best_moves = self.get_best_moves(neighborhood)
         self.space.move_agents(agent_order["agent_id_center"], best_moves)
 
     def _get_neighborhood(self):
@@ -117,12 +117,12 @@ class AntPolarsBase(AgentSetPolars):
         )
         return neighborhood
 
-    def get_best_moves(self, neighborhood, agent_order):
-        raise NotImplementedError("This method should be implemented by subclasses")
+    def get_best_moves(self, neighborhood: pl.DataFrame) -> pl.DataFrame:
+        raise NotImplementedError("Subclasses must implement this method")
 
 
 class AntPolarsLoopDF(AntPolarsBase):
-    def get_best_moves(self, neighborhood: pl.DataFrame, agent_order):
+    def get_best_moves(self, neighborhood: pl.DataFrame):
         best_moves = pl.DataFrame()
         # While there are agents that do not have a best move, keep looking for one
 
@@ -178,7 +178,7 @@ class AntPolarsLoopDF(AntPolarsBase):
 class AntPolarsLoop(AntPolarsBase):
     numba_target = None
 
-    def get_best_moves(self, neighborhood: pl.DataFrame, agent_order):
+    def get_best_moves(self, neighborhood: pl.DataFrame):
         occupied_cells, free_cells, target_cells = self._prepare_cells(neighborhood)
         best_moves_func = self._get_best_moves()
 
