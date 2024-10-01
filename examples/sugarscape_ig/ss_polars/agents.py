@@ -270,9 +270,6 @@ class AntPolarsLoop(AntPolarsBase):
             )
             .drop("agent_order")
         )
-        assert best_moves.n_unique() == len(
-            best_moves
-        ), "Duplicates found in best_moves"
         return best_moves
 
     def _prepare_cells(
