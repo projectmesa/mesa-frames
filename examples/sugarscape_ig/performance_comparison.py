@@ -184,8 +184,8 @@ def plot_and_print_benchmark(
 
 
 def polars_equality_check(a: SugarscapePolars, b: SugarscapePolars):
-    assert_frame_equal(a.agents, b.agents, check_row_order=False)
-    assert_frame_equal(a.space, b.space, check_row_order=False)
+    assert_frame_equal(a.space.agents, b.space.agents, check_row_order=False)
+    assert_frame_equal(a.space.cells, b.space.cells, check_row_order=False)
     return True
 
 
