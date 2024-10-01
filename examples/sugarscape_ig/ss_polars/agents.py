@@ -54,7 +54,16 @@ class AntPolarsBase(AgentSetPolars):
         best_moves = self.get_best_moves(neighborhood)
         self.space.move_agents(agent_order["agent_id_center"], best_moves)
 
-    def _get_neighborhood(self):
+    def _get_neighborhood(self) -> pl.DataFrame:
+        """Get the neighborhood of each agent, completed with the sugar of the cell and the agent_id of the center cell
+
+        NOTE: This method should be unnecessary if get_neighborhood/get_neighbors return the agent_id of the center cell and the properties of the cells
+
+        Returns
+        -------
+        pl.DataFrame
+            Neighborhood DataFrame
+        """
         neighborhood: pl.DataFrame = self.space.get_neighborhood(
             radius=self["vision"], agents=self, include_center=True
         )
@@ -74,7 +83,19 @@ class AntPolarsBase(AgentSetPolars):
         )
         return neighborhood
 
-    def _get_agent_order(self, neighborhood):
+    def _get_agent_order(self, neighborhood: pl.DataFrame) -> pl.DataFrame:
+        """Get the order of agents based on the original order of agents
+
+        Parameters
+        ----------
+        neighborhood : pl.DataFrame
+            Neighborhood DataFrame
+
+        Returns
+        -------
+        pl.DataFrame
+            DataFrame with 'agent_id_center' and 'agent_order' columns
+        """
         # Order of agents moves based on the original order of agents.
         # The agent in his cell has order 0 (highest)
 
@@ -86,7 +107,23 @@ class AntPolarsBase(AgentSetPolars):
             .select(["agent_id_center", "agent_order"])
         )
 
-    def _prepare_neighborhood(self, neighborhood, agent_order):
+    def _prepare_neighborhood(
+        self, neighborhood: pl.DataFrame, agent_order: pl.DataFrame
+    ) -> pl.DataFrame:
+        """Prepare the neighborhood DataFrame to find the best moves
+
+        Parameters
+        ----------
+        neighborhood : pl.DataFrame
+            Neighborhood DataFrame
+        agent_order : pl.DataFrame
+            DataFrame with 'agent_id_center' and 'agent_order' columns
+
+        Returns
+        -------
+        pl.DataFrame
+            Prepared neighborhood DataFrame
+        """
         neighborhood = neighborhood.join(agent_order, on="agent_id_center")
 
         # Add blocking agent order
@@ -99,7 +136,7 @@ class AntPolarsBase(AgentSetPolars):
             how="left",
         ).rename({"agent_id": "blocking_agent_id"})
 
-        # Filter possible moves
+        # Filter only possible moves (agent is in his cell, blocking agent has moved before him or there is no blocking agent)
         neighborhood = neighborhood.filter(
             (pl.col("agent_order") >= pl.col("blocking_agent_order"))
             | pl.col("blocking_agent_order").is_null()
@@ -118,6 +155,18 @@ class AntPolarsBase(AgentSetPolars):
         return neighborhood
 
     def get_best_moves(self, neighborhood: pl.DataFrame) -> pl.DataFrame:
+        """Get the best moves for each agent
+
+        Parameters
+        ----------
+        neighborhood : pl.DataFrame
+            Neighborhood DataFrame
+
+        Returns
+        -------
+        pl.DataFrame
+            DataFrame with the best moves for each agent
+        """
         raise NotImplementedError("Subclasses must implement this method")
 
 
@@ -127,7 +176,7 @@ class AntPolarsLoopDF(AntPolarsBase):
         # While there are agents that do not have a best move, keep looking for one
 
         while len(best_moves) < len(self.agents):
-            # Check if there are previous agents that might make the same move
+            # Check if there are previous agents that might make the same move (priority for the given move is > 1)
             neighborhood = neighborhood.with_columns(
                 priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
             )
@@ -167,7 +216,7 @@ class AntPolarsLoopDF(AntPolarsBase):
                 best_moves.select(["dim_0", "dim_1"]), on=["dim_0", "dim_1"], how="anti"
             )
 
-            # Recompute priority
+            # Check if there are previous agents that might make the same move (priority for the given move is > 1)
             neighborhood = neighborhood.with_columns(
                 priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
             )
@@ -225,7 +274,22 @@ class AntPolarsLoop(AntPolarsBase):
         ), "Duplicates found in best_moves"
         return best_moves
 
-    def _prepare_cells(self, neighborhood: pl.DataFrame):
+    def _prepare_cells(
+        self, neighborhood: pl.DataFrame
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Get the occupied and free cells and the target cells for each agent,
+        based on the neighborhood DataFrame such that the arrays refer to a flattened version of the grid
+
+        Parameters
+        ----------
+        neighborhood : pl.DataFrame
+            Neighborhood DataFrame
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+            occupied_cells, free_cells, target_cells
+        """
         occupied_cells = (
             neighborhood[["agent_id_center", "agent_order"]]
             .unique()
@@ -251,6 +315,7 @@ class AntPolarsLoop(AntPolarsBase):
 
 
 class AntPolarsLoopNoVec(AntPolarsLoop):
+    # Non-vectorized case
     def _get_best_moves(self):
         def inner_get_best_moves(
             occupied_cells: np.ndarray,
@@ -278,6 +343,7 @@ class AntPolarsLoopNoVec(AntPolarsLoop):
 
 
 class AntPolarsNumba(AntPolarsLoop):
+    # Vectorized case
     def _get_best_moves(self):
         @guvectorize(
             [
@@ -294,10 +360,12 @@ class AntPolarsNumba(AntPolarsLoop):
             "(n), (m), (p), (p), (p), (n)->(n)",
             nopython=True,
             target=self.numba_target,
-            writable_args=(
-                "free_cells",
-                "processed_agents",
-            ),  # Writable inputs have to be declared
+            # Writable inputs should be declared according to https://numba.pydata.org/numba-doc/dev/user/vectorize.html#overwriting-input-values
+            # In this case, there doesn't seem to be a difference. I will leave it commented for reference so that we can use CUDA target (which doesn't support writable_args)
+            # writable_args=(
+            #    "free_cells",
+            #    "processed_agents",
+            # ),
         )
         def vectorized_get_best_moves(
             occupied_cells,
