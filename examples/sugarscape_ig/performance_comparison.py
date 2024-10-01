@@ -16,7 +16,7 @@ from ss_polars.agents import (
     AntPolarsNumbaParallel,
 )
 from ss_polars.model import SugarscapePolars
-
+from typing_extensions import Callable
 
 class SugarScapeSetup:
     def __init__(self, n: int):
@@ -158,11 +158,11 @@ def mesa_frames_polars_numba_parallel(setup: SugarScapeSetup):
 
 def plot_and_print_benchmark(
     labels: list[str],
-    kernels: list[callable],
+    kernels: list[Callable],
     n_range: list[int],
     title: str,
     image_path: str,
-    equality_check: callable | None = None,
+    equality_check: Callable | None = None,
 ):
     out = perfplot.bench(
         setup=SugarScapeSetup,
