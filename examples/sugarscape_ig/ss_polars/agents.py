@@ -173,8 +173,8 @@ class AntPolarsBase(AgentSetPolars):
 class AntPolarsLoopDF(AntPolarsBase):
     def get_best_moves(self, neighborhood: pl.DataFrame):
         best_moves = pl.DataFrame()
-        # While there are agents that do not have a best move, keep looking for one
 
+        # While there are agents that do not have a best move, keep looking for one
         while len(best_moves) < len(self.agents):
             # Check if there are previous agents that might make the same move (priority for the given move is > 1)
             neighborhood = neighborhood.with_columns(
@@ -194,14 +194,16 @@ class AntPolarsLoopDF(AntPolarsBase):
             # - The blocking agent has moved before him
             # - There isn't a higher priority agent that might make the same move
 
-            condition = (
-                pl.col("blocking_agent_id").is_null()
-                | (pl.col("blocking_agent_id") == pl.col("agent_id_center"))
-            ) & (pl.col("priority") == 1)
+            condition = pl.col("blocking_agent_id").is_null() | (
+                pl.col("blocking_agent_id") == pl.col("agent_id_center")
+            )
             if len(best_moves) > 0:
                 condition = condition | pl.col("blocking_agent_id").is_in(
                     best_moves["agent_id_center"]
                 )
+
+            condition = condition & (pl.col("priority") == 1)
+
             new_best_moves = new_best_moves.filter(condition)
 
             best_moves = pl.concat([best_moves, new_best_moves])
@@ -220,7 +222,6 @@ class AntPolarsLoopDF(AntPolarsBase):
             neighborhood = neighborhood.with_columns(
                 priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
             )
-
         return best_moves.sort("agent_order").select(["dim_0", "dim_1"])
 
 
