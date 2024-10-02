@@ -192,22 +192,22 @@ def polars_equality_check(a: SugarscapePolars, b: SugarscapePolars):
 def main():
     # Mesa comparison
     sns.set_theme(style="whitegrid")
-    """labels_0 = [
+    labels_0 = [
+        # "mesa-frames (pd concise)", # Pandas to be removed because of performance
+        "mesa-frames (pl numba parallel)",
         "mesa",
-        # "mesa-frames (pd concise)",
-        "mesa-frames (pl concise)",
     ]
     kernels_0 = [
-        mesa_implementation,
         # mesa_frames_pandas_concise,
-        mesa_frames_polars_concise,
+        mesa_frames_polars_numba_parallel,
+        mesa_implementation,
     ]
-    n_range_0 = [k for k in range(1, 100002, 10000)]
+    n_range_0 = [k for k in range(10**5, 5*10**5 + 2, 10**5)]
     title_0 = "100 steps of the SugarScape IG model:\n" + " vs ".join(labels_0)
-    image_path_0 = "benchmark_plot_0.png"
-    plot_and_print_benchmark(labels_0, kernels_0, n_range_0, title_0, image_path_0)"""
+    image_path_0 = "mesa_comparison.png"
+    plot_and_print_benchmark(labels_0, kernels_0, n_range_0, title_0, image_path_0)
 
-    # FLAME2-GPU comparison
+    # mesa-frames comparison
     labels_1 = [
         # "mesa-frames (pd concise)",
         "mesa-frames (pl loop DF)",
@@ -218,7 +218,6 @@ def main():
     ]
     # Polars best_moves (non-vectorized loop vs DF loop vs numba loop)
     kernels_1 = [
-        # mesa_frames_pandas_concise,
         mesa_frames_polars_loop_DF,
         mesa_frames_polars_loop_no_vec,
         mesa_frames_polars_numba_cpu,
