@@ -18,4 +18,4 @@ mesa-frames offers significant performance improvements over the original mesa f
 
 [View the benchmark script](https://github.com/projectmesa/mesa-frames/blob/main/examples/sugarscape_ig/performance_comparison.py)
 
-![Performance Graph SS IG](https://github.com/projectmesa/mesa-frames/raw/main/examples/sugarscape_ig/benchmark_plot_0.png)
+![Performance Graph SS IG](https://github.com/projectmesa/mesa-frames/raw/main/examples/sugarscape_ig/mesa_comparison.png)
