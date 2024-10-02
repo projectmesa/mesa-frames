@@ -47,18 +47,16 @@ from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
 from typing import TYPE_CHECKING, Literal
 
+import ibis as ib
 from numpy.random import Generator
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
     AgentMask,
-    BoolSeries,
-    DataFrame,
+    BoolColumn,
     DataFrameInput,
     IdsLike,
-    Index,
-    Series,
 )
 
 if TYPE_CHECKING:
@@ -128,10 +126,10 @@ class AgentContainer(CopyMixin):
 
     @overload
     @abstractmethod
-    def contains(self, agents: AgentSetDF | IdsLike) -> BoolSeries: ...
+    def contains(self, agents: AgentSetDF | IdsLike) -> BoolColumn: ...
 
     @abstractmethod
-    def contains(self, agents: IdsLike) -> bool | BoolSeries:
+    def contains(self, agents: IdsLike) -> bool | BoolColumn:
         """Check if agents with the specified IDs are in the AgentContainer.
 
         Parameters
@@ -141,7 +139,7 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        bool | BoolSeries
+        bool | BoolColumn
             True if the agent is in the AgentContainer, False otherwise.
         """
 
@@ -205,20 +203,20 @@ class AgentContainer(CopyMixin):
 
     @abstractmethod
     @overload
-    def get(self, attr_names: str) -> Series | dict[str, Series]: ...
+    def get(self, attr_names: str) -> ib.Column | dict[str, ib.Column]: ...
 
     @abstractmethod
     @overload
     def get(
         self, attr_names: Collection[str] | None = None
-    ) -> DataFrame | dict[str, DataFrame]: ...
+    ) -> ib.Table | dict[str, ib.Table]: ...
 
     @abstractmethod
     def get(
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
-    ) -> Series | dict[str, Series] | DataFrame | dict[str, DataFrame]:
+    ) -> ib.Column | dict[str, ib.Column] | ib.Table | dict[str, ib.Table]:
         """Retrieve the value of a specified attribute for each agent in the AgentContainer.
 
         Parameters
@@ -230,7 +228,7 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        Series | dict[str, Series] | DataFrame | dict[str, DataFrame]
+        ib.Column | dict[str, ib.Column] | ib.Table | dict[str, ib.Table]
             The attribute values.
         """
         ...
@@ -417,12 +415,12 @@ class AgentContainer(CopyMixin):
     @overload
     def __getitem__(
         self, key: str | tuple[AgentMask, str]
-    ) -> Series | dict[str, Series]: ...
+    ) -> ib.Column | dict[str, ib.Column]: ...
 
     @overload
     def __getitem__(
         self, key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]]
-    ) -> DataFrame | dict[str, DataFrame]: ...
+    ) -> ib.Table | dict[str, ib.Table]: ...
 
     def __getitem__(
         self,
@@ -433,7 +431,7 @@ class AgentContainer(CopyMixin):
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
         ),
-    ) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]:
+    ) -> ib.Column | ib.Table | dict[str, ib.Column] | dict[str, ib.Table]:
         """Implement the [] operator for the AgentContainer.
 
         The key can be:
@@ -448,7 +446,7 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        Series | DataFrame | dict[str, Series] | dict[str, DataFrame]
+        ib.Column | ib.Table | dict[str, ib.Column] | dict[str, ib.Table]
             The attribute values.
         """
         # TODO: fix types
@@ -648,32 +646,32 @@ class AgentContainer(CopyMixin):
 
     @property
     @abstractmethod
-    def agents(self) -> DataFrame | dict[str, DataFrame]:
+    def agents(self) -> ib.Table | dict[str, ib.Table]:
         """The agents in the AgentContainer.
 
         Returns
         -------
-        DataFrame | dict[str, DataFrame]
+        ib.Table | dict[str, ib.Table]
         """
 
     @agents.setter
     @abstractmethod
-    def agents(self, agents: DataFrame | list[AgentSetDF]) -> None:
+    def agents(self, agents: ib.Table | list[AgentSetDF]) -> None:
         """Set the agents in the AgentContainer.
 
         Parameters
         ----------
-        agents : DataFrame | list[AgentSetDF]
+        agents : ib.Table | list[AgentSetDF]
         """
 
     @property
     @abstractmethod
-    def active_agents(self) -> DataFrame | dict[str, DataFrame]:
+    def active_agents(self) -> ib.Table | dict[str, ib.Table]:
         """The active agents in the AgentContainer.
 
         Returns
         -------
-        DataFrame | dict[str, DataFrame]
+        ib.Table | dict[str, ib.Table]
         """
 
     @active_agents.setter
@@ -693,33 +691,33 @@ class AgentContainer(CopyMixin):
 
     @property
     @abstractmethod
-    def inactive_agents(self) -> DataFrame | dict[AgentSetDF, DataFrame]:
+    def inactive_agents(self) -> ib.Table | dict[AgentSetDF, ib.Table]:
         """The inactive agents in the AgentContainer.
 
         Returns
         -------
-        DataFrame | dict[AgentSetDF, DataFrame]
+        ib.Table | dict[AgentSetDF, ib.Table]
         """
 
     @property
     @abstractmethod
-    def index(self) -> Index | dict[AgentSetDF, Index]:
+    def index(self) -> ib.ir.IntegerColumn | dict[AgentSetDF, ib.ir.IntegerColumn]:
         """The ids in the AgentContainer.
 
         Returns
         -------
-        Index | dict[AgentSetDF, Index]
+        ib.ir.IntegerColumn | dict[AgentSetDF, ib.ir.IntegerColumn]
         """
         ...
 
     @property
     @abstractmethod
-    def pos(self) -> DataFrame | dict[str, DataFrame]:
+    def pos(self) -> ib.Table | dict[str, ib.Table]:
         """The position of the agents in the AgentContainer.
 
         Returns
         -------
-        DataFrame | dict[str, DataFrame]
+        ib.Table | dict[str, ib.Table]
         """
         ...
 
@@ -733,7 +731,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         The model that the agent set belongs to.
     """
 
-    _agents: DataFrame  # The agents in the AgentSetDF
+    _agents: ib.Table  # The agents in the AgentSetDF
     _mask: (
         AgentMask  # The underlying mask used for the active agents in the AgentSetDF.
     )
@@ -850,7 +848,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         self,
         attr_names: str,
         mask: AgentMask | None = None,
-    ) -> Series: ...
+    ) -> ib.Column: ...
 
     @abstractmethod
     @overload
@@ -858,14 +856,14 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         self,
         attr_names: Collection[str] | None = None,
         mask: AgentMask | None = None,
-    ) -> DataFrame: ...
+    ) -> ib.Table: ...
 
     @abstractmethod
     def get(
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
-    ) -> Series | DataFrame: ...
+    ) -> ib.Column | ib.Table: ...
 
     @abstractmethod
     def step(self) -> None:
@@ -889,11 +887,11 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         objs: Iterable[Self],
         duplicates_allowed: bool = True,
         keep_first_only: bool = True,
-        original_masked_index: Index | None = None,
+        original_masked_index: ib.Column | None = None,
     ) -> Self: ...
 
     @abstractmethod
-    def _get_bool_mask(self, mask: AgentMask) -> BoolSeries:
+    def _get_bool_mask(self, mask: AgentMask) -> BoolColumn:
         """Get the equivalent boolean mask based on the input mask.
 
         Parameters
@@ -902,12 +900,12 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
         Returns
         -------
-        BoolSeries
+        BoolColumn
         """
         ...
 
     @abstractmethod
-    def _get_masked_df(self, mask: AgentMask) -> DataFrame:
+    def _get_masked_df(self, mask: AgentMask) -> ib.Table:
         """Get the df filtered by the input mask.
 
         Parameters
@@ -916,25 +914,25 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
         Returns
         -------
-        DataFrame
+        ib.Table
         """
 
     @overload
     @abstractmethod
-    def _get_obj_copy(self, obj: DataFrame) -> DataFrame: ...
+    def _get_obj_copy(self, obj: ib.Table) -> ib.Table: ...
 
     @overload
     @abstractmethod
-    def _get_obj_copy(self, obj: Series) -> Series: ...
+    def _get_obj_copy(self, obj: ib.Column) -> ib.Column: ...
 
     @overload
     @abstractmethod
-    def _get_obj_copy(self, obj: Index) -> Index: ...
+    def _get_obj_copy(self, obj: ib.Column) -> ib.Column: ...
 
     @abstractmethod
     def _get_obj_copy(
-        self, obj: DataFrame | Series | Index
-    ) -> DataFrame | Series | Index: ...
+        self, obj: ib.Table | ib.Column | ib.Column
+    ) -> ib.Table | ib.Column | ib.Column: ...
 
     @abstractmethod
     def _discard(self, ids: IdsLike) -> Self:
@@ -953,20 +951,22 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def _update_mask(
-        self, original_active_indices: Index, new_active_indices: Index | None = None
+        self,
+        original_active_indices: ib.Column,
+        new_active_indices: ib.Column | None = None,
     ) -> None: ...
 
-    def __add__(self, other: DataFrame | Sequence[Any] | dict[str, Any]) -> Self:
+    def __add__(self, other: ib.Table | Sequence[Any] | dict[str, Any]) -> Self:
         """Add agents to a new AgentSetDF through the + operator.
 
         Other can be:
-        - A DataFrame: adds the agents from the DataFrame.
+        - A Table: adds the agents from the Table.
         - A Sequence[Any]: should be one single agent to add.
         - A dictionary: keys should be attributes and values should be the values to add.
 
         Parameters
         ----------
-        other : DataFrame | Sequence[Any] | dict[str, Any]
+        other : ib.Table | Sequence[Any] | dict[str, Any]
             The agents to add.
 
         Returns
@@ -976,18 +976,18 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """
         return super().__add__(other)
 
-    def __iadd__(self, other: DataFrame | Sequence[Any] | dict[str, Any]) -> Self:
+    def __iadd__(self, other: ib.Table | Sequence[Any] | dict[str, Any]) -> Self:
         """
         Add agents to the AgentSetDF through the += operator.
 
         Other can be:
-        - A DataFrame: adds the agents from the DataFrame.
+        - A Table: adds the agents from the Table.
         - A Sequence[Any]: should be one single agent to add.
         - A dictionary: keys should be attributes and values should be the values to add.
 
         Parameters
         ----------
-        other : DataFrame | Sequence[Any] | dict[str, Any]
+        other : ib.Table | Sequence[Any] | dict[str, Any]
             The agents to add.
 
         Returns
@@ -1005,13 +1005,13 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
             )
 
     @overload
-    def __getitem__(self, key: str | tuple[AgentMask, str]) -> Series | DataFrame: ...
+    def __getitem__(self, key: str | tuple[AgentMask, str]) -> ib.Column | ib.Table: ...
 
     @overload
     def __getitem__(
         self,
         key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
-    ) -> DataFrame: ...
+    ) -> ib.Table: ...
 
     def __getitem__(
         self,
@@ -1022,9 +1022,9 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
         ),
-    ) -> Series | DataFrame:
+    ) -> ib.Column | ib.Table:
         attr = super().__getitem__(key)
-        assert isinstance(attr, (Series, DataFrame, Index))
+        assert isinstance(attr, (ib.Column, ib.Table))
         return attr
 
     def __len__(self) -> int:
@@ -1040,33 +1040,33 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         return reversed(self._agents)
 
     @property
-    def agents(self) -> DataFrame:
+    def agents(self) -> ib.Table:
         return self._agents
 
     @agents.setter
-    def agents(self, agents: DataFrame) -> None:
+    def agents(self, agents: ib.Table) -> None:
         """Set the agents in the AgentSetDF.
 
         Parameters
         ----------
-        agents : DataFrame
+        agents : ib.Table
             The agents to set.
         """
         self._agents = agents
 
     @property
     @abstractmethod
-    def active_agents(self) -> DataFrame: ...
+    def active_agents(self) -> ib.Table: ...
 
     @property
     @abstractmethod
-    def inactive_agents(self) -> DataFrame: ...
+    def inactive_agents(self) -> ib.Table: ...
 
     @property
-    def index(self) -> Index: ...
+    def index(self) -> ib.Column: ...
 
     @property
-    def pos(self) -> DataFrame:
+    def pos(self) -> ib.Table:
         pos = self._df_constructor(self.space.agents, index_cols="agent_id")
         pos = self._df_get_masked_df(df=pos, index_cols="agent_id", mask=self.index)
         pos = self._df_reindex(

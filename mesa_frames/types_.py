@@ -3,57 +3,29 @@
 from collections.abc import Collection, Sequence
 from typing import Literal
 
-# import geopandas as gpd
-# import geopolars as gpl
-import pandas as pd
-import polars as pl
+import ibis as ib
 from numpy import ndarray
 from typing_extensions import Any
 
-####----- Agnostic Types -----####
-AgnosticMask = (
-    Any | Sequence[Any] | None
-)  # Any is a placeholder for any type if it's a single value
-AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
-AgnosticIds = int | Collection[int]
-
-###----- pandas Types -----###
-
-PandasMask = pd.Series | pd.DataFrame | AgnosticMask
-AgentPandasMask = AgnosticAgentMask | pd.Series | pd.DataFrame
-PandasIdsLike = AgnosticIds | pd.Series | pd.Index
-PandasGridCapacity = ndarray
-
-###----- Polars Types -----###
-
-PolarsMask = pl.Expr | pl.Series | pl.DataFrame | AgnosticMask
-AgentPolarsMask = AgnosticAgentMask | pl.Expr | pl.Series | pl.DataFrame | Sequence[int]
-PolarsIdsLike = AgnosticIds | pl.Series
-PolarsGridCapacity = list[pl.Expr]
-
 ###----- Generic -----###
-# GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
-DataFrame = pd.DataFrame | pl.DataFrame
-DataFrameInput = dict[str, Any] | Sequence[Sequence] | DataFrame
-Series = pd.Series | pl.Series
-Index = pd.Index | pl.Series
-BoolSeries = pd.Series | pl.Series
-Mask = PandasMask | PolarsMask
-AgentMask = AgentPandasMask | AgentPolarsMask
-IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike
-ArrayLike = ndarray | Series | Sequence
+DataFrameInput = dict[str, Any] | Sequence[Sequence] | ib.Table
+BoolColumn = ib.ir.BooleanColumn
+Mask = ib.Expr
+AgentMask = Sequence[int] | int | Literal["all", "active"] | ib.Column | ib.Table | None
+IdsLike = int | Collection[int] | ib.ir.IntegerColumn | ib.Table
+ArrayLike = ndarray | ib.Column | Sequence
 
 ###----- Time ------###
 TimeT = float | int
 
 ###----- Space -----###
 
-NetworkCoordinate = int | DataFrame
+NetworkCoordinate = int | ib.Table
 
-GridCoordinate = int | Sequence[int] | DataFrame
+GridCoordinate = int | Sequence[int] | ib.Table
 
 DiscreteCoordinate = NetworkCoordinate | GridCoordinate
-ContinousCoordinate = float | Sequence[float] | DataFrame
+ContinousCoordinate = float | Sequence[float] | ib.Table
 
 SpaceCoordinate = DiscreteCoordinate | ContinousCoordinate
 
@@ -72,7 +44,7 @@ ContinousCoordinates = (
 
 SpaceCoordinates = DiscreteCoordinates | ContinousCoordinates
 
-GridCapacity = PandasGridCapacity | PolarsGridCapacity
-NetworkCapacity = DataFrame
+GridCapacity = ndarray
+NetworkCapacity = ib.Table
 
 DiscreteSpaceCapacity = GridCapacity | NetworkCapacity
