@@ -35,72 +35,28 @@ classifiers = [
 dependencies = [
   "numpy~=1.26",
   "typing-extensions>=4.9", #typing-extensions.Self added in 4.9
-  ## pandas
-  "pandas>=2.2",
-  "pyarrow", #for conversion to pandas
-  #"geopandas" (only after GeoGrid / ContinousSpace is implemented)
-  ## polars
-  "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
-  #"geopolars" (currently in pre-alpha)
 ]
 requires-python = ">=3.8"
 dynamic = [
-  "version"
+  "version",
+  "optional-dependencies",
 ]
-
-
 
 [project.urls]
 Documentation = "https://projectmesa.github.io/mesa-frames"
 Repository = "https://github.com/projectmesa/mesa-frames.git"
 
-[project.optional-dependencies]
-mkdocs = [
-  "mkdocs-material",
-  "mkdocs-jupyter",
-  "mkdocs-git-revision-date-localized-plugin",
-  "mkdocs-minify-plugin",
-]
+[tool.hatch.metadata.hooks.custom]
+path = "_optional_dependencies_hook.py"
 
-sphinx = [
-  "sphinx",
-  "sphinx-rtd-theme",
-  "numpydoc",
-  "pydata-sphinx-theme",
-  "sphinx-copybutton",
-  "sphinx-design",
-  "autodocsumm"
-]
-
-docs = [
-  "mesa_frames[mkdocs, sphinx]",
-  # Readme Script
-  "perfplot",
-  "seaborn"
-]
-
-test = [
-  "pytest",
-  "pytest-cov",
-  "typeguard",
-]
-
-dev = [
-  "mesa_frames[test, docs]",
-  "mesa",
-]
+[tool.hatch.version]
+path = "mesa_frames/__init__.py"
 
 [tool.hatch.envs.test]
 features = ["test"]
 
-[tool.hatch.envs.dev] #Allows installing dev as virtual env
+[tool.hatch.envs.dev]
 features = ["dev"]
-
-[tool.hatch.build.targets.wheel]
-packages = ["mesa_frames"]
-
-[tool.hatch.version]
-path = "mesa_frames/__init__.py"
 
 [tool.ruff.lint]
 select = ["D"]
