@@ -59,6 +59,26 @@ if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
 
 
+class AgentSetDF(AgentContainer):
+    """The AgentSetDF class is a container for agents of the same type.
+
+    Parameters
+    ----------
+    model : ModelDF
+        The model that the agent set belongs to.
+    """
+
+    _agents: ib.Table  # The agents in the AgentSetDF
+    _mask: (
+        AgentMask  # The underlying mask used for the active agents in the AgentSetDF.
+    )
+    _model: ModelDF  # The model that the AgentSetDF belongs to.
+
+    def __init__(self, model: ModelDF) -> None:
+        self._model = model
+        self._agents = ib.table(schema={"unique_id": "int", "active": "bool"})
+
+
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
 
