@@ -48,19 +48,12 @@ from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING, Literal, cast
 
+import ibis as ib
 import polars as pl
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
-from mesa_frames.types_ import (
-    AgentMask,
-    AgnosticAgentMask,
-    BoolSeries,
-    DataFrame,
-    IdsLike,
-    Index,
-    Series,
-)
+from mesa_frames.types_ import AgentMask, BoolColumn, DataFrameInput, IdsLike
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
@@ -70,7 +63,7 @@ class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
 
     _agentsets: list[AgentSetDF]
-    _ids: pl.Series
+    _ids: ib.Column
 
     def __init__(self, model: "ModelDF") -> None:
         """Initialize a new AgentsDF.
@@ -82,7 +75,7 @@ class AgentsDF(AgentContainer):
         """
         self._model = model
         self._agentsets = []
-        self._ids = pl.Series(name="unique_id", dtype=pl.Int64)
+        self._ids = ib.Column(name="unique_id", dtype=pl.Int64)
 
     def add(
         self, agents: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True
@@ -111,7 +104,7 @@ class AgentsDF(AgentContainer):
         if obj._check_agentsets_presence(other_list).any():
             raise ValueError("Some agentsets are already present in the AgentsDF.")
         new_ids = pl.concat(
-            [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
+            [obj._ids] + [ib.Column(agentset["unique_id"]) for agentset in other_list]
         )
         if new_ids.is_duplicated().any():
             raise ValueError("Some of the agent IDs are not unique.")
@@ -123,11 +116,11 @@ class AgentsDF(AgentContainer):
     def contains(self, agents: int | AgentSetDF) -> bool: ...
 
     @overload
-    def contains(self, agents: IdsLike | Iterable[AgentSetDF]) -> pl.Series: ...
+    def contains(self, agents: IdsLike | Iterable[AgentSetDF]) -> ib.Column: ...
 
     def contains(
         self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]
-    ) -> bool | pl.Series:
+    ) -> bool | ib.Column:
         if isinstance(agents, int):
             return agents in self._ids
         elif isinstance(agents, AgentSetDF):
@@ -141,14 +134,14 @@ class AgentsDF(AgentContainer):
             else:  # IDsLike
                 agents = cast(IdsLike, agents)
 
-                return pl.Series(agents).is_in(self._ids)
+                return ib.Column(agents).is_in(self._ids)
 
     @overload
     def do(
         self,
         method_name: str,
         *args,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+        mask: AgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
         **kwargs,
@@ -159,7 +152,7 @@ class AgentsDF(AgentContainer):
         self,
         method_name: str,
         *args,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+        mask: AgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs,
@@ -169,7 +162,7 @@ class AgentsDF(AgentContainer):
         self,
         method_name: str,
         *args,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+        mask: AgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         return_results: bool = False,
         inplace: bool = True,
         **kwargs,
@@ -205,8 +198,8 @@ class AgentsDF(AgentContainer):
     def get(
         self,
         attr_names: str | Collection[str] | None = None,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
-    ) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
+        mask: AgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+    ) -> dict[AgentSetDF, ib.Column] | dict[AgentSetDF, ib.Table]:
         agentsets_masks = self._get_bool_masks(mask)
         return {
             agentset: agentset.get(attr_names, mask)
@@ -225,19 +218,19 @@ class AgentsDF(AgentContainer):
             # We have to get the index of the original AgentSetDF because the copy made AgentSetDFs with different hash
             ids = [self._agentsets.index(agentset) for agentset in iter(agents)]
             ids.sort(reverse=True)
-            removed_ids = pl.Series(dtype=pl.Int64)
+            removed_ids = ib.Column(dtype=pl.Int64)
             for id in ids:
                 removed_ids = pl.concat(
-                    [removed_ids, pl.Series(obj._agentsets[id].index)]
+                    [removed_ids, ib.Column(obj._agentsets[id].index)]
                 )
                 obj._agentsets.pop(id)
 
         else:  # IDsLike
             if isinstance(agents, int):
                 agents = [agents]
-            elif isinstance(agents, DataFrame):
+            elif isinstance(agents, ib.Table):
                 agents = agents["unique_id"]
-            removed_ids = pl.Series(agents)
+            removed_ids = ib.Column(agents)
             deleted = 0
 
             for agentset in obj._agentsets:
@@ -259,7 +252,7 @@ class AgentsDF(AgentContainer):
 
     def select(
         self,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+        mask: AgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         filter_func: Callable[[AgentSetDF], AgentMask] | None = None,
         n: int | None = None,
         inplace: bool = True,
@@ -281,7 +274,7 @@ class AgentsDF(AgentContainer):
         self,
         attr_names: str | dict[AgentSetDF, Any] | Collection[str],
         values: Any | None = None,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+        mask: AgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -358,7 +351,7 @@ class AgentsDF(AgentContainer):
             schema={"unique_id": pl.Int64, "present": pl.Boolean},
         )
         for agentset in other:
-            new_ids = pl.Series(agentset.index)
+            new_ids = ib.Column(agentset.index)
             presence_df = pl.concat(
                 [
                     presence_df,
@@ -373,7 +366,7 @@ class AgentsDF(AgentContainer):
         presence_df = presence_df.slice(self._ids.len())
         return presence_df
 
-    def _check_agentsets_presence(self, other: list[AgentSetDF]) -> pl.Series:
+    def _check_agentsets_presence(self, other: list[AgentSetDF]) -> ib.Column:
         """Check if the agent sets to be added are already present in the AgentsDF.
 
         Parameters
@@ -383,8 +376,8 @@ class AgentsDF(AgentContainer):
 
         Returns
         -------
-        pl.Series
-            A boolean Series indicating if the agent sets are present.
+        ib.Column
+            A boolean ib.Column indicating if the agent sets are present.
 
         Raises
         ------
@@ -392,14 +385,14 @@ class AgentsDF(AgentContainer):
             If the agent sets are already present in the AgentsDF.
         """
         other_set = set(other)
-        return pl.Series(
+        return ib.Column(
             [agentset in other_set for agentset in self._agentsets], dtype=pl.Boolean
         )
 
     def _get_bool_masks(
         self,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
-    ) -> dict[AgentSetDF, BoolSeries]:
+        mask: AgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+    ) -> dict[AgentSetDF, BoolColumn]:
         return_dictionary = {}
         if not isinstance(mask, dict):
             mask = {agentset: mask for agentset in self._agentsets}
@@ -447,28 +440,28 @@ class AgentsDF(AgentContainer):
     @overload
     def __getitem__(
         self, key: str | tuple[dict[AgentSetDF, AgentMask], str]
-    ) -> dict[str, Series]: ...
+    ) -> dict[str, ib.Column]: ...
 
     @overload
     def __getitem__(
         self,
         key: Collection[str]
-        | AgnosticAgentMask
+        | AgentMask
         | IdsLike
         | tuple[dict[AgentSetDF, AgentMask], Collection[str]],
-    ) -> dict[str, DataFrame]: ...
+    ) -> dict[str, ib.Table]: ...
 
     def __getitem__(
         self,
         key: (
             str
             | Collection[str]
-            | AgnosticAgentMask
+            | AgentMask
             | IdsLike
             | tuple[dict[AgentSetDF, AgentMask], str]
             | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
         ),
-    ) -> dict[str, Series] | dict[str, DataFrame]:
+    ) -> dict[str, ib.Column] | dict[str, ib.Table]:
         return super().__getitem__(key)
 
     def __iadd__(self, agents: AgentSetDF | Iterable[AgentSetDF]) -> Self:
@@ -522,7 +515,7 @@ class AgentsDF(AgentContainer):
         key: (
             str
             | Collection[str]
-            | AgnosticAgentMask
+            | AgentMask
             | IdsLike
             | tuple[dict[AgentSetDF, AgentMask], str]
             | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
@@ -550,7 +543,7 @@ class AgentsDF(AgentContainer):
         return super().__sub__(agents)
 
     @property
-    def agents(self) -> dict[AgentSetDF, DataFrame]:
+    def agents(self) -> dict[AgentSetDF, ib.Table]:
         return {agentset: agentset.agents for agentset in self._agentsets}
 
     @agents.setter
@@ -565,12 +558,12 @@ class AgentsDF(AgentContainer):
         self._agentsets = list(other)
 
     @property
-    def active_agents(self) -> dict[AgentSetDF, DataFrame]:
+    def active_agents(self) -> dict[AgentSetDF, ib.Table]:
         return {agentset: agentset.active_agents for agentset in self._agentsets}
 
     @active_agents.setter
     def active_agents(
-        self, agents: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask]
+        self, agents: AgentMask | IdsLike | dict[AgentSetDF, AgentMask]
     ) -> None:
         self.select(agents, inplace=True)
 
@@ -597,13 +590,13 @@ class AgentsDF(AgentContainer):
         return dictionary
 
     @property
-    def inactive_agents(self) -> dict[AgentSetDF, DataFrame]:
+    def inactive_agents(self) -> dict[AgentSetDF, ib.Table]:
         return {agentset: agentset.inactive_agents for agentset in self._agentsets}
 
     @property
-    def index(self) -> dict[AgentSetDF, Index]:
+    def index(self) -> dict[AgentSetDF, ib.Column]:
         return {agentset: agentset.index for agentset in self._agentsets}
 
     @property
-    def pos(self) -> dict[AgentSetDF, DataFrame]:
+    def pos(self) -> dict[AgentSetDF, ib.Table]:
         return {agentset: agentset.pos for agentset in self._agentsets}
