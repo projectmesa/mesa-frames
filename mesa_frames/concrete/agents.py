@@ -78,6 +78,55 @@ class AgentSetDF(AgentContainer):
         self._model = model
         self._agents = ib.table(schema={"unique_id": "int", "active": "bool"})
 
+    def add(
+        self,
+        agents: DataFrameInput,
+        inplace: bool = True,
+    ) -> Self:
+        """Add agents to the AgentSetDF.
+
+        Agents can be the input to the DataFrame constructor. So, the input can be:
+        - A DataFrame: adds the agents from the DataFrame.
+        - A dictionary: keys should be attributes and values should be the values to add.
+        - A Sequence[Sequence]: each inner sequence should be one single agent to add.
+
+        Parameters
+        ----------
+        agents : DataFrameInput
+            The agents to add.
+        inplace : bool, optional
+            If True, perform the operation in place, by default True
+
+        Returns
+        -------
+        Self
+            A new AgentContainer with the added agents.
+        """
+        obj = self._get_obj(inplace)
+        agents = ib.memtable(agents)
+        if "unique_id" not in agents.columns:
+            raise KeyError("Table must have a unique_id column.")
+
+        # Cast ids to int64
+        agents = agents.cast({"unique_id": "int64"})
+
+        if (
+            agents["unique_id"].distinct("unique_id").count()
+            != agents["unique_id"].count()
+        ):
+            raise ValueError("The unique_id column must contain unique values.")
+
+        if agents["unique_id"].intersect(obj._agents["unique_id"]).count() > 0:
+            raise ValueError(
+                "Some of the agents are already present in the AgentSetDF."
+            )
+
+        agents = agents.mutate(active=ib.literal(True))
+
+        obj._agents = ib.union([obj._agents, agents])
+
+        return obj
+
 
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
