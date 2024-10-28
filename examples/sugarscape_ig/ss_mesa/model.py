@@ -1,5 +1,6 @@
 import mesa
 import numpy as np
+import polars as pl
 
 from .agents import AntMesa, Sugar
 
@@ -16,6 +17,8 @@ class SugarscapeMesa(mesa.Model):
         initial_sugar: np.ndarray | None = None,
         metabolism: np.ndarray | None = None,
         vision: np.ndarray | None = None,
+        initial_positions: pl.DataFrame | None = None,
+        seed: int | None = None,
         width: int | None = None,
         height: int | None = None,
     ):
@@ -34,30 +37,37 @@ class SugarscapeMesa(mesa.Model):
             metabolism = np.random.randint(2, 4, n_agents)
         if vision is None:
             vision = np.random.randint(1, 6, n_agents)
+        if seed is not None:
+            self.reset_randomizer(seed)
 
         self.width, self.height = sugar_grid.shape
         self.n_agents = n_agents
-        self.grid = mesa.space.MultiGrid(self.width, self.height, torus=False)
+        self.space = mesa.space.MultiGrid(self.width, self.height, torus=False)
         self.agents: list = []
 
         agent_id = 0
         self.sugars = []
-        for _, (x, y) in self.grid.coord_iter():
+
+        for _, (x, y) in self.space.coord_iter():
             max_sugar = sugar_grid[x, y]
             sugar = Sugar(agent_id, self, max_sugar)
             agent_id += 1
-            self.grid.place_agent(sugar, (x, y))
+            self.space.place_agent(sugar, (x, y))
             self.sugars.append(sugar)
 
         # Create agent:
         for i in range(self.n_agents):
-            x = self.random.randrange(self.width)
-            y = self.random.randrange(self.height)
+            if initial_positions is not None:
+                x = initial_positions["dim_0"][i]
+                y = initial_positions["dim_1"][i]
+            else:
+                x = self.random.randrange(self.width)
+                y = self.random.randrange(self.height)
             ssa = AntMesa(
                 agent_id, self, False, initial_sugar[i], metabolism[i], vision[i]
             )
             agent_id += 1
-            self.grid.place_agent(ssa, (x, y))
+            self.space.place_agent(ssa, (x, y))
             self.agents.append(ssa)
 
         self.running = True
