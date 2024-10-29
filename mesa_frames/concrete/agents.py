@@ -127,6 +127,13 @@ class AgentSetDF(AgentContainer):
 
         return obj
 
+    def contains(self, agents: IdsLike) -> ib.Table:
+        table = ib.memtable(agents)
+        assert len(table.columns) == 1, "The input should be a single column table."
+        table = table.rename(columns={table.columns[0]: "unique_id"}).mutate(
+            contains=table["unique_id"].is_in(self._agents["unique_id"])
+        )
+        return table
 
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
