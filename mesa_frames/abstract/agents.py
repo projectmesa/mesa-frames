@@ -120,16 +120,8 @@ class AgentContainer(CopyMixin):
         """
         ...
 
-    @overload
     @abstractmethod
-    def contains(self, agents: int) -> bool: ...
-
-    @overload
-    @abstractmethod
-    def contains(self, agents: AgentSetDF | IdsLike) -> BoolColumn: ...
-
-    @abstractmethod
-    def contains(self, agents: IdsLike) -> bool | BoolColumn:
+    def contains(self, agents: IdsLike) -> ib.Table:
         """Check if agents with the specified IDs are in the AgentContainer.
 
         Parameters
@@ -139,8 +131,9 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        bool | BoolColumn
-            True if the agent is in the AgentContainer, False otherwise.
+        ib.Table
+            A table with 'unique_id' and 'contains' columns.
+            The 'contains' column is a Boolean column indicating if the agent is in the AgentContainer.
         """
 
     @overload
