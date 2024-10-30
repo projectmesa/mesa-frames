@@ -104,27 +104,38 @@ class AgentSetDF(AgentContainer):
             A new AgentContainer with the added agents.
         """
         obj = self._get_obj(inplace)
-        agents = ib.memtable(agents)
-        if "unique_id" not in agents.columns:
-            raise KeyError("Table must have a unique_id column.")
+        agents = self._get_table(agents)
+        if __debug__:
+            if "unique_id" not in agents.columns:
+                raise KeyError("Table must have a unique_id column.")
 
-        # Cast ids to int64
-        agents = agents.cast({"unique_id": "int64"})
+            # Cast ids to int64
+            # TODO: use selectors. how?
+            agents = agents.cast({"unique_id": "int64"})
 
-        if (
-            agents["unique_id"].distinct("unique_id").count()
-            != agents["unique_id"].count()
-        ):
-            raise ValueError("The unique_id column must contain unique values.")
+            if (agents["unique_id"].nunique() != agents["unique_id"].count()).execute():
+                raise ValueError("The unique_id column must contain unique values.")
 
-        if agents["unique_id"].intersect(obj._agents["unique_id"]).count() > 0:
-            raise ValueError(
-                "Some of the agents are already present in the AgentSetDF."
-            )
+            empty_table = False
+            try:
+                if (
+                    agents["unique_id"].isin(obj.agents["unique_id"]).count() > 0
+                ).execute():
+                    raise ValueError(
+                        "Some of the agents are already present in the AgentSetDF."
+                    )
 
-        agents = agents.mutate(active=ib.literal(True))
+            except ib.IbisError:  # If the table is empty
+                empty_table = True
 
-        obj._agents = ib.union([obj._agents, agents])
+        active_mask = agents.select("unique_id", active=ib.literal(True))
+
+        if not empty_table:
+            agents = ib.union([obj._agents, agents])
+            active_mask = ib.union([obj._active_mask, active_mask])
+
+        obj._agents = agents
+        obj._active_mask = active_mask
 
         return obj
 
