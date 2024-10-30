@@ -74,9 +74,10 @@ class AgentSetDF(AgentContainer):
     )
     _model: ModelDF  # The model that the AgentSetDF belongs to.
 
-    def __init__(self, model: ModelDF) -> None:
+    def __init__(self, model: "ModelDF") -> None:
         self._model = model
-        self._agents = ib.table(schema={"unique_id": "int", "active": "bool"})
+        self._agents = ib.table(schema={"unique_id": "int"})
+        self._active_mask = ib.table(schema={"unique_id": "int", "active": "bool"})
 
     def add(
         self,
