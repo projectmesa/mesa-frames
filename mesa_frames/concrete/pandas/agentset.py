@@ -51,8 +51,13 @@ For more detailed information on the AgentSetPandas class and its methods,
 refer to the class docstring.
 """
 
+from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+import functools
+import itertools
+from logging import warning
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -79,6 +84,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
     
     """
 
+    _ids = defaultdict(functools.partial(itertools.count, 0))
     _agents: pd.DataFrame
     _mask: pd.Series
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
@@ -113,23 +119,26 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         obj = self._get_obj(inplace)
         if isinstance(agents, pd.DataFrame):
             new_agents = agents
-            if "unique_id" != agents.index.name:
-                try:
-                    new_agents.set_index("unique_id", inplace=True, drop=True)
-                except KeyError:
-                    raise KeyError("DataFrame must have a unique_id column/index.")
+            if "unique_id" == agents.index.name:
+                warnings.warn("DataFrame has 'unique_id' column, which will be ignored.")
+                new_agents = new_agents.reindex([next(self._ids[self.model]) for _ in agents.index])
         elif isinstance(agents, dict):
-            if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
-            index = agents.pop("unique_id")
-            if not isinstance(index, list):
-                index = [index]
+            if "unique_id" in agents:
+                warnings.warn("Dictionary contains a 'unique_id' key, which will be ignored.")
+                if isinstance(agents["unique_id"], list):
+                    index = [next(self._ids[self.model]) for _ in agents["unique_id"]]
+                else:
+                    index = [next(self._ids[self.model])]
+            agents.pop("unique_id")
             new_agents = pd.DataFrame(agents, index=pd.Index(index, name="unique_id"))
         else:
             if len(agents) != len(obj._agents.columns) + 1:
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
+            if len(agents) == len(obj._agents.columns):
+                # we suppose the first element of the list is unique_id
+                agents[0] = next(self._ids[self.model])
             columns = pd.Index(["unique_id"]).append(obj._agents.columns.copy())
             new_agents = pd.DataFrame([agents], columns=columns).set_index(
                 "unique_id", drop=True

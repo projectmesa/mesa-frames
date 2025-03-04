@@ -11,9 +11,9 @@ from mesa_frames import AgentSetPandas, GridPolars, ModelDF
 
 @tg.typechecked
 class ExampleAgentSetPandas(AgentSetPandas):
-    def __init__(self, model: ModelDF, index: pd.Index):
+    def __init__(self, model: ModelDF):
         super().__init__(model)
-        self.starting_wealth = pd.Series([1, 2, 3, 4], name="wealth", index=index)
+        self.starting_wealth = pd.Series([1, 2, 3, 4], name="wealth")
 
     def add_wealth(self, amount: int) -> None:
         self.agents["wealth"] += amount
@@ -25,7 +25,7 @@ class ExampleAgentSetPandas(AgentSetPandas):
 @pytest.fixture
 def fix1_AgentSetPandas() -> ExampleAgentSetPandas:
     model = ModelDF()
-    agents = ExampleAgentSetPandas(model, pd.Index([0, 1, 2, 3], name="unique_id"))
+    agents = ExampleAgentSetPandas(model)
     agents.add({"unique_id": [0, 1, 2, 3]})
     agents["wealth"] = agents.starting_wealth
     agents["age"] = [10, 20, 30, 40]
@@ -36,7 +36,7 @@ def fix1_AgentSetPandas() -> ExampleAgentSetPandas:
 @pytest.fixture
 def fix2_AgentSetPandas() -> ExampleAgentSetPandas:
     model = ModelDF()
-    agents = ExampleAgentSetPandas(model, pd.Index([4, 5, 6, 7], name="unique_id"))
+    agents = ExampleAgentSetPandas(model)
     agents.add({"unique_id": [4, 5, 6, 7]})
     agents["wealth"] = agents.starting_wealth + 10
     agents["age"] = [100, 200, 300, 400]
@@ -55,7 +55,7 @@ def fix1_AgentSetPandas_with_pos(fix1_AgentSetPandas) -> ExampleAgentSetPandas:
 class Test_AgentSetPandas:
     def test__init__(self):
         model = ModelDF()
-        agents = ExampleAgentSetPandas(model, pd.Index([0, 1, 2, 3]))
+        agents = ExampleAgentSetPandas(model)
         assert agents.model == model
         assert isinstance(agents.agents, pd.DataFrame)
         assert agents.agents.index.name == "unique_id"
@@ -86,7 +86,6 @@ class Test_AgentSetPandas:
         # Test with a dict[str, Any]
         agents.add({"unique_id": [4, 5], "wealth": [5, 6], "age": [50, 60]})
         assert agents.agents.wealth.tolist() == [1, 2, 3, 4, 5, 6]
-        assert agents.agents.index.tolist() == [0, 1, 2, 3, 4, 5]
         assert agents.agents.age.tolist() == [10, 20, 30, 40, 50, 60]
         assert agents.agents.index.name == "unique_id"
 
@@ -287,7 +286,6 @@ class Test_AgentSetPandas:
 
         # Test with an AgentSetPandas and a dict
         agents3 = agents + {"unique_id": 10, "wealth": 5}
-        assert agents3.agents.index.tolist() == [0, 1, 2, 3, 10]
         assert agents3.agents.wealth.tolist() == [1, 2, 3, 4, 5]
 
     def test__contains__(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
@@ -360,7 +358,6 @@ class Test_AgentSetPandas:
         # Test with an AgentSetPandas and a dict
         agents = deepcopy(fix1_AgentSetPandas)
         agents += {"unique_id": 10, "wealth": 5}
-        assert agents.agents.index.tolist() == [0, 1, 2, 3, 10]
         assert agents.agents.wealth.tolist() == [1, 2, 3, 4, 5]
 
     def test__iter__(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
@@ -439,24 +436,24 @@ class Test_AgentSetPandas:
 
         # Test agents.setter
         agents.agents = agents2.agents
-        assert agents.agents.index.tolist() == [4, 5, 6, 7]
+        assert len(agents.active_agents) == 4
 
     def test_active_agents(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
         agents = fix1_AgentSetPandas
 
         # Test with select
         agents.select(agents["wealth"] > 2, inplace=True)
-        assert agents.active_agents.index.tolist() == [2, 3]
+        assert len(agents.active_agents) == 2
 
         # Test with active_agents.setter
         agents.active_agents = agents.agents.wealth > 2
-        assert agents.active_agents.index.to_list() == [2, 3]
+        assert len(agents.active_agents) == 2
 
     def test_inactive_agents(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
         agents = fix1_AgentSetPandas
 
         agents.select(agents["wealth"] > 2, inplace=True)
-        assert agents.inactive_agents.index.to_list() == [0, 1]
+        assert len(agents.active_agents) == 2
 
     def test_pos(self, fix1_AgentSetPandas_with_pos: ExampleAgentSetPandas):
         pos = fix1_AgentSetPandas_with_pos.pos
