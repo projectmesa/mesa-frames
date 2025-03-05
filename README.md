@@ -6,8 +6,8 @@ mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) f
 
 DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). At the moment, mesa-frames supports the use of two main libraries: pandas and Polars.
 
-[!WARNING]
-The pandas version will be deprecated in the next release. Refer to [this issue](https://github.com/projectmesa/mesa-frames/issues/89) for more information. Please consider transitioning to Polars for future compatibility.
+>[!WARNING]
+>The pandas version will be deprecated in the next release. Refer to [this issue](https://github.com/projectmesa/mesa-frames/issues/89) for more information. Please consider transitioning to Polars for future compatibility.
 
 - [pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. pandas is known for its ease of use, allowing for declarative programming and high performance.
 - [Polars](https://pola.rs/) is a new DataFrame library with a syntax similar to pandas but with several innovations, including a backend implemented in Rust, the Apache Arrow memory format, query optimization, and support for larger-than-memory DataFrames.
