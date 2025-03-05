@@ -137,8 +137,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
             if len(agents) == len(obj._agents.columns):
-                # we suppose the first element of the list is unique_id
-                agents[0] = next(self._ids[self.model])
+                agents = next(self._ids[self.model]) + agents[1:]
             columns = pd.Index(["unique_id"]).append(obj._agents.columns.copy())
             new_agents = pd.DataFrame([agents], columns=columns).set_index(
                 "unique_id", drop=True
