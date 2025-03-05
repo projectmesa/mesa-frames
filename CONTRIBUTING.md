@@ -115,6 +115,7 @@ It is recommended to set up a virtual environment before installing dependencies
 
     ```sh
     mkdocs serve
+    uv run mkdocs serve #If using uv
     ```
 
   - Open `http://127.0.0.1:8000` in your browser to verify documentation updates.
