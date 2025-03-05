@@ -51,11 +51,7 @@ For more detailed information on the AgentSetPandas class and its methods,
 refer to the class docstring.
 """
 
-from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-import functools
-import itertools
-from logging import warning
 from typing import TYPE_CHECKING
 import warnings
 
@@ -84,7 +80,6 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
     
     """
 
-    _ids = defaultdict(functools.partial(itertools.count, 0))
     _agents: pd.DataFrame
     _mask: pd.Series
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
@@ -119,32 +114,33 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         obj = self._get_obj(inplace)
         if isinstance(agents, pd.DataFrame):
             new_agents = agents
-            if "unique_id" == agents.index.name:
-                warnings.warn("DataFrame has 'unique_id' column, which will be ignored.")
-                new_agents = new_agents.reindex([next(self._ids[self.model]) for _ in agents.index])
+            if "unique_id" == agents.index.name or "unique_id" in agents.columns:
+                warnings.warn("Dataframe should not have a unique_id index/column. It will be ignored.")
         elif isinstance(agents, dict):
             if "unique_id" in agents:
-                warnings.warn("Dictionary contains a 'unique_id' key, which will be ignored.")
-                if isinstance(agents["unique_id"], list):
-                    index = [next(self._ids[self.model]) for _ in agents["unique_id"]]
-                else:
-                    index = [next(self._ids[self.model])]
-            agents.pop("unique_id")
-            new_agents = pd.DataFrame(agents, index=pd.Index(index, name="unique_id"))
+                warnings.warn("Dictionary should not have a unique_id key. It will be ignored.")
+            if isinstance(next(iter(agents.values())), list):
+                index = range(len(next(iter(agents.values()))))
+            else:
+                index = [0]
+            new_agents = pd.DataFrame(agents, index=index)
         else:
-            if len(agents) != len(obj._agents.columns) + 1:
+            if len(agents) not in {len(obj._agents.columns), len(obj._agents.columns) + 1}:
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
-            if len(agents) == len(obj._agents.columns):
-                agents = next(self._ids[self.model]) + agents[1:]
-            columns = pd.Index(["unique_id"]).append(obj._agents.columns.copy())
-            new_agents = pd.DataFrame([agents], columns=columns).set_index(
-                "unique_id", drop=True
-            )
+            if len(agents) == len(obj._agents.columns) + 1:
+                warnings.warn("Length of data should have the number of columns in the AgentSet," +
+                    "we suppose the first element is the unique_id. It will be ignored.")
+                agents = agents[1:]
+            new_agents = pd.DataFrame([agents], columns=obj._agents.columns.copy())
 
-        if new_agents.index.dtype != "int64":
-            new_agents.index = new_agents.index.astype("int64")
+        new_agents.drop("unique_id", errors="ignore", inplace=True)
+        if len(self.agents) == 0:
+            new_agents["unique_id"] = np.arange(len(new_agents))
+        else:
+            new_agents["unique_id"] = np.arange(self.index.max() + 1, self.index.max() + 1 + len(new_agents))
+        new_agents.set_index("unique_id", inplace=True, drop=True)
 
         if not obj._agents.index.intersection(new_agents.index).empty:
             raise KeyError("Some IDs already exist in the agent set.")
@@ -223,7 +219,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
                 "Either attr_names must be a dictionary with columns as keys and values or values must be provided."
             )
 
-        non_masked_df = obj._agents[~b_mask]
+        non_masked_df = obj._agents[~b_mask] if len(b_mask) > 0 else pd.DataFrame()
         original_index = obj._agents.index
         obj._agents = pd.concat([non_masked_df, masked_df])
         obj._agents = obj._agents.reindex(original_index)
