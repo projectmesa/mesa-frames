@@ -64,6 +64,8 @@ from mesa_frames.concrete.pandas.mixin import PandasMixin
 from mesa_frames.concrete.polars.agentset import AgentSetPolars
 from mesa_frames.types_ import AgentPandasMask, PandasIdsLike
 from mesa_frames.utils import copydoc
+import warnings
+
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
@@ -71,7 +73,11 @@ if TYPE_CHECKING:
 
 @copydoc(AgentSetDF)
 class AgentSetPandas(AgentSetDF, PandasMixin):
-    """pandas-based implementation of AgentSetDF."""
+    """
+    WARNING: AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.
+    pandas-based implementation of AgentSetDF.
+    
+    """
 
     _agents: pd.DataFrame
     _mask: pd.Series
@@ -90,6 +96,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         model : ModelDF
             The model associated with the AgentSetPandas.
         """
+        warnings.warn("AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.", DeprecationWarning, stacklevel=2)
         self._model = model
         self._agents = (
             pd.DataFrame(columns=["unique_id"])
