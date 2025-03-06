@@ -110,13 +110,11 @@ class AgentsDF(AgentContainer):
         other_list = obj._return_agentsets_list(agents)
         if obj._check_agentsets_presence(other_list).any():
             raise ValueError("Some agentsets are already present in the AgentsDF.")
-        new_ids = pl.concat(
-            [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
-        )
-        if new_ids.is_duplicated().any():
-            raise ValueError("Some of the agent IDs are not unique.")
-        obj._agentsets.extend(other_list)
-        obj._ids = new_ids
+        for agentset in other_list:
+            if len(obj._agentsets) > 0: 
+                agentset.shift_indexes(obj._ids.max() + 1)
+            obj._agentsets.append(agentset)
+            obj._ids = pl.concat([obj._ids, pl.Series(agentset["unique_id"])])
         return obj
 
     @overload
@@ -607,3 +605,11 @@ class AgentsDF(AgentContainer):
     @property
     def pos(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.pos for agentset in self._agentsets}
+    
+    def shift_indexes(self, first_index: int, inplace: bool = True) -> Self:
+        obj = self._get_obj(inplace)
+        obj._ids += first_index
+        for agentset in obj._agentsets:
+            agentset.shift_indexes(first_index)
+            first_index += len(agentset)
+        return obj

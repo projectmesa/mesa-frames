@@ -53,6 +53,7 @@ refer to the class docstring.
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -113,30 +114,33 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         obj = self._get_obj(inplace)
         if isinstance(agents, pd.DataFrame):
             new_agents = agents
-            if "unique_id" != agents.index.name:
-                try:
-                    new_agents.set_index("unique_id", inplace=True, drop=True)
-                except KeyError:
-                    raise KeyError("DataFrame must have a unique_id column/index.")
+            if "unique_id" == agents.index.name or "unique_id" in agents.columns:
+                warnings.warn("Dataframe should not have a unique_id index/column. It will be ignored.", DeprecationWarning)
         elif isinstance(agents, dict):
-            if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
-            index = agents.pop("unique_id")
-            if not isinstance(index, list):
-                index = [index]
-            new_agents = pd.DataFrame(agents, index=pd.Index(index, name="unique_id"))
+            if "unique_id" in agents:
+                warnings.warn("Dictionary should not have a unique_id key. It will be ignored.", DeprecationWarning)
+            if isinstance(next(iter(agents.values())), list):
+                index = range(len(next(iter(agents.values()))))
+            else:
+                index = [0]
+            new_agents = pd.DataFrame(agents, index=index)
         else:
-            if len(agents) != len(obj._agents.columns) + 1:
+            if len(agents) not in {len(obj._agents.columns), len(obj._agents.columns) + 1}:
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
-            columns = pd.Index(["unique_id"]).append(obj._agents.columns.copy())
-            new_agents = pd.DataFrame([agents], columns=columns).set_index(
-                "unique_id", drop=True
-            )
+            if len(agents) == len(obj._agents.columns) + 1:
+                warnings.warn("Length of data should have the number of columns in the AgentSet," +
+                    "we suppose the first element is the unique_id. It will be ignored.", DeprecationWarning)
+                agents = agents[1:]
+            new_agents = pd.DataFrame([agents], columns=obj._agents.columns.copy())
 
-        if new_agents.index.dtype != "int64":
-            new_agents.index = new_agents.index.astype("int64")
+        new_agents.drop("unique_id", errors="ignore", inplace=True)
+        if len(self.agents) == 0:
+            new_agents["unique_id"] = np.arange(len(new_agents))
+        else:
+            new_agents["unique_id"] = np.arange(self.index.max() + 1, self.index.max() + 1 + len(new_agents))
+        new_agents.set_index("unique_id", inplace=True, drop=True)
 
         if not obj._agents.index.intersection(new_agents.index).empty:
             raise KeyError("Some IDs already exist in the agent set.")
@@ -215,7 +219,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
                 "Either attr_names must be a dictionary with columns as keys and values or values must be provided."
             )
 
-        non_masked_df = obj._agents[~b_mask]
+        non_masked_df = obj._agents[~b_mask] if len(b_mask) > 0 else pd.DataFrame()
         original_index = obj._agents.index
         obj._agents = pd.concat([non_masked_df, masked_df])
         obj._agents = obj._agents.reindex(original_index)
@@ -275,6 +279,11 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         new_obj._agents = pl.DataFrame(self._agents)
         new_obj._mask = pl.Series(self._mask)
         return new_obj
+    
+    def shift_indexes(self, first_index: int, inplace: bool = True):
+        obj = self._get_obj(inplace)
+        obj._agents.index = np.arange(first_index, first_index + len(obj._agents))
+        return obj
 
     def _concatenate_agentsets(
         self,
