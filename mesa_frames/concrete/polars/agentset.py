@@ -59,6 +59,7 @@ refer to the class docstring.
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
+import warnings
 
 import polars as pl
 from polars._typing import IntoExpr
@@ -120,20 +121,28 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         """
         obj = self._get_obj(inplace)
         if isinstance(agents, pl.DataFrame):
-            if "unique_id" not in agents.columns:
-                raise KeyError("DataFrame must have a unique_id column.")
+            if "unique_id" in agents.columns:
+                warnings.warn("Dataframe should not have a unique_id index/column. It will be ignored.")
             new_agents = agents
         elif isinstance(agents, dict):
-            if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
+            if "unique_id" in agents:
+                warnings.warn("Dictionary should not have a unique_id key. It will be ignored.")
             new_agents = pl.DataFrame(agents)
         else:
-            if len(agents) != len(obj._agents.columns):
+            if len(agents) not in {len(obj._agents.columns), len(obj._agents.columns) + 1}:
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
+            if len(agents) == len(obj._agents.columns):
+                warnings.warn("Length of data should have the number of columns in the AgentSet," +
+                    "we suppose the first element is the unique_id. It will be ignored.")
             new_agents = pl.DataFrame([agents], schema=obj._agents.schema)
 
+        if len(self.agents) == 0:
+            unique_ids = pl.arange(len(new_agents))
+        else:
+            unique_ids = pl.arange(self.index.max() + 1, self.index.max() + 1 + len(new_agents))
+        new_agents = new_agents.with_columns(unique_ids.alias("unique_id"))
         if new_agents["unique_id"].dtype != pl.Int64:
             raise TypeError("unique_id column must be of type int64.")
 
@@ -293,7 +302,14 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 .to_pandas()
             )
         return new_obj
-
+    
+    def shift_indexes(self, first_index: int, inplace: bool = True):
+        obj = self._get_obj(inplace)
+        obj._agents = obj._agents.with_columns(
+            pl.arange(first_index, first_index + len(obj._agents)).alias("unique_id")
+        )
+        return obj
+    
     def _concatenate_agentsets(
         self,
         agentsets: Iterable[Self],

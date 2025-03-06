@@ -77,10 +77,6 @@ class Test_AgentsDF:
             + agentset_polars._agents["unique_id"].to_list()
         )
 
-        # Test if adding the same AgentSetDF raises ValueError
-        with pytest.raises(ValueError):
-            agents.add(agentset_pandas, inplace=False)
-
     def test_contains(
         self, fix2_AgentSetPandas_with_unique_id: ExampleAgentSetPandas, fix_AgentsDF: AgentsDF
     ):
@@ -629,10 +625,6 @@ class Test_AgentsDF:
             + agentset_polars._agents["unique_id"].to_list()
         )
 
-        # Test if adding the same AgentSetDF raises ValueError
-        with pytest.raises(ValueError):
-            result + agentset_pandas
-
     def test___contains__(
         self, fix_AgentsDF: AgentsDF, fix2_AgentSetPandas_with_unique_id: ExampleAgentSetPandas
     ):
@@ -995,3 +987,8 @@ class Test_AgentsDF:
                 == agents1._agentsets[1].select(mask1, negate=True).active_agents
             )
         )
+
+    def test_shift_indexes(self, fix_AgentsDF: AgentsDF):
+        agents = fix_AgentsDF
+        agents.shift_indexes(20)
+        assert agents._ids.to_list() == [20, 21, 22, 23, 24, 25, 26, 27]

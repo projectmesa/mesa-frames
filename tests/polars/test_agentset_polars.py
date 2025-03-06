@@ -43,7 +43,7 @@ def fix2_AgentSetPolars_with_unique_id() -> ExampleAgentSetPolars:
     model.agents.add(agents)
     space = GridPandas(model, dimensions=[3, 3], capacity=2)
     model.space = space
-    space.place_agents(agents=[4, 5], pos=[[2, 1], [1, 2]])
+    space.place_agents(agents=[0, 1], pos=[[2, 1], [1, 2]])
     return agents
 
 
@@ -83,7 +83,7 @@ class Test_AgentSetPolars:
 
         # Test with a list (Sequence[Any])
         result = agents.add([10, 5, 10], inplace=False)
-        assert result.agents["unique_id"].to_list() == [0, 1, 2, 3, 10]
+        assert result.agents["unique_id"].to_list() == [0, 1, 2, 3, 4]
         assert result.agents["wealth"].to_list() == [1, 2, 3, 4, 5]
         assert result.agents["age"].to_list() == [10, 20, 30, 40, 10]
 
@@ -290,7 +290,7 @@ class Test_AgentSetPolars:
 
         # Test with an AgentSetPolars and a dict
         agents3 = agents + {"unique_id": 10, "wealth": 5}
-        assert agents3.agents["unique_id"].to_list() == [0, 1, 2, 3, 10]
+        assert agents3.agents["unique_id"].to_list() == [0, 1, 2, 3, 4]
         assert agents3.agents["wealth"].to_list() == [1, 2, 3, 4, 5]
 
     def test__contains__(self, fix1_AgentSetPolars_with_unique_id: ExampleAgentSetPolars):
@@ -362,7 +362,7 @@ class Test_AgentSetPolars:
         # Test with an AgentSetPolars and a dict
         agents = deepcopy(fix1_AgentSetPolars_with_unique_id)
         agents += {"unique_id": 10, "wealth": 5}
-        assert agents.agents["unique_id"].to_list() == [0, 1, 2, 3, 10]
+        assert agents.agents["unique_id"].to_list() == [0, 1, 2, 3, 4]
         assert agents.agents["wealth"].to_list() == [1, 2, 3, 4, 5]
 
     def test__iter__(self, fix1_AgentSetPolars_with_unique_id: ExampleAgentSetPolars):
@@ -441,7 +441,7 @@ class Test_AgentSetPolars:
 
         # Test agents.setter
         agents.agents = agents2.agents
-        assert agents.agents["unique_id"].to_list() == [4, 5, 6, 7]
+        assert agents.agents["unique_id"].to_list() == [0, 1, 2, 3]
 
     def test_active_agents(self, fix1_AgentSetPolars_with_unique_id: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars_with_unique_id
@@ -467,3 +467,8 @@ class Test_AgentSetPolars:
         assert pos.columns == ["unique_id", "dim_0", "dim_1"]
         assert pos["dim_0"].to_list() == [0, 1, None, None]
         assert pos["dim_1"].to_list() == [0, 1, None, None]
+
+    def test_shift_indexes(self, fix1_AgentSetPolars_with_unique_id: ExampleAgentSetPolars):
+        agents = fix1_AgentSetPolars_with_unique_id
+        agents.shift_indexes(10, inplace=True)
+        assert agents.agents["unique_id"].to_list() == [10, 11, 12, 13]
