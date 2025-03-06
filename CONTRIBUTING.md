@@ -6,7 +6,7 @@ For a more general and comprehensive guide, please refer to [mesa's main contrib
 
 ## Project Roadmap 🗺️
 
-Before contributing, we recommend reviewing our [roadmap](contribution/roadmap.md) file to understand the project's current priorities, upcoming features, and long-term vision. This will help ensure your contributions align with the project's direction.
+Before contributing, we recommend reviewing our [roadmap](https://projectmesa.github.io/mesa-frames/roadmap/) file to understand the project's current priorities, upcoming features, and long-term vision. This will help ensure your contributions align with the project's direction.
 
 ## How to Contribute 💡
 
