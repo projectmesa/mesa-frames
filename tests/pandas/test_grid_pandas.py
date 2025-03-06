@@ -10,14 +10,14 @@ from tests.pandas.test_agentset_pandas import (
 )
 from tests.polars.test_agentset_polars import (
     ExampleAgentSetPolars,
-    fix2_AgentSetPolars,
+    fix2_AgentSetPolars_with_unique_id,
 )
 
 
 # This serves otherwise ruff complains about the two fixtures not being used
 def not_called():
     fix1_AgentSetPandas_with_unique_id()
-    fix2_AgentSetPolars()
+    fix2_AgentSetPolars_with_unique_id()
 
 
 @tg.typechecked
@@ -26,10 +26,10 @@ class TestGridPandas:
     def model(
         self,
         fix1_AgentSetPandas_with_unique_id: ExampleAgentSetPandas,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars_with_unique_id: ExampleAgentSetPolars,
     ) -> ModelDF:
         model = ModelDF()
-        model.agents.add([fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars])
+        model.agents.add([fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars_with_unique_id])
         return model
 
     @pytest.fixture
@@ -126,7 +126,7 @@ class TestGridPandas:
         self,
         grid_moore: GridPandas,
         fix1_AgentSetPandas_with_unique_id: ExampleAgentSetPandas,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars_with_unique_id: ExampleAgentSetPolars,
     ):
         # Test with GridCoordinate
         dir = grid_moore.get_directions(pos0=[1, 1], pos1=[2, 2])
@@ -143,11 +143,11 @@ class TestGridPandas:
         # Test with missing agents (raises ValueError)
         with pytest.raises(ValueError):
             grid_moore.get_directions(
-                agents0=fix1_AgentSetPandas_with_unique_id, agents1=fix2_AgentSetPolars
+                agents0=fix1_AgentSetPandas_with_unique_id, agents1=fix2_AgentSetPolars_with_unique_id
             )
 
         # Test with IdsLike
-        grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
+        grid_moore.place_agents(fix2_AgentSetPolars_with_unique_id, [[0, 1], [0, 2], [1, 0], [1, 2]])
         dir = grid_moore.get_directions(agents0=[0, 1], agents1=[4, 5])
         assert isinstance(dir, pd.DataFrame)
         assert dir["dim_0"].to_list() == [0, -1]
@@ -156,7 +156,7 @@ class TestGridPandas:
         # Test with two AgentSetDFs
         grid_moore.place_agents([2, 3], [[1, 1], [2, 2]])
         dir = grid_moore.get_directions(
-            agents0=fix1_AgentSetPandas_with_unique_id, agents1=fix2_AgentSetPolars
+            agents0=fix1_AgentSetPandas_with_unique_id, agents1=fix2_AgentSetPolars_with_unique_id
         )
         assert isinstance(dir, pd.DataFrame)
         assert dir["dim_0"].to_list() == [0, -1, 0, -1]
@@ -181,7 +181,7 @@ class TestGridPandas:
         self,
         grid_moore: GridPandas,
         fix1_AgentSetPandas_with_unique_id: ExampleAgentSetPandas,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars_with_unique_id: ExampleAgentSetPolars,
     ):
         # Test with GridCoordinate
         dist = grid_moore.get_distances(pos0=[1, 1], pos1=[2, 2])
@@ -196,11 +196,11 @@ class TestGridPandas:
         # Test with missing agents (raises ValueError)
         with pytest.raises(ValueError):
             grid_moore.get_distances(
-                agents0=fix1_AgentSetPandas_with_unique_id, agents1=fix2_AgentSetPolars
+                agents0=fix1_AgentSetPandas_with_unique_id, agents1=fix2_AgentSetPolars_with_unique_id
             )
 
         # Test with IdsLike
-        grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
+        grid_moore.place_agents(fix2_AgentSetPolars_with_unique_id, [[0, 1], [0, 2], [1, 0], [1, 2]])
         dist = grid_moore.get_distances(agents0=[0, 1], agents1=[4, 5])
         assert isinstance(dist, pd.DataFrame)
         assert np.allclose(dist["distance"].to_list(), [1.0, np.sqrt(2)])
@@ -208,7 +208,7 @@ class TestGridPandas:
         # Test with two AgentSetDFs
         grid_moore.place_agents([2, 3], [[1, 1], [2, 2]])
         dist = grid_moore.get_distances(
-            agents0=fix1_AgentSetPandas_with_unique_id, agents1=fix2_AgentSetPolars
+            agents0=fix1_AgentSetPandas_with_unique_id, agents1=fix2_AgentSetPolars_with_unique_id
         )
         assert isinstance(dist, pd.DataFrame)
         assert np.allclose(dist["distance"].to_list(), [1.0, np.sqrt(2), 1.0, 1.0])
@@ -430,7 +430,7 @@ class TestGridPandas:
 
     def test_get_neighbors(
         self,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars_with_unique_id: ExampleAgentSetPolars,
         grid_moore: GridPandas,
         grid_hexagonal: GridPandas,
         grid_von_neumann: GridPandas,
@@ -582,7 +582,7 @@ class TestGridPandas:
         self,
         grid_moore: GridPandas,
         fix1_AgentSetPandas_with_unique_id: ExampleAgentSetPandas,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars_with_unique_id: ExampleAgentSetPolars,
     ):
         # Test with IdsLike
         space = grid_moore.move_agents(agents=1, pos=[1, 1], inplace=False)
@@ -595,7 +595,7 @@ class TestGridPandas:
         # Test with AgentSetDF
         with pytest.warns(RuntimeWarning):
             space = grid_moore.move_agents(
-                agents=fix2_AgentSetPolars,
+                agents=fix2_AgentSetPolars_with_unique_id,
                 pos=[[0, 0], [1, 0], [2, 0], [0, 1]],
                 inplace=False,
             )
@@ -608,7 +608,7 @@ class TestGridPandas:
         # Test with Collection[AgentSetDF]
         with pytest.warns(RuntimeWarning):
             space = grid_moore.move_agents(
-                agents=[fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars],
+                agents=[fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars_with_unique_id],
                 pos=[[0, 2], [1, 2], [2, 2], [0, 1], [1, 1], [2, 1], [0, 0], [1, 0]],
                 inplace=False,
             )
@@ -762,7 +762,7 @@ class TestGridPandas:
         self,
         grid_moore: GridPandas,
         fix1_AgentSetPandas_with_unique_id: ExampleAgentSetPandas,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars_with_unique_id: ExampleAgentSetPolars,
     ):
         # Test with IdsLike
         with pytest.warns(RuntimeWarning):
@@ -785,7 +785,7 @@ class TestGridPandas:
 
         # Test with AgentSetDF
         space = grid_moore.place_agents(
-            agents=fix2_AgentSetPolars,
+            agents=fix2_AgentSetPolars_with_unique_id,
             pos=[[0, 0], [1, 0], [2, 0], [0, 1]],
             inplace=False,
         )
@@ -798,7 +798,7 @@ class TestGridPandas:
         # Test with Collection[AgentSetDF]
         with pytest.warns(RuntimeWarning):
             space = grid_moore.place_agents(
-                agents=[fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars],
+                agents=[fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars_with_unique_id],
                 pos=[[0, 2], [1, 2], [2, 2], [0, 1], [1, 1], [2, 1], [0, 0], [1, 0]],
                 inplace=False,
             )
@@ -955,7 +955,7 @@ class TestGridPandas:
         self,
         grid_moore: GridPandas,
         fix1_AgentSetPandas_with_unique_id: ExampleAgentSetPandas,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars_with_unique_id: ExampleAgentSetPolars,
     ):
         grid_moore.move_agents(
             [0, 1, 2, 3, 4, 5, 6, 7],
@@ -982,7 +982,7 @@ class TestGridPandas:
 
         # Test with Collection[AgentSetDF]
         space = grid_moore.remove_agents(
-            [fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars], inplace=False
+            [fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars_with_unique_id], inplace=False
         )
         assert [
             x for id in space.model.agents.index.values() for x in id.to_list()
@@ -1153,7 +1153,7 @@ class TestGridPandas:
         self,
         grid_moore: GridPandas,
         fix1_AgentSetPandas_with_unique_id: ExampleAgentSetPandas,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars_with_unique_id: ExampleAgentSetPolars,
     ):
         grid_moore.move_agents(
             [0, 1, 2, 3, 4, 5, 6, 7],
@@ -1167,7 +1167,7 @@ class TestGridPandas:
         assert space.agents.loc[3].tolist() == grid_moore.agents.loc[1].tolist()
         # Test with AgentSetDFs
         space = grid_moore.swap_agents(
-            fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars, inplace=False
+            fix1_AgentSetPandas_with_unique_id, fix2_AgentSetPolars_with_unique_id, inplace=False
         )
         assert space.agents.loc[0].to_list() == grid_moore.agents.loc[4].to_list()
         assert space.agents.loc[1].to_list() == grid_moore.agents.loc[5].to_list()
