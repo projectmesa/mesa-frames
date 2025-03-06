@@ -122,11 +122,11 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         obj = self._get_obj(inplace)
         if isinstance(agents, pl.DataFrame):
             if "unique_id" in agents.columns:
-                warnings.warn("Dataframe should not have a unique_id index/column. It will be ignored.")
+                warnings.warn("Dataframe should not have a unique_id index/column. It will be ignored.", DeprecationWarning)
             new_agents = agents
         elif isinstance(agents, dict):
             if "unique_id" in agents:
-                warnings.warn("Dictionary should not have a unique_id key. It will be ignored.")
+                warnings.warn("Dictionary should not have a unique_id key. It will be ignored.", DeprecationWarning)
             new_agents = pl.DataFrame(agents)
         else:
             if len(agents) not in {len(obj._agents.columns), len(obj._agents.columns) + 1}:
@@ -135,7 +135,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 )
             if len(agents) == len(obj._agents.columns):
                 warnings.warn("Length of data should have the number of columns in the AgentSet," +
-                    "we suppose the first element is the unique_id. It will be ignored.")
+                    "we suppose the first element is the unique_id. It will be ignored.", DeprecationWarning)
             new_agents = pl.DataFrame([agents], schema=obj._agents.schema)
 
         if len(self.agents) == 0:

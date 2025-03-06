@@ -115,10 +115,10 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         if isinstance(agents, pd.DataFrame):
             new_agents = agents
             if "unique_id" == agents.index.name or "unique_id" in agents.columns:
-                warnings.warn("Dataframe should not have a unique_id index/column. It will be ignored.")
+                warnings.warn("Dataframe should not have a unique_id index/column. It will be ignored.", DeprecationWarning)
         elif isinstance(agents, dict):
             if "unique_id" in agents:
-                warnings.warn("Dictionary should not have a unique_id key. It will be ignored.")
+                warnings.warn("Dictionary should not have a unique_id key. It will be ignored.", DeprecationWarning)
             if isinstance(next(iter(agents.values())), list):
                 index = range(len(next(iter(agents.values()))))
             else:
@@ -131,7 +131,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
                 )
             if len(agents) == len(obj._agents.columns) + 1:
                 warnings.warn("Length of data should have the number of columns in the AgentSet," +
-                    "we suppose the first element is the unique_id. It will be ignored.")
+                    "we suppose the first element is the unique_id. It will be ignored.", DeprecationWarning)
                 agents = agents[1:]
             new_agents = pd.DataFrame([agents], columns=obj._agents.columns.copy())
 

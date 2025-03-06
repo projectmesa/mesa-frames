@@ -90,19 +90,22 @@ class Test_AgentSetPandas:
         agents2 = fix2_AgentSetPandas_with_unique_id
 
         # Test with a DataFrame
-        result = agents.add(agents2.agents, inplace=False)
+        with pytest.warns(DeprecationWarning):
+            result = agents.add(agents2.agents, inplace=False)
         assert result.agents.index.to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
         assert agents.agents.index.name == "unique_id"
 
         # Test with a list (Sequence[Any])
-        result = agents.add([10, 5, 10], inplace=False)
+        with pytest.warns(DeprecationWarning):
+            result = agents.add([10, 5, 10], inplace=False)
         assert result.agents.index.to_list() == [0, 1, 2, 3, 4]
         assert result.agents.wealth.to_list() == [1, 2, 3, 4, 5]
         assert result.agents.age.to_list() == [10, 20, 30, 40, 10]
         assert agents.agents.index.name == "unique_id"
 
         # Test with a dict[str, Any]
-        agents.add({"unique_id": [4, 5], "wealth": [5, 6], "age": [50, 60]})
+        with pytest.warns(DeprecationWarning):
+            agents.add({"unique_id": [4, 5], "wealth": [5, 6], "age": [50, 60]})
         assert agents.agents.wealth.tolist() == [1, 2, 3, 4, 5, 6]
         assert agents.agents.index.tolist() == [0, 1, 2, 3, 4, 5]
         assert agents.agents.age.tolist() == [10, 20, 30, 40, 50, 60]
