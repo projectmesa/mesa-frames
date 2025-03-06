@@ -62,11 +62,19 @@ import pandas as pd
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 from mesa_frames.utils import copydoc
+import warnings
 
 
 @copydoc(GridDF)
 class GridPandas(GridDF, PandasMixin):
-    """pandas-based implementation of GridDF."""
+    """
+    WARNING: GridPandas is deprecated and will be removed in the next release of mesa-frames.
+    pandas-based implementation of GridDF.
+    """
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn("GridPandas is deprecated and will be removed in the next release of mesa-frames.", DeprecationWarning, stacklevel=2)
+        super().__init__(*args, **kwargs)
 
     _agents: pd.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {

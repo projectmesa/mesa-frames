@@ -7,40 +7,59 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report! 🙏
+        Thanks for taking the time to fill out this bug report! 🙏  
         Please provide as much detail as possible to help us address the issue.
-
-        Use the following suggested headers to structure your bug report.
-        Feel free to modify or add sections as needed to best communicate the issue.
-
-        ## 📝 Description
-        [Provide a clear and concise description of the bug]
-
-        ## 🔄 Steps to Reproduce
-        [Provide a minimal code example that reproduces the error, see https://stackoverflow.com/help/minimal-reproducible-example]
-        ```python
-        # Your code here
-        ```
-
-        ## 🎯 Expected Behavior
-        [What did you expect to happen?]
-
-        ## 🚨 Actual Behavior
-        [What actually happened? Include any error messages or unexpected output]
-
-        ## 🖥️ Environment Information
-        Python version:
-        Operating System:
-        
-        Relevant packages (output of `pip list` or the specific packages related to this issue):
-        ```
-        # Paste your pip list output or relevant package versions here
-        ```
-
-        ## 📊 Relevant log output
-        ```
-        # Paste any relevant log output here
-        ```
-
-        ## ➕ Additional Context
-        [Add any other context about the problem here]
+  - type: textarea
+    id: description
+    attributes:
+      label: "📝 Description"
+      description: "Provide a clear and concise description of the bug."
+      placeholder: "Describe the bug here..."
+  - type: textarea
+    id: steps
+    attributes:
+      label: "🔄 Steps to Reproduce"
+      description: "Provide a minimal code example that reproduces the error. See [this guide](https://stackoverflow.com/help/minimal-reproducible-example) for more details."
+      placeholder: "```python\n# Your code here\n```"
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: "🎯 Expected Behavior"
+      description: "What did you expect to happen?"
+      placeholder: "Describe expected behavior here..."
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: "🚨 Actual Behavior"
+      description: "What actually happened? Include any error messages or unexpected output."
+      placeholder: "Describe what actually happened..."
+  - type: input
+    id: python_version
+    attributes:
+      label: "🖥️ Python Version"
+      description: "e.g., Python 3.8.10"
+      placeholder: "Python version..."
+  - type: input
+    id: operating_system
+    attributes:
+      label: "Operating System"
+      description: "e.g., Windows 10, macOS 11.2, etc."
+      placeholder: "Operating system..."
+  - type: textarea
+    id: pip_list
+    attributes:
+      label: "Relevant Packages"
+      description: "Output of `pip list` or the specific packages related to this issue."
+      placeholder: "Paste your pip list output here..."
+  - type: textarea
+    id: log_output
+    attributes:
+      label: "📊 Relevant Log Output"
+      description: "Paste any relevant log output here."
+      placeholder: "Log output..."
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: "➕ Additional Context"
+      description: "Add any other context about the problem here."
+      placeholder: "Additional context..."
