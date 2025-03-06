@@ -113,4 +113,6 @@ nav:
     - Advanced Tutorial: user-guide/3_advanced-tutorial.md
     - Benchmarks: user-guide/4_benchmarks.md
   - API Reference: api/index.html
-  - Contributing: contributing.md
+  - Contributing:
+    - Contribution Guide: contributing.md
+    - Roadmap: roadmap.md

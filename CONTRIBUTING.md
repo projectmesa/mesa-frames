@@ -4,6 +4,10 @@ Thank you for taking the time to contribute to **mesa-frames**! Since the projec
 
 For a more general and comprehensive guide, please refer to [mesa's main contribution guidelines](https://github.com/projectmesa/mesa/blob/main/CONTRIBUTING.md). 📜
 
+## Project Roadmap 🗺️
+
+Before contributing, we recommend reviewing our [roadmap](contribution/roadmap.md) file to understand the project's current priorities, upcoming features, and long-term vision. This will help ensure your contributions align with the project's direction.
+
 ## How to Contribute 💡
 
 ### 1. Prerequisite Installations ⚙️
