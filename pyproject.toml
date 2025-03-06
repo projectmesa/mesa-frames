@@ -116,3 +116,11 @@ convention = "numpy"
 "examples/*" = ["D"]
 "docs/*" = ["D"]
 
+[tool.uv.sources]
+mesa-frames = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "mesa-frames[dev]",
+]
+
