@@ -161,3 +161,4 @@ mesa-frames is made available under the MIT License. This license allows you to 
 - The software is provided "as is", without warranty of any kind.
 
 For the full license text, see the [LICENSE](https://github.com/projectmesa/mesa-frames/blob/main/LICENSE) file in the GitHub repository.
+This is a test commit
