@@ -59,6 +59,7 @@ refer to the class docstring.
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
+import uuid
 
 import polars as pl
 from polars._typing import IntoExpr
@@ -121,18 +122,32 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         obj = self._get_obj(inplace)
         if isinstance(agents, pl.DataFrame):
             if "unique_id" not in agents.columns:
-                raise KeyError("DataFrame must have a unique_id column.")
+                agents = agents.with_columns(
+                    pl.Series(
+                        "unique_id",
+                        [(uuid.uuid4().int % 10**18) for _ in range(agents.height)],
+                    )
+                )
+                #mod 10**18 to avoid overflow
             new_agents = agents
         elif isinstance(agents, dict):
             if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
+                agents["unique_id"] = uuid.uuid4().int % 10**18
             new_agents = pl.DataFrame(agents)
         else:
-            if len(agents) != len(obj._agents.columns):
+            # exclude unique_id column 
+            if len(agents) != len(obj._agents.columns) - 1:
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
-            new_agents = pl.DataFrame([agents], schema=obj._agents.schema)
+            new_agents = pl.DataFrame(
+                [
+                    {
+                        **dict(zip(obj._agents.columns, agents)),
+                        "unique_id": (uuid.uuid4().int % 10**18),
+                    }
+                ]
+            )
 
         if new_agents["unique_id"].dtype != pl.Int64:
             raise TypeError("unique_id column must be of type int64.")
