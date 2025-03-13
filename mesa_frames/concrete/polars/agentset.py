@@ -59,7 +59,6 @@ refer to the class docstring.
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
-import uuid
 
 import polars as pl
 from polars._typing import IntoExpr
@@ -120,19 +119,23 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
+        rng = getattr(self, "rng", np.random.default_rng())
+        if not isinstance(agents, (pl.DataFrame, dict, Sequence)):
+            raise TypeError("Agents must be a DataFrame, dict, or Sequence[Any].")
+        
         if isinstance(agents, pl.DataFrame):
-            if "unique_id" not in agents.columns:
-                agents = agents.with_columns(
-                    pl.Series(
-                        "unique_id",
-                        [(uuid.uuid4().int % 10**18) for _ in range(agents.height)],
-                    )
-                )
-                #mod 10**18 to avoid overflow
+            if "unique_id" in agents.columns:
+                raise ValueError("The input agents data already contains a 'unique_id' column. Please remove it before adding.")
+
+            unique_ids = rng.integers(low=0, high=2**64, size=agents.height, dtype=np.uint64)
+
+            agents = agents.with_columns(pl.Series("unique_id", unique_ids, dtype=pl.UInt64))
             new_agents = agents
         elif isinstance(agents, dict):
-            if "unique_id" not in agents:
-                agents["unique_id"] = uuid.uuid4().int % 10**18
+            if "unique_id" in agents:
+                raise ValueError("The input agents dictionary already contains a 'unique_id' key. Please remove it before adding.")
+        
+            agents["unique_id"] = rng.integers(low=0, high=2**64, dtype=np.uint64)
             new_agents = pl.DataFrame(agents)
         else:
             # exclude unique_id column 
@@ -144,13 +147,14 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 [
                     {
                         **dict(zip(obj._agents.columns, agents)),
-                        "unique_id": (uuid.uuid4().int % 10**18),
+                        "unique_id": rng.integers(low=0, high=2**64, dtype=np.uint64),
                     }
                 ]
             )
 
-        if new_agents["unique_id"].dtype != pl.Int64:
-            raise TypeError("unique_id column must be of type int64.")
+
+        if new_agents["unique_id"].dtype != pl.UInt64:
+            raise TypeError("unique_id column must be of type UInt64.")
 
         # If self._mask is pl.Expr, then new mask is the same.
         # If self._mask is pl.Series[bool], then new mask has to be updated.
