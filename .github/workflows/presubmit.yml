@@ -1,4 +1,4 @@
-name: Presubmit.ai PR Review
+name: AI Review
 
 on:
   pull_request_target:
@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       member: ${{ steps.check.outputs.member }}
-    # Only run this membership check if the comment is on a pull request.
     if: github.event_name == 'issue_comment' && github.event.issue.pull_request != null
     steps:
       - name: Check if commenter is in projectmesa
@@ -24,9 +23,9 @@ jobs:
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/orgs/projectmesa/members/$username)
           if [ "$response" -eq 204 ]; then
-            echo "::set-output name=member::true"
+            echo "member=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=member::false"
+            echo "member=false" >> $GITHUB_OUTPUT
           fi
 
   run-ai-review:
