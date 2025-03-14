@@ -85,6 +85,7 @@ class ModelDF:
         self.current_id = 0
         self._agents = AgentsDF(self)
         self._space = None
+        self._steps = 0
 
     def get_agents_of_type(self, agent_type: type) -> "AgentSetDF":
         """Retrieve the AgentSetDF of a specified type.
@@ -131,7 +132,19 @@ class ModelDF:
 
         The default method calls the step() method of all agents. Overload as needed.
         """
+        self._steps += 1
         self.agents.step()
+
+    @property
+    def steps(self) -> int:
+        """Get the current step count.
+
+        Returns
+        -------
+        int
+            The current step count of the model.
+        """
+        return self._steps
 
     @property
     def agents(self) -> AgentsDF:
