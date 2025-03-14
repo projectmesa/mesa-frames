@@ -134,8 +134,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             )
 
             agents = agents.with_columns(
-                pl.Series("unique_id", unique_ids, dtype=pl.UInt64)
+                pl.Series("unique_id", unique_ids).cast(pl.UInt64)
             )
+
             new_agents = agents
         elif isinstance(agents, dict):
             if "unique_id" in agents:
@@ -143,7 +144,10 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                     "The input agents data contains 'unique_id'. This is no longer supported as unique_ids are managed automatically by mesa-frames. Please remove it before adding the agents"
                 )
 
-            agents["unique_id"] = rng.integers(low=0, high=2**64, dtype=np.uint64)
+            agents["unique_id"] = rng.integers(low=0, high=10**18, dtype=np.uint64)
+            agents = pl.DataFrame(agents).with_columns(
+                pl.col("unique_id").cast(pl.UInt64)
+            )
             new_agents = pl.DataFrame(agents)
         else:
             # exclude unique_id column
@@ -158,7 +162,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                         "unique_id": rng.integers(low=0, high=2**64, dtype=np.uint64),
                     }
                 ]
-            )
+            ).with_columns(pl.col("unique_id").cast(pl.UInt64))
 
         if new_agents["unique_id"].dtype != pl.UInt64:
             raise TypeError("unique_id column must be of type UInt64.")
