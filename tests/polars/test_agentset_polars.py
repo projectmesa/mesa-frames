@@ -476,12 +476,17 @@ class Test_AgentSetPolars:
         agents = fix1_AgentSetPolars
 
         # Test with select
+
+        unique_ids = agents.agents.filter(agents.agents["wealth"] > 2)[
+            "unique_id"
+        ].to_list()
+
         agents.select(agents.agents["wealth"] > 2, inplace=True)
-        assert agents.active_agents["unique_id"].to_list() == [2, 3]
+        assert agents.active_agents["unique_id"].to_list() == unique_ids
 
         # Test with active_agents.setter
         agents.active_agents = agents.agents["wealth"] > 2
-        assert agents.active_agents["unique_id"].to_list() == [2, 3]
+        assert agents.active_agents["unique_id"].to_list() == unique_ids
 
     def test_inactive_agents(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
