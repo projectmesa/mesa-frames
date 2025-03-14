@@ -441,6 +441,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         self,
         mask: AgentPolarsMask = None,
     ) -> pl.DataFrame:
+        
         if (isinstance(mask, pl.Series) and mask.dtype == pl.Boolean) or isinstance(
             mask, pl.Expr
         ):

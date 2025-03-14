@@ -214,8 +214,10 @@ class Test_AgentSetPolars:
 
     def test_remove(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
-        agents.remove([0, 1])
-        assert agents.agents["unique_id"].to_list() == [2, 3]
+
+        agents_unique_ids = agents.agents["unique_id"].to_list()
+        agents.remove(agents_unique_ids[:2])
+        assert agents.agents["unique_id"].to_list() == agents_unique_ids[2:]
         with pytest.raises(KeyError):
             agents.remove([1])
 
