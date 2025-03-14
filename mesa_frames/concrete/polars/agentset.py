@@ -119,26 +119,34 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
-        rng = getattr(self, "rng", np.random.default_rng())
+        rng = obj.random
         if not isinstance(agents, (pl.DataFrame, dict, Sequence)):
             raise TypeError("Agents must be a DataFrame, dict, or Sequence[Any].")
-        
+
         if isinstance(agents, pl.DataFrame):
             if "unique_id" in agents.columns:
-                raise ValueError("The input agents data already contains a 'unique_id' column. Please remove it before adding.")
+                raise ValueError(
+                    "The input agents data contains 'unique_id'. This is no longer supported as unique_ids are managed automatically by mesa-frames. Please remove it before adding the agents"
+                )
 
-            unique_ids = rng.integers(low=0, high=2**64, size=agents.height, dtype=np.uint64)
+            unique_ids = rng.integers(
+                low=0, high=2**64, size=agents.height, dtype=np.uint64
+            )
 
-            agents = agents.with_columns(pl.Series("unique_id", unique_ids, dtype=pl.UInt64))
+            agents = agents.with_columns(
+                pl.Series("unique_id", unique_ids, dtype=pl.UInt64)
+            )
             new_agents = agents
         elif isinstance(agents, dict):
             if "unique_id" in agents:
-                raise ValueError("The input agents dictionary already contains a 'unique_id' key. Please remove it before adding.")
-        
+                raise ValueError(
+                    "The input agents data contains 'unique_id'. This is no longer supported as unique_ids are managed automatically by mesa-frames. Please remove it before adding the agents"
+                )
+
             agents["unique_id"] = rng.integers(low=0, high=2**64, dtype=np.uint64)
             new_agents = pl.DataFrame(agents)
         else:
-            # exclude unique_id column 
+            # exclude unique_id column
             if len(agents) != len(obj._agents.columns) - 1:
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
@@ -151,7 +159,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                     }
                 ]
             )
-
 
         if new_agents["unique_id"].dtype != pl.UInt64:
             raise TypeError("unique_id column must be of type UInt64.")
