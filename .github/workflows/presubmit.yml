@@ -21,7 +21,7 @@ jobs:
           # GitHub API returns a 204 status code if the user is a member.
           response=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/orgs/projectmesa/members/$username
+            https://api.github.com/orgs/projectmesa/members/$username)
           if [ "$response" -eq 204 ]; then
             echo "member=true" >> $GITHUB_OUTPUT
           else
