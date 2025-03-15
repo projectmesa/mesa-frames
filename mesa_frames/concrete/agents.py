@@ -82,7 +82,7 @@ class AgentsDF(AgentContainer):
         """
         self._model = model
         self._agentsets = []
-        self._ids = pl.Series(name="unique_id", dtype=pl.Int64)
+        self._ids = pl.Series(name="unique_id", dtype=pl.Utf8)
 
     def add(
         self, agents: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True
@@ -111,8 +111,6 @@ class AgentsDF(AgentContainer):
         if obj._check_agentsets_presence(other_list).any():
             raise ValueError("Some agentsets are already present in the AgentsDF.")
         for agentset in other_list:
-            if len(obj._agentsets) > 0: 
-                agentset.shift_indexes(obj._ids.max() + 1)
             obj._agentsets.append(agentset)
             obj._ids = pl.concat([obj._ids, pl.Series(agentset["unique_id"])])
         return obj

@@ -59,6 +59,7 @@ refer to the class docstring.
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
+import uuid
 import warnings
 
 import polars as pl
@@ -97,7 +98,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The model that the agent set belongs to.
         """
         self._model = model
-        self._agents = pl.DataFrame(schema={"unique_id": pl.Int64})
+        self._agents = pl.DataFrame(schema={"unique_id": pl.Utf8})
         self._mask = pl.repeat(True, len(self._agents), dtype=pl.Boolean, eager=True)
 
     def add(
@@ -138,14 +139,8 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                     "we suppose the first element is the unique_id. It will be ignored.", DeprecationWarning)
             new_agents = pl.DataFrame([agents], schema=obj._agents.schema)
 
-        if len(self.agents) == 0:
-            unique_ids = pl.arange(len(new_agents))
-        else:
-            unique_ids = pl.arange(self.index.max() + 1, self.index.max() + 1 + len(new_agents))
-        new_agents = new_agents.with_columns(unique_ids.alias("unique_id"))
-        if new_agents["unique_id"].dtype != pl.Int64:
-            raise TypeError("unique_id column must be of type int64.")
-
+        new_agents = new_agents.with_columns(pl.Series([uuid.uuid4().hex for _ in range(len(new_agents))]).alias("unique_id"))
+        
         # If self._mask is pl.Expr, then new mask is the same.
         # If self._mask is pl.Series[bool], then new mask has to be updated.
 
@@ -556,3 +551,4 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     @property
     def pos(self) -> pl.DataFrame:
         return super().pos
+    
