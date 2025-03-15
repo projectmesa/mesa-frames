@@ -87,6 +87,19 @@ class ModelDF:
         self._space = None
         self._steps = 0
 
+        self._user_step = self.step
+        self.step = self._wrapped_step
+
+    def _wrapped_step(self) -> None:
+        """Automatically increments step counter and calls user-defined step()."""
+        self._steps += 1
+        self._user_step()
+
+    @property
+    def steps(self) -> int:
+        """Get the current step count."""
+        return self._steps
+
     def get_agents_of_type(self, agent_type: type) -> "AgentSetDF":
         """Retrieve the AgentSetDF of a specified type.
 
@@ -132,7 +145,6 @@ class ModelDF:
 
         The default method calls the step() method of all agents. Overload as needed.
         """
-        self._steps += 1
         self.agents.step()
 
     @property
