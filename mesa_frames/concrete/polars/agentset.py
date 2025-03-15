@@ -119,31 +119,77 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
+        rng = np.random.default_rng()
+        if not isinstance(agents, (pl.DataFrame, dict, Sequence)):
+            raise TypeError("Agents must be a DataFrame, dict, or Sequence[Any].")
+
         if isinstance(agents, pl.DataFrame):
-            if "unique_id" not in agents.columns:
-                raise KeyError("DataFrame must have a unique_id column.")
+            if "unique_id" in agents.columns:
+                raise ValueError(
+                    "The input agents data contains 'unique_id'. This is no longer supported as unique_ids are managed automatically by mesa-frames. Please remove it before adding the agents"
+                )
+
+            unique_ids = rng.integers(
+                low=0,
+                high=2**63 - 1,
+                size=agents.height,
+                dtype=np.uint64,
+            ).astype(np.uint64)
+
+            agents = agents.with_columns(
+                pl.Series("unique_id", unique_ids).cast(pl.uint64)
+            )
+
             new_agents = agents
         elif isinstance(agents, dict):
-            if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
+            if "unique_id" in agents:
+                raise ValueError(
+                    "The input agents data contains 'unique_id'. This is no longer supported as unique_ids are managed automatically by mesa-frames. Please remove it before adding the agents"
+                )
+
+            agents["unique_id"] = rng.integers(
+                low=0,
+                high=2**63 - 1,
+                size=len(agents[next(iter(agents))]),
+                dtype=np.uint64,
+            ).astype(np.uint64)
+
+            agents = pl.DataFrame(agents).with_columns(
+                pl.col("unique_id").cast(pl.Int64)
+            )
             new_agents = pl.DataFrame(agents)
+
         else:
-            if len(agents) != len(obj._agents.columns):
+            # exclude unique_id column
+            if len(agents) != len(obj._agents.columns) - 1:
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
-            new_agents = pl.DataFrame([agents], schema=obj._agents.schema)
+            new_agents = pl.DataFrame(
+                [
+                    {
+                        **dict(zip(obj._agents.columns, agents)),
+                        "unique_id": rng.integers(
+                            low=0, high=2**63 - 1, size=len(agents), dtype=np.uint64
+                        ).astype(np.uint64),
+                    }
+                ]
+            ).with_columns(pl.col("unique_id").cast(pl.Int64))
 
         if new_agents["unique_id"].dtype != pl.Int64:
-            raise TypeError("unique_id column must be of type int64.")
+            raise TypeError("unique_id column must be of type uint64.")
 
         # If self._mask is pl.Expr, then new mask is the same.
         # If self._mask is pl.Series[bool], then new mask has to be updated.
 
         if isinstance(obj._mask, pl.Series):
             original_active_indices = obj._agents.filter(obj._mask)["unique_id"]
+        obj._agents = obj._agents.with_columns(pl.col("unique_id").cast(pl.Int64))
 
-        obj._agents = pl.concat([obj._agents, new_agents], how="diagonal_relaxed")
+        obj._agents = pl.concat(
+            [obj._agents, new_agents],
+            how="diagonal_relaxed",
+        )
 
         if isinstance(obj._mask, pl.Series):
             obj._update_mask(original_active_indices, new_agents["unique_id"])
@@ -395,6 +441,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         self,
         mask: AgentPolarsMask = None,
     ) -> pl.DataFrame:
+        
         if (isinstance(mask, pl.Series) and mask.dtype == pl.Boolean) or isinstance(
             mask, pl.Expr
         ):

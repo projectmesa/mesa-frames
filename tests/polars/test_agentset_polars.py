@@ -25,9 +25,7 @@ class ExampleAgentSetPolars(AgentSetPolars):
 def fix1_AgentSetPolars() -> ExampleAgentSetPolars:
     model = ModelDF()
     agents = ExampleAgentSetPolars(model)
-    agents.add({"unique_id": [0, 1, 2, 3]})
-    agents["wealth"] = agents.starting_wealth
-    agents["age"] = [10, 20, 30, 40]
+    agents.add({"wealth": [1, 2, 3, 4], "age": [10, 20, 30, 40]})  # No unique_id
     model.agents.add(agents)
     return agents
 
@@ -36,11 +34,13 @@ def fix1_AgentSetPolars() -> ExampleAgentSetPolars:
 def fix2_AgentSetPolars() -> ExampleAgentSetPolars:
     model = ModelDF()
     agents = ExampleAgentSetPolars(model)
-    agents.add({"unique_id": [4, 5, 6, 7]})
-    agents["wealth"] = agents.starting_wealth + 10
-    agents["age"] = [100, 200, 300, 400]
+
+    agents.add(
+        {"wealth": [11, 12, 13, 14], "age": [100, 200, 300, 400]}
+    )  # No unique_id
 
     model.agents.add(agents)
+
     space = GridPandas(model, dimensions=[3, 3], capacity=2)
     model.space = space
     space.place_agents(agents=[4, 5], pos=[[2, 1], [1, 2]])
@@ -61,10 +61,8 @@ class Test_AgentSetPolars:
     def test__init__(self):
         model = ModelDF()
         agents = ExampleAgentSetPolars(model)
-        agents.add({"unique_id": [0, 1, 2, 3]})
         assert agents.model == model
         assert isinstance(agents.agents, pl.DataFrame)
-        assert agents.agents["unique_id"].to_list() == [0, 1, 2, 3]
         assert isinstance(agents._mask, pl.Series)
         assert isinstance(agents.random, Generator)
         assert agents.starting_wealth.to_list() == [1, 2, 3, 4]
@@ -75,23 +73,52 @@ class Test_AgentSetPolars:
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         agents = fix1_AgentSetPolars
-        agents2 = fix2_AgentSetPolars
 
         # Test with a DataFrame
-        result = agents.add(agents2.agents, inplace=False)
-        assert result.agents["unique_id"].to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
-
-        # Test with a list (Sequence[Any])
-        result = agents.add([10, 5, 10], inplace=False)
-        assert result.agents["unique_id"].to_list() == [0, 1, 2, 3, 10]
-        assert result.agents["wealth"].to_list() == [1, 2, 3, 4, 5]
-        assert result.agents["age"].to_list() == [10, 20, 30, 40, 10]
+        df = pl.DataFrame({"wealth": [5, 6], "age": [50, 60]})
+        agents3 = agents.add(df, inplace=False)
+        assert len(agents3.agents) == len(agents.agents) + 2
+        assert "unique_id" in agents3.agents.columns
+        assert agents3.agents["wealth"].to_list()[-2:] == [5, 6]
+        assert agents3.agents["age"].to_list()[-2:] == [50, 60]
 
         # Test with a dict[str, Any]
-        agents.add({"unique_id": [4, 5], "wealth": [5, 6], "age": [50, 60]})
-        assert agents.agents["wealth"].to_list() == [1, 2, 3, 4, 5, 6]
-        assert agents.agents["unique_id"].to_list() == [0, 1, 2, 3, 4, 5]
-        assert agents.agents["age"].to_list() == [10, 20, 30, 40, 50, 60]
+        agents4 = agents.add({"wealth": 7, "age": 70}, inplace=False)
+        assert len(agents4.agents) == len(agents.agents) + 1
+        assert "unique_id" in agents4.agents.columns
+        assert agents4.agents["wealth"].to_list()[-1] == 7
+        assert agents4.agents["age"].to_list()[-1] == 70
+
+        # Test with a list (Sequence[Any])
+        agents5 = agents.add([8, 9], inplace=False)
+        assert len(agents5.agents) == len(agents.agents) + 1
+        assert "unique_id" in agents5.agents.columns
+        assert agents5.agents["wealth"].to_list()[-1] == 8
+        assert agents5.agents["age"].to_list()[-1] == 9
+
+        # Test adding an empty DataFrame
+        empty_df = pl.DataFrame({"wealth": [], "age": []})
+        agents_empty = agents.add(empty_df, inplace=False)
+        assert len(agents_empty.agents) == len(agents.agents)
+
+        # Test error when unique_id exists in dictionary
+        with pytest.raises(
+            ValueError,
+            match="The input agents data contains 'unique_id'. This is no longer supported as unique_ids are managed automatically by mesa-frames. Please remove it before adding the agents",
+        ):
+            agents.add({"unique_id": 999, "wealth": 10})
+
+        # Test error when unique_id exists in DataFrame
+        df_with_id = pl.DataFrame({"unique_id": [100], "wealth": [10], "age": [30]})
+        with pytest.raises(
+            ValueError,
+            match="The input agents data contains 'unique_id'. This is no longer supported as unique_ids are managed automatically by mesa-frames. Please remove it before adding the agents",
+        ):
+            agents.add(df_with_id)
+
+        # Test adding a different data type (should fail)
+        with pytest.raises(TypeError):
+            agents.add(12345)
 
     def test_contains(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
@@ -187,8 +214,10 @@ class Test_AgentSetPolars:
 
     def test_remove(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
-        agents.remove([0, 1])
-        assert agents.agents["unique_id"].to_list() == [2, 3]
+
+        agents_unique_ids = agents.agents["unique_id"].to_list()
+        agents.remove(agents_unique_ids[:2])
+        assert agents.agents["unique_id"].to_list() == agents_unique_ids[2:]
         with pytest.raises(KeyError):
             agents.remove([1])
 
@@ -447,12 +476,17 @@ class Test_AgentSetPolars:
         agents = fix1_AgentSetPolars
 
         # Test with select
+
+        unique_ids = agents.agents.filter(agents.agents["wealth"] > 2)[
+            "unique_id"
+        ].to_list()
+
         agents.select(agents.agents["wealth"] > 2, inplace=True)
-        assert agents.active_agents["unique_id"].to_list() == [2, 3]
+        assert agents.active_agents["unique_id"].to_list() == unique_ids
 
         # Test with active_agents.setter
         agents.active_agents = agents.agents["wealth"] > 2
-        assert agents.active_agents["unique_id"].to_list() == [2, 3]
+        assert agents.active_agents["unique_id"].to_list() == unique_ids
 
     def test_inactive_agents(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars

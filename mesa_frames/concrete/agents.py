@@ -113,10 +113,12 @@ class AgentsDF(AgentContainer):
         new_ids = pl.concat(
             [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
         )
+
         if new_ids.is_duplicated().any():
             raise ValueError("Some of the agent IDs are not unique.")
         obj._agentsets.extend(other_list)
         obj._ids = new_ids
+
         return obj
 
     @overload
@@ -452,10 +454,12 @@ class AgentsDF(AgentContainer):
     @overload
     def __getitem__(
         self,
-        key: Collection[str]
-        | AgnosticAgentMask
-        | IdsLike
-        | tuple[dict[AgentSetDF, AgentMask], Collection[str]],
+        key: (
+            Collection[str]
+            | AgnosticAgentMask
+            | IdsLike
+            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+        ),
     ) -> dict[str, DataFrame]: ...
 
     def __getitem__(
