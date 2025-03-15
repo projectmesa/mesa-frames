@@ -41,7 +41,9 @@ jobs:
         (
           needs.check-membership.outputs.member == 'true' ||
           github.event.comment.author_association == 'OWNER' ||
-          github.event.comment.author_association == 'COLLABORATOR'
+          github.event.comment.author_association == 'COLLABORATOR' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.actor == 'adamamer20'
         )
       )
     steps:
