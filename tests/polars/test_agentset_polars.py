@@ -43,7 +43,8 @@ def fix2_AgentSetPolars() -> ExampleAgentSetPolars:
 
     space = GridPandas(model, dimensions=[3, 3], capacity=2)
     model.space = space
-    space.place_agents(agents=[4, 5], pos=[[2, 1], [1, 2]])
+    unique_ids = agents.agents["unique_id"].to_list()
+    space.place_agents(agents=unique_ids[:2], pos=[[2, 1], [1, 2]])
     return agents
 
 
@@ -72,13 +73,13 @@ class Test_AgentSetPolars:
         fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
+
         agents = fix1_AgentSetPolars
 
         # Test with a DataFrame
 
         df = pl.DataFrame({"wealth": [5, 6], "age": [50, 60]})
         agents3 = agents.add(df, inplace=False)
-
         assert len(agents3.agents) == len(agents.agents) + 2
         assert "unique_id" in agents3.agents.columns
         assert agents3.agents["wealth"].to_list()[-2:] == [5, 6]

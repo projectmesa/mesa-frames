@@ -136,6 +136,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         Self
         """
         obj = self._get_obj(inplace=inplace)
+
         return obj._place_or_move_agents(agents=agents, pos=pos, is_move=True)
 
     def place_agents(
@@ -1702,7 +1703,6 @@ class GridDF(DiscreteSpaceDF):
         is_move: bool,
     ) -> Self:
         agents = self._get_ids_srs(agents)
-
         if __debug__:
             # Warn if agents are already placed
             if is_move:
