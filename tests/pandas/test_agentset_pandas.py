@@ -201,6 +201,7 @@ class Test_AgentSetPandas:
 
         # Test with a pd.Series[bool]
         mask = pd.Series([True, False, True, True])
+
         selected = agents.select(mask, inplace=False)
         assert selected.active_agents.index.tolist() == [0, 2, 3]
 
@@ -213,6 +214,7 @@ class Test_AgentSetPandas:
         mask = pd.DataFrame({"unique_id": [0, 1]})
         selected = agents.select(mask, inplace=False)
         assert selected.active_agents.index.tolist() == [0, 1]
+        raise ValueError(f" PASSSSED")
 
         # Test with filter_func
         def filter_func(agentset: AgentSetPandas) -> pd.Series:

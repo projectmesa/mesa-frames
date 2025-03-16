@@ -441,7 +441,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         self,
         mask: AgentPolarsMask = None,
     ) -> pl.DataFrame:
-        
+
         if (isinstance(mask, pl.Series) and mask.dtype == pl.Boolean) or isinstance(
             mask, pl.Expr
         ):
@@ -470,6 +470,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 mask_series = pl.Series(mask)
             else:
                 mask_series = pl.Series([mask])
+
             if not mask_series.is_in(self._agents["unique_id"]).all():
                 raise KeyError(
                     "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."

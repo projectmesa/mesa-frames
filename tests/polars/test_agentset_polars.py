@@ -124,11 +124,12 @@ class Test_AgentSetPolars:
         agents = fix1_AgentSetPolars
 
         # Test with a single value
-        assert agents.contains(0)
+        unique_id_in_agents = agents.agents["unique_id"].to_list()
+        assert agents.contains(unique_id_in_agents[0])
         assert not agents.contains(4)
 
         # Test with a list
-        assert agents.contains([0, 1]).to_list() == [True, True]
+        assert agents.contains([unique_id_in_agents[0], 21]).to_list() == [True, False]
 
     def test_copy(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
@@ -233,13 +234,18 @@ class Test_AgentSetPolars:
 
         # Test with a pl.Series[bool]
         mask = pl.Series("mask", [True, False, True, True], dtype=pl.Boolean)
+        unique_ids = agents.agents["unique_id"].to_list()
+        masked_unique_ids = [unique_ids[i] for i in [0, 2, 3]]
         selected = agents.select(mask, inplace=False)
-        assert selected.active_agents["unique_id"].to_list() == [0, 2, 3]
+        assert selected.active_agents["unique_id"].to_list() == masked_unique_ids
 
         # Test with a ListLike
         mask = [0, 2]
         selected = agents.select(mask, inplace=False)
+        unique_ids = agents.agents["unique_id"].to_list()
+        masked_unique_ids = [unique_ids[i] for i in [0, 2]]
         assert selected.active_agents["unique_id"].to_list() == [0, 2]
+        raise ValueError(selected.active_agents["unique_id"].to_list())
 
         # Test with a pl.DataFrame
         mask = pl.DataFrame({"unique_id": [0, 1]})
@@ -491,8 +497,11 @@ class Test_AgentSetPolars:
     def test_inactive_agents(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
 
+        ids_with_wealth_lte_2 = agents.agents.filter(agents.agents["wealth"] <= 2)[
+            "unique_id"
+        ].to_list()
         agents.select(agents.agents["wealth"] > 2, inplace=True)
-        assert agents.inactive_agents["unique_id"].to_list() == [0, 1]
+        assert agents.inactive_agents["unique_id"].to_list() == ids_with_wealth_lte_2
 
     def test_pos(self, fix1_AgentSetPolars_with_pos: ExampleAgentSetPolars):
         pos = fix1_AgentSetPolars_with_pos.pos
