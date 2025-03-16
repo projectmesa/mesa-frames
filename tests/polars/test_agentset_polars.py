@@ -331,7 +331,8 @@ class Test_AgentSetPolars:
     def test__contains__(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         # Test with a single value
         agents = fix1_AgentSetPolars
-        assert 0 in agents
+        unique_id_in_agents = agents.agents["unique_id"].to_list()
+        assert unique_id_in_agents[0] in agents
         assert 4 not in agents
 
     def test__copy__(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
