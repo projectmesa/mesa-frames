@@ -137,7 +137,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             ).astype(np.uint64)
 
             agents = agents.with_columns(
-                pl.Series("unique_id", unique_ids).cast(pl.uint64)
+                pl.Series("unique_id", unique_ids).cast(pl.UInt64)
             )
 
             new_agents = agents

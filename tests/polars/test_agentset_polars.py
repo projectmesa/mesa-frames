@@ -152,8 +152,10 @@ class Test_AgentSetPolars:
         agents = fix1_AgentSetPolars_with_pos
 
         # Test with a single value
-        result = agents.discard(0, inplace=False)
-        assert result.agents["unique_id"].to_list() == [1, 2, 3]
+
+        unique_ids = agents.agents["unique_id"].to_list()
+        result = agents.discard(unique_ids[0], inplace=False)
+        assert result.agents["unique_id"].to_list() == unique_ids[1:]
         assert result.pos["unique_id"].to_list() == [1, 2, 3]
         assert result.pos["dim_0"].to_list() == [1, None, None]
         assert result.pos["dim_1"].to_list() == [1, None, None]
@@ -327,18 +329,19 @@ class Test_AgentSetPolars:
         agents2 = fix2_AgentSetPolars
 
         # Test with an AgentSetPolars and a DataFrame
+
         agents3 = agents + agents2.agents
         assert agents3.agents["unique_id"].to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
 
         # Test with an AgentSetPolars and a list (Sequence[Any])
-        agents3 = agents + [10, 5, 5]  # unique_id, wealth, age
+        agents3 = agents + [5, 5]  # unique_id, wealth, age
         assert agents3.agents["unique_id"].to_list()[:-1] == [0, 1, 2, 3]
         assert len(agents3.agents) == 5
         assert agents3.agents["wealth"].to_list() == [1, 2, 3, 4, 5]
         assert agents3.agents["age"].to_list() == [10, 20, 30, 40, 5]
 
         # Test with an AgentSetPolars and a dict
-        agents3 = agents + {"unique_id": 10, "wealth": 5}
+        agents3 = agents + {"wealth": 5}
         assert agents3.agents["unique_id"].to_list() == [0, 1, 2, 3, 10]
         assert agents3.agents["wealth"].to_list() == [1, 2, 3, 4, 5]
 
@@ -495,8 +498,9 @@ class Test_AgentSetPolars:
         assert isinstance(agents.agents, pl.DataFrame)
 
         # Test agents.setter
+        unique_ids = agents2.agents["unique_id"].to_list()
         agents.agents = agents2.agents
-        assert agents.agents["unique_id"].to_list() == [4, 5, 6, 7]
+        assert agents.agents["unique_id"].to_list() == unique_ids
 
     def test_active_agents(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars

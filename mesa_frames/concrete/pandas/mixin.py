@@ -54,11 +54,15 @@ class PandasMixin(DataFrameMixin):
     """
     WARNING: PandasMixin is deprecated and will be removed in the next release of mesa-frames.
     pandas-based implementation of DataFrame operations.
-    
+
     """
 
     def __init__(self, *args, **kwargs):
-        warnings.warn("PandasMixin is deprecated and will be removed in the next release of mesa-frames.", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "PandasMixin is deprecated and will be removed in the next release of mesa-frames.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(*args, **kwargs)
 
     def _df_add(
@@ -201,6 +205,8 @@ class PandasMixin(DataFrameMixin):
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pd.DataFrame:
+
+        
         return df.div(other=other, axis=axis)
 
     def _df_drop_columns(
@@ -309,11 +315,13 @@ class PandasMixin(DataFrameMixin):
         on: str | list[str] | None = None,
         left_on: str | list[str] | None = None,
         right_on: str | list[str] | None = None,
-        how: Literal["left"]
-        | Literal["right"]
-        | Literal["inner"]
-        | Literal["outer"]
-        | Literal["cross"] = "left",
+        how: (
+            Literal["left"]
+            | Literal["right"]
+            | Literal["inner"]
+            | Literal["outer"]
+            | Literal["cross"]
+        ) = "left",
         suffix="_right",
     ) -> pd.DataFrame:
         # Preparing the DF allows to speed up the merge operation
@@ -508,12 +516,14 @@ class PandasMixin(DataFrameMixin):
     def _df_with_columns(
         self,
         original_df: pd.DataFrame,
-        data: pd.DataFrame
-        | pd.Series
-        | Sequence[Sequence]
-        | dict[str | Any]
-        | Sequence[Any]
-        | Any,
+        data: (
+            pd.DataFrame
+            | pd.Series
+            | Sequence[Sequence]
+            | dict[str | Any]
+            | Sequence[Any]
+            | Any
+        ),
         new_columns: str | list[str] | None = None,
     ) -> pd.DataFrame:
         df = original_df.copy()

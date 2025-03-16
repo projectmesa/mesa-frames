@@ -1642,14 +1642,18 @@ class GridDF(DiscreteSpaceDF):
                 if (isinstance(b_contained, Series) and not b_contained.all()) or (
                     isinstance(b_contained, bool) and not b_contained
                 ):
-                    raise ValueError("Some agents are not present in the model")
+                    raise ValueError(
+                        f"Some agents of {agents.to_list()} are not present in the model"
+                    )
 
                 # Check ids presence in the grid
                 b_contained = self._df_contains(self._agents, "agent_id", agents)
                 if (isinstance(b_contained, Series) and not b_contained.all()) or (
                     isinstance(b_contained, bool) and not b_contained
                 ):
-                    raise ValueError("Some agents are not placed in the grid")
+                    raise ValueError(
+                        f"Some agents of {agents.to_list()} are not placed in the grid"
+                    )
                 # Check ids are unique
                 agents = pl.Series(agents)
                 if agents.n_unique() != len(agents):
@@ -1717,7 +1721,10 @@ class GridDF(DiscreteSpaceDF):
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
-                raise ValueError("Some agents are not present in the model")
+
+                raise ValueError(
+                    f"Some agents of {agents.to_list()} are not present in the model"
+                )
 
             # Check if there is enough capacity
             if self._capacity:

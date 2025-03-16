@@ -201,7 +201,6 @@ class Test_AgentSetPandas:
 
         # Test with a pd.Series[bool]
         mask = pd.Series([True, False, True, True])
-
         selected = agents.select(mask, inplace=False)
         assert selected.active_agents.index.tolist() == [0, 2, 3]
 
