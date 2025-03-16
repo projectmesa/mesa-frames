@@ -240,24 +240,28 @@ class Test_AgentSetPolars:
         assert selected.active_agents["unique_id"].to_list() == masked_unique_ids
 
         # Test with a ListLike
-        mask = [0, 2]
-        selected = agents.select(mask, inplace=False)
         unique_ids = agents.agents["unique_id"].to_list()
-        masked_unique_ids = [unique_ids[i] for i in [0, 2]]
-        assert selected.active_agents["unique_id"].to_list() == [0, 2]
-        raise ValueError(selected.active_agents["unique_id"].to_list())
+        mask = [unique_ids[i] for i in [0, 2]]
+        selected = agents.select(mask, inplace=False)
+        assert selected.active_agents["unique_id"].to_list() == mask
 
         # Test with a pl.DataFrame
-        mask = pl.DataFrame({"unique_id": [0, 1]})
+        unique_ids = agents.agents["unique_id"].to_list()
+        mask = pl.DataFrame({"unique_id": unique_ids[:2]})
         selected = agents.select(mask, inplace=False)
-        assert selected.active_agents["unique_id"].to_list() == [0, 1]
+        assert selected.active_agents["unique_id"].to_list() == unique_ids[:2]
 
         # Test with filter_func
         def filter_func(agentset: AgentSetPolars) -> pl.Series:
             return agentset.agents["wealth"] > 1
 
         selected = agents.select(filter_func=filter_func, inplace=False)
-        assert selected.active_agents["unique_id"].to_list() == [1, 2, 3]
+        expected_unique_ids = agents.agents.filter(pl.col("wealth") > 1)[
+            "unique_id"
+        ].to_list()
+        assert (
+            selected.active_agents["unique_id"].to_list() == expected_unique_ids
+        ), f"Expected: {expected_unique_ids}, but got: {selected.active_agents['unique_id'].to_list()}"
 
         # Test with n
         selected = agents.select(n=3, inplace=False)
@@ -266,7 +270,14 @@ class Test_AgentSetPolars:
         # Test with n, filter_func and mask
         mask = pl.Series("mask", [True, False, True, True], dtype=pl.Boolean)
         selected = agents.select(mask, filter_func=filter_func, n=1, inplace=False)
-        assert any(el in selected.active_agents["unique_id"].to_list() for el in [2, 3])
+        expected_unique_ids = agents.agents.filter(
+            pl.lit(mask) & (pl.col("wealth") > 1)
+        )["unique_id"].to_list()
+
+        assert any(
+            el in expected_unique_ids
+            for el in selected.active_agents["unique_id"].to_list()
+        ), f"Expected at least one of {expected_unique_ids}, but got {selected.active_agents['unique_id'].to_list()}"
 
     def test_set(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
