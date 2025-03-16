@@ -35,6 +35,7 @@ class TestGridPandas:
     @pytest.fixture
     def grid_moore(self, model: ModelDF) -> GridPandas:
         space = GridPandas(model, dimensions=[3, 3], capacity=2)
+        
         space.place_agents(agents=[0, 1], pos=[[0, 0], [1, 1]])
         space.set_cells(
             [[0, 0], [1, 1]], properties={"capacity": [1, 3], "property_0": "value_0"}

@@ -35,7 +35,9 @@ class TestGridPolars:
     @pytest.fixture
     def grid_moore(self, model: ModelDF) -> GridPolars:
         space = GridPolars(model, dimensions=[3, 3], capacity=2)
+
         space.place_agents(agents=[0, 1], pos=[[0, 0], [1, 1]])
+
         space.set_cells(
             [[0, 0], [1, 1]], properties={"capacity": [1, 3], "property_0": "value_0"}
         )
@@ -135,6 +137,7 @@ class TestGridPolars:
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         # Test with GridCoordinate
+
         dir = grid_moore.get_directions(pos0=[1, 1], pos1=[2, 2])
         assert isinstance(dir, pl.DataFrame)
         assert dir.select(pl.col("dim_0")).to_series().to_list() == [1]
@@ -154,25 +157,28 @@ class TestGridPolars:
 
         # Test with IdsLike
         grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
-        agents = grid_moore.agents.sort("agent_id")
-
-        assert agents["agent_id"].to_list() == [0, 1, 4, 5, 6, 7]
-        assert agents["dim_0"].to_list() == [0, 1, 0, 0, 1, 1]
-        assert agents["dim_1"].to_list() == [0, 1, 1, 2, 0, 2]
-        dir = grid_moore.get_directions(agents0=[0, 1], agents1=[4, 5])
-        print(dir)
+        agents = grid_moore.agents
+        agent_ids = agents["agent_id"].to_list()
+        assert agents["dim_0"].to_list()[2:] == [0, 0, 1, 1]
+        assert agents["dim_1"].to_list()[2:] == [1, 2, 0, 2]
+        dir = grid_moore.get_directions(agents0=[0, 1], agents1=agent_ids[2:4])
         assert isinstance(dir, pl.DataFrame)
         assert dir.select(pl.col("dim_0")).to_series().to_list() == [0, -1]
         assert dir.select(pl.col("dim_1")).to_series().to_list() == [1, 1]
 
         # Test with two AgentSetDFs
-        grid_moore.place_agents([2, 3], [[1, 1], [2, 2]])
+
+        grid_moore.place_agents(agent_ids[2:4], [[1, 1], [2, 2]])
+        raise ValueError(f"{fix1_AgentSetPandas.agents.index.to_list()}")
         dir = grid_moore.get_directions(
             agents0=fix1_AgentSetPandas, agents1=fix2_AgentSetPolars
         )
+        raise ValueError("PASSSSS")
+
         assert isinstance(dir, pl.DataFrame)
         assert dir.select(pl.col("dim_0")).to_series().to_list() == [0, -1, 0, -1]
         assert dir.select(pl.col("dim_1")).to_series().to_list() == [1, 1, -1, 0]
+        raise ValueError("PASSSSS")
 
         # Test with AgentsDF
         dir = grid_moore.get_directions(
@@ -1182,6 +1188,7 @@ class TestGridPolars:
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         # Test with IdsLike
+
         with pytest.warns(RuntimeWarning):
             space = grid_moore.place_agents(
                 agents=[1, 2], pos=[[1, 1], [2, 2]], inplace=False
