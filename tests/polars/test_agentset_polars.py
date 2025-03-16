@@ -75,8 +75,10 @@ class Test_AgentSetPolars:
         agents = fix1_AgentSetPolars
 
         # Test with a DataFrame
+
         df = pl.DataFrame({"wealth": [5, 6], "age": [50, 60]})
         agents3 = agents.add(df, inplace=False)
+
         assert len(agents3.agents) == len(agents.agents) + 2
         assert "unique_id" in agents3.agents.columns
         assert agents3.agents["wealth"].to_list()[-2:] == [5, 6]
@@ -375,13 +377,14 @@ class Test_AgentSetPolars:
         assert agents["wealth"].to_list() == [1, 2, 3, 4]
 
         # Test with a tuple[AgentMask, str]
-        assert agents[0, "wealth"].item() == 1
+        unique_ids = agents.agents["unique_id"].to_list()
+        assert agents[unique_ids[0], "wealth"].item() == 1
 
         # Test with a list[str]
         assert agents[["wealth", "age"]].columns == ["wealth", "age"]
 
         # Testing with a tuple[AgentMask, list[str]]
-        result = agents[0, ["wealth", "age"]]
+        result = agents[unique_ids[0], ["wealth", "age"]]
         assert result["wealth"].to_list() == [1]
         assert result["age"].to_list() == [10]
 
@@ -421,6 +424,7 @@ class Test_AgentSetPolars:
     def test__isub__(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         # Test with an AgentSetPolars and a DataFrame
         agents = deepcopy(fix1_AgentSetPolars)
+
         agents -= agents.agents
         assert agents.agents.is_empty()
 
@@ -446,6 +450,7 @@ class Test_AgentSetPolars:
 
         # Test with key=str, value=Any
         agents["wealth"] = 0
+
         assert agents.agents["wealth"].to_list() == [0, 0, 0, 0]
 
         # Test with key=list[str], value=Any
@@ -454,11 +459,13 @@ class Test_AgentSetPolars:
         assert agents.agents["age"].to_list() == [1, 1, 1, 1]
 
         # Test with key=tuple, value=Any
-        agents[0, "wealth"] = 5
+        unique_ids = agents.agents["unique_id"].to_list()
+        agents[unique_ids[0], "wealth"] = 5
         assert agents.agents["wealth"].to_list() == [5, 1, 1, 1]
 
         # Test with key=AgentMask, value=Any
-        agents[0] = [9, 99]
+        agents[unique_ids[0]] = [9, 99]
+
         assert agents.agents.item(0, "wealth") == 9
         assert agents.agents.item(0, "age") == 99
 

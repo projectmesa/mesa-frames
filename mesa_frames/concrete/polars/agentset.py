@@ -447,6 +447,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         ):
             return self._agents.filter(mask)
         elif isinstance(mask, pl.DataFrame):
+            raise ValueError(f"rasusd {mask["unique_id"].to_list()}")
             if not mask["unique_id"].is_in(self._agents["unique_id"]).all():
                 raise KeyError(
                     "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
