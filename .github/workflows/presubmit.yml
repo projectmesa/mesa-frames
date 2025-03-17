@@ -1,0 +1,62 @@
+name: AI Review
+
+on:
+  pull_request_target:
+    types: [review_requested]
+  issue_comment:
+    types: [created]
+
+jobs:
+  check-membership:
+    runs-on: ubuntu-latest
+    outputs:
+      member: ${{ steps.check.outputs.member }}
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request != null
+    steps:
+      - name: Check if commenter is in projectmesa
+        id: check
+        run: |
+          username="${{ github.event.comment.user.login }}"
+          echo "Checking membership for $username..."
+          # GitHub API returns a 204 status code if the user is a member.
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/orgs/projectmesa/members/$username)
+          if [ "$response" -eq 204 ]; then
+            echo "member=true" >> $GITHUB_OUTPUT
+          else
+            echo "member=false" >> $GITHUB_OUTPUT
+          fi
+
+  run-ai-review:
+    runs-on: ubuntu-latest
+    needs: check-membership
+    if: >
+      (github.event_name == 'pull_request_target' && github.event.action == 'review_requested')
+      ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '/pr-ai-review') &&
+        (
+          needs.check-membership.outputs.member == 'true' ||
+          github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'COLLABORATOR' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.actor == 'adamamer20'
+        )
+      )
+    steps:
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.LLM_API_KEY }}" ]; then
+            echo "Error: LLM_API_KEY secret is not configured"
+            exit 1
+          fi
+
+      - name: Run AI Reviewer
+        uses: presubmit/ai-reviewer@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: "claude-3-7-sonnet-20250219"

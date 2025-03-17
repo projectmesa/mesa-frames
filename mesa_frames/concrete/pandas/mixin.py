@@ -47,10 +47,19 @@ from typing_extensions import Any, overload
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import DataFrame, PandasMask
+import warnings
 
 
 class PandasMixin(DataFrameMixin):
-    """pandas-based implementation of DataFrame operations."""
+    """
+    WARNING: PandasMixin is deprecated and will be removed in the next release of mesa-frames.
+    pandas-based implementation of DataFrame operations.
+    
+    """
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn("PandasMixin is deprecated and will be removed in the next release of mesa-frames.", DeprecationWarning, stacklevel=2)
+        super().__init__(*args, **kwargs)
 
     def _df_add(
         self,
