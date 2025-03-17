@@ -50,7 +50,7 @@ For more detailed information on each class, refer to their individual docstring
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, TypeVar, Union
 from warnings import warn
 
 import numpy as np
@@ -58,7 +58,9 @@ import polars as pl
 from numpy.random import Generator
 from typing_extensions import Any, Self
 
-from mesa_frames import AgentsDF
+
+from mesa_frames.concrete.polars.agentset import AgentSetPolars
+from mesa_frames.concrete.agents import AgentsDF
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
@@ -78,6 +80,9 @@ from mesa_frames.types_ import (
 )
 
 ESPG = int
+
+
+AgentLike = Union[AgentSetPolars, pl.DataFrame]
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
@@ -1035,6 +1040,107 @@ class DiscreteSpaceDF(SpaceDF):
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}\n{str(self.cells)}"
+
+    def move_to(
+        self,
+        agents: AgentLike,
+        attr_names: str | list[str],
+        rank_order: str | list[str] = "max",
+        radius: int | pl.Series = None,
+        include_center: bool = True,
+        shuffle: bool = True
+    ) -> None:
+        if isinstance(attr_names, str):
+            attr_names = [attr_names]
+        if isinstance(rank_order, str):
+            rank_order = [rank_order] * len(attr_names)
+        if len(attr_names) != len(rank_order):
+            raise ValueError("attr_names and rank_order must have the same length")
+        if radius is None:
+            if "vision" in agents.columns:
+                radius = agents["vision"]
+            else:
+                raise ValueError("radius must be specified if agents do not have a 'vision' attribute")
+        neighborhood = self.get_neighborhood(
+            radius=radius, 
+            agents=agents, 
+            include_center=include_center
+        )
+        neighborhood = neighborhood.join(self.cells, on=["dim_0", "dim_1"])
+        neighborhood = neighborhood.with_columns(
+            agent_id_center=neighborhood.join(
+                agents.pos,
+                left_on=["dim_0_center", "dim_1_center"],
+                right_on=["dim_0", "dim_1"],
+            )["unique_id"]
+        )
+        if shuffle:
+            agent_order = (
+                neighborhood
+                .unique(subset=["agent_id_center"], keep="first")
+                .select("agent_id_center")
+                .sample(fraction=1.0, seed=self.model.random.integers(0, 2**31-1))
+                .with_row_index("agent_order")
+            )
+        else:
+            agent_order = (
+                neighborhood
+                .unique(subset=["agent_id_center"], keep="first", maintain_order=True)
+                .with_row_index("agent_order")
+                .select(["agent_id_center", "agent_order"])
+            )
+        neighborhood = neighborhood.join(agent_order, on="agent_id_center")
+        sort_cols = []
+        sort_desc = []
+        for attr, order in zip(attr_names, rank_order):
+            sort_cols.append(attr)
+            sort_desc.append(order.lower() == "max")
+        neighborhood = neighborhood.sort(
+            sort_cols + ["radius", "dim_0", "dim_1"],
+            descending=sort_desc + [False, False, False]
+        )
+        neighborhood = neighborhood.join(
+            agent_order.select(
+                pl.col("agent_id_center").alias("agent_id"),
+                pl.col("agent_order").alias("blocking_agent_order"),
+            ),
+            on="agent_id",
+            how="left",
+        ).rename({"agent_id": "blocking_agent_id"})
+        best_moves = pl.DataFrame()
+        while len(best_moves) < len(agents):
+            neighborhood = neighborhood.with_columns(
+                priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
+            )
+            new_best_moves = (
+                neighborhood.group_by("agent_id_center", maintain_order=True)
+                .first()
+                .unique(subset=["dim_0", "dim_1"], keep="first", maintain_order=True)
+            )
+            condition = pl.col("blocking_agent_id").is_null() | (
+                pl.col("blocking_agent_id") == pl.col("agent_id_center")
+            )
+            if len(best_moves) > 0:
+                condition = condition | pl.col("blocking_agent_id").is_in(
+                    best_moves["agent_id_center"]
+                )
+            condition = condition & (pl.col("priority") == 1)
+            new_best_moves = new_best_moves.filter(condition)
+            if len(new_best_moves) == 0:
+                break
+            best_moves = pl.concat([best_moves, new_best_moves])
+            neighborhood = neighborhood.filter(
+                ~pl.col("agent_id_center").is_in(best_moves["agent_id_center"])
+            )
+            neighborhood = neighborhood.join(
+                best_moves.select(["dim_0", "dim_1"]), on=["dim_0", "dim_1"], how="anti"
+            )
+        if len(best_moves) > 0:
+            self.move_agents(
+                best_moves.sort("agent_order")["agent_id_center"],
+                best_moves.sort("agent_order").select(["dim_0", "dim_1"])
+            )
+
 
     @property
     def cells(self) -> DataFrame:
