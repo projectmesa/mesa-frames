@@ -231,7 +231,7 @@ class Test_AgentsDF:
 
         # Test with a list of attributes
         result = agents.get(["wealth", "age"])
-        assert result[fix1_AgentSetPolars].columns.to_list() == ["wealth", "age"]
+        assert result[fix1_AgentSetPolars].columns == ["wealth", "age"]
         assert (
             result[fix1_AgentSetPolars]["wealth"].to_list()
             == fix1_AgentSetPolars._agents["wealth"].to_list()
@@ -240,6 +240,7 @@ class Test_AgentsDF:
             result[fix1_AgentSetPolars]["age"].to_list()
             == fix1_AgentSetPolars._agents["age"].to_list()
         )
+        
         assert result[fix2_AgentSetPolars].columns == ["wealth", "age"]
         assert (
             result[fix2_AgentSetPolars]["wealth"].to_list()
