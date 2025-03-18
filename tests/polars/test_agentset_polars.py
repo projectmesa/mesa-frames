@@ -50,6 +50,16 @@ def fix2_AgentSetPolars() -> ExampleAgentSetPolars:
 
 
 @pytest.fixture
+def fix3_AgentSetPolars() -> ExampleAgentSetPolars:
+    model = ModelDF()
+    agents = ExampleAgentSetPolars(model)
+    agents.add({"unique_id": [9, 10, 11, 12]})
+    agents["wealth"] = agents.starting_wealth + 7
+    agents["age"] = [12, 13, 14, 116]
+    return agents
+
+
+@pytest.fixture
 def fix1_AgentSetPolars_with_pos(
     fix1_AgentSetPolars: ExampleAgentSetPolars,
 ) -> ExampleAgentSetPolars:
