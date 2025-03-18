@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import mesa
 import numpy as np
+
 import pandas as pd
 import perfplot
 import polars as pl

@@ -354,11 +354,13 @@ class PolarsMixin(DataFrameMixin):
         on: str | list[str] | None = None,
         left_on: str | list[str] | None = None,
         right_on: str | list[str] | None = None,
-        how: Literal["left"]
-        | Literal["right"]
-        | Literal["inner"]
-        | Literal["outer"]
-        | Literal["cross"] = "left",
+        how: (
+            Literal["left"]
+            | Literal["right"]
+            | Literal["inner"]
+            | Literal["outer"]
+            | Literal["cross"]
+        ) = "left",
         suffix="_right",
     ) -> pl.DataFrame:
         if how == "outer":
@@ -481,8 +483,8 @@ class PolarsMixin(DataFrameMixin):
                     for col in df.columns
                 )
             else:
-                assert (
-                    len(df.columns) == len(other)
+                assert len(df.columns) == len(
+                    other
                 ), "Sequence must have the same length as df.columns if axis is 'columns'"
                 return df.with_columns(
                     operation(pl.col(col), pl.lit(other[i])).alias(col)

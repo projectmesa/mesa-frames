@@ -2,6 +2,8 @@ from copy import copy, deepcopy
 
 import polars as pl
 import pytest
+
+import pandas as pd
 import typeguard as tg
 from numpy.random import Generator
 

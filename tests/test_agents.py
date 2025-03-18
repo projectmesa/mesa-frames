@@ -1,8 +1,8 @@
 from copy import copy, deepcopy
 
-import pandas as pd
 import polars as pl
 import pytest
+import pandas as pd
 
 from mesa_frames import AgentsDF, ModelDF
 from mesa_frames.abstract.agents import AgentSetDF
@@ -240,7 +240,7 @@ class Test_AgentsDF:
             result[fix1_AgentSetPolars]["age"].to_list()
             == fix1_AgentSetPolars._agents["age"].to_list()
         )
-        
+
         assert result[fix2_AgentSetPolars].columns == ["wealth", "age"]
         assert (
             result[fix2_AgentSetPolars]["wealth"].to_list()
@@ -320,11 +320,12 @@ class Test_AgentsDF:
         agents_dict = selected.agents
         assert active_agents_dict.keys() == agents_dict.keys()
         # Using assert to compare all DataFrames in the dictionaries
+
         assert (
-            (list(active_agents_dict.values())[0] == list(agents_dict.values())[0])
-            .all()
-            .all()
+            list(active_agents_dict.values())[0].rows()
+            == list(agents_dict.values())[0].rows()
         )
+
         assert all(
             series.all()
             for series in (
@@ -333,9 +334,7 @@ class Test_AgentsDF:
         )
 
         # Test with a mask
-        mask0 = pd.Series(
-            [True, False, True, True], index=agents._agentsets[0].index, dtype=bool
-        )
+        mask0 = pl.Series("mask", [True, False, True, True], dtype=pl.Boolean)
         mask1 = pl.Series("mask", [True, False, True, True], dtype=pl.Boolean)
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
         selected = agents.select(mask_dictionary, inplace=False)
@@ -347,6 +346,7 @@ class Test_AgentsDF:
             selected.active_agents[selected._agentsets[0]]["wealth"].to_list()[-1]
             == agents._agentsets[0]["wealth"].to_list()[-1]
         )
+
         assert (
             selected.active_agents[selected._agentsets[1]]["wealth"].to_list()[0]
             == agents._agentsets[1]["wealth"].to_list()[0]
@@ -357,6 +357,7 @@ class Test_AgentsDF:
         )
 
         # Test with filter_func
+
         def filter_func(agentset: AgentSetDF) -> pl.Series:
             return agentset.agents["wealth"] > agentset.agents["wealth"][0]
 
@@ -384,6 +385,7 @@ class Test_AgentsDF:
                 2:4
             ]
         )
+
         assert any(
             el in selected.active_agents[selected._agentsets[1]]["wealth"].to_list()
             for el in agents.active_agents[agents._agentsets[1]]["wealth"].to_list()[
@@ -413,10 +415,8 @@ class Test_AgentsDF:
         )
 
         # Test with a single attribute and a mask
-        mask0 = pd.Series(
-            [True] + [False] * (len(agents._agentsets[0]) - 1),
-            index=agents._agentsets[0].index,
-            dtype=bool,
+        mask0 = pl.Series(
+            "mask", [True] + [False] * (len(agents._agentsets[1]) - 1), dtype=pl.Boolean
         )
         mask1 = pl.Series(
             "mask", [True] + [False] * (len(agents._agentsets[1]) - 1), dtype=pl.Boolean
@@ -445,11 +445,11 @@ class Test_AgentsDF:
     def test_shuffle(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
         for _ in range(100):
-            original_order_0 = agents._agentsets[0].agents.index.to_list()
+            original_order_0 = agents._agentsets[0].agents["unique_id"].to_list()
             original_order_1 = agents._agentsets[1].agents["unique_id"].to_list()
             agents.shuffle(inplace=True)
             if (
-                original_order_0 != agents._agentsets[0].agents.index.to_list()
+                original_order_0 != agents._agentsets[0].agents["unique_id"].to_list()
                 and original_order_1
                 != agents._agentsets[1].agents["unique_id"].to_list()
             ):
@@ -909,7 +909,7 @@ class Test_AgentsDF:
         agents1 = agents.select(mask=mask_dictionary, inplace=False)
         result = agents1.active_agents
         assert isinstance(result, dict)
-        assert isinstance(result[agents1._agentsets[0]], pd.DataFrame)
+        assert isinstance(result[agents1._agentsets[0]], pl.DataFrame)
         assert isinstance(result[agents1._agentsets[1]], pl.DataFrame)
         assert (
             (result[agents1._agentsets[0]] == agents1._agentsets[0]._agents[mask0])
@@ -928,7 +928,7 @@ class Test_AgentsDF:
         agents1.active_agents = mask_dictionary
         result = agents1.active_agents
         assert isinstance(result, dict)
-        assert isinstance(result[agents1._agentsets[0]], pd.DataFrame)
+        assert isinstance(result[agents1._agentsets[0]], pl.DataFrame)
         assert isinstance(result[agents1._agentsets[1]], pl.DataFrame)
         assert (
             (result[agents1._agentsets[0]] == agents1._agentsets[0]._agents[mask0])
@@ -968,7 +968,7 @@ class Test_AgentsDF:
         agents1 = agents.select(mask=mask_dictionary, inplace=False)
         result = agents1.inactive_agents
         assert isinstance(result, dict)
-        assert isinstance(result[agents1._agentsets[0]], pd.DataFrame)
+        assert isinstance(result[agents1._agentsets[0]], pl.DataFrame)
         assert isinstance(result[agents1._agentsets[1]], pl.DataFrame)
         assert (
             (
