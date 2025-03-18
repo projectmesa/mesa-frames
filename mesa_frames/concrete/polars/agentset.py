@@ -71,7 +71,6 @@ from mesa_frames.utils import copydoc
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
 import numpy as np
 
@@ -279,20 +278,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         obj._agents = obj._agents.sort(by=by, descending=descending, **kwargs)
         return obj
 
-    def to_pandas(self) -> "AgentSetPandas":
-        from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
-        new_obj = AgentSetPandas(self._model)
-        new_obj._agents = self._agents.to_pandas()
-        if isinstance(self._mask, pl.Series):
-            new_obj._mask = self._mask.to_pandas()
-        else:  # self._mask is Expr
-            new_obj._mask = (
-                self._agents["unique_id"]
-                .is_in(self._agents.filter(self._mask)["unique_id"])
-                .to_pandas()
-            )
-        return new_obj
 
     def _concatenate_agentsets(
         self,

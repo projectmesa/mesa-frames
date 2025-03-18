@@ -5,7 +5,6 @@ from typing import Literal
 
 # import geopandas as gpd
 # import geopolars as gpl
-import pandas as pd
 import polars as pl
 from numpy import ndarray
 from typing_extensions import Any
@@ -17,13 +16,6 @@ AgnosticMask = (
 AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
 AgnosticIds = int | Collection[int]
 
-###----- pandas Types -----###
-
-PandasMask = pd.Series | pd.DataFrame | AgnosticMask
-AgentPandasMask = AgnosticAgentMask | pd.Series | pd.DataFrame
-PandasIdsLike = AgnosticIds | pd.Series | pd.Index
-PandasGridCapacity = ndarray
-
 ###----- Polars Types -----###
 
 PolarsMask = pl.Expr | pl.Series | pl.DataFrame | AgnosticMask
@@ -33,14 +25,14 @@ PolarsGridCapacity = list[pl.Expr]
 
 ###----- Generic -----###
 # GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
-DataFrame = pd.DataFrame | pl.DataFrame
+DataFrame = pl.DataFrame
 DataFrameInput = dict[str, Any] | Sequence[Sequence] | DataFrame
-Series = pd.Series | pl.Series
-Index = pd.Index | pl.Series
-BoolSeries = pd.Series | pl.Series
-Mask = PandasMask | PolarsMask
-AgentMask = AgentPandasMask | AgentPolarsMask
-IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike
+Series = pl.Series
+Index = pl.Series
+BoolSeries = pl.Series
+Mask = PolarsMask
+AgentMask = AgentPolarsMask
+IdsLike = AgnosticIds | PolarsIdsLike
 ArrayLike = ndarray | Series | Sequence
 
 ###----- Time ------###
@@ -72,7 +64,7 @@ ContinousCoordinates = (
 
 SpaceCoordinates = DiscreteCoordinates | ContinousCoordinates
 
-GridCapacity = PandasGridCapacity | PolarsGridCapacity
+GridCapacity = PolarsGridCapacity
 NetworkCapacity = DataFrame
 
 DiscreteSpaceCapacity = GridCapacity | NetworkCapacity
