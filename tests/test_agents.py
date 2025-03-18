@@ -7,32 +7,26 @@ import pytest
 from mesa_frames import AgentsDF, ModelDF
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.types_ import AgentMask
-from tests.pandas.test_agentset_pandas import (
-    ExampleAgentSetPandas,
-    fix1_AgentSetPandas,
-    fix2_AgentSetPandas,
-)
 from tests.polars.test_agentset_polars import (
     ExampleAgentSetPolars,
+    fix1_AgentSetPolars,
     fix2_AgentSetPolars,
 )
 
 
 # This serves otherwise ruff complains about the two fixtures not being used
 def not_called():
-    fix1_AgentSetPandas()
-    fix2_AgentSetPandas()
     fix2_AgentSetPolars()
 
 
 @pytest.fixture
 def fix_AgentsDF(
-    fix1_AgentSetPandas: ExampleAgentSetPandas,
+    fix1_AgentSetPolars: ExampleAgentSetPolars,
     fix2_AgentSetPolars: ExampleAgentSetPolars,
 ) -> AgentsDF:
     model = ModelDF()
     agents = AgentsDF(model)
-    agents.add([fix1_AgentSetPandas, fix2_AgentSetPolars])
+    agents.add([fix1_AgentSetPolars, fix2_AgentSetPolars])
     return agents
 
 
@@ -49,40 +43,35 @@ class Test_AgentsDF:
 
     def test_add(
         self,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         model = ModelDF()
         agents = AgentsDF(model)
-        agentset_pandas = fix1_AgentSetPandas
-        agentset_polars = fix2_AgentSetPolars
-
-        # Test with a single AgentSetPandas
-        result = agents.add(agentset_pandas, inplace=False)
-        assert result._agentsets[0] is agentset_pandas
-        assert result._ids.to_list() == agentset_pandas._agents.index.to_list()
+        agentset_polars1 = fix1_AgentSetPolars
+        agentset_polars2 = fix2_AgentSetPolars
 
         # Test with a single AgentSetPolars
-        result = agents.add(agentset_polars, inplace=False)
-        assert result._agentsets[0] is agentset_polars
-        assert result._ids.to_list() == agentset_polars._agents["unique_id"].to_list()
+        result = agents.add(agentset_polars1, inplace=False)
+        assert result._agentsets[0] is agentset_polars1
+        assert result._ids.to_list() == agentset_polars1._agents["unique_id"].to_list()
 
         # Test with a list of AgentSetDFs
-        result = agents.add([agentset_pandas, agentset_polars], inplace=True)
-        assert result._agentsets[0] is agentset_pandas
-        assert result._agentsets[1] is agentset_polars
+        result = agents.add([agentset_polars1, agentset_polars2], inplace=True)
+        assert result._agentsets[0] is agentset_polars1
+        assert result._agentsets[1] is agentset_polars2
         assert (
             result._ids.to_list()
-            == agentset_pandas._agents.index.to_list()
-            + agentset_polars._agents["unique_id"].to_list()
+            == agentset_polars1._agents["unique_id"].to_list()
+            + agentset_polars2._agents["unique_id"].to_list()
         )
 
         # Test if adding the same AgentSetDF raises ValueError
         with pytest.raises(ValueError):
-            agents.add(agentset_pandas, inplace=False)
+            agents.add(agentset_polars1, inplace=False)
 
     def test_contains(
-        self, fix2_AgentSetPandas: ExampleAgentSetPandas, fix_AgentsDF: AgentsDF
+        self, fix2_AgentSetPandas: ExampleAgentSetPolars, fix_AgentsDF: AgentsDF
     ):
         agents = fix_AgentsDF
         agentset_pandas = agents._agentsets[0]
@@ -126,7 +115,7 @@ class Test_AgentsDF:
         assert (agents._ids == agents2._ids).all()
 
     def test_discard(
-        self, fix_AgentsDF: AgentsDF, fix2_AgentSetPandas: ExampleAgentSetPandas
+        self, fix_AgentsDF: AgentsDF, fix2_AgentSetPandas: ExampleAgentSetPolars
     ):
         agents = fix_AgentsDF
         # Test with a single AgentSetDF
@@ -225,15 +214,15 @@ class Test_AgentsDF:
     def test_get(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         agents = fix_AgentsDF
 
         # Test with a single attribute
         assert (
-            agents.get("wealth")[fix1_AgentSetPandas].to_list()
-            == fix1_AgentSetPandas._agents["wealth"].to_list()
+            agents.get("wealth")[fix1_AgentSetPolars].to_list()
+            == fix1_AgentSetPolars._agents["wealth"].to_list()
         )
         assert (
             agents.get("wealth")[fix2_AgentSetPolars].to_list()
@@ -242,14 +231,14 @@ class Test_AgentsDF:
 
         # Test with a list of attributes
         result = agents.get(["wealth", "age"])
-        assert result[fix1_AgentSetPandas].columns.to_list() == ["wealth", "age"]
+        assert result[fix1_AgentSetPolars].columns.to_list() == ["wealth", "age"]
         assert (
-            result[fix1_AgentSetPandas]["wealth"].to_list()
-            == fix1_AgentSetPandas._agents["wealth"].to_list()
+            result[fix1_AgentSetPolars]["wealth"].to_list()
+            == fix1_AgentSetPolars._agents["wealth"].to_list()
         )
         assert (
-            result[fix1_AgentSetPandas]["age"].to_list()
-            == fix1_AgentSetPandas._agents["age"].to_list()
+            result[fix1_AgentSetPolars]["age"].to_list()
+            == fix1_AgentSetPolars._agents["age"].to_list()
         )
         assert result[fix2_AgentSetPolars].columns == ["wealth", "age"]
         assert (
@@ -263,18 +252,18 @@ class Test_AgentsDF:
 
         # Test with a single attribute and a mask
         mask0 = (
-            fix1_AgentSetPandas._agents["wealth"]
-            > fix1_AgentSetPandas._agents["wealth"][0]
+            fix1_AgentSetPolars._agents["wealth"]
+            > fix1_AgentSetPolars._agents["wealth"][0]
         )
         mask1 = (
             fix2_AgentSetPolars._agents["wealth"]
             > fix2_AgentSetPolars._agents["wealth"][0]
         )
-        mask_dictionary = {fix1_AgentSetPandas: mask0, fix2_AgentSetPolars: mask1}
+        mask_dictionary = {fix1_AgentSetPolars: mask0, fix2_AgentSetPolars: mask1}
         result = agents.get("wealth", mask=mask_dictionary)
         assert (
-            result[fix1_AgentSetPandas].to_list()
-            == fix1_AgentSetPandas._agents["wealth"].to_list()[1:]
+            result[fix1_AgentSetPolars].to_list()
+            == fix1_AgentSetPolars._agents["wealth"].to_list()[1:]
         )
         assert (
             result[fix2_AgentSetPolars].to_list()
@@ -284,7 +273,7 @@ class Test_AgentsDF:
     def test_remove(
         self,
         fix_AgentsDF: AgentsDF,
-        fix2_AgentSetPandas: ExampleAgentSetPandas,
+        fix2_AgentSetPandas: ExampleAgentSetPolars,
     ):
         agents = fix_AgentsDF
 
@@ -478,11 +467,11 @@ class Test_AgentsDF:
 
     def test_step(
         self,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
         fix_AgentsDF: AgentsDF,
     ):
-        previous_wealth_0 = fix1_AgentSetPandas._agents["wealth"].copy()
+        previous_wealth_0 = fix1_AgentSetPolars._agents["wealth"].copy()
         previous_wealth_1 = fix2_AgentSetPolars._agents["wealth"].clone()
 
         agents = fix_AgentsDF
@@ -500,14 +489,14 @@ class Test_AgentsDF:
     def test__check_ids_presence(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
     ):
         agents = fix_AgentsDF
-        agents_different_index = deepcopy(fix1_AgentSetPandas)
+        agents_different_index = deepcopy(fix1_AgentSetPolars)
         agents_different_index._agents.index = [-100, -200, -300, -400]
-        result = agents._check_ids_presence([fix1_AgentSetPandas])
+        result = agents._check_ids_presence([fix1_AgentSetPolars])
         assert result.filter(
-            pl.col("unique_id").is_in(fix1_AgentSetPandas._agents.index)
+            pl.col("unique_id").is_in(fix1_AgentSetPolars._agents.index)
         )["present"].all()
         assert not result.filter(
             pl.col("unique_id").is_in(agents_different_index._agents.index)
@@ -516,12 +505,12 @@ class Test_AgentsDF:
     def test__check_agentsets_presence(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
-        fix2_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPandas: ExampleAgentSetPolars,
     ):
         agents = fix_AgentsDF
         result = agents._check_agentsets_presence(
-            [fix1_AgentSetPandas, fix2_AgentSetPandas]
+            [fix1_AgentSetPolars, fix2_AgentSetPandas]
         )
         assert result[0]
         assert not result[1]
@@ -588,25 +577,25 @@ class Test_AgentsDF:
     def test__return_agentsets_list(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
-        fix2_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPandas: ExampleAgentSetPolars,
     ):
         agents = fix_AgentsDF
-        result = agents._return_agentsets_list(fix1_AgentSetPandas)
-        assert result == [fix1_AgentSetPandas]
+        result = agents._return_agentsets_list(fix1_AgentSetPolars)
+        assert result == [fix1_AgentSetPolars]
         result = agents._return_agentsets_list(
-            [fix1_AgentSetPandas, fix2_AgentSetPandas]
+            [fix1_AgentSetPolars, fix2_AgentSetPandas]
         )
-        assert result == [fix1_AgentSetPandas, fix2_AgentSetPandas]
+        assert result == [fix1_AgentSetPolars, fix2_AgentSetPandas]
 
     def test___add__(
         self,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         model = ModelDF()
         agents = AgentsDF(model)
-        agentset_pandas = fix1_AgentSetPandas
+        agentset_pandas = fix1_AgentSetPolars
         agentset_polars = fix2_AgentSetPolars
 
         # Test with a single AgentSetPandas
@@ -634,7 +623,7 @@ class Test_AgentsDF:
             result + agentset_pandas
 
     def test___contains__(
-        self, fix_AgentsDF: AgentsDF, fix2_AgentSetPandas: ExampleAgentSetPandas
+        self, fix_AgentsDF: AgentsDF, fix2_AgentSetPandas: ExampleAgentSetPolars
     ):
         # Test with a single value
         agents = fix_AgentsDF
@@ -690,15 +679,15 @@ class Test_AgentsDF:
     def test___getitem__(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         agents = fix_AgentsDF
 
         # Test with a single attribute
         assert (
-            agents["wealth"][fix1_AgentSetPandas].to_list()
-            == fix1_AgentSetPandas._agents["wealth"].to_list()
+            agents["wealth"][fix1_AgentSetPolars].to_list()
+            == fix1_AgentSetPolars._agents["wealth"].to_list()
         )
         assert (
             agents["wealth"][fix2_AgentSetPolars].to_list()
@@ -707,14 +696,14 @@ class Test_AgentsDF:
 
         # Test with a list of attributes
         result = agents[["wealth", "age"]]
-        assert result[fix1_AgentSetPandas].columns.to_list() == ["wealth", "age"]
+        assert result[fix1_AgentSetPolars].columns.to_list() == ["wealth", "age"]
         assert (
-            result[fix1_AgentSetPandas]["wealth"].to_list()
-            == fix1_AgentSetPandas._agents["wealth"].to_list()
+            result[fix1_AgentSetPolars]["wealth"].to_list()
+            == fix1_AgentSetPolars._agents["wealth"].to_list()
         )
         assert (
-            result[fix1_AgentSetPandas]["age"].to_list()
-            == fix1_AgentSetPandas._agents["age"].to_list()
+            result[fix1_AgentSetPolars]["age"].to_list()
+            == fix1_AgentSetPolars._agents["age"].to_list()
         )
         assert result[fix2_AgentSetPolars].columns == ["wealth", "age"]
         assert (
@@ -728,21 +717,21 @@ class Test_AgentsDF:
 
         # Test with a single attribute and a mask
         mask0 = (
-            fix1_AgentSetPandas._agents["wealth"]
-            > fix1_AgentSetPandas._agents["wealth"][0]
+            fix1_AgentSetPolars._agents["wealth"]
+            > fix1_AgentSetPolars._agents["wealth"][0]
         )
         mask1 = (
             fix2_AgentSetPolars._agents["wealth"]
             > fix2_AgentSetPolars._agents["wealth"][0]
         )
         mask_dictionary: dict[AgentSetDF, AgentMask] = {
-            fix1_AgentSetPandas: mask0,
+            fix1_AgentSetPolars: mask0,
             fix2_AgentSetPolars: mask1,
         }
         result = agents[mask_dictionary, "wealth"]
         assert (
-            result[fix1_AgentSetPandas].to_list()
-            == fix1_AgentSetPandas.agents["wealth"].to_list()[1:]
+            result[fix1_AgentSetPolars].to_list()
+            == fix1_AgentSetPolars.agents["wealth"].to_list()[1:]
         )
         assert (
             result[fix2_AgentSetPolars].to_list()
@@ -751,19 +740,19 @@ class Test_AgentsDF:
 
     def test___iadd__(
         self,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         model = ModelDF()
         agents = AgentsDF(model)
-        agentset_pandas = fix1_AgentSetPandas
+        agentset_polars1 = fix1_AgentSetPolars
         agentset_polars = fix2_AgentSetPolars
 
         # Test with a single AgentSetPandas
         agents_copy = deepcopy(agents)
-        agents_copy += agentset_pandas
-        assert agents_copy._agentsets[0] is agentset_pandas
-        assert agents_copy._ids.to_list() == agentset_pandas._agents.index.to_list()
+        agents_copy += agentset_polars1
+        assert agents_copy._agentsets[0] is agentset_polars1
+        assert agents_copy._ids.to_list() == agentset_polars1._agents.index.to_list()
 
         # Test with a single AgentSetPolars
         agents_copy = deepcopy(agents)
@@ -775,18 +764,18 @@ class Test_AgentsDF:
 
         # Test with a list of AgentSetDFs
         agents_copy = deepcopy(agents)
-        agents_copy += [agentset_pandas, agentset_polars]
-        assert agents_copy._agentsets[0] is agentset_pandas
+        agents_copy += [agentset_polars1, agentset_polars]
+        assert agents_copy._agentsets[0] is agentset_polars1
         assert agents_copy._agentsets[1] is agentset_polars
         assert (
             agents_copy._ids.to_list()
-            == agentset_pandas._agents.index.to_list()
+            == agentset_polars1._agents.index.to_list()
             + agentset_polars._agents["unique_id"].to_list()
         )
 
         # Test if adding the same AgentSetDF raises ValueError
         with pytest.raises(ValueError):
-            agents_copy += agentset_pandas
+            agents_copy += agentset_polars1
 
     def test___iter__(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -806,22 +795,22 @@ class Test_AgentsDF:
     def test___isub__(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         # Test with an AgentSetPolars and a DataFrame
         agents = fix_AgentsDF
-        agents -= fix1_AgentSetPandas
+        agents -= fix1_AgentSetPolars
         assert agents._agentsets[0] == fix2_AgentSetPolars
         assert len(agents._agentsets) == 1
 
     def test___len__(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
-        assert len(fix_AgentsDF) == len(fix1_AgentSetPandas) + len(fix2_AgentSetPolars)
+        assert len(fix_AgentsDF) == len(fix1_AgentSetPolars) + len(fix2_AgentSetPolars)
 
     def test___repr__(self, fix_AgentsDF: AgentsDF):
         repr(fix_AgentsDF)
@@ -878,29 +867,29 @@ class Test_AgentsDF:
     def test___sub__(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         # Test with an AgentSetPolars and a DataFrame
-        result = fix_AgentsDF - fix1_AgentSetPandas
+        result = fix_AgentsDF - fix1_AgentSetPolars
         assert isinstance(result._agentsets[0], ExampleAgentSetPolars)
         assert len(result._agentsets) == 1
 
     def test_agents(
         self,
         fix_AgentsDF: AgentsDF,
-        fix1_AgentSetPandas: ExampleAgentSetPandas,
-        fix2_AgentSetPandas: ExampleAgentSetPandas,
+        fix1_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPandas: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         assert isinstance(fix_AgentsDF.agents, dict)
         assert len(fix_AgentsDF.agents) == 2
-        assert fix_AgentsDF.agents[fix1_AgentSetPandas] is fix1_AgentSetPandas._agents
+        assert fix_AgentsDF.agents[fix1_AgentSetPolars] is fix1_AgentSetPolars._agents
         assert fix_AgentsDF.agents[fix2_AgentSetPolars] is fix2_AgentSetPolars._agents
 
         # Test agents.setter
-        fix_AgentsDF.agents = [fix1_AgentSetPandas, fix2_AgentSetPandas]
-        assert fix_AgentsDF._agentsets[0] == fix1_AgentSetPandas
+        fix_AgentsDF.agents = [fix1_AgentSetPolars, fix2_AgentSetPandas]
+        assert fix_AgentsDF._agentsets[0] == fix1_AgentSetPolars
         assert fix_AgentsDF._agentsets[1] == fix2_AgentSetPandas
 
     def test_active_agents(self, fix_AgentsDF: AgentsDF):
@@ -957,9 +946,9 @@ class Test_AgentsDF:
         agents = fix_AgentsDF
         result = agents.agentsets_by_type
         assert isinstance(result, dict)
-        assert isinstance(result[ExampleAgentSetPandas], AgentsDF)
         assert isinstance(result[ExampleAgentSetPolars], AgentsDF)
-        assert result[ExampleAgentSetPandas]._agentsets == [agents._agentsets[0]]
+        assert isinstance(result[ExampleAgentSetPolars], AgentsDF)
+        assert result[ExampleAgentSetPolars]._agentsets == [agents._agentsets[0]]
         assert result[ExampleAgentSetPolars]._agentsets == [agents._agentsets[1]]
 
     def test_inactive_agents(self, fix_AgentsDF: AgentsDF):

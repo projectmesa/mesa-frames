@@ -5,7 +5,7 @@ import pytest
 import typeguard as tg
 from numpy.random import Generator
 
-from mesa_frames import AgentSetPolars, GridPandas, ModelDF
+from mesa_frames import AgentSetPolars, GridPolars, ModelDF
 
 
 @tg.typechecked
@@ -41,7 +41,7 @@ def fix2_AgentSetPolars() -> ExampleAgentSetPolars:
     agents["age"] = [100, 200, 300, 400]
 
     model.agents.add(agents)
-    space = GridPandas(model, dimensions=[3, 3], capacity=2)
+    space = GridPolars(model, dimensions=[3, 3], capacity=2)
     model.space = space
     space.place_agents(agents=[4, 5], pos=[[2, 1], [1, 2]])
     return agents
@@ -51,7 +51,7 @@ def fix2_AgentSetPolars() -> ExampleAgentSetPolars:
 def fix1_AgentSetPolars_with_pos(
     fix1_AgentSetPolars: ExampleAgentSetPolars,
 ) -> ExampleAgentSetPolars:
-    space = GridPandas(fix1_AgentSetPolars.model, dimensions=[3, 3], capacity=2)
+    space = GridPolars(fix1_AgentSetPolars.model, dimensions=[3, 3], capacity=2)
     fix1_AgentSetPolars.model.space = space
     space.place_agents(agents=[0, 1], pos=[[0, 0], [1, 1]])
     return fix1_AgentSetPolars
