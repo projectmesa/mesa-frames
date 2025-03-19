@@ -65,6 +65,7 @@ from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
     ArrayLike,
+    AgentLike,
     BoolSeries,
     DataFrame,
     DiscreteCoordinate,
@@ -80,9 +81,6 @@ from mesa_frames.types_ import (
 )
 
 ESPG = int
-
-
-AgentLike = Union[AgentSetPolars, pl.DataFrame]
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
@@ -1048,7 +1046,7 @@ class DiscreteSpaceDF(SpaceDF):
         rank_order: str | list[str] = "max",
         radius: int | pl.Series = None,
         include_center: bool = True,
-        shuffle: bool = True
+        shuffle: bool = True,
     ) -> None:
         if isinstance(attr_names, str):
             attr_names = [attr_names]
@@ -1060,11 +1058,11 @@ class DiscreteSpaceDF(SpaceDF):
             if "vision" in agents.columns:
                 radius = agents["vision"]
             else:
-                raise ValueError("radius must be specified if agents do not have a 'vision' attribute")
+                raise ValueError(
+                    "radius must be specified if agents do not have a 'vision' attribute"
+                )
         neighborhood = self.get_neighborhood(
-            radius=radius, 
-            agents=agents, 
-            include_center=include_center
+            radius=radius, agents=agents, include_center=include_center
         )
         neighborhood = neighborhood.join(self.cells, on=["dim_0", "dim_1"])
         neighborhood = neighborhood.with_columns(
@@ -1076,16 +1074,16 @@ class DiscreteSpaceDF(SpaceDF):
         )
         if shuffle:
             agent_order = (
-                neighborhood
-                .unique(subset=["agent_id_center"], keep="first")
+                neighborhood.unique(subset=["agent_id_center"], keep="first")
                 .select("agent_id_center")
-                .sample(fraction=1.0, seed=self.model.random.integers(0, 2**31-1))
+                .sample(fraction=1.0, seed=self.model.random.integers(0, 2**31 - 1))
                 .with_row_index("agent_order")
             )
         else:
             agent_order = (
-                neighborhood
-                .unique(subset=["agent_id_center"], keep="first", maintain_order=True)
+                neighborhood.unique(
+                    subset=["agent_id_center"], keep="first", maintain_order=True
+                )
                 .with_row_index("agent_order")
                 .select(["agent_id_center", "agent_order"])
             )
@@ -1097,7 +1095,7 @@ class DiscreteSpaceDF(SpaceDF):
             sort_desc.append(order.lower() == "max")
         neighborhood = neighborhood.sort(
             sort_cols + ["radius", "dim_0", "dim_1"],
-            descending=sort_desc + [False, False, False]
+            descending=sort_desc + [False, False, False],
         )
         neighborhood = neighborhood.join(
             agent_order.select(
@@ -1138,9 +1136,8 @@ class DiscreteSpaceDF(SpaceDF):
         if len(best_moves) > 0:
             self.move_agents(
                 best_moves.sort("agent_order")["agent_id_center"],
-                best_moves.sort("agent_order").select(["dim_0", "dim_1"])
+                best_moves.sort("agent_order").select(["dim_0", "dim_1"]),
             )
-
 
     @property
     def cells(self) -> DataFrame:

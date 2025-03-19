@@ -1,7 +1,10 @@
 """Type aliases for the mesa_frames package."""
 
 from collections.abc import Collection, Sequence
-from typing import Literal
+from typing import TYPE_CHECKING, Literal, Union
+
+if TYPE_CHECKING:
+    from mesa_frames import AgentSetPolars
 
 # import geopandas as gpd
 # import geopolars as gpl
@@ -18,6 +21,7 @@ AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
 AgnosticIds = int | Collection[int]
 
 ###----- pandas Types -----###
+AgentLike = Union["AgentSetPolars", pl.DataFrame]
 
 PandasMask = pd.Series | pd.DataFrame | AgnosticMask
 AgentPandasMask = AgnosticAgentMask | pd.Series | pd.DataFrame
