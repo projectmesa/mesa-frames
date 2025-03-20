@@ -6,9 +6,6 @@ You can get a model which is multiple orders of magnitude faster based on the nu
 
 ## Why DataFrames? 📊
 
-
-
-
 DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). Currently, mesa-frames supports the library:
 
 - [Polars](https://pola.rs/): A new DataFrame library with a Rust backend, offering innovations like Apache Arrow memory format and support for larger-than-memory DataFrames.
