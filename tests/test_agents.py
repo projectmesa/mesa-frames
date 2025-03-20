@@ -2,7 +2,6 @@ from copy import copy, deepcopy
 
 import polars as pl
 import pytest
-import pandas as pd
 
 from mesa_frames import AgentsDF, ModelDF
 from mesa_frames.abstract.agents import AgentSetDF
@@ -617,12 +616,12 @@ class Test_AgentsDF:
         agentset_polars1 = fix1_AgentSetPolars
         agentset_polars2 = fix2_AgentSetPolars
 
-        # Test with a single AgentSetPandas
+        # Test with a single AgentSetPolars
         result = agents + agentset_polars1
         assert result._agentsets[0] is agentset_polars1
         assert result._ids.to_list() == agentset_polars1._agents["unique_id"].to_list()
 
-        # Test with a single AgentSetPolars
+        # Test with a single AgentSetPolars same as above
         result = agents + agentset_polars2
         assert result._agentsets[0] is agentset_polars2
         assert result._ids.to_list() == agentset_polars2._agents["unique_id"].to_list()
@@ -766,15 +765,6 @@ class Test_AgentsDF:
         agents = AgentsDF(model)
         agentset_polars1 = fix1_AgentSetPolars
         agentset_polars = fix2_AgentSetPolars
-
-        # Test with a single AgentSetPandas
-        agents_copy = deepcopy(agents)
-        agents_copy += agentset_polars1
-        assert agents_copy._agentsets[0] is agentset_polars1
-        assert (
-            agents_copy._ids.to_list()
-            == agentset_polars1._agents["unique_id"].to_list()
-        )
 
         # Test with a single AgentSetPolars
         agents_copy = deepcopy(agents)

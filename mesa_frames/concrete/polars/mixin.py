@@ -46,7 +46,6 @@ the class docstring.
 from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
-import pandas as pd
 import polars as pl
 from typing_extensions import Any, overload
 
@@ -179,8 +178,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.DataFrame:
         if dtypes is not None:
             dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
-        if isinstance(data, pd.DataFrame):
-            data = data.reset_index()
+
         df = pl.DataFrame(
             data=data, schema=columns, schema_overrides=dtypes, orient="row"
         )
