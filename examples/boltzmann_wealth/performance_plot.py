@@ -221,8 +221,6 @@ def main():
         "mesa",
         "mesa-frames (pl concise)",
         "mesa-frames (pl native)",
-        "mesa-frames (pd concise)",
-        "mesa-frames (pd native)",
     ]
     kernels_0 = [
         mesa_implementation,
@@ -238,8 +236,6 @@ def main():
     labels_1 = [
         "mesa-frames (pl concise)",
         "mesa-frames (pl native)",
-        "mesa-frames (pd concise)",
-        "mesa-frames (pd native)",
     ]
     kernels_1 = [
         mesa_frames_polars_concise,

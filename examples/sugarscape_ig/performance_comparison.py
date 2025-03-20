@@ -194,7 +194,6 @@ def main():
 
     # mesa-frames comparison
     labels_1 = [
-        # "mesa-frames (pd concise)",
         "mesa-frames (pl loop DF)",
         "mesa-frames (pl loop no vec)",
         "mesa-frames (pl numba CPU)",
