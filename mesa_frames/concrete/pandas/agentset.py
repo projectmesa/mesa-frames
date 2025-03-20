@@ -78,7 +78,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
     """
     WARNING: AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.
     pandas-based implementation of AgentSetDF.
-    
+
     """
 
     _agents: pd.DataFrame
@@ -98,7 +98,11 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         model : ModelDF
             The model associated with the AgentSetPandas.
         """
-        warnings.warn("AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._model = model
         self._agents = (
             pd.DataFrame(columns=["unique_id"])
@@ -135,7 +139,9 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             new_agents = pd.DataFrame([agents], columns=obj._agents.columns.copy())
 
         if not isinstance(agents, AgentSetDF):
-            new_agents["unique_id"] = pd.Series([uuid.uuid4().hex for _ in range(len(new_agents))], dtype=str)
+            new_agents["unique_id"] = pd.Series(
+                [uuid.uuid4().hex for _ in range(len(new_agents))], dtype=str
+            )
             new_agents.set_index("unique_id", inplace=True, drop=True)
 
         if not obj._agents.index.intersection(new_agents.index).empty:
@@ -208,7 +214,10 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             )
         ) and values is not None:
             if isinstance(values, Collection) and len(values) > len(masked_df):
-                values.index = pd.Index([uuid.uuid4().hex for _ in range(len(values) - len(masked_df))], dtype=object)
+                values.index = pd.Index(
+                    [uuid.uuid4().hex for _ in range(len(values) - len(masked_df))],
+                    dtype=object,
+                )
             if not isinstance(attr_names, str):  # isinstance(attr_names, Collection)
                 attr_names = list(attr_names)
             masked_df.loc[:, attr_names] = values
@@ -277,7 +286,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         new_obj._agents = pl.DataFrame(self._agents)
         new_obj._mask = pl.Series(self._mask)
         return new_obj
-    
+
     def shift_indexes(self, first_index: int, inplace: bool = True):
         obj = self._get_obj(inplace)
         obj._agents.index = np.arange(first_index, first_index + len(obj._agents))

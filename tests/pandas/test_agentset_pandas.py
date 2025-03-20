@@ -41,11 +41,14 @@ def fix2_AgentSetPandas() -> ExampleAgentSetPandas:
 
     return agents
 
+
 @pytest.fixture
 def fix1_AgentSetPandas_with_pos(fix1_AgentSetPandas) -> ExampleAgentSetPandas:
     space = GridPolars(fix1_AgentSetPandas.model, dimensions=[3, 3], capacity=2)
     fix1_AgentSetPandas.model.space = space
-    space.place_agents(agents=fix1_AgentSetPandas["unique_id"][:2], pos=[[0, 0], [1, 1]])
+    space.place_agents(
+        agents=fix1_AgentSetPandas["unique_id"][:2], pos=[[0, 0], [1, 1]]
+    )
     return fix1_AgentSetPandas
 
 
@@ -73,7 +76,7 @@ class Test_AgentSetPandas:
         # Test with a dict[str, Any]
         with pytest.raises(ValueError):
             agents.add({"unique_id": [4, 5], "wealth": [5, 6], "age": [50, 60]})
-    
+
     def test_add(
         self,
         fix1_AgentSetPandas: ExampleAgentSetPandas,
@@ -106,7 +109,7 @@ class Test_AgentSetPandas:
 
         # Test with a single value
         assert agents.contains(agents["unique_id"][0])
-        assert not agents.contains('not an id')
+        assert not agents.contains("not an id")
 
         # Test with a list
         assert agents.contains(agents["unique_id"][:2]).values.tolist() == [True, True]
@@ -242,7 +245,9 @@ class Test_AgentSetPandas:
         # Test with n, filter_func and mask
         mask = pd.Series([True, False, True, True])
         selected = agents.select(mask, filter_func=filter_func, n=1, inplace=False)
-        assert any(el in selected.active_agents.index.tolist() for el in agents.index[[2, 3]])
+        assert any(
+            el in selected.active_agents.index.tolist() for el in agents.index[[2, 3]]
+        )
 
     def test_set(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
         agents = fix1_AgentSetPandas
@@ -290,7 +295,12 @@ class Test_AgentSetPandas:
 
         # Test with an AgentSetPandas and another AgentSetPandas
         agents3 = agents + agents2
-        assert all(agents3.agents.index == pd.concat([agents["unique_id"].to_series(), agents2["unique_id"].to_series()]))
+        assert all(
+            agents3.agents.index
+            == pd.concat(
+                [agents["unique_id"].to_series(), agents2["unique_id"].to_series()]
+            )
+        )
 
         # Test with an AgentSetPandas and a list (Sequence[Any])
         agents3 = agents + [5, 5]  # wealth, age

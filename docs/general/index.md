@@ -6,8 +6,7 @@ You can get a model which is multiple orders of magnitude faster based on the nu
 
 ## Why DataFrames? 📊
 
-
-!!! warning 
+!!! warning
     The pandas version will be deprecated in the next release. Refer to [this issue](https://github.com/projectmesa/mesa-frames/issues/89) for more information. Please consider transitioning to Polars for future compatibility.
 
 DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). Currently, mesa-frames supports two main libraries:

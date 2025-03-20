@@ -137,11 +137,17 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
-            new_agents = pl.DataFrame([[uuid.uuid4().hex] + agents], schema=obj._agents.schema)
+            new_agents = pl.DataFrame(
+                [[uuid.uuid4().hex] + agents], schema=obj._agents.schema
+            )
 
         if "unique_id" not in new_agents:
-            new_agents = new_agents.with_columns(pl.Series([uuid.uuid4().hex for _ in range(len(new_agents))]).alias("unique_id"))
-        
+            new_agents = new_agents.with_columns(
+                pl.Series([uuid.uuid4().hex for _ in range(len(new_agents))]).alias(
+                    "unique_id"
+                )
+            )
+
         # If self._mask is pl.Expr, then new mask is the same.
         # If self._mask is pl.Series[bool], then new mask has to be updated.
         originally_empty = len(obj._agents) == 0
@@ -304,14 +310,14 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 .to_pandas()
             )
         return new_obj
-    
+
     def shift_indexes(self, first_index: int, inplace: bool = True):
         obj = self._get_obj(inplace)
         obj._agents = obj._agents.with_columns(
             pl.arange(first_index, first_index + len(obj._agents)).alias("unique_id")
         )
         return obj
-    
+
     def _concatenate_agentsets(
         self,
         agentsets: Iterable[Self],
@@ -558,4 +564,3 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     @property
     def pos(self) -> pl.DataFrame:
         return super().pos
-    

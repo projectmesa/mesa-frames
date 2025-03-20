@@ -603,7 +603,7 @@ class AgentsDF(AgentContainer):
     @property
     def pos(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.pos for agentset in self._agentsets}
-    
+
     def shift_indexes(self, first_index: int, inplace: bool = True) -> Self:
         obj = self._get_obj(inplace)
         obj._ids += first_index

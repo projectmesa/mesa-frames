@@ -51,7 +51,9 @@ def fix1_AgentSetPolars_with_pos(
 ) -> ExampleAgentSetPolars:
     space = GridPandas(fix1_AgentSetPolars.model, dimensions=[3, 3], capacity=2)
     fix1_AgentSetPolars.model.space = space
-    space.place_agents(agents=fix1_AgentSetPolars["unique_id"][[0, 1]], pos=[[0, 0], [1, 1]])
+    space.place_agents(
+        agents=fix1_AgentSetPolars["unique_id"][[0, 1]], pos=[[0, 0], [1, 1]]
+    )
     return fix1_AgentSetPolars
 
 
@@ -91,12 +93,17 @@ class Test_AgentSetPolars:
 
         # Test with another AgentSetPolars
         result = agents.add(agents2, inplace=False)
-        assert all(result["unique_id"] == pl.concat([agents["unique_id"], agents2["unique_id"]]))
+        assert all(
+            result["unique_id"]
+            == pl.concat([agents["unique_id"], agents2["unique_id"]])
+        )
         assert all(result["age"] == pl.concat([agents["age"], agents2["age"]]))
         assert all(result["wealth"] == pl.concat([agents["wealth"], agents2["wealth"]]))
 
         # Test with a pl.Dataframe
-        result = agents.add(pl.DataFrame({"wealth": [5, 6], "age": [50, 60]}), inplace=False)
+        result = agents.add(
+            pl.DataFrame({"wealth": [5, 6], "age": [50, 60]}), inplace=False
+        )
         assert result.agents["wealth"].to_list() == [1, 2, 3, 4, 5, 6]
         assert result.agents["age"].to_list() == [10, 20, 30, 40, 50, 60]
 
@@ -153,7 +160,9 @@ class Test_AgentSetPolars:
         assert result.pos["dim_1"].to_list() == [None, None]
 
         # Test with a pl.DataFrame
-        result = agents.discard(pl.DataFrame({"unique_id": agents["unique_id"][0, 1]}), inplace=False)
+        result = agents.discard(
+            pl.DataFrame({"unique_id": agents["unique_id"][0, 1]}), inplace=False
+        )
         assert all(result["unique_id"] == agents["unique_id"][2, 3])
         assert all(result.pos["unique_id"] == agents["unique_id"][2, 3])
         assert result.pos["dim_0"].to_list() == [None, None]
@@ -249,7 +258,10 @@ class Test_AgentSetPolars:
         # Test with n, filter_func and mask
         mask = pl.Series("mask", [True, False, True, True], dtype=pl.Boolean)
         selected = agents.select(mask, filter_func=filter_func, n=1, inplace=False)
-        assert any(id in selected.active_agents["unique_id"].to_list() for id in agents["unique_id"][2, 3])
+        assert any(
+            id in selected.active_agents["unique_id"].to_list()
+            for id in agents["unique_id"][2, 3]
+        )
 
     def test_set(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
@@ -297,12 +309,15 @@ class Test_AgentSetPolars:
 
         # Test with two AgentSetPolars
         agents3 = agents + agents2
-        assert all(agents3["unique_id"] == pl.concat([agents["unique_id"], agents2["unique_id"]]))
+        assert all(
+            agents3["unique_id"]
+            == pl.concat([agents["unique_id"], agents2["unique_id"]])
+        )
 
         # Test with an AgentSetPolars and a DataFrame
         agents3 = agents + pl.DataFrame({"wealth": [5, 6], "age": [50, 60]})
         assert agents3.agents["wealth"].to_list() == [1, 2, 3, 4, 5, 6]
-        assert agents3.agents["age"].to_list() == [10, 20, 30, 40, 50, 60]       
+        assert agents3.agents["age"].to_list() == [10, 20, 30, 40, 50, 60]
 
         # Test with an AgentSetPolars and a list (Sequence[Any])
         agents3 = agents + [5, 5]  # unique_id, wealth, age
@@ -371,12 +386,18 @@ class Test_AgentSetPolars:
         # Test with an AgentSetPolars and a DataFrame
         agents = deepcopy(fix1_AgentSetPolars)
         agents += agents2
-        assert all(agents["unique_id"] == pl.concat([fix1_AgentSetPolars["unique_id"], agents2["unique_id"]]))
+        assert all(
+            agents["unique_id"]
+            == pl.concat([fix1_AgentSetPolars["unique_id"], agents2["unique_id"]])
+        )
 
         # Test with an AgentSetPolars and a list
         agents = deepcopy(fix1_AgentSetPolars)
         agents += [5, 5]  # unique_id, wealth, age
-        assert all(agents["unique_id"].to_list()[:-1] == fix1_AgentSetPolars["unique_id"][0, 1, 2, 3])
+        assert all(
+            agents["unique_id"].to_list()[:-1]
+            == fix1_AgentSetPolars["unique_id"][0, 1, 2, 3]
+        )
         assert len(agents.agents) == 5
         assert agents.agents["wealth"].to_list() == [1, 2, 3, 4, 5]
         assert agents.agents["age"].to_list() == [10, 20, 30, 40, 5]
@@ -484,7 +505,9 @@ class Test_AgentSetPolars:
     def test_pos(self, fix1_AgentSetPolars_with_pos: ExampleAgentSetPolars):
         pos = fix1_AgentSetPolars_with_pos.pos
         assert isinstance(pos, pl.DataFrame)
-        assert all(pos["unique_id"] == fix1_AgentSetPolars_with_pos["unique_id"][0, 1, 2, 3])
+        assert all(
+            pos["unique_id"] == fix1_AgentSetPolars_with_pos["unique_id"][0, 1, 2, 3]
+        )
         assert pos.columns == ["unique_id", "dim_0", "dim_1"]
         assert pos["dim_0"].to_list() == [0, 1, None, None]
         assert pos["dim_1"].to_list() == [0, 1, None, None]
