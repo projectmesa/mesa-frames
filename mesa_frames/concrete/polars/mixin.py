@@ -608,7 +608,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         if dtype is not None:
             dtype = self._dtypes_mapping[dtype]
-        return pl.Series(name=name, values=data, dtype=dtype)
+        return pl.Series(name=name, values=list(data), dtype=dtype)
 
     def _srs_contains(
         self,

@@ -382,6 +382,23 @@ class AgentContainer(CopyMixin):
             A new or updated AgentContainer.
         """
 
+    @abstractmethod
+    def shift_indexes(self, first_index: int, inplace: bool = True) -> Self:
+        """Shift the indexes of the agents in the AgentContainer by the specified amount.
+
+        Parameters
+        ----------
+        first_index : int
+            The new first index to be used.
+        inplace : bool
+            Whether to shift the indexes in place.
+
+        Returns
+        -------
+        Self
+            A new or updated AgentContainer.
+        """
+
     def __add__(
         self, other: DataFrameInput | AgentSetDF | Collection[AgentSetDF]
     ) -> Self:

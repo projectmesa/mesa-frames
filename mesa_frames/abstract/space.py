@@ -1169,7 +1169,7 @@ class GridDF(DiscreteSpaceDF):
         self._agents = self._df_constructor(
             columns=["agent_id"] + self._pos_col_names,
             index_cols="agent_id",
-            dtypes={col: int for col in ["agent_id"] + self._pos_col_names},
+            dtypes={"agent_id": str} | {col: int for col in self._pos_col_names},
         )
 
         cells_df_dtypes = {col: int for col in self._pos_col_names}
