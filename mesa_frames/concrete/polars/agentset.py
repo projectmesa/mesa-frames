@@ -278,8 +278,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         obj._agents = obj._agents.sort(by=by, descending=descending, **kwargs)
         return obj
 
-
-
     def _concatenate_agentsets(
         self,
         agentsets: Iterable[Self],

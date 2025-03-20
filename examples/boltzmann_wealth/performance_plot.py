@@ -161,8 +161,6 @@ class MoneyAgentPolarsNative(AgentSetPolars):
         )
 
 
-
-
 class MoneyModelDF(ModelDF):
     def __init__(self, N: int, agents_cls):
         super().__init__()
@@ -186,10 +184,6 @@ def mesa_frames_polars_concise(n_agents: int) -> None:
 def mesa_frames_polars_native(n_agents: int) -> None:
     model = MoneyModelDF(n_agents, MoneyAgentPolarsNative)
     model.run_model(100)
-
-
-
-
 
 
 def plot_and_print_benchmark(labels, kernels, n_range, title, image_path):

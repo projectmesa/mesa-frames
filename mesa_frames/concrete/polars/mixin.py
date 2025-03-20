@@ -481,8 +481,8 @@ class PolarsMixin(DataFrameMixin):
                     for col in df.columns
                 )
             else:
-                assert len(df.columns) == len(
-                    other
+                assert (
+                    len(df.columns) == len(other)
                 ), "Sequence must have the same length as df.columns if axis is 'columns'"
                 return df.with_columns(
                     operation(pl.col(col), pl.lit(other[i])).alias(col)
