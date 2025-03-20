@@ -64,6 +64,7 @@ import warnings
 
 import polars as pl
 from polars._typing import IntoExpr
+from polars.exceptions import ShapeError
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
@@ -143,13 +144,13 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         
         # If self._mask is pl.Expr, then new mask is the same.
         # If self._mask is pl.Series[bool], then new mask has to be updated.
-
-        if isinstance(obj._mask, pl.Series):
+        originally_empty = len(obj._agents) == 0
+        if isinstance(obj._mask, pl.Series) and not originally_empty:
             original_active_indices = obj._agents.filter(obj._mask)["unique_id"]
 
         obj._agents = pl.concat([obj._agents, new_agents], how="diagonal_relaxed")
 
-        if isinstance(obj._mask, pl.Series):
+        if isinstance(obj._mask, pl.Series) and not originally_empty:
             obj._update_mask(original_active_indices, new_agents["unique_id"])
 
         return obj
@@ -166,7 +167,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     ) -> bool | pl.Series:
         if isinstance(agents, pl.Series):
             return agents.is_in(self._agents["unique_id"])
-        elif isinstance(agents, Collection):
+        elif isinstance(agents, Collection) and not isinstance(agents, str):
             return pl.Series(agents).is_in(self._agents["unique_id"])
         else:
             return agents in self._agents["unique_id"]
@@ -208,7 +209,10 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 values_series = pl.Series(values)
             else:
                 values_series = pl.repeat(values, len(masked_df))
-            return masked_df.with_columns(values_series.alias(attr_name))
+            try:
+                return masked_df.with_columns(values_series.alias(attr_name))
+            except ShapeError as error:
+                raise KeyError(error)
 
         if isinstance(attr_names, str) and values is not None:
             masked_df = process_single_attr(masked_df, attr_names, values)
@@ -400,7 +404,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             return pl.repeat(True, len(self._agents))
         elif mask == "active":
             return self._mask
-        elif isinstance(mask, Collection):
+        elif isinstance(mask, Collection) and not isinstance(mask, str):
             return bool_mask_from_series(pl.Series(mask))
         else:
             return bool_mask_from_series(pl.Series([mask]))
@@ -433,7 +437,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         elif mask == "active":
             return self._agents.filter(self._mask)
         else:
-            if isinstance(mask, Collection):
+            if isinstance(mask, Collection) and not isinstance(mask, str):
                 mask_series = pl.Series(mask)
             else:
                 mask_series = pl.Series([mask])
