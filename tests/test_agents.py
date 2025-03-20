@@ -975,14 +975,11 @@ class Test_AgentsDF:
         result = agents.agentsets_by_type
         assert isinstance(result, dict)
         assert isinstance(result[ExampleAgentSetPolars], AgentsDF)
-        raise ValueError(f"{}")
 
-        raise ValueError(f"{result[ExampleAgentSetPolars]._agentsets[0].agents.rows()}")
         assert (
             result[ExampleAgentSetPolars]._agentsets[0].agents.rows()
             == agents._agentsets[1].agents.rows()
         )
-        raise ValueError("e")
 
     def test_inactive_agents(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
