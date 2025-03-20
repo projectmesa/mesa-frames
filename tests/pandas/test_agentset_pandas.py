@@ -177,7 +177,10 @@ class Test_AgentSetPandas:
         assert agents.agents.wealth.tolist() == [3, 4, 5, 6]
 
         # Test with a mask
+        # note that do method does not guarantee that the agents' order does not change
+        original_index_order = agents["unique_id"]
         agents.do("add_wealth", 1, mask=agents["wealth"] > 3)
+        agents.agents = agents.agents.reindex(original_index_order)
         assert agents.agents.wealth.tolist() == [3, 5, 6, 7]
 
     def test_get(self, fix1_AgentSetPandas: ExampleAgentSetPandas):

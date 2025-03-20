@@ -852,8 +852,6 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
                 keep_first_only=True,
                 original_masked_index=original_masked_index,
             )
-            # obj._concatenate_agentsets messes up agents' order so we reorder by using the original index 
-            obj._agents = obj._agents.reindex_like(self)
             if inplace:
                 for key, value in obj.__dict__.items():
                     setattr(self, key, value)
