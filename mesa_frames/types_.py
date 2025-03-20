@@ -3,7 +3,7 @@
 from collections.abc import Collection, Sequence
 from typing import Literal
 
-# import geopandas as gpd
+
 # import geopolars as gpl
 import polars as pl
 from numpy import ndarray
