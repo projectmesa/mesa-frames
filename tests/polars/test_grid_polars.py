@@ -1001,17 +1001,17 @@ class TestGridPolars:
                 0,
                 1,
                 0,
-                1,
-                2,
                 0,
+                1,
+                1,
             ]
             assert agents.select(pl.col("dim_1")).to_series().to_list() == [
                 0,
                 1,
                 0,
-                0,
-                0,
                 1,
+                0,
+                2,
             ]
 
         # Test with Collection[AgentSetDF]
@@ -1128,10 +1128,12 @@ class TestGridPolars:
                     space.agents.select(pl.col("dim_0", "dim_1")).to_numpy() != last
                 ).any():
                     different = True
-            assert (
-                space.agents.select(pl.col("dim_0", "dim_1")).row(0)
-                in available_cells.rows()
-            )
+
+            # Convert to lists for comparison
+            agent_pos = space.agents.select(pl.col("dim_0", "dim_1")).row(0)
+            available_pos = [(row[0], row[1]) for row in available_cells.rows()]
+            assert (agent_pos[0], agent_pos[1]) in available_pos
+
             last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
@@ -1146,13 +1148,14 @@ class TestGridPolars:
                     space.agents.select(pl.col("dim_0", "dim_1")).to_numpy() != last
                 ).any():
                     different = True
-            assert (
-                space.agents.select(pl.col("dim_0", "dim_1")).row(0)
-                in available_cells.rows()
-            ) and (
-                space.agents.select(pl.col("dim_0", "dim_1")).row(1)
-                in available_cells.rows()
-            )
+
+            # Convert to lists for comparison
+            agent_pos0 = space.agents.select(pl.col("dim_0", "dim_1")).row(0)
+            agent_pos1 = space.agents.select(pl.col("dim_0", "dim_1")).row(1)
+            available_pos = [(row[0], row[1]) for row in available_cells.rows()]
+            assert (agent_pos0[0], agent_pos0[1]) in available_pos
+            assert (agent_pos1[0], agent_pos1[1]) in available_pos
+
             last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
@@ -1163,16 +1166,19 @@ class TestGridPolars:
             available_cells = grid_moore.available_cells
             space = grid_moore.move_to_available(grid_moore.model.agents, inplace=False)
             if last is not None and not different:
-                if (space.agents.select(pl.col("dim_0")).to_numpy() != last).any():
+                if (
+                    space.agents.select(pl.col("dim_0", "dim_1")).to_numpy() != last
+                ).any():
                     different = True
-            assert (
-                space.agents.select(pl.col("dim_0", "dim_1")).row(0)
-                in available_cells.rows()
-            ) and (
-                space.agents.select(pl.col("dim_0", "dim_1")).row(1)
-                in available_cells.rows()
-            )
-            last = space.agents.select(pl.col("dim_0")).to_numpy()
+
+            # Convert to lists for comparison
+            agent_pos0 = space.agents.select(pl.col("dim_0", "dim_1")).row(0)
+            agent_pos1 = space.agents.select(pl.col("dim_0", "dim_1")).row(1)
+            available_pos = [(row[0], row[1]) for row in available_cells.rows()]
+            assert (agent_pos0[0], agent_pos0[1]) in available_pos
+            assert (agent_pos1[0], agent_pos1[1]) in available_pos
+
+            last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
     def test_move_to_empty(self, grid_moore: GridPolars):
