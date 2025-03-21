@@ -7,7 +7,6 @@ import polars as pl
 import seaborn as sns
 from polars.testing import assert_frame_equal
 from ss_mesa.model import SugarscapeMesa
-from ss_pandas.model import SugarscapePandas
 from ss_polars.agents import (
     AntPolarsLoopDF,
     AntPolarsLoopNoVec,
@@ -16,7 +15,8 @@ from ss_polars.agents import (
     AntPolarsNumbaParallel,
 )
 from ss_polars.model import SugarscapePolars
-from typing_extensions import Callable
+from collections.abc import Callable
+
 
 class SugarScapeSetup:
     def __init__(self, n: int):
@@ -55,20 +55,6 @@ class SugarScapeSetup:
 
 def mesa_implementation(setup: SugarScapeSetup):
     model = SugarscapeMesa(
-        setup.n,
-        setup.sugar_grid,
-        setup.initial_sugar,
-        setup.metabolism,
-        setup.vision,
-        setup.initial_positions,
-        setup.seed,
-    )
-    model.run_model(100)
-    return model
-
-
-def mesa_frames_pandas_concise(setup: SugarScapeSetup):
-    model = SugarscapePandas(
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
@@ -193,23 +179,20 @@ def main():
     # Mesa comparison
     sns.set_theme(style="whitegrid")
     labels_0 = [
-        # "mesa-frames (pd concise)", # Pandas to be removed because of performance
         "mesa-frames (pl numba parallel)",
         "mesa",
     ]
     kernels_0 = [
-        # mesa_frames_pandas_concise,
         mesa_frames_polars_numba_parallel,
         mesa_implementation,
     ]
-    n_range_0 = [k for k in range(10**5, 5*10**5 + 2, 10**5)]
+    n_range_0 = [k for k in range(10**5, 5 * 10**5 + 2, 10**5)]
     title_0 = "100 steps of the SugarScape IG model:\n" + " vs ".join(labels_0)
     image_path_0 = "mesa_comparison.png"
     plot_and_print_benchmark(labels_0, kernels_0, n_range_0, title_0, image_path_0)
 
     # mesa-frames comparison
     labels_1 = [
-        # "mesa-frames (pd concise)",
         "mesa-frames (pl loop DF)",
         "mesa-frames (pl loop no vec)",
         "mesa-frames (pl numba CPU)",

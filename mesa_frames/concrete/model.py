@@ -21,12 +21,12 @@ Usage:
     methods:
 
     from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.agents import AgentSetPandas
+    from mesa_frames.concrete.agents import AgentSetPolars
 
     class MyCustomModel(ModelDF):
         def __init__(self, num_agents):
             super().__init__()
-            self.agents += AgentSetPandas(self)
+            self.agents += AgentSetPolars(self)
             # Initialize your model-specific attributes and agent sets
 
         def run_model(self):
