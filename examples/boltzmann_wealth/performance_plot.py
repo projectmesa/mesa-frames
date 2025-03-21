@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from mesa_frames import AgentSetPolars
 import mesa
 import numpy as np
 import pandas as pd
@@ -11,9 +12,38 @@ from mesa_frames import AgentSetPandas, AgentSetPolars, ModelDF
 
 ### ---------- Mesa implementation ---------- ###
 def mesa_implementation(n_agents: int) -> None:
-    model = MoneyModel(n_agents)
+    model = MoneyModelDF(n_agents, None)
     model.run_model(100)
 
+class MoneyAgentPolars(AgentSetPolars):
+    def __init__(self, n: int, model: ModelDF):
+        super().__init__(model)
+        # Adding the agents to the agent set
+        self += pl.DataFrame(
+            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
+        )
+
+    def step(self) -> None:
+        # The give_money method is called
+        self.do("give_money")
+
+    def give_money(self):
+        # Active agents are changed to wealthy agents
+        self.select(self.wealth > 0)
+
+        # Receiving agents are sampled (only native expressions currently supported)
+        other_agents = self.agents.sample(
+            n=len(self.active_agents), with_replacement=True
+        )
+
+        # Wealth of wealthy is decreased by 1
+        self["active", "wealth"] -= 1
+
+        # Compute the income of the other agents (only native expressions currently supported)
+        new_wealth = other_agents.group_by("unique_id").len()
+
+        # Add the income to the other agents
+        self[new_wealth, "wealth"] += new_wealth["len"]
 
 class MoneyAgent(mesa.Agent):
     """An agent with fixed initial wealth."""
@@ -241,7 +271,7 @@ class MoneyModelDF(ModelDF):
     def __init__(self, N: int, agents_cls):
         super().__init__()
         self.n_agents = N
-        self.agents += agents_cls(N, self)
+        self.agents += MoneyAgentPolars(N, self)
 
     def step(self):
         # Executes the step method for every agentset in self.agents
