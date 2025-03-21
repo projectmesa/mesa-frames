@@ -15,7 +15,6 @@ keywords = [
     "simulation",
     "simulation-environment",
     "gis",
-    "pandas",
     "simulation-framework",
     "agent-based-modeling",
     "complex-systems",
@@ -35,10 +34,7 @@ classifiers = [
 dependencies = [
   "numpy~=1.26",
   "typing-extensions>=4.9", #typing-extensions.Self added in 4.9
-  ## pandas
-  "pandas>=2.2",
-  "pyarrow", #for conversion to pandas
-  #"geopandas" (only after GeoGrid / ContinousSpace is implemented)
+  "pyarrow", 
   ## polars
   "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
   #"geopolars" (currently in pre-alpha)
