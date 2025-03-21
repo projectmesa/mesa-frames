@@ -76,7 +76,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
     """
     WARNING: AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.
     pandas-based implementation of AgentSetDF.
-    
+
     """
 
     _agents: pd.DataFrame
@@ -96,7 +96,11 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         model : ModelDF
             The model associated with the AgentSetPandas.
         """
-        warnings.warn("AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._model = model
         self._agents = (
             pd.DataFrame(columns=["unique_id"])
