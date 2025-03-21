@@ -39,7 +39,7 @@ Usage:
     class MyModel(ModelDF):
         def __init__(self):
             super().__init__()
-            self.agents.add(AgentSetP(self))
+            self.agents.add(AgentSetPolars(self))
             self.space = GridPolars(self, dimensions=[10, 10])
             # ... other initialization code
 

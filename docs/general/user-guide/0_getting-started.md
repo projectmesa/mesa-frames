@@ -34,7 +34,7 @@ Here's a comparison between mesa-frames and mesa:
 
 === "mesa-frames"
 
-````python
+```python
 class MoneyAgentPolarsConcise(AgentSetPolars): # initialization...
 
         def give_money(self):
@@ -54,9 +54,10 @@ class MoneyAgentPolarsConcise(AgentSetPolars): # initialization...
 
             # Add the income to the other agents
             self[new_wealth, "wealth"] += new_wealth["len"]
-    ```
+```
 
 === "mesa"
+
 ```python
 class MoneyAgent(mesa.Agent): # initialization...
 
@@ -67,7 +68,7 @@ class MoneyAgent(mesa.Agent): # initialization...
                 if other_agent is not None:
                     other_agent.wealth += 1
                     self.wealth -= 1
-    ```
+```
 
 As you can see, while in mesa you should iterate through all the agents' steps in the model class, here you execute the method once for all agents.
 
@@ -99,6 +100,7 @@ If you're familiar with mesa, this guide will help you understand the key differ
 - mesa-frames: Agents are rows in a DataFrame, grouped into AgentSets. Methods are defined for AgentSets and operate on all agents simultaneously.
 
 === "mesa-frames"
+
 ```python
 class MoneyAgentSet(AgentSetPolars):
 def **init**(self, n, model):
@@ -114,9 +116,10 @@ self += pl.DataFrame({
             self[givers, "wealth"] -= 1
             new_wealth = receivers.groupby("unique_id").count()
             self[new_wealth["unique_id"], "wealth"] += new_wealth["count"]
-    ```
+```
 
 === "mesa"
+
 ```python
 class MoneyAgent(Agent):
 def **init**(self, unique_id, model):
@@ -128,7 +131,7 @@ self.wealth = 1
                 other_agent = self.random.choice(self.model.schedule.agents)
                 other_agent.wealth += 1
                 self.wealth -= 1
-    ```
+```
 
 ### Model Structure 🏗️
 
@@ -136,6 +139,7 @@ self.wealth = 1
 - mesa-frames: Models manage AgentSets and directly control the simulation flow.
 
 === "mesa-frames"
+
 ```python
 class MoneyModel(ModelDF):
 def **init**(self, N):
@@ -144,9 +148,10 @@ self.agents += MoneyAgentSet(N, self)
 
         def step(self):
             self.agents.do("step")
-    ```
+```
 
 === "mesa"
+
 ```python
 class MoneyModel(Model):
 def **init**(self, N):
@@ -158,7 +163,7 @@ self.schedule.add(a)
 
         def step(self):
             self.schedule.step()
-    ```
+```
 
 ### Transition Tips 💡
 
@@ -179,4 +184,3 @@ When simultaneous activation is not possible, you need to handle race conditions
 2. **Looping Mechanism 🔁**: Implement a looping mechanism on vectorized operations.
 
 For a more detailed implementation of handling race conditions, please refer to the `examples/sugarscape-ig` in the mesa-frames repository. This example demonstrates how to implement the Sugarscape model with instantaneous growback, which requires careful handling of sequential agent actions.
-````
