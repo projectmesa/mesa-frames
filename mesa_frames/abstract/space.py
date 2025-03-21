@@ -1039,7 +1039,7 @@ class DiscreteSpaceDF(SpaceDF):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}\n{str(self.cells)}"
 
-    def move_to(
+    def move_to_optimal(
         self,
         agents: AgentLike,
         attr_names: str | list[str],
@@ -1048,6 +1048,67 @@ class DiscreteSpaceDF(SpaceDF):
         include_center: bool = True,
         shuffle: bool = True,
     ) -> None:
+        """
+        Move agents to the optimal cell based on neighborhood ranking.
+
+        This method computes the neighborhood for each agent and evaluates possible
+        moves by ranking neighborhood cells according to the specified attribute(s)
+        and rank order(s). It then selects the best available moves and updates the
+        agent positions in-place. If multiple agents target the same cell, tie-breaking
+        rules are applied, and optionally the order of agent evaluation can be randomized.
+
+        Parameters
+        ----------
+        agents : AgentLike
+            A DataFrame-like structure containing agent information. Must include at least:
+            - `unique_id`: Unique identifier for each agent.
+            - `dim_0`, `dim_1`: Current positions of agents.
+            - Optionally, `vision` is used if `radius` is not provided.
+        attr_names : str or list[str]
+            Name(s) of the attribute(s) used for ranking neighborhood cells.
+            If multiple attributes are provided, each must correspond to an entry in `rank_order`.
+        rank_order : str or list[str], optional
+            Ranking order for each attribute. Accepts:
+            - "max" (default) for descending order.
+            - "min" for ascending order.
+            If a single string is provided, it is applied to all attributes in `attr_names`.
+            **Note:** The length of `attr_names` must match the length of `rank_order`.
+        radius : int or pl.Series, optional
+            Radius (or per-agent radii) defining the neighborhood around agents.
+            If not provided, the method attempts to use the `vision` column from `agents`.
+            Raises a ValueError if `vision` is missing.
+        include_center : bool, optional
+            Whether to include the agent's current cell in its neighborhood. Default is True.
+        shuffle : bool, optional
+            If True, randomizes the order in which agents are processed to break ties.
+            Otherwise, agents are processed in the order they appear in the data.
+
+        Returns
+        -------
+        None
+            Updates the agent positions in-place based on the computed best moves.
+
+        Raises
+        ------
+        ValueError
+            If the lengths of `attr_names` and `rank_order` do not match, or if `radius`
+            is not provided and `agents` does not have a `vision` attribute.
+
+        Examples
+        --------
+        >>> # Given a DataFrame 'agents' with columns: ['unique_id', 'dim_0', 'dim_1',
+        >>> # 'vision', 'food_availability', 'safety_score'] and a space object 'space':
+        >>> space.move_to_optimal(
+        ...     agents=agents,
+        ...     attr_names=["food_availability", "safety_score"],
+        ...     rank_order=["max", "max"],
+        ...     radius=None,               # Use each agent's 'vision' column
+        ...     include_center=False,      # Exclude the agent's current cell
+        ...     shuffle=True               # Randomize agent order to break ties
+        ... )
+        >>> # Agents' positions in 'agents' are updated in-place.
+        """
+        # Ensure attr_names and rank_order are lists of the same length
         if isinstance(attr_names, str):
             attr_names = [attr_names]
         if isinstance(rank_order, str):
@@ -1138,6 +1199,7 @@ class DiscreteSpaceDF(SpaceDF):
                 best_moves.sort("agent_order")["agent_id_center"],
                 best_moves.sort("agent_order").select(["dim_0", "dim_1"]),
             )
+
 
     @property
     def cells(self) -> DataFrame:
