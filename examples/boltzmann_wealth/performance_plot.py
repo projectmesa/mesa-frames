@@ -15,6 +15,7 @@ def mesa_implementation(n_agents: int) -> None:
     model = MoneyModelDF(n_agents, None)
     model.run_model(100)
 
+
 class MoneyAgentPolars(AgentSetPolars):
     def __init__(self, n: int, model: ModelDF):
         super().__init__(model)
@@ -44,6 +45,7 @@ class MoneyAgentPolars(AgentSetPolars):
 
         # Add the income to the other agents
         self[new_wealth, "wealth"] += new_wealth["len"]
+
 
 class MoneyAgent(mesa.Agent):
     """An agent with fixed initial wealth."""
