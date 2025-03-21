@@ -1200,7 +1200,6 @@ class DiscreteSpaceDF(SpaceDF):
                 best_moves.sort("agent_order").select(["dim_0", "dim_1"]),
             )
 
-
     @property
     def cells(self) -> DataFrame:
         """

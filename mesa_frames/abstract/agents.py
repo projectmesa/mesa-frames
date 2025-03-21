@@ -1051,7 +1051,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     def __reversed__(self) -> Iterator:
         return reversed(self._agents)
-    
+
     def move_to_optimal(
         self,
         attr_names: str | list[str],
@@ -1063,7 +1063,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     ) -> Self:
         """Move all agent sets to optimal cells based on neighborhood ranking."""
         obj = self._get_obj(inplace)
-        
+
         # Apply move_to_optimal to each agent set in the container
         for agent_set in obj.agent_sets.values():
             agent_set.move_to_optimal(
@@ -1072,12 +1072,10 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
                 radius=radius,
                 include_center=include_center,
                 shuffle=shuffle,
-                inplace=True
+                inplace=True,
             )
-        
+
         return obj
-
-
 
     @property
     def agents(self) -> DataFrame:

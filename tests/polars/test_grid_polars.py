@@ -766,42 +766,38 @@ class TestGridPolars:
         def test_move_to_optimal(self, grid_moore: GridPolars):
             # Test with single attribute, maximize
             grid_moore.set_cells(
-                [[0, 0], [0, 1], [1, 0], [1, 1]], 
-                properties={"score": [5, 3, 2, 1]}
+                [[0, 0], [0, 1], [1, 0], [1, 1]], properties={"score": [5, 3, 2, 1]}
             )
             grid_moore.place_agents([0], [[1, 1]])
-            
+
             space = grid_moore.move_to_optimal(
                 "score",
                 rank_order="max",
                 radius=1,
-                include_center=True, 
+                include_center=True,
                 shuffle=False,
-                inplace=False
+                inplace=False,
             )
-            
+
             assert space.agents.select(pl.col("dim_0")).to_series().to_list() == [0]
             assert space.agents.select(pl.col("dim_1")).to_series().to_list() == [0]
 
-            # Test with multiple attributes, minimize 
+            # Test with multiple attributes, minimize
             grid_moore.set_cells(
-                [[0, 0], [0, 1], [1, 0], [1, 1]], 
-                properties={
-                    "score1": [5, 3, 2, 1],
-                    "score2": [1, 2, 3, 4]
-                }
+                [[0, 0], [0, 1], [1, 0], [1, 1]],
+                properties={"score1": [5, 3, 2, 1], "score2": [1, 2, 3, 4]},
             )
             grid_moore.place_agents([0], [[0, 0]])
-            
+
             space = grid_moore.move_to_optimal(
                 ["score1", "score2"],
-                rank_order=["min", "min"], 
+                rank_order=["min", "min"],
                 radius=1,
                 include_center=True,
                 shuffle=False,
-                inplace=False
+                inplace=False,
             )
-            
+
             assert space.agents.select(pl.col("dim_0")).to_series().to_list() == [1]
             assert space.agents.select(pl.col("dim_1")).to_series().to_list() == [1]
 
@@ -813,7 +809,7 @@ class TestGridPolars:
                 radius=radius,
                 include_center=True,
                 shuffle=False,
-                inplace=False
+                inplace=False,
             )
 
             assert space.agents.select(pl.col("dim_0")).to_series().to_list() == [1]
@@ -825,23 +821,23 @@ class TestGridPolars:
                 rank_order="max",
                 radius=None,
                 include_center=True,
-                shuffle=False, 
-                inplace=False
+                shuffle=False,
+                inplace=False,
             )
 
             assert space.agents.select(pl.col("dim_0")).to_series().to_list() == [0]
             assert space.agents.select(pl.col("dim_1")).to_series().to_list() == [0]
 
             # Test with multiple agents
-            grid_moore.place_agents([0,1], [[0, 0], [0, 1]])
-            
+            grid_moore.place_agents([0, 1], [[0, 0], [0, 1]])
+
             space = grid_moore.move_to_optimal(
                 "score1",
                 rank_order="min",
                 radius=1,
                 include_center=True,
                 shuffle=False,
-                inplace=False
+                inplace=False,
             )
 
             agents = space.agents.sort("agent_id")
@@ -852,20 +848,23 @@ class TestGridPolars:
             seen_different = False
             for _ in range(10):
                 space = grid_moore.move_to_optimal(
-                    "score1", 
+                    "score1",
                     rank_order="min",
                     radius=1,
                     include_center=True,
                     shuffle=True,
-                    inplace=False
+                    inplace=False,
                 )
                 agents = space.agents.sort("agent_id")
-                if agents.select(pl.col("dim_0")).to_series().to_list() != [1, 1] or \
-                   agents.select(pl.col("dim_1")).to_series().to_list() != [0, 1]:
+                if agents.select(pl.col("dim_0")).to_series().to_list() != [
+                    1,
+                    1,
+                ] or agents.select(pl.col("dim_1")).to_series().to_list() != [0, 1]:
                     seen_different = True
                     break
-                    
+
             assert seen_different
+
         assert set(neighbors.select(pl.col("agent_id")).to_series().to_list()) == {
             0,
             1,
