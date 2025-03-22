@@ -1865,36 +1865,44 @@ class TestGridPolars:
         grid = GridPolars(model, dimensions=[3, 3], capacity=2)
 
         # --- Part 1: Confirm error with Int64 unique_id ---
-        agent_data_int = pl.DataFrame({
-            "unique_id": pl.Series([0], dtype=pl.Int64),  # Int64 type, not a Struct
-            "dim_0": [0],
-            "dim_1": [0],
-            "vision": [1]
-        })
+        agent_data_int = pl.DataFrame(
+            {
+                "unique_id": pl.Series([0], dtype=pl.Int64),  # Int64 type, not a Struct
+                "dim_0": [0],
+                "dim_1": [0],
+                "vision": [1],
+            }
+        )
         grid.place_agents([0], [[0, 0]])
         with pytest.raises(pl.exceptions.SchemaError):
             grid.move_to_optimal(
                 agents=agent_data_int,
                 attr_names="food",
                 rank_order="max",
-                include_center=False
+                include_center=False,
             )
 
         # --- Part 2: Ensure proper struct type for unique_id ---
-        agent_data_struct = pl.DataFrame({
-            "unique_id": pl.Series([{"id": 0}]),  # Now a Struct column
-            "dim_0": [0],
-            "dim_1": [0],
-            "vision": [1]
-        })
+        agent_data_struct = pl.DataFrame(
+            {
+                "unique_id": pl.Series([{"id": 0}]),  # Now a Struct column
+                "dim_0": [0],
+                "dim_1": [0],
+                "vision": [1],
+            }
+        )
         grid.place_agents([{"id": 0}], [[0, 0]])
         # This call should succeed without raising an error.
         grid.move_to_optimal(
             agents=agent_data_struct,
             attr_names="food",
             rank_order="max",
-            include_center=False
+            include_center=False,
         )
         # Validate that the agent's position has been updated as expected.
-        pos = grid.agents.filter(pl.col("agent_id") == {"id": 0}).select(["dim_0", "dim_1"]).row(0)
+        pos = (
+            grid.agents.filter(pl.col("agent_id") == {"id": 0})
+            .select(["dim_0", "dim_1"])
+            .row(0)
+        )
         assert pos is not None
