@@ -1044,7 +1044,7 @@ class DiscreteSpaceDF(SpaceDF):
         agents: AgentLike,
         attr_names: str | list[str],
         rank_order: str | list[str] = "max",
-        radius: int | pl.Series = None,
+        radius: int | pl.Series | None = None,
         include_center: bool = True,
         shuffle: bool = True,
     ) -> None:
@@ -1071,7 +1071,6 @@ class DiscreteSpaceDF(SpaceDF):
             - "max" (default) for descending order.
             - "min" for ascending order.
             If a single string is provided, it is applied to all attributes in `attr_names`.
-            **Note:** The length of `attr_names` must match the length of `rank_order`.
         radius : int | pl.Series | None
             Radius (or per-agent radii) defining the neighborhood around agents.
             If not provided, the method attempts to use the `vision` column from `agents`.
