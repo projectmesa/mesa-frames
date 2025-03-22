@@ -633,7 +633,7 @@ class DiscreteSpaceDF(SpaceDF):
         ----------
         agents : IdsLike | AgentContainer | Collection[AgentContainer]
             The agents to move to available cells/positions
-        inplace : bool, optional
+        inplace: bool, optional
             Whether to perform the operation inplace, by default True
 
         Returns
@@ -1048,8 +1048,7 @@ class DiscreteSpaceDF(SpaceDF):
         include_center: bool = True,
         shuffle: bool = True,
     ) -> None:
-        """
-        Move agents to the optimal cell based on neighborhood ranking.
+        """Move agents to the optimal cell based on neighborhood ranking.
 
         This method computes the neighborhood for each agent and evaluates possible
         moves by ranking neighborhood cells according to the specified attribute(s)
@@ -1064,16 +1063,16 @@ class DiscreteSpaceDF(SpaceDF):
             - `unique_id`: Unique identifier for each agent.
             - `dim_0`, `dim_1`: Current positions of agents.
             - Optionally, `vision` is used if `radius` is not provided.
-        attr_names : str or list[str]
+        attr_names : str | list[str]
             Name(s) of the attribute(s) used for ranking neighborhood cells.
             If multiple attributes are provided, each must correspond to an entry in `rank_order`.
-        rank_order : str or list[str], optional
+        rank_order : str | list[str]
             Ranking order for each attribute. Accepts:
             - "max" (default) for descending order.
             - "min" for ascending order.
             If a single string is provided, it is applied to all attributes in `attr_names`.
             **Note:** The length of `attr_names` must match the length of `rank_order`.
-        radius : int or pl.Series, optional
+        radius : int | pl.Series | None
             Radius (or per-agent radii) defining the neighborhood around agents.
             If not provided, the method attempts to use the `vision` column from `agents`.
             Raises a ValueError if `vision` is missing.
@@ -1091,22 +1090,9 @@ class DiscreteSpaceDF(SpaceDF):
         Raises
         ------
         ValueError
-            If the lengths of `attr_names` and `rank_order` do not match, or if `radius`
-            is not provided and `agents` does not have a `vision` attribute.
-
-        Examples
-        --------
-        >>> # Given a DataFrame 'agents' with columns: ['unique_id', 'dim_0', 'dim_1',
-        >>> # 'vision', 'food_availability', 'safety_score'] and a space object 'space':
-        >>> space.move_to_optimal(
-        ...     agents=agents,
-        ...     attr_names=["food_availability", "safety_score"],
-        ...     rank_order=["max", "max"],
-        ...     radius=None,               # Use each agent's 'vision' column
-        ...     include_center=False,      # Exclude the agent's current cell
-        ...     shuffle=True               # Randomize agent order to break ties
-        ... )
-        >>> # Agents' positions in 'agents' are updated in-place.
+            - If the lengths of `attr_names` and `rank_order` do not match
+            - If `radius` is not provided and `agents` does not have a `vision` attribute
+            - If required columns are missing from `agents` DataFrame
         """
         # Ensure attr_names and rank_order are lists of the same length
         if isinstance(attr_names, str):
