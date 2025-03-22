@@ -69,6 +69,7 @@ import warnings
 class GridPandas(GridDF, PandasMixin):
     """
     WARNING: GridPandas is deprecated and will be removed in the next release of mesa-frames.
+
     pandas-based implementation of GridDF.
     """
 
