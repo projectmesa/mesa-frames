@@ -124,7 +124,7 @@ class AgentsDF(AgentContainer):
     def contains(
         self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]
     ) -> bool | pl.Series:
-        if isinstance(agents, int):
+        if isinstance(agents, str):
             return agents in self._ids
         elif isinstance(agents, AgentSetDF):
             return self._check_agentsets_presence([agents]).any()
@@ -221,15 +221,15 @@ class AgentsDF(AgentContainer):
             # We have to get the index of the original AgentSetDF because the copy made AgentSetDFs with different hash
             ids = [self._agentsets.index(agentset) for agentset in iter(agents)]
             ids.sort(reverse=True)
-            removed_ids = pl.Series(dtype=pl.Int64)
+            removed_ids = pl.Series(dtype=pl.Utf8)
             for id in ids:
                 removed_ids = pl.concat(
-                    [removed_ids, pl.Series(obj._agentsets[id].index)]
+                    [removed_ids, pl.Series(obj._agentsets[id]["unique_id"])]
                 )
                 obj._agentsets.pop(id)
 
         else:  # IDsLike
-            if isinstance(agents, int):
+            if isinstance(agents, str):
                 agents = [agents]
             elif isinstance(agents, DataFrame):
                 agents = agents["unique_id"]
@@ -351,7 +351,7 @@ class AgentsDF(AgentContainer):
         """
         presence_df = pl.DataFrame(
             data={"unique_id": self._ids, "present": True},
-            schema={"unique_id": pl.Int64, "present": pl.Boolean},
+            schema={"unique_id": pl.Utf8, "present": pl.Boolean},
         )
         for agentset in other:
             new_ids = pl.Series(agentset.index)
