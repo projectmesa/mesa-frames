@@ -69,11 +69,16 @@ import warnings
 class GridPandas(GridDF, PandasMixin):
     """
     WARNING: GridPandas is deprecated and will be removed in the next release of mesa-frames.
+
     pandas-based implementation of GridDF.
     """
 
     def __init__(self, *args, **kwargs):
-        warnings.warn("GridPandas is deprecated and will be removed in the next release of mesa-frames.", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "GridPandas is deprecated and will be removed in the next release of mesa-frames.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(*args, **kwargs)
 
     _agents: pd.DataFrame

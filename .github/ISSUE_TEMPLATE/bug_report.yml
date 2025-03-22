@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report! 🙏  
+        Thanks for taking the time to fill out this bug report! 🙏
         Please provide as much detail as possible to help us address the issue.
   - type: textarea
     id: description
