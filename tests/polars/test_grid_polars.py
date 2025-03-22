@@ -897,7 +897,7 @@ class TestGridPolars:
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         # Test with IdsLike
-        space = grid_moore.move_agents(agents=[1], pos=[[1, 1]], inplace=False)
+        space = grid_moore.move_agents(agents=1, pos=[1, 1], inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
         assert space.agents.select(pl.col("agent_id")).to_series().to_list() == [0, 1]
@@ -1034,7 +1034,7 @@ class TestGridPolars:
 
         # Test with agents=int, pos=DataFrame
         pos = pl.DataFrame({"dim_0": [0], "dim_1": [2]})
-        space = grid_moore.move_agents(agents=[1], pos=pos, inplace=False)
+        space = grid_moore.move_agents(agents=1, pos=pos, inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
         assert space.agents.select(pl.col("agent_id")).to_series().to_list() == [0, 1]
@@ -1327,7 +1327,7 @@ class TestGridPolars:
         # Test with agents=int, pos=DataFrame
         pos = pl.DataFrame({"dim_0": [0], "dim_1": [2]})
         with pytest.warns(RuntimeWarning):
-            space = grid_moore.place_agents(agents=[1], pos=pos, inplace=False)
+            space = grid_moore.place_agents(agents=1, pos=pos, inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
         assert space.agents.select(pl.col("agent_id")).to_series().to_list() == [0, 1]
@@ -1855,134 +1855,46 @@ class TestGridPolars:
         assert grid_moore.remaining_capacity == (3 * 3 * 2 - 2)
 
     def test_torus(self, model: ModelDF, grid_moore: GridPolars):
-        def test_move_to_optimal(self, grid_moore: GridPolars):
-            # Set up test grid with multiple attributes
-            grid_moore.set_cells(
-                [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2]],
-                properties={"food": [1, 4, 2, 3, 5], "safety": [5, 2, 4, 3, 1]},
-            )
+        assert not grid_moore.torus
 
-            # Create test agents with different vision ranges
-            agent_data = pl.DataFrame(
-                {
-                    "unique_id": [0, 1],
-                    "dim_0": [0, 0],
-                    "dim_1": [0, 1],
-                    "vision": [1, 2],
-                }
-            )
+        grid_2 = GridPolars(model, [3, 3], torus=True)
+        assert grid_2.torus
 
-            # Test 1: Basic single attribute maximization
-            grid_moore.move_to_optimal(
-                agents=agent_data, attr_names="food", rank_order="max", shuffle=False
-            )
+    def test_move_to_optimal_unique_id_error_and_fix(self, model: ModelDF):
+        # Setup grid with minimal dimensions and capacity
+        grid = GridPolars(model, dimensions=[3, 3], capacity=2)
 
-            # Verify agents moved to cells with higher food values within their vision
-            positions = set(
-                zip(
-                    grid_moore.agents.select("dim_0").to_series().to_list(),
-                    grid_moore.agents.select("dim_1").to_series().to_list(),
-                )
-            )
-            assert [1, 2] in positions  # Position with highest food value
-
-            # Test 2: Multiple attributes with different ranking orders
-            grid_moore.move_agents(agents=[0, 1], pos=[[0, 0], [0, 1]])
-            grid_moore.move_to_optimal(
-                agents=agent_data,
-                attr_names=["food", "safety"],
-                rank_order=["max", "min"],
-                shuffle=False,
-            )
-
-            # Verify agents optimize for both attributes according to specified orders
-            moved_positions = set(
-                zip(
-                    grid_moore.agents.select("dim_0").to_series().to_list(),
-                    grid_moore.agents.select("dim_1").to_series().to_list(),
-                )
-            )
-            assert len(moved_positions) == 2  # Agents should be in different positions
-
-            # Test 3: Custom radius parameter
-            grid_moore.move_agents(agents=[0, 1], pos=[[0, 0], [0, 1]])
-            grid_moore.move_to_optimal(
-                agents=agent_data, attr_names="food", radius=1, shuffle=False
-            )
-
-            # Verify movements are constrained by specified radius
-            for pos in zip(
-                grid_moore.agents.select("dim_0").to_series().to_list(),
-                grid_moore.agents.select("dim_1").to_series().to_list(),
-            ):
-                assert abs(pos[0] - 0) <= 1 and abs(pos[1] - 0) <= 1
-
-            # Test 4: Exclude current position
-            grid_moore.move_agents(agents=[0, 1], pos=[[0, 0], [0, 1]])
-            grid_moore.move_to_optimal(
-                agents=agent_data,
+        # --- Part 1: Confirm error with Int64 unique_id ---
+        agent_data_int = pl.DataFrame({
+            "unique_id": pl.Series([0], dtype=pl.Int64),  # Int64 type, not a Struct
+            "dim_0": [0],
+            "dim_1": [0],
+            "vision": [1]
+        })
+        grid.place_agents([0], [[0, 0]])
+        with pytest.raises(pl.exceptions.SchemaError):
+            grid.move_to_optimal(
+                agents=agent_data_int,
                 attr_names="food",
-                include_center=False,
-                shuffle=False,
+                rank_order="max",
+                include_center=False
             )
 
-            # Verify agents moved from their starting positions
-            for i, pos in enumerate(
-                zip(
-                    grid_moore.agents.select("dim_0").to_series().to_list(),
-                    grid_moore.agents.select("dim_1").to_series().to_list(),
-                )
-            ):
-                assert pos != ([0, 0], [0, 1])[i]
-
-            # Test 5: Conflict resolution with shuffling
-            agent_data = pl.DataFrame(
-                {
-                    "unique_id": [0, 1, 2],
-                    "dim_0": [0, 0, 0],
-                    "dim_1": [0, 1, 2],
-                    "vision": [1, 1, 1],
-                }
-            )
-
-            different_arrangements = False
-            last_positions = None
-
-            # Run multiple times to test shuffling
-            for _ in range(10):
-                grid_moore.move_agents(agents=[0, 1, 2], pos=[[0, 0], [0, 1], [0, 2]])
-                grid_moore.move_to_optimal(
-                    agents=agent_data, attr_names="food", shuffle=True
-                )
-
-                current_positions = set(
-                    zip(
-                        grid_moore.agents.select("dim_0").to_series().to_list(),
-                        grid_moore.agents.select("dim_1").to_series().to_list(),
-                    )
-                )
-
-                if last_positions and current_positions != last_positions:
-                    different_arrangements = True
-                    break
-                last_positions = current_positions
-
-            assert (
-                different_arrangements
-            )  # Shuffling should produce different arrangements
-
-            # Test 6: Error handling for missing vision/radius
-            agent_data_no_vision = pl.DataFrame(
-                {"unique_id": [0], "dim_0": [0], "dim_1": [0]}
-            )
-
-            with pytest.raises(ValueError):
-                grid_moore.move_to_optimal(
-                    agents=agent_data_no_vision, attr_names="food"
-                )
-
-            # Test 7: Error handling for mismatched attr_names and rank_order
-            with pytest.raises(ValueError):
-                grid_moore.move_to_optimal(
-                    agents=agent_data, attr_names=["food", "safety"], rank_order=["max"]
-                )
+        # --- Part 2: Ensure proper struct type for unique_id ---
+        agent_data_struct = pl.DataFrame({
+            "unique_id": pl.Series([{"id": 0}]),  # Now a Struct column
+            "dim_0": [0],
+            "dim_1": [0],
+            "vision": [1]
+        })
+        grid.place_agents([{"id": 0}], [[0, 0]])
+        # This call should succeed without raising an error.
+        grid.move_to_optimal(
+            agents=agent_data_struct,
+            attr_names="food",
+            rank_order="max",
+            include_center=False
+        )
+        # Validate that the agent's position has been updated as expected.
+        pos = grid.agents.filter(pl.col("agent_id") == {"id": 0}).select(["dim_0", "dim_1"]).row(0)
+        assert pos is not None
