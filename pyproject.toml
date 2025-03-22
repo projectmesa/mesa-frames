@@ -83,7 +83,7 @@ docs = [
 test = [
   "pytest",
   "pytest-cov",
-  "typeguard",
+  "beartype",
 ]
 
 dev = [
