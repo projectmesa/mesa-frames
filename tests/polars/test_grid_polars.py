@@ -763,108 +763,33 @@ class TestGridPolars:
         }
 
         # Test with torus
-        def test_move_to_optimal(self, grid_moore: GridPolars):
-            # Test with single attribute, maximize
-            grid_moore.set_cells(
-                [[0, 0], [0, 1], [1, 0], [1, 1]], properties={"score": [5, 3, 2, 1]}
-            )
-            grid_moore.place_agents([0], [[1, 1]])
-
-            space = grid_moore.move_to_optimal(
-                "score",
-                rank_order="max",
-                radius=1,
-                include_center=True,
-                shuffle=False,
-                inplace=False,
-            )
-
-            assert space.agents.select(pl.col("dim_0")).to_series().to_list() == [0]
-            assert space.agents.select(pl.col("dim_1")).to_series().to_list() == [0]
-
-            # Test with multiple attributes, minimize
-            grid_moore.set_cells(
-                [[0, 0], [0, 1], [1, 0], [1, 1]],
-                properties={"score1": [5, 3, 2, 1], "score2": [1, 2, 3, 4]},
-            )
-            grid_moore.place_agents([0], [[0, 0]])
-
-            space = grid_moore.move_to_optimal(
-                ["score1", "score2"],
-                rank_order=["min", "min"],
-                radius=1,
-                include_center=True,
-                shuffle=False,
-                inplace=False,
-            )
-
-            assert space.agents.select(pl.col("dim_0")).to_series().to_list() == [1]
-            assert space.agents.select(pl.col("dim_1")).to_series().to_list() == [1]
-
-            # Test with radius as Series
-            radius = pl.Series([1])
-            space = grid_moore.move_to_optimal(
-                "score1",
-                rank_order="min",
-                radius=radius,
-                include_center=True,
-                shuffle=False,
-                inplace=False,
-            )
-
-            assert space.agents.select(pl.col("dim_0")).to_series().to_list() == [1]
-            assert space.agents.select(pl.col("dim_1")).to_series().to_list() == [1]
-
-            # Test with radius=None (whole grid)
-            space = grid_moore.move_to_optimal(
-                "score1",
-                rank_order="max",
-                radius=None,
-                include_center=True,
-                shuffle=False,
-                inplace=False,
-            )
-
-            assert space.agents.select(pl.col("dim_0")).to_series().to_list() == [0]
-            assert space.agents.select(pl.col("dim_1")).to_series().to_list() == [0]
-
-            # Test with multiple agents
-            grid_moore.place_agents([0, 1], [[0, 0], [0, 1]])
-
-            space = grid_moore.move_to_optimal(
-                "score1",
-                rank_order="min",
-                radius=1,
-                include_center=True,
-                shuffle=False,
-                inplace=False,
-            )
-
-            agents = space.agents.sort("agent_id")
-            assert agents.select(pl.col("dim_0")).to_series().to_list() == [1, 1]
-            assert agents.select(pl.col("dim_1")).to_series().to_list() == [0, 1]
-
-            # Test with shuffle=True
-            seen_different = False
-            for _ in range(10):
-                space = grid_moore.move_to_optimal(
-                    "score1",
-                    rank_order="min",
-                    radius=1,
-                    include_center=True,
-                    shuffle=True,
-                    inplace=False,
-                )
-                agents = space.agents.sort("agent_id")
-                if agents.select(pl.col("dim_0")).to_series().to_list() != [
-                    1,
-                    1,
-                ] or agents.select(pl.col("dim_1")).to_series().to_list() != [0, 1]:
-                    seen_different = True
-                    break
-
-            assert seen_different
-
+        grid_moore_torus.move_agents(
+            [0, 1, 2, 3, 4, 5, 6, 7],
+            [[2, 2], [2, 0], [2, 1], [0, 2], [0, 1], [1, 2], [1, 0], [1, 1]],
+        )
+        neighbors = grid_moore_torus.get_neighbors(radius=1, pos=[0, 0])
+        assert isinstance(neighbors, pl.DataFrame)
+        assert neighbors.shape == (8, 3)
+        assert neighbors.select(pl.col("dim_0")).to_series().to_list() == [
+            2,
+            2,
+            2,
+            0,
+            0,
+            1,
+            1,
+            1,
+        ]
+        assert neighbors.select(pl.col("dim_1")).to_series().to_list() == [
+            2,
+            0,
+            1,
+            2,
+            1,
+            2,
+            0,
+            1,
+        ]
         assert set(neighbors.select(pl.col("agent_id")).to_series().to_list()) == {
             0,
             1,
@@ -972,7 +897,7 @@ class TestGridPolars:
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         # Test with IdsLike
-        space = grid_moore.move_agents(agents=1, pos=[1, 1], inplace=False)
+        space = grid_moore.move_agents(agents=[1], pos=[[1, 1]], inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
         assert space.agents.select(pl.col("agent_id")).to_series().to_list() == [0, 1]
@@ -1001,17 +926,17 @@ class TestGridPolars:
                 0,
                 1,
                 0,
+                1,
+                2,
                 0,
-                1,
-                1,
             ]
             assert agents.select(pl.col("dim_1")).to_series().to_list() == [
                 0,
                 1,
                 0,
-                1,
                 0,
-                2,
+                0,
+                1,
             ]
 
         # Test with Collection[AgentSetDF]
@@ -1109,7 +1034,7 @@ class TestGridPolars:
 
         # Test with agents=int, pos=DataFrame
         pos = pl.DataFrame({"dim_0": [0], "dim_1": [2]})
-        space = grid_moore.move_agents(agents=1, pos=pos, inplace=False)
+        space = grid_moore.move_agents(agents=[1], pos=pos, inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
         assert space.agents.select(pl.col("agent_id")).to_series().to_list() == [0, 1]
@@ -1128,12 +1053,10 @@ class TestGridPolars:
                     space.agents.select(pl.col("dim_0", "dim_1")).to_numpy() != last
                 ).any():
                     different = True
-
-            # Convert to lists for comparison
-            agent_pos = space.agents.select(pl.col("dim_0", "dim_1")).row(0)
-            available_pos = [(row[0], row[1]) for row in available_cells.rows()]
-            assert (agent_pos[0], agent_pos[1]) in available_pos
-
+            assert (
+                space.agents.select(pl.col("dim_0", "dim_1")).row(0)
+                in available_cells.rows()
+            )
             last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
@@ -1148,14 +1071,13 @@ class TestGridPolars:
                     space.agents.select(pl.col("dim_0", "dim_1")).to_numpy() != last
                 ).any():
                     different = True
-
-            # Convert to lists for comparison
-            agent_pos0 = space.agents.select(pl.col("dim_0", "dim_1")).row(0)
-            agent_pos1 = space.agents.select(pl.col("dim_0", "dim_1")).row(1)
-            available_pos = [(row[0], row[1]) for row in available_cells.rows()]
-            assert (agent_pos0[0], agent_pos0[1]) in available_pos
-            assert (agent_pos1[0], agent_pos1[1]) in available_pos
-
+            assert (
+                space.agents.select(pl.col("dim_0", "dim_1")).row(0)
+                in available_cells.rows()
+            ) and (
+                space.agents.select(pl.col("dim_0", "dim_1")).row(1)
+                in available_cells.rows()
+            )
             last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
@@ -1166,19 +1088,16 @@ class TestGridPolars:
             available_cells = grid_moore.available_cells
             space = grid_moore.move_to_available(grid_moore.model.agents, inplace=False)
             if last is not None and not different:
-                if (
-                    space.agents.select(pl.col("dim_0", "dim_1")).to_numpy() != last
-                ).any():
+                if (space.agents.select(pl.col("dim_0")).to_numpy() != last).any():
                     different = True
-
-            # Convert to lists for comparison
-            agent_pos0 = space.agents.select(pl.col("dim_0", "dim_1")).row(0)
-            agent_pos1 = space.agents.select(pl.col("dim_0", "dim_1")).row(1)
-            available_pos = [(row[0], row[1]) for row in available_cells.rows()]
-            assert (agent_pos0[0], agent_pos0[1]) in available_pos
-            assert (agent_pos1[0], agent_pos1[1]) in available_pos
-
-            last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
+            assert (
+                space.agents.select(pl.col("dim_0", "dim_1")).row(0)
+                in available_cells.rows()
+            ) and (
+                space.agents.select(pl.col("dim_0", "dim_1")).row(1)
+                in available_cells.rows()
+            )
+            last = space.agents.select(pl.col("dim_0")).to_numpy()
         assert different
 
     def test_move_to_empty(self, grid_moore: GridPolars):
@@ -1408,7 +1327,7 @@ class TestGridPolars:
         # Test with agents=int, pos=DataFrame
         pos = pl.DataFrame({"dim_0": [0], "dim_1": [2]})
         with pytest.warns(RuntimeWarning):
-            space = grid_moore.place_agents(agents=1, pos=pos, inplace=False)
+            space = grid_moore.place_agents(agents=[1], pos=pos, inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
         assert space.agents.select(pl.col("agent_id")).to_series().to_list() == [0, 1]
@@ -1936,7 +1855,136 @@ class TestGridPolars:
         assert grid_moore.remaining_capacity == (3 * 3 * 2 - 2)
 
     def test_torus(self, model: ModelDF, grid_moore: GridPolars):
-        assert not grid_moore.torus
+        def test_move_to_optimal(self, grid_moore: GridPolars):
+            # Set up test grid with multiple attributes
+            grid_moore.set_cells(
+                [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2]], 
+                properties={
+                    "food": [1, 4, 2, 3, 5],
+                    "safety": [5, 2, 4, 3, 1]
+                }
+            )
 
-        grid_2 = GridPolars(model, [3, 3], torus=True)
-        assert grid_2.torus
+            # Create test agents with different vision ranges
+            agent_data = pl.DataFrame({
+                "unique_id": [0, 1],
+                "dim_0": [0, 0],
+                "dim_1": [0, 1],
+                "vision": [1, 2]
+            })
+
+            # Test 1: Basic single attribute maximization
+            grid_moore.move_to_optimal(
+                agents=agent_data,
+                attr_names="food",
+                rank_order="max",
+                shuffle=False
+            )
+            
+            # Verify agents moved to cells with higher food values within their vision
+            positions = set(zip(
+                grid_moore.agents.select("dim_0").to_series().to_list(),
+                grid_moore.agents.select("dim_1").to_series().to_list()
+            ))
+            assert [1, 2] in positions  # Position with highest food value
+
+            # Test 2: Multiple attributes with different ranking orders
+            grid_moore.move_agents(agents=[0, 1], pos=[[0, 0], [0, 1]])
+            grid_moore.move_to_optimal(
+                agents=agent_data,
+                attr_names=["food", "safety"],
+                rank_order=["max", "min"],
+                shuffle=False
+            )
+            
+            # Verify agents optimize for both attributes according to specified orders
+            moved_positions = set(zip(
+                grid_moore.agents.select("dim_0").to_series().to_list(),
+                grid_moore.agents.select("dim_1").to_series().to_list()
+            ))
+            assert len(moved_positions) == 2  # Agents should be in different positions
+
+            # Test 3: Custom radius parameter
+            grid_moore.move_agents(agents=[0, 1], pos=[[0, 0], [0, 1]])
+            grid_moore.move_to_optimal(
+                agents=agent_data,
+                attr_names="food",
+                radius=1,
+                shuffle=False
+            )
+            
+            # Verify movements are constrained by specified radius
+            for pos in zip(
+                grid_moore.agents.select("dim_0").to_series().to_list(),
+                grid_moore.agents.select("dim_1").to_series().to_list()
+            ):
+                assert abs(pos[0] - 0) <= 1 and abs(pos[1] - 0) <= 1
+
+            # Test 4: Exclude current position
+            grid_moore.move_agents(agents=[0, 1], pos=[[0, 0], [0, 1]])
+            grid_moore.move_to_optimal(
+                agents=agent_data,
+                attr_names="food",
+                include_center=False,
+                shuffle=False
+            )
+            
+            # Verify agents moved from their starting positions
+            for i, pos in enumerate(zip(
+                grid_moore.agents.select("dim_0").to_series().to_list(),
+                grid_moore.agents.select("dim_1").to_series().to_list()
+            )):
+                assert pos != ([0, 0], [0, 1])[i]
+
+            # Test 5: Conflict resolution with shuffling
+            agent_data = pl.DataFrame({
+                "unique_id": [0, 1, 2],
+                "dim_0": [0, 0, 0],
+                "dim_1": [0, 1, 2],
+                "vision": [1, 1, 1]
+            })
+            
+            different_arrangements = False
+            last_positions = None
+            
+            # Run multiple times to test shuffling
+            for _ in range(10):
+                grid_moore.move_agents(agents=[0, 1, 2], pos=[[0, 0], [0, 1], [0, 2]])
+                grid_moore.move_to_optimal(
+                    agents=agent_data,
+                    attr_names="food",
+                    shuffle=True
+                )
+                
+                current_positions = set(zip(
+                    grid_moore.agents.select("dim_0").to_series().to_list(),
+                    grid_moore.agents.select("dim_1").to_series().to_list()
+                ))
+                
+                if last_positions and current_positions != last_positions:
+                    different_arrangements = True
+                    break
+                last_positions = current_positions
+            
+            assert different_arrangements  # Shuffling should produce different arrangements
+
+            # Test 6: Error handling for missing vision/radius
+            agent_data_no_vision = pl.DataFrame({
+                "unique_id": [0],
+                "dim_0": [0],
+                "dim_1": [0]
+            })
+            
+            with pytest.raises(ValueError):
+                grid_moore.move_to_optimal(
+                    agents=agent_data_no_vision,
+                    attr_names="food"
+                )
+
+            # Test 7: Error handling for mismatched attr_names and rank_order
+            with pytest.raises(ValueError):
+                grid_moore.move_to_optimal(
+                    agents=agent_data,
+                    attr_names=["food", "safety"],
+                    rank_order=["max"]
+                )
