@@ -3,13 +3,13 @@ from copy import copy, deepcopy
 
 import pandas as pd
 import pytest
-import typeguard as tg
+from beartype import beartype
 from numpy.random import Generator
 
 from mesa_frames import AgentSetPandas, GridPolars, ModelDF
 
 
-@tg.typechecked
+@beartype
 class ExampleAgentSetPandas(AgentSetPandas):
     def __init__(self, model: ModelDF, index: pd.Index):
         super().__init__(model)

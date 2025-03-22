@@ -1,7 +1,7 @@
 import numpy as np
 import polars as pl
 import pytest
-import typeguard as tg
+from beartype import beartype
 
 from mesa_frames import GridPolars, ModelDF
 from tests.pandas.test_agentset_pandas import (
@@ -20,7 +20,7 @@ def not_called():
     fix2_AgentSetPolars()
 
 
-@tg.typechecked
+@beartype
 class TestGridPolars:
     @pytest.fixture
     def model(
