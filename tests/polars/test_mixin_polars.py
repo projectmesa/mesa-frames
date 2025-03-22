@@ -15,7 +15,7 @@ class TestPolarsMixin:
 
     @pytest.fixture
     def df_0(self):
-        return pl.DataFrame(
+        return pl.LazyFrame(
             {
                 "unique_id": ["x", "y", "z"],
                 "A": [1, 2, 3],
@@ -27,7 +27,7 @@ class TestPolarsMixin:
 
     @pytest.fixture
     def df_1(self):
-        return pl.DataFrame(
+        return pl.LazyFrame(
             {
                 "unique_id": ["z", "a", "b"],
                 "A": [4, 5, 6],
@@ -37,33 +37,33 @@ class TestPolarsMixin:
             },
         )
 
-    def test_df_add(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+    def test_df_add(self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame):
         # Test adding a DataFrame and a sequence element-wise along the rows (axis='index')
-        result = mixin._df_add(df_0[["A", "D"]], df_1["A"], axis="index")
+        result = mixin._df_add(df_0[["A", "D"]], df_1["A"], axis="index").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [5, 7, 9]
         assert result["D"].to_list() == [5, 7, 9]
 
         # Test adding a DataFrame and a sequence element-wise along the column (axis='columns')
-        result = mixin._df_add(df_0[["A", "D"]], [1, 2], axis="columns")
+        result = mixin._df_add(df_0[["A", "D"]], [1, 2], axis="columns").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [2, 3, 4]
         assert result["D"].to_list() == [3, 4, 5]
 
         # Test adding DataFrames with index-column alignment
-        df_1 = df_1.with_columns(D=pl.col("E"))
+        df_1_with_d = df_1.with_columns(D=pl.col("E"))
         result = mixin._df_add(
             df_0[["unique_id", "A", "D"]],
-            df_1[["unique_id", "A", "D"]],
+            df_1_with_d[["unique_id", "A", "D"]],
             axis="index",
             index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [None, None, 7]
         assert result["D"].to_list() == [None, None, 4]
 
     def test_df_all(self, mixin: PolarsMixin):
-        df = pl.DataFrame(
+        df = pl.LazyFrame(
             {
                 "A": [True, False, True],
                 "B": [True, True, True],
@@ -71,28 +71,32 @@ class TestPolarsMixin:
         )
 
         # Test with axis='columns'
-        result = mixin._df_all(df["A", "B"], axis="columns")
+        result = mixin._df_all(df["A", "B"], axis="columns").collect()
         assert isinstance(result, pl.Series)
         assert result.name == "all"
         assert result.to_list() == [True, False, True]
 
         # Test with axis='index'
-        result = mixin._df_all(df["A", "B"], axis="index")
+        result = mixin._df_all(df["A", "B"], axis="index").collect()
         assert isinstance(result, pl.Series)
         assert result.name == "all"
         assert result.to_list() == [False, True]
 
-    def test_df_and(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+    def test_df_and(self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame):
         # Test comparing the DataFrame with a sequence element-wise along the rows (axis='index')
-        df_0 = df_0.with_columns(F=pl.Series([True, True, False]))
-        df_1 = df_1.with_columns(F=pl.Series([False, False, True]))
-        result = mixin._df_and(df_0[["C", "F"]], df_1["F"], axis="index")
+        df_0_with_f = df_0.with_columns(F=pl.lit([True, True, False]))
+        df_1_with_f = df_1.with_columns(F=pl.lit([False, False, True]))
+        result = mixin._df_and(
+            df_0_with_f[["C", "F"]], df_1_with_f["F"], axis="index"
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["C"].to_list() == [False, False, True]
         assert result["F"].to_list() == [False, False, False]
 
         # Test comparing the DataFrame with a sequence element-wise along the columns (axis='columns')
-        result = mixin._df_and(df_0[["C", "F"]], [True, False], axis="columns")
+        result = mixin._df_and(
+            df_0_with_f[["C", "F"]], [True, False], axis="columns"
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["C"].to_list() == [True, False, True]
         assert result["F"].to_list() == [False, False, False]
@@ -103,22 +107,22 @@ class TestPolarsMixin:
             df_1[["unique_id", "C", "F"]],
             axis="index",
             index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["C"].to_list() == [None, False, False]
         assert result["F"].to_list() == [None, None, False]
 
-    def test_df_column_names(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_column_names(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         cols = mixin._df_column_names(df_0)
         assert isinstance(cols, list)
         assert all(isinstance(c, str) for c in cols)
         assert set(mixin._df_column_names(df_0)) == {"unique_id", "A", "B", "C", "D"}
 
     def test_df_combine_first(
-        self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame
+        self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame
     ):
         # Test with df_0 and df_1
-        result = mixin._df_combine_first(df_0, df_1, "unique_id")
+        result = mixin._df_combine_first(df_0, df_1, "unique_id").collect()
         result = result.sort("A")
         assert isinstance(result, pl.DataFrame)
         assert set(result.columns) == {"unique_id", "A", "B", "C", "D", "E"}
@@ -130,7 +134,7 @@ class TestPolarsMixin:
         assert result["E"].to_list() == [None, None, 1, 2, 3]
 
         # Test with df_1 and df_0
-        result = mixin._df_combine_first(df_1, df_0, "unique_id")
+        result = mixin._df_combine_first(df_1, df_0, "unique_id").collect()
         result = result.sort("E", nulls_last=True)
         assert isinstance(result, pl.DataFrame)
         assert set(result.columns) == {"unique_id", "A", "B", "C", "D", "E"}
@@ -142,14 +146,14 @@ class TestPolarsMixin:
         assert result["E"].to_list() == [1, 2, 3, None, None]
 
     def test_df_concat(
-        self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame
+        self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame
     ):
         ### Test vertical concatenation
         ## With DataFrames
         for ignore_index in [False, True]:
             vertical = mixin._df_concat(
                 [df_0, df_1], how="vertical", ignore_index=ignore_index
-            )
+            ).collect()
             assert isinstance(vertical, pl.DataFrame)
             assert vertical.columns == ["unique_id", "A", "B", "C", "D", "E"]
             assert len(vertical) == 6
@@ -164,7 +168,7 @@ class TestPolarsMixin:
         for ignore_index in [True, False]:
             vertical = mixin._df_concat(
                 [df_0["A"], df_1["A"]], how="vertical", ignore_index=ignore_index
-            )
+            ).collect()
             assert isinstance(vertical, pl.Series)
             assert len(vertical) == 6
             assert vertical.to_list() == [1, 2, 3, 4, 5, 6]
@@ -174,10 +178,10 @@ class TestPolarsMixin:
         ## With DataFrames
         # Error With same column names
         with pytest.raises(pl.exceptions.DuplicateError):
-            mixin._df_concat([df_0, df_1], how="horizontal")
+            mixin._df_concat([df_0, df_1], how="horizontal").collect()
         # With ignore_index = False
-        df_1 = df_1.rename(lambda c: f"{c}_1")
-        horizontal = mixin._df_concat([df_0, df_1], how="horizontal")
+        df_1_renamed = df_1.rename(lambda c: f"{c}_1")
+        horizontal = mixin._df_concat([df_0, df_1_renamed], how="horizontal").collect()
         assert isinstance(horizontal, pl.DataFrame)
         assert horizontal.columns == [
             "unique_id",
@@ -205,10 +209,10 @@ class TestPolarsMixin:
 
         # With ignore_index = True
         horizontal_ignore_index = mixin._df_concat(
-            [df_0, df_1],
+            [df_0, df_1_renamed],
             how="horizontal",
             ignore_index=True,
-        )
+        ).collect()
         assert isinstance(horizontal_ignore_index, pl.DataFrame)
         assert horizontal_ignore_index.columns == [
             "0",
@@ -237,8 +241,8 @@ class TestPolarsMixin:
         ## With Series
         # With ignore_index = False
         horizontal = mixin._df_concat(
-            [df_0["A"], df_1["B_1"]], how="horizontal", ignore_index=False
-        )
+            [df_0["A"], df_1_renamed["B_1"]], how="horizontal", ignore_index=False
+        ).collect()
         assert isinstance(horizontal, pl.DataFrame)
         assert horizontal.columns == ["A", "B_1"]
         assert len(horizontal) == 3
@@ -247,8 +251,8 @@ class TestPolarsMixin:
 
         # With ignore_index = True
         horizontal = mixin._df_concat(
-            [df_0["A"], df_1["B_1"]], how="horizontal", ignore_index=True
-        )
+            [df_0["A"], df_1_renamed["B_1"]], how="horizontal", ignore_index=True
+        ).collect()
         assert isinstance(horizontal, pl.DataFrame)
         assert horizontal.columns == ["0", "1"]
         assert len(horizontal) == 3
@@ -258,7 +262,7 @@ class TestPolarsMixin:
     def test_df_constructor(self, mixin: PolarsMixin):
         # Test with dictionary
         data = {"num": [1, 2, 3], "letter": ["a", "b", "c"]}
-        df = mixin._df_constructor(data)
+        df = mixin._df_constructor(data).collect()
         assert isinstance(df, pl.DataFrame)
         assert list(df.columns) == ["num", "letter"]
         assert df["num"].to_list() == [1, 2, 3]
@@ -268,7 +272,7 @@ class TestPolarsMixin:
         data = [[1, "a"], [2, "b"], [3, "c"]]
         df = mixin._df_constructor(
             data, columns=["num", "letter"], dtypes={"num": "int64"}
-        )
+        ).collect()
         assert isinstance(df, pl.DataFrame)
         assert list(df.columns) == ["num", "letter"]
         assert df["num"].dtype == pl.Int64
@@ -277,7 +281,7 @@ class TestPolarsMixin:
 
         # Test with pandas DataFrame
         data = pd.DataFrame({"num": [1, 2, 3], "letter": ["a", "b", "c"]})
-        df = mixin._df_constructor(data)
+        df = mixin._df_constructor(data).collect()
         assert isinstance(df, pl.DataFrame)
         assert list(df.columns) == ["index", "num", "letter"]
         assert df["index"].to_list() == [0, 1, 2]
@@ -288,65 +292,65 @@ class TestPolarsMixin:
         data = {"a": 5}
         df = mixin._df_constructor(
             data, index=pl.int_range(5, eager=True), index_cols="index"
-        )
+        ).collect()
         assert isinstance(df, pl.DataFrame)
         assert list(df.columns) == ["index", "a"]
         assert df["a"].to_list() == [5, 5, 5, 5, 5]
         assert df["index"].to_list() == [0, 1, 2, 3, 4]
 
-    def test_df_contains(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_contains(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         # Test with list
-        result = mixin._df_contains(df_0, "A", [5, 2, 3])
+        result = mixin._df_contains(df_0, "A", [5, 2, 3]).collect()
         assert isinstance(result, pl.Series)
         assert result.name == "contains"
         assert result.to_list() == [False, True, True]
 
-    def test_df_div(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+    def test_df_div(self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame):
         # Test dividing the DataFrame by a sequence element-wise along the rows (axis='index')
-        result = mixin._df_div(df_0[["A", "D"]], df_1["A"], axis="index")
+        result = mixin._df_div(df_0[["A", "D"]], df_1["A"], axis="index").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [0.25, 0.4, 0.5]
         assert result["D"].to_list() == [0.25, 0.4, 0.5]
 
         # Test dividing the DataFrame by a sequence element-wise along the columns (axis='columns')
-        result = mixin._df_div(df_0[["A", "D"]], [1, 2], axis="columns")
+        result = mixin._df_div(df_0[["A", "D"]], [1, 2], axis="columns").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [1, 2, 3]
         assert result["D"].to_list() == [0.5, 1, 1.5]
 
         # Test dividing DataFrames with index-column alignment
-        df_1 = df_1.with_columns(D=pl.col("E"))
+        df_1_with_d = df_1.with_columns(D=pl.col("E"))
         result = mixin._df_div(
             df_0[["unique_id", "A", "D"]],
-            df_1[["unique_id", "A", "D"]],
+            df_1_with_d[["unique_id", "A", "D"]],
             axis="index",
             index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [None, None, 0.75]
         assert result["D"].to_list() == [None, None, 3]
 
-    def test_df_drop_columns(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_drop_columns(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         # Test with str
-        dropped = mixin._df_drop_columns(df_0, "A")
+        dropped = mixin._df_drop_columns(df_0, "A").collect()
         assert isinstance(dropped, pl.DataFrame)
         assert dropped.columns == ["unique_id", "B", "C", "D"]
         # Test with list
-        dropped = mixin._df_drop_columns(df_0, ["A", "C"])
+        dropped = mixin._df_drop_columns(df_0, ["A", "C"]).collect()
         assert dropped.columns == ["unique_id", "B", "D"]
 
-    def test_df_drop_duplicates(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_drop_duplicates(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         new_df = pl.concat([df_0, df_0], how="vertical")
         assert len(new_df) == 6
 
         # Test with all columns
-        dropped = mixin._df_drop_duplicates(new_df)
+        dropped = mixin._df_drop_duplicates(new_df).collect()
         assert isinstance(dropped, pl.DataFrame)
         assert len(dropped) == 3
         assert dropped.columns == ["unique_id", "A", "B", "C", "D"]
 
         # Test with subset (str)
-        other_df = pl.DataFrame(
+        other_df = pl.LazyFrame(
             {
                 "unique_id": ["x", "y", "z"],
                 "A": [1, 2, 3],
@@ -356,156 +360,164 @@ class TestPolarsMixin:
             },
         )
         new_df = pl.concat([df_0, other_df], how="vertical")
-        dropped = mixin._df_drop_duplicates(new_df, subset="unique_id")
+        dropped = mixin._df_drop_duplicates(new_df, subset="unique_id").collect()
         assert isinstance(dropped, pl.DataFrame)
         assert len(dropped) == 3
 
         # Test with subset (list)
-        dropped = mixin._df_drop_duplicates(new_df, subset=["A", "C"])
+        dropped = mixin._df_drop_duplicates(new_df, subset=["A", "C"]).collect()
         assert isinstance(dropped, pl.DataFrame)
         assert len(dropped) == 5
         assert dropped.columns == ["unique_id", "A", "B", "C", "D"]
         assert dropped["B"].to_list() == ["a", "b", "c", "e", "f"]
 
         # Test with subset (list) and keep='last'
-        dropped = mixin._df_drop_duplicates(new_df, subset=["A", "C"], keep="last")
+        dropped = mixin._df_drop_duplicates(
+            new_df, subset=["A", "C"], keep="last"
+        ).collect()
         assert isinstance(dropped, pl.DataFrame)
         assert len(dropped) == 5
         assert dropped.columns == ["unique_id", "A", "B", "C", "D"]
         assert dropped["B"].to_list() == ["d", "b", "c", "e", "f"]
 
         # Test with subset (list) and keep=False
-        dropped = mixin._df_drop_duplicates(new_df, subset=["A", "C"], keep=False)
+        dropped = mixin._df_drop_duplicates(
+            new_df, subset=["A", "C"], keep=False
+        ).collect()
         assert isinstance(dropped, pl.DataFrame)
         assert len(dropped) == 4
         assert dropped.columns == ["unique_id", "A", "B", "C", "D"]
         assert dropped["B"].to_list() == ["b", "c", "e", "f"]
 
-    def test_df_ge(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+    def test_df_ge(self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame):
         # Test comparing the DataFrame with a sequence element-wise along the rows (axis='index')
-        result = mixin._df_ge(df_0[["A", "D"]], df_1["A"], axis="index")
+        result = mixin._df_ge(df_0[["A", "D"]], df_1["A"], axis="index").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [False, False, False]
         assert result["D"].to_list() == [False, False, False]
 
         # Test comparing the DataFrame with a sequence element-wise along the columns (axis='columns')
-        result = mixin._df_ge(df_0[["A", "D"]], [1, 2], axis="columns")
+        result = mixin._df_ge(df_0[["A", "D"]], [1, 2], axis="columns").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [True, True, True]
         assert result["D"].to_list() == [False, True, True]
 
         # Test comparing DataFrames with index-column alignment
-        df_1 = df_1.with_columns(D=pl.col("E"))
+        df_1_with_d = df_1.with_columns(D=pl.col("E"))
         result = mixin._df_ge(
             df_0[["unique_id", "A", "D"]],
-            df_1[["unique_id", "A", "D"]],
+            df_1_with_d[["unique_id", "A", "D"]],
             axis="index",
             index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [None, None, False]
         assert result["D"].to_list() == [None, None, True]
 
-    def test_df_get_bool_mask(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_get_bool_mask(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         # Test with pl.Series[bool]
-        mask = mixin._df_get_bool_mask(df_0, "A", pl.Series([True, False, True]))
+        mask = mixin._df_get_bool_mask(
+            df_0, "A", pl.Series([True, False, True])
+        ).collect()
         assert mask.to_list() == [True, False, True]
 
         # Test with DataFrame
-        mask_df = pl.DataFrame({"A": [1, 3]})
-        mask = mixin._df_get_bool_mask(df_0, "A", mask_df)
+        mask_df = pl.LazyFrame({"A": [1, 3]})
+        mask = mixin._df_get_bool_mask(df_0, "A", mask_df).collect()
         assert mask.to_list() == [True, False, True]
 
         # Test with single value
-        mask = mixin._df_get_bool_mask(df_0, "A", 1)
+        mask = mixin._df_get_bool_mask(df_0, "A", 1).collect()
         assert mask.to_list() == [True, False, False]
 
         # Test with list of values
-        mask = mixin._df_get_bool_mask(df_0, "A", [1, 3])
+        mask = mixin._df_get_bool_mask(df_0, "A", [1, 3]).collect()
         assert mask.to_list() == [True, False, True]
 
         # Test with negate=True
-        mask = mixin._df_get_bool_mask(df_0, "A", [1, 3], negate=True)
+        mask = mixin._df_get_bool_mask(df_0, "A", [1, 3], negate=True).collect()
         assert mask.to_list() == [False, True, False]
 
-    def test_df_get_masked_df(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_get_masked_df(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         # Test with pl.Series[bool]
-        masked_df = mixin._df_get_masked_df(df_0, "A", pl.Series([True, False, True]))
+        masked_df = mixin._df_get_masked_df(
+            df_0, "A", pl.Series([True, False, True])
+        ).collect()
         assert masked_df["A"].to_list() == [1, 3]
         assert masked_df["unique_id"].to_list() == ["x", "z"]
 
         # Test with DataFrame
-        mask_df = pl.DataFrame({"A": [1, 3]})
-        masked_df = mixin._df_get_masked_df(df_0, "A", mask_df)
+        mask_df = pl.LazyFrame({"A": [1, 3]})
+        masked_df = mixin._df_get_masked_df(df_0, "A", mask_df).collect()
         assert masked_df["A"].to_list() == [1, 3]
         assert masked_df["unique_id"].to_list() == ["x", "z"]
 
         # Test with single value
-        masked_df = mixin._df_get_masked_df(df_0, "A", 1)
+        masked_df = mixin._df_get_masked_df(df_0, "A", 1).collect()
         assert masked_df["A"].to_list() == [1]
         assert masked_df["unique_id"].to_list() == ["x"]
 
         # Test with list of values
-        masked_df = mixin._df_get_masked_df(df_0, "A", [1, 3])
+        masked_df = mixin._df_get_masked_df(df_0, "A", [1, 3]).collect()
         assert masked_df["A"].to_list() == [1, 3]
         assert masked_df["unique_id"].to_list() == ["x", "z"]
 
         # Test with columns
-        masked_df = mixin._df_get_masked_df(df_0, "A", [1, 3], columns=["B"])
+        masked_df = mixin._df_get_masked_df(df_0, "A", [1, 3], columns=["B"]).collect()
         assert list(masked_df.columns) == ["B"]
         assert masked_df["B"].to_list() == ["a", "c"]
 
         # Test with negate=True
-        masked = mixin._df_get_masked_df(df_0, "A", [1, 3], negate=True)
+        masked = mixin._df_get_masked_df(df_0, "A", [1, 3], negate=True).collect()
         assert len(masked) == 1
 
-    def test_df_groupby_cumcount(self, df_0: pl.DataFrame, mixin: PolarsMixin):
-        result = mixin._df_groupby_cumcount(df_0, "C")
+    def test_df_groupby_cumcount(self, df_0: pl.LazyFrame, mixin: PolarsMixin):
+        result = mixin._df_groupby_cumcount(df_0, "C").collect()
         assert result.to_list() == [1, 1, 2]
 
-    def test_df_index(self, mixin: PolarsMixin, df_0: pl.DataFrame):
-        index = mixin._df_index(df_0, "unique_id")
+    def test_df_index(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
+        index = mixin._df_index(df_0, "unique_id").collect()
         assert isinstance(index, pl.Series)
         assert index.to_list() == ["x", "y", "z"]
 
-    def test_df_iterator(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_iterator(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         iterator = mixin._df_iterator(df_0)
         first_item = next(iterator)
         assert first_item == {"unique_id": "x", "A": 1, "B": "a", "C": True, "D": 1}
 
     def test_df_join(self, mixin: PolarsMixin):
-        left = pl.DataFrame({"A": [1, 2], "B": ["a", "b"]})
-        right = pl.DataFrame({"A": [1, 3], "C": ["x", "y"]})
+        left = pl.LazyFrame({"A": [1, 2], "B": ["a", "b"]})
+        right = pl.LazyFrame({"A": [1, 3], "C": ["x", "y"]})
 
         # Test with 'on' (left join)
-        joined = mixin._df_join(left, right, on="A")
+        joined = mixin._df_join(left, right, on="A").collect()
         assert set(joined.columns) == {"A", "B", "C"}
         assert joined["A"].to_list() == [1, 2]
 
         # Test with 'left_on' and 'right_on' (left join)
-        right_1 = pl.DataFrame({"D": [1, 2], "C": ["x", "y"]})
-        joined = mixin._df_join(left, right_1, left_on="A", right_on="D")
+        right_1 = pl.LazyFrame({"D": [1, 2], "C": ["x", "y"]})
+        joined = mixin._df_join(left, right_1, left_on="A", right_on="D").collect()
         assert set(joined.columns) == {"A", "B", "C"}
         assert joined["A"].to_list() == [1, 2]
 
         # Test with 'right' join
-        joined = mixin._df_join(left, right, on="A", how="right")
+        joined = mixin._df_join(left, right, on="A", how="right").collect()
         assert set(joined.columns) == {"A", "B", "C"}
         assert joined["A"].to_list() == [1, 3]
 
         # Test with 'inner' join
-        joined = mixin._df_join(left, right, on="A", how="inner")
+        joined = mixin._df_join(left, right, on="A", how="inner").collect()
         assert set(joined.columns) == {"A", "B", "C"}
         assert joined["A"].to_list() == [1]
 
         # Test with 'outer' join
-        joined = mixin._df_join(left, right, on="A", how="outer")
+        joined = mixin._df_join(left, right, on="A", how="outer").collect()
         assert set(joined.columns) == {"A", "B", "A_right", "C"}
         assert joined["A"].to_list() == [1, None, 2]
         assert joined["A_right"].to_list() == [1, 3, None]
 
         # Test with 'cross' join
-        joined = mixin._df_join(left, right, how="cross")
+        joined = mixin._df_join(left, right, how="cross").collect()
         assert set(joined.columns) == {"A", "B", "A_right", "C"}
         assert len(joined) == 4
         assert joined.row(0) == (1, "a", 1, "x")
@@ -514,7 +526,7 @@ class TestPolarsMixin:
         assert joined.row(3) == (2, "b", 3, "y")
 
         # Test with different 'suffix'
-        joined = mixin._df_join(left, right, suffix="_r", how="cross")
+        joined = mixin._df_join(left, right, suffix="_r", how="cross").collect()
         assert set(joined.columns) == {"A", "B", "A_r", "C"}
         assert len(joined) == 4
         assert joined.row(0) == (1, "a", 1, "x")
@@ -522,109 +534,113 @@ class TestPolarsMixin:
         assert joined.row(2) == (2, "b", 1, "x")
         assert joined.row(3) == (2, "b", 3, "y")
 
-    def test_df_lt(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+    def test_df_lt(self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame):
         # Test comparing the DataFrame with a sequence element-wise along the rows (axis='index')
-        result = mixin._df_lt(df_0[["A", "D"]], df_1["A"], axis="index")
+        result = mixin._df_lt(df_0[["A", "D"]], df_1["A"], axis="index").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [True, True, True]
         assert result["D"].to_list() == [True, True, True]
 
         # Test comparing the DataFrame with a sequence element-wise along the columns (axis='columns')
-        result = mixin._df_lt(df_0[["A", "D"]], [2, 3], axis="columns")
+        result = mixin._df_lt(df_0[["A", "D"]], [2, 3], axis="columns").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [True, False, False]
         assert result["D"].to_list() == [True, True, False]
 
         # Test comparing DataFrames with index-column alignment
-        df_1 = df_1.with_columns(D=pl.col("E"))
+        df_1_with_d = df_1.with_columns(D=pl.col("E"))
         result = mixin._df_lt(
             df_0[["unique_id", "A", "D"]],
-            df_1[["unique_id", "A", "D"]],
+            df_1_with_d[["unique_id", "A", "D"]],
             axis="index",
             index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [None, None, True]
         assert result["D"].to_list() == [None, None, False]
 
-    def test_df_mod(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+    def test_df_mod(self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame):
         # Test taking the modulo of the DataFrame by a sequence element-wise along the rows (axis='index')
-        result = mixin._df_mod(df_0[["A", "D"]], df_1["A"], axis="index")
+        result = mixin._df_mod(df_0[["A", "D"]], df_1["A"], axis="index").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [1, 2, 3]
         assert result["D"].to_list() == [1, 2, 3]
 
         # Test taking the modulo of the DataFrame by a sequence element-wise along the columns (axis='columns')
-        result = mixin._df_mod(df_0[["A", "D"]], [1, 2], axis="columns")
+        result = mixin._df_mod(df_0[["A", "D"]], [1, 2], axis="columns").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [0, 0, 0]
         assert result["D"].to_list() == [1, 0, 1]
 
         # Test taking the modulo of DataFrames with index-column alignment
-        df_1 = df_1.with_columns(D=pl.col("E"))
+        df_1_with_d = df_1.with_columns(D=pl.col("E"))
         result = mixin._df_mod(
             df_0[["unique_id", "A", "D"]],
-            df_1[["unique_id", "A", "D"]],
+            df_1_with_d[["unique_id", "A", "D"]],
             axis="index",
             index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [None, None, 3]
         assert result["D"].to_list() == [None, None, 0]
 
-    def test_df_mul(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+    def test_df_mul(self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame):
         # Test multiplying the DataFrame by a sequence element-wise along the rows (axis='index')
-        result = mixin._df_mul(df_0[["A", "D"]], df_1["A"], axis="index")
+        result = mixin._df_mul(df_0[["A", "D"]], df_1["A"], axis="index").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [4, 10, 18]
         assert result["D"].to_list() == [4, 10, 18]
 
         # Test multiplying the DataFrame by a sequence element-wise along the columns (axis='columns')
-        result = mixin._df_mul(df_0[["A", "D"]], [1, 2], axis="columns")
+        result = mixin._df_mul(df_0[["A", "D"]], [1, 2], axis="columns").collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [1, 2, 3]
         assert result["D"].to_list() == [2, 4, 6]
 
         # Test multiplying DataFrames with index-column alignment
-        df_1 = df_1.with_columns(D=pl.col("E"))
+        df_1_with_d = df_1.with_columns(D=pl.col("E"))
         result = mixin._df_mul(
             df_0[["unique_id", "A", "D"]],
-            df_1[["unique_id", "A", "D"]],
+            df_1_with_d[["unique_id", "A", "D"]],
             axis="index",
             index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["A"].to_list() == [None, None, 12]
         assert result["D"].to_list() == [None, None, 3]
 
     def test_df_norm(self, mixin: PolarsMixin):
-        df = pl.DataFrame({"A": [3, 4], "B": [4, 3]})
+        df = pl.LazyFrame({"A": [3, 4], "B": [4, 3]})
         # If include_cols = False
-        norm = mixin._df_norm(df)
+        norm = mixin._df_norm(df).collect()
         assert isinstance(norm, pl.Series)
         assert len(norm) == 2
         assert norm[0] == 5
         assert norm[1] == 5
 
         # If include_cols = True
-        norm = mixin._df_norm(df, include_cols=True)
+        norm = mixin._df_norm(df, include_cols=True).collect()
         assert isinstance(norm, pl.DataFrame)
         assert len(norm) == 2
         assert norm.columns == ["A", "B", "norm"]
         assert norm.row(0, named=True)["norm"] == 5
         assert norm.row(1, named=True)["norm"] == 5
 
-    def test_df_or(self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame):
+    def test_df_or(self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame):
         # Test comparing the DataFrame with a sequence element-wise along the rows (axis='index')
-        df_0 = df_0.with_columns(F=pl.Series([True, True, False]))
-        df_1 = df_1.with_columns(F=pl.Series([False, False, True]))
-        result = mixin._df_or(df_0[["C", "F"]], df_1["F"], axis="index")
+        df_0_with_f = df_0.with_columns(F=pl.lit([True, True, False]))
+        df_1_with_f = df_1.with_columns(F=pl.lit([False, False, True]))
+        result = mixin._df_or(
+            df_0_with_f[["C", "F"]], df_1_with_f["F"], axis="index"
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["C"].to_list() == [True, False, True]
         assert result["F"].to_list() == [True, True, True]
 
         # Test comparing the DataFrame with a sequence element-wise along the columns (axis='columns')
-        result = mixin._df_or(df_0[["C", "F"]], [True, False], axis="columns")
+        result = mixin._df_or(
+            df_0_with_f[["C", "F"]], [True, False], axis="columns"
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["C"].to_list() == [True, True, True]
         assert result["F"].to_list() == [True, True, False]
@@ -635,16 +651,16 @@ class TestPolarsMixin:
             df_1[["unique_id", "C", "F"]],
             axis="index",
             index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(result, pl.DataFrame)
         assert result["C"].to_list() == [True, None, True]
         assert result["F"].to_list() == [True, True, False]
 
     def test_df_reindex(
-        self, mixin: PolarsMixin, df_0: pl.DataFrame, df_1: pl.DataFrame
+        self, mixin: PolarsMixin, df_0: pl.LazyFrame, df_1: pl.LazyFrame
     ):
         # Test with DataFrame
-        reindexed = mixin._df_reindex(df_0, df_1, "unique_id")
+        reindexed = mixin._df_reindex(df_0, df_1, "unique_id").collect()
         assert isinstance(reindexed, pl.DataFrame)
         assert reindexed["unique_id"].to_list() == ["z", "a", "b"]
         assert reindexed["A"].to_list() == [3, None, None]
@@ -653,7 +669,7 @@ class TestPolarsMixin:
         assert reindexed["D"].to_list() == [3, None, None]
 
         # Test with list
-        reindexed = mixin._df_reindex(df_0, ["z", "a", "b"], "unique_id")
+        reindexed = mixin._df_reindex(df_0, ["z", "a", "b"], "unique_id").collect()
         assert isinstance(reindexed, pl.DataFrame)
         assert reindexed["unique_id"].to_list() == ["z", "a", "b"]
         assert reindexed["A"].to_list() == [3, None, None]
@@ -667,7 +683,7 @@ class TestPolarsMixin:
             ["z", "a", "b"],
             new_index_cols="new_index",
             original_index_cols="unique_id",
-        )
+        ).collect()
         assert isinstance(reindexed, pl.DataFrame)
         assert reindexed["new_index"].to_list() == ["z", "a", "b"]
         assert reindexed["A"].to_list() == [3, None, None]
@@ -675,61 +691,63 @@ class TestPolarsMixin:
         assert reindexed["C"].to_list() == [True, None, None]
         assert reindexed["D"].to_list() == [3, None, None]
 
-    def test_df_rename_columns(self, mixin: PolarsMixin, df_0: pl.DataFrame):
-        renamed = mixin._df_rename_columns(df_0, ["A", "B"], ["X", "Y"])
+    def test_df_rename_columns(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
+        renamed = mixin._df_rename_columns(df_0, ["A", "B"], ["X", "Y"]).collect()
         assert renamed.columns == ["unique_id", "X", "Y", "C", "D"]
 
-    def test_df_reset_index(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_reset_index(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         # with drop = False
-        new_df = mixin._df_reset_index(df_0)
+        new_df = mixin._df_reset_index(df_0).collect()
         assert mixin._df_all(new_df == df_0).all()
 
         # with drop = True
-        new_df = mixin._df_reset_index(df_0, index_cols="unique_id", drop=True)
+        new_df = mixin._df_reset_index(
+            df_0, index_cols="unique_id", drop=True
+        ).collect()
         assert new_df.columns == ["A", "B", "C", "D"]
         assert len(new_df) == len(df_0)
         for col in new_df.columns:
             assert (new_df[col] == df_0[col]).all()
 
-    def test_df_remove(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_remove(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         # Test with list
-        removed = mixin._df_remove(df_0, [1, 3], "A")
+        removed = mixin._df_remove(df_0, [1, 3], "A").collect()
         assert len(removed) == 1
         assert removed["unique_id"].to_list() == ["y"]
 
-    def test_df_sample(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_sample(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         # Test with n
-        sampled = mixin._df_sample(df_0, n=2, seed=42)
+        sampled = mixin._df_sample(df_0, n=2, seed=42).collect()
         assert len(sampled) == 2
 
         # Test with frac
-        sampled = mixin._df_sample(df_0, frac=2 / 3, seed=42)
+        sampled = mixin._df_sample(df_0, frac=2 / 3, seed=42).collect()
         assert len(sampled) == 2
 
         # Test with replacement
-        sampled = mixin._df_sample(df_0, n=4, with_replacement=True, seed=42)
+        sampled = mixin._df_sample(df_0, n=4, with_replacement=True, seed=42).collect()
         assert len(sampled) == 4
         assert sampled.n_unique() < 4
 
-    def test_df_set_index(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_set_index(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         index = pl.int_range(len(df_0), eager=True)
-        new_df = mixin._df_set_index(df_0, "index", index)
+        new_df = mixin._df_set_index(df_0, "index", index).collect()
         assert (new_df["index"] == index).all()
 
-    def test_df_with_columns(self, mixin: PolarsMixin, df_0: pl.DataFrame):
+    def test_df_with_columns(self, mixin: PolarsMixin, df_0: pl.LazyFrame):
         # Test with list
         new_df = mixin._df_with_columns(
             df_0,
             data=[[4, "d"], [5, "e"], [6, "f"]],
             new_columns=["D", "E"],
-        )
+        ).collect()
         assert list(new_df.columns) == ["unique_id", "A", "B", "C", "D", "E"]
         assert new_df["D"].to_list() == [4, 5, 6]
         assert new_df["E"].to_list() == ["d", "e", "f"]
 
         # Test with pl.DataFrame
-        second_df = pl.DataFrame({"D": [4, 5, 6], "E": ["d", "e", "f"]})
-        new_df = mixin._df_with_columns(df_0, second_df)
+        second_df = pl.LazyFrame({"D": [4, 5, 6], "E": ["d", "e", "f"]})
+        new_df = mixin._df_with_columns(df_0, second_df).collect()
         assert list(new_df.columns) == ["unique_id", "A", "B", "C", "D", "E"]
         assert new_df["D"].to_list() == [4, 5, 6]
         assert new_df["E"].to_list() == ["d", "e", "f"]
@@ -737,18 +755,22 @@ class TestPolarsMixin:
         # Test with dictionary
         new_df = mixin._df_with_columns(
             df_0, data={"D": [4, 5, 6], "E": ["d", "e", "f"]}
-        )
+        ).collect()
         assert list(new_df.columns) == ["unique_id", "A", "B", "C", "D", "E"]
         assert new_df["D"].to_list() == [4, 5, 6]
         assert new_df["E"].to_list() == ["d", "e", "f"]
 
         # Test with numpy array
-        new_df = mixin._df_with_columns(df_0, data=np.array([4, 5, 6]), new_columns="D")
+        new_df = mixin._df_with_columns(
+            df_0, data=np.array([4, 5, 6]), new_columns="D"
+        ).collect()
         assert "D" in new_df.columns
         assert new_df["D"].to_list() == [4, 5, 6]
 
         # Test with pl.Series
-        new_df = mixin._df_with_columns(df_0, pl.Series([4, 5, 6]), new_columns="D")
+        new_df = mixin._df_with_columns(
+            df_0, pl.Series([4, 5, 6]), new_columns="D"
+        ).collect()
         assert "D" in new_df.columns
         assert new_df["D"].to_list() == [4, 5, 6]
 
@@ -767,29 +789,29 @@ class TestPolarsMixin:
         srs = [1, 2, 3, 4, 5]
 
         # Test with single value
-        result = mixin._srs_contains(srs, 3)
+        result = mixin._srs_contains(srs, 3).collect()
         assert result.to_list() == [True]
 
         # Test with list
-        result = mixin._srs_contains(srs, [1, 3, 6])
+        result = mixin._srs_contains(srs, [1, 3, 6]).collect()
         assert result.to_list() == [True, True, False]
 
         # Test with numpy array
-        result = mixin._srs_contains(srs, np.array([1, 3, 6]))
+        result = mixin._srs_contains(srs, np.array([1, 3, 6])).collect()
         assert result.to_list() == [True, True, False]
 
     def test_srs_range(self, mixin: PolarsMixin):
         # Test with default step
-        srs = mixin._srs_range("test", 0, 5)
+        srs = mixin._srs_range("test", 0, 5).collect()
         assert srs.name == "test"
         assert srs.to_list() == [0, 1, 2, 3, 4]
 
         # Test with custom step
-        srs = mixin._srs_range("test", 0, 10, step=2)
+        srs = mixin._srs_range("test", 0, 10, step=2).collect()
         assert srs.to_list() == [0, 2, 4, 6, 8]
 
     def test_srs_to_df(self, mixin: PolarsMixin):
         srs = pl.Series("test", [1, 2, 3])
-        df = mixin._srs_to_df(srs)
+        df = mixin._srs_to_df(srs).collect()
         assert isinstance(df, pl.DataFrame)
         assert df["test"].to_list() == [1, 2, 3]
