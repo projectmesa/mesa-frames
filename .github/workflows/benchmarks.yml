@@ -160,18 +160,21 @@ jobs:
         print("Benchmark visualization saved as benchmark_results.png")
         '
 
+    - name: Prepare Artifacts Directory
+      run: |
+        mkdir -p benchmark_artifacts
+        cp examples/sugarscape_ig/*.png benchmark_artifacts/ || true
+        cp examples/sugarscape_ig/*.txt benchmark_artifacts/ || true
+        cp examples/boltzmann_wealth/*.png benchmark_artifacts/ || true
+        cp examples/boltzmann_wealth/*.txt benchmark_artifacts/ || true
+        cp benchmark_results.png benchmark_artifacts/ || true
+
     - name: Save Benchmark Results
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v1
       with:
         name: benchmark-results
-        path: |
-          examples/sugarscape_ig/*.png
-          examples/sugarscape_ig/*.txt
-          examples/boltzmann_wealth/*.png
-          examples/boltzmann_wealth/*.txt
-          benchmark_results.png
-        retention-days: 90
+        path: benchmark_artifacts
 
     - name: Log Benchmark Results (Fallback)
       if: always()
@@ -222,6 +225,7 @@ jobs:
         echo '' >> summary.md
 
         echo "[Click here to see full benchmark results](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})" >> summary.md
+        echo "Note: Benchmark results are now available as artifacts on the GitHub Actions run page." >> summary.md
 
         # Set output
         SUMMARY=$(cat summary.md)
