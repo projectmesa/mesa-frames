@@ -25,6 +25,7 @@ When reviewing a PR with benchmark results, look for:
 3. **Expected changes**: If the PR is aimed at improving performance, verify that the benchmarks show the expected improvements
 
 The benchmark comment will include:
+
 - Execution time for both mesa-frames and Mesa implementations
 - The speedup factor (how many times faster mesa-frames is compared to Mesa)
 - A visualization comparing the performance
