@@ -172,7 +172,7 @@ jobs:
           examples/boltzmann_wealth/*.txt
           benchmark_results.png
         retention-days: 90
-        
+
     - name: Log Benchmark Results (Fallback)
       if: always()
       run: |
@@ -183,7 +183,7 @@ jobs:
         else
           echo "Results file not found"
         fi
-        
+
         echo "Boltzmann Wealth Benchmark Results:"
         if [ -f "examples/boltzmann_wealth/boltzmann_results.txt" ]; then
           cat examples/boltzmann_wealth/boltzmann_results.txt
@@ -200,7 +200,7 @@ jobs:
         echo '' >> summary.md
         echo 'The benchmarks have been executed.' >> summary.md
         echo '' >> summary.md
-        
+
         echo '### SugarScape Model (50k agents, 100 steps)' >> summary.md
         echo '```' >> summary.md
         if [ -f "examples/sugarscape_ig/sugarscape_results.txt" ]; then
@@ -210,19 +210,19 @@ jobs:
         fi
         echo '```' >> summary.md
         echo '' >> summary.md
-        
+
         echo '### Boltzmann Wealth Model (10k agents, 100 steps)' >> summary.md
         echo '```' >> summary.md
         if [ -f "examples/boltzmann_wealth/boltzmann_results.txt" ]; then
           cat examples/boltzmann_wealth/boltzmann_results.txt >> summary.md
-        else 
+        else
           echo "Results file not found" >> summary.md
         fi
         echo '```' >> summary.md
         echo '' >> summary.md
-        
+
         echo "[Click here to see full benchmark results](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})" >> summary.md
-        
+
         # Set output
         SUMMARY=$(cat summary.md)
         echo "summary<<EOF" >> $GITHUB_OUTPUT
@@ -236,7 +236,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          
+
           // Create a comment with benchmark results
           github.rest.issues.createComment({
             issue_number: context.issue.number,
