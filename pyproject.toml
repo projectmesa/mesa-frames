@@ -84,7 +84,7 @@ test = [
 
 dev = [
   "mesa_frames[test, docs]",
-  "mesa",
+  "mesa~=2.4.0",
   "numba",
 ]
 

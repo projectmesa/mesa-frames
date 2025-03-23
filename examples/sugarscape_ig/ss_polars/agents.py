@@ -285,12 +285,8 @@ class AntPolarsLoop(AntPolarsBase):
 
         Returns
         -------
-        np.ndarray
-            occupied_cells
-        np.ndarray
-            free_cells
-        np.ndarray
-            target_cells
+        tuple[np.ndarray, np.ndarray, np.ndarray]
+            occupied_cells, free_cells, target_cells
         """
         occupied_cells = (
             neighborhood[["agent_id_center", "agent_order"]]
