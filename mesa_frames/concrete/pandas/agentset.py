@@ -73,10 +73,9 @@ if TYPE_CHECKING:
 
 @copydoc(AgentSetDF)
 class AgentSetPandas(AgentSetDF, PandasMixin):
-    """
-    WARNING: AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.
-    pandas-based implementation of AgentSetDF.
+    """WARNING: AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.
 
+    pandas-based implementation of AgentSetDF.
     """
 
     _agents: pd.DataFrame

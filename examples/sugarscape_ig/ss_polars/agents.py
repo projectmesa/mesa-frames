@@ -285,7 +285,7 @@ class AntPolarsLoop(AntPolarsBase):
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray, np.ndarray]
+        tuple[np.ndarray, np.ndarray, np.ndarray]
             occupied_cells, free_cells, target_cells
         """
         occupied_cells = (
