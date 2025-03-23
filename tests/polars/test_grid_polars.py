@@ -1865,7 +1865,7 @@ class TestGridPolars:
         grid_moore: GridPolars,
         model: ModelDF,
     ):
-        """Test the move_to_optimal method with different parameters and scenarios."""
+        """Test the move_to_optimal function with different parameters and scenarios."""
         from mesa_frames import AgentSetPolars
         import numpy as np
         
