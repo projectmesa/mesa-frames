@@ -16,7 +16,7 @@ from ss_polars.agents import (
     AntPolarsNumbaParallel,
 )
 from ss_polars.model import SugarscapePolars
-from typing import Callable
+from collections.abc import Callable
 
 
 class SugarScapeSetup:
