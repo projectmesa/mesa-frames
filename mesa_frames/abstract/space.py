@@ -1050,7 +1050,7 @@ class DiscreteSpaceDF(SpaceDF):
     ) -> None:
         """Move agents to optimal cells based on neighborhood ranking.
 
-        This method allows agents to move to cells in their neighborhood that 
+        This method allows agents to move to cells in their neighborhood that
         optimize one or more cell attributes according to specified ranking criteria.
 
         Parameters
@@ -1084,22 +1084,28 @@ class DiscreteSpaceDF(SpaceDF):
 
         # Filter out agents that are not placed in the grid
         placed_agents_ids = self.agents["agent_id"].to_list()
-        
+
         # Find the intersection of agent IDs with placed agent IDs
         agent_ids = []
-        
+
         # Determine agent IDs based on the type of agents object
-        if hasattr(agents, "index") and callable(getattr(agents.index, "to_list", None)):
+        if hasattr(agents, "index") and callable(
+            getattr(agents.index, "to_list", None)
+        ):
             # For objects with an index attribute (like AgentSetPolars)
             try:
-                agent_ids = [id for id in agents.index.to_list() if id in placed_agents_ids]
+                agent_ids = [
+                    id for id in agents.index.to_list() if id in placed_agents_ids
+                ]
             except AttributeError:
                 # Fallback if to_list isn't available but index is
                 agent_ids = [id for id in agents.index if id in placed_agents_ids]
         elif isinstance(agents, pl.DataFrame):
             # For DataFrame objects
             id_col = "unique_id" if "unique_id" in agents.columns else "agent_id"
-            agent_ids = [id for id in agents[id_col].to_list() if id in placed_agents_ids]
+            agent_ids = [
+                id for id in agents[id_col].to_list() if id in placed_agents_ids
+            ]
         else:
             # Try to get agent IDs from space directly
             try:
@@ -1107,38 +1113,42 @@ class DiscreteSpaceDF(SpaceDF):
                 agent_ids = placed_agents_ids
             except:
                 raise ValueError("Could not determine agent IDs for movement")
-        
+
         # If no agents are placed, return early
         if not agent_ids:
             return
-            
+
         # Handle radius based on agent type
         if radius is None:
             # Check for vision attribute using various methods
             has_vision = False
             vision_values = None
-            
+
             # First check: direct attribute check
-            if hasattr(agents, "vision") and isinstance(agents.vision, (list, pl.Series)):
+            if hasattr(agents, "vision") and isinstance(
+                agents.vision, (list, pl.Series)
+            ):
                 has_vision = True
                 vision_values = agents.vision
                 if isinstance(vision_values, pl.Series):
                     all_vision = vision_values.to_list()
                 else:
                     all_vision = vision_values
-            
+
             # Second check: for DataFrame objects
             elif isinstance(agents, pl.DataFrame) and "vision" in agents.columns:
                 has_vision = True
                 vision_df = agents.filter(pl.col(id_col).is_in(agent_ids))
                 all_vision = vision_df["vision"].to_list()
-            
+
             # Third check: for AgentSet objects with a get method
             elif hasattr(agents, "get") and callable(agents.get):
                 try:
                     vision_values = agents.get("vision")
                     has_vision = True
-                    if hasattr(vision_values, "filter") and callable(vision_values.filter):
+                    if hasattr(vision_values, "filter") and callable(
+                        vision_values.filter
+                    ):
                         # If we can filter the vision values
                         vision_values = vision_values.filter(
                             pl.col("unique_id").is_in(agent_ids)
@@ -1149,82 +1159,104 @@ class DiscreteSpaceDF(SpaceDF):
                         all_vision = vision_values.to_list()
                 except:
                     # Fourth check: direct access to agents._agents DataFrame
-                    if hasattr(agents, "_agents") and "vision" in agents._agents.columns:
+                    if (
+                        hasattr(agents, "_agents")
+                        and "vision" in agents._agents.columns
+                    ):
                         has_vision = True
-                        vision_df = agents._agents.filter(pl.col("unique_id").is_in(agent_ids))
+                        vision_df = agents._agents.filter(
+                            pl.col("unique_id").is_in(agent_ids)
+                        )
                         all_vision = vision_df["vision"].to_list()
-            
+
             # Fifth check: for containers with an agents attribute
             elif hasattr(agents, "agents"):
-                if isinstance(agents.agents, pl.DataFrame) and "vision" in agents.agents.columns:
+                if (
+                    isinstance(agents.agents, pl.DataFrame)
+                    and "vision" in agents.agents.columns
+                ):
                     has_vision = True
-                    vision_df = agents.agents.filter(pl.col("unique_id").is_in(agent_ids))
+                    vision_df = agents.agents.filter(
+                        pl.col("unique_id").is_in(agent_ids)
+                    )
                     all_vision = vision_df["vision"].to_list()
-                
+
                 # Special case for AgentSetPolars instance
                 elif hasattr(agents.agents, "vision"):
                     has_vision = True
                     all_vision = agents.agents.vision.to_list()
-            
+
             # If vision attribute was not found, raise error
             if not has_vision:
                 raise ValueError(
                     "radius must be specified if agents do not have a 'vision' attribute"
                 )
-                
+
             # Now create a radius list that exactly matches the agent_ids we found
             # We need to map each agent ID to its vision value
-            
+
             # Create a mapping from agent_id to vision
             agent_to_vision = {}
-            
+
             # Try different ways to build the mapping
-            if isinstance(agents, pl.DataFrame) and "vision" in agents.columns and "unique_id" in agents.columns:
+            if (
+                isinstance(agents, pl.DataFrame)
+                and "vision" in agents.columns
+                and "unique_id" in agents.columns
+            ):
                 # For DataFrame objects with ID and vision columns
                 for row in agents.select(["unique_id", "vision"]).iter_rows():
                     agent_to_vision[row[0]] = row[1]
-            elif hasattr(agents, "_agents") and "vision" in agents._agents.columns and "unique_id" in agents._agents.columns:
+            elif (
+                hasattr(agents, "_agents")
+                and "vision" in agents._agents.columns
+                and "unique_id" in agents._agents.columns
+            ):
                 # For AgentSet objects with _agents DataFrame
                 for row in agents._agents.select(["unique_id", "vision"]).iter_rows():
                     agent_to_vision[row[0]] = row[1]
-            elif hasattr(agents, "agents") and isinstance(agents.agents, pl.DataFrame) and "vision" in agents.agents.columns:
+            elif (
+                hasattr(agents, "agents")
+                and isinstance(agents.agents, pl.DataFrame)
+                and "vision" in agents.agents.columns
+            ):
                 # For containers with agents DataFrame
                 for row in agents.agents.select(["unique_id", "vision"]).iter_rows():
                     agent_to_vision[row[0]] = row[1]
             else:
                 # Fallback: just use a default vision value for all agents
                 agent_to_vision = {agent_id: 1 for agent_id in agent_ids}
-                
+
             # Create a radius list that exactly matches the agent_ids
             radius = [agent_to_vision.get(agent_id, 1) for agent_id in agent_ids]
-            
+
         elif isinstance(radius, pl.Series):
             # Ensure radius is a Python list if it's a Polars Series
             radius = radius.to_list()
         elif isinstance(radius, int):
             # If radius is a single integer, repeat it for each agent
             radius = [radius] * len(agent_ids)
-            
+
         # Ensure radius matches the number of agents
         if isinstance(radius, list) and len(radius) != len(agent_ids):
             # If lengths don't match, create a list of the same radius value repeated
             if len(radius) == 1:
                 radius = radius * len(agent_ids)
             else:
-                # Try to match up vision values with agent IDs 
+                # Try to match up vision values with agent IDs
                 # If that's not possible, use the first value for all
                 radius = [radius[0]] * len(agent_ids)
-            
+
         # When getting the neighborhood, pass only the agent_ids list as agents
         # to ensure we're only working with placed agents
         neighborhood = self.get_neighborhood(
             radius=radius, agents=agent_ids, include_center=include_center
         )
         neighborhood = neighborhood.join(self.cells, on=["dim_0", "dim_1"])
-        
+
         # Get positions from the space's agents DataFrame to avoid using .pos on filtered objects
         agent_positions = self.agents.rename({"agent_id": "unique_id"})
-        
+
         neighborhood = neighborhood.with_columns(
             agent_id_center=neighborhood.join(
                 agent_positions,
@@ -1232,7 +1264,7 @@ class DiscreteSpaceDF(SpaceDF):
                 right_on=["dim_0", "dim_1"],
             )["unique_id"]
         )
-        
+
         if shuffle:
             agent_order = (
                 neighborhood.unique(subset=["agent_id_center"], keep="first")
