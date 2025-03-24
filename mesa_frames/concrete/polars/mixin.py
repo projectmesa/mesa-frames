@@ -457,9 +457,9 @@ class PolarsMixin(DataFrameMixin):
             if index_cols is not None:
                 op_df = df.join(other, how="left", on=index_cols, suffix="_op")
             else:
-                assert len(df) == len(
-                    other
-                ), "DataFrames must have the same length if index_cols is not specified"
+                assert len(df) == len(other), (
+                    "DataFrames must have the same length if index_cols is not specified"
+                )
                 index_cols = []
                 other = other.rename(lambda col: col + "_op")
                 op_df = pl.concat([df, other], how="horizontal")
@@ -472,18 +472,18 @@ class PolarsMixin(DataFrameMixin):
             other, (Sequence, pl.Series)
         ):  # Currently, pl.Series is not a Sequence
             if axis == "index":
-                assert len(df) == len(
-                    other
-                ), "Sequence must have the same length as df if axis is 'index'"
+                assert len(df) == len(other), (
+                    "Sequence must have the same length as df if axis is 'index'"
+                )
                 other_series = pl.Series("operand", other)
                 return df.with_columns(
                     operation(pl.col(col), other_series).alias(col)
                     for col in df.columns
                 )
             else:
-                assert (
-                    len(df.columns) == len(other)
-                ), "Sequence must have the same length as df.columns if axis is 'columns'"
+                assert len(df.columns) == len(other), (
+                    "Sequence must have the same length as df.columns if axis is 'columns'"
+                )
                 return df.with_columns(
                     operation(pl.col(col), pl.lit(other[i])).alias(col)
                     for i, col in enumerate(df.columns)

@@ -67,10 +67,9 @@ import warnings
 
 @copydoc(GridDF)
 class GridPandas(GridDF, PandasMixin):
-    """
-    WARNING: GridPandas is deprecated and will be removed in the next release of mesa-frames.
+    """WARNING: GridPandas is deprecated and will be removed in the next release of mesa-frames.
     pandas-based implementation of GridDF.
-    """
+    """  # noqa: D205
 
     def __init__(self, *args, **kwargs):
         warnings.warn(
@@ -134,9 +133,9 @@ class GridPandas(GridDF, PandasMixin):
         if n is not None:
             if with_replacement:
                 if respect_capacity and condition != self._full_cell_condition:
-                    assert (
-                        n <= capacities.sum()
-                    ), "Requested sample size exceeds the total available capacity."
+                    assert n <= capacities.sum(), (
+                        "Requested sample size exceeds the total available capacity."
+                    )
 
                 sampled_coords = np.empty((0, coords.shape[1]), dtype=coords.dtype)
                 while len(sampled_coords) < n:
@@ -172,9 +171,9 @@ class GridPandas(GridDF, PandasMixin):
                 sampled_coords = sampled_coords[:n]
                 self.random.shuffle(sampled_coords)
             else:
-                assert n <= len(
-                    coords
-                ), "Requested sample size exceeds the number of available cells."
+                assert n <= len(coords), (
+                    "Requested sample size exceeds the number of available cells."
+                )
                 sampled_indices = self.random.choice(len(coords), size=n, replace=False)
                 sampled_coords = coords[sampled_indices]
         else:
@@ -224,9 +223,9 @@ class GridPandas(GridDF, PandasMixin):
         new_capacity = cells["capacity"].to_numpy() - agents_in_cells
 
         # Assert that no new capacity is negative
-        assert np.all(
-            new_capacity >= 0
-        ), "New capacity of a cell cannot be less than the number of agents in it."
+        assert np.all(new_capacity >= 0), (
+            "New capacity of a cell cannot be less than the number of agents in it."
+        )
 
         self._cells_capacity[tuple(zip(*coords))] = new_capacity
 

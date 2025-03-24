@@ -51,10 +51,8 @@ import warnings
 
 
 class PandasMixin(DataFrameMixin):
-    """
-    WARNING: PandasMixin is deprecated and will be removed in the next release of mesa-frames.
+    """WARNING: PandasMixin is deprecated and will be removed in the next release of mesa-frames.
     pandas-based implementation of DataFrame operations.
-
     """
 
     def __init__(self, *args, **kwargs):
