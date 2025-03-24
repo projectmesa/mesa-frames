@@ -440,7 +440,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
 
     @property
     def active_agents(self) -> pd.DataFrame:  # noqa : D102
-        return self._agents.loc[self._mask]
+        return self._agents.loc[self._mask] if len(self._mask) > 0 else self._agents
 
     @active_agents.setter
     def active_agents(self, mask: AgentPandasMask) -> None:
