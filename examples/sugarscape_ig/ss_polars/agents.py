@@ -287,10 +287,14 @@ class AntPolarsLoop(AntPolarsBase):
         Returns
         -------
         tuple[np.ndarray, np.ndarray, np.ndarray]
+
             A tuple containing:
             - occupied_cells: Array of currently occupied cell positions
             - free_cells: Boolean array indicating which cells are free
             - target_cells: Array of target cell positions for each agent
+
+            occupied_cells, free_cells, target_cells
+
         """
         occupied_cells = (
             neighborhood[["agent_id_center", "agent_order"]]

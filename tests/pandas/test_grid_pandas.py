@@ -1031,12 +1031,12 @@ class TestGridPandas:
         counts = result.groupby(result.columns.to_list()).size()
 
         ## (0, 1) and (1, 1) are not in the result
-        assert not (
-            (result["dim_0"] == 0) & (result["dim_1"] == 0)
-        ).any(), "Found (0, 1) in the result"
-        assert not (
-            (result["dim_0"] == 1) & (result["dim_1"] == 1)
-        ).any(), "Found (1, 1) in the result"
+        assert not ((result["dim_0"] == 0) & (result["dim_1"] == 0)).any(), (
+            "Found (0, 1) in the result"
+        )
+        assert not ((result["dim_0"] == 1) & (result["dim_1"] == 1)).any(), (
+            "Found (1, 1) in the result"
+        )
 
         # 14 should be the max number of empty cells
         with pytest.raises(AssertionError):
