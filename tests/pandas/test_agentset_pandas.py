@@ -90,6 +90,56 @@ class Test_AgentSetPandas:
         assert agents.agents.age.tolist() == [10, 20, 30, 40, 50, 60]
         assert agents.agents.index.name == "unique_id"
 
+        # Test auto-generation of unique_ids
+        # For DataFrame
+        df_without_id = pd.DataFrame({"wealth": [7, 8], "age": [70, 80]})
+        result = agents.add(df_without_id, inplace=False)
+        # Should auto-generate IDs 6 and 7
+        assert result.agents.index.tolist() == [0, 1, 2, 3, 4, 5, 6, 7]
+        assert result.agents.wealth.tolist() == [1, 2, 3, 4, 5, 6, 7, 8]
+        assert result.agents.age.tolist() == [10, 20, 30, 40, 50, 60, 70, 80]
+        assert result.agents.index.name == "unique_id"
+
+        # For dict
+        dict_without_id = {"wealth": 9, "age": 90}
+        result = agents.add(dict_without_id, inplace=False)
+        # Should auto-generate ID 6
+        assert result.agents.index.tolist() == [0, 1, 2, 3, 4, 5, 6]
+        assert result.agents.wealth.tolist() == [1, 2, 3, 4, 5, 6, 9]
+        assert result.agents.age.tolist() == [10, 20, 30, 40, 50, 60, 90]
+        assert result.agents.index.name == "unique_id"
+
+        # Test with a list without unique_id (auto-generation)
+        # Create a fresh instance and a simpler agent set class that doesn't need the starting_wealth
+        from mesa_frames.concrete.model import ModelDF
+
+        # Simple agent set class without the starting_wealth requirement
+        class SimpleAgentSetPandas(AgentSetPandas):
+            def __init__(self, model: ModelDF):
+                super().__init__(model)
+
+            def step(self) -> None:
+                # Simple implementation of required step method
+                pass
+
+        fresh_model = ModelDF()
+        fresh_agents = SimpleAgentSetPandas(fresh_model)
+        fresh_agents.add(
+            {"unique_id": [0, 1, 2, 3], "wealth": [1, 2, 3, 4], "age": [10, 20, 30, 40]}
+        )
+        result = fresh_agents.add(
+            [5, 10], inplace=False
+        )  # Just providing wealth and age values
+        assert result.agents.index.tolist() == [
+            0,
+            1,
+            2,
+            3,
+            4,
+        ]  # Should auto-generate ID 4
+        assert result.agents.wealth.tolist() == [1, 2, 3, 4, 5]
+        assert result.agents.age.tolist() == [10, 20, 30, 40, 10]
+
     def test_contains(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
         agents = fix1_AgentSetPandas
 

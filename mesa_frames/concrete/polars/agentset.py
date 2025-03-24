@@ -74,6 +74,7 @@ if TYPE_CHECKING:
     from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
 import numpy as np
+import uuid
 
 
 @copydoc(AgentSetDF)
@@ -119,15 +120,45 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
+
+        # Auto-generate unique_id if not provided
         if isinstance(agents, pl.DataFrame):
             if "unique_id" not in agents.columns:
-                raise KeyError("DataFrame must have a unique_id column.")
-            new_agents = agents
+                # Generate unique IDs for new agents
+                if len(obj._agents) == 0:
+                    # If no agents exist yet, start from 0
+                    start_id = 0
+                else:
+                    # Otherwise, start from the max existing ID + 1
+                    start_id = obj._agents["unique_id"].max() + 1
+
+                # Create a new series with unique IDs
+                ids = pl.Series(
+                    name="unique_id",
+                    values=range(start_id, start_id + len(agents)),
+                    dtype=pl.Int64,
+                )
+
+                # Add the unique_id column to the agents DataFrame
+                new_agents = agents.with_columns(ids)
+            else:
+                new_agents = agents
         elif isinstance(agents, dict):
             if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
+                # Generate a unique ID
+                if len(obj._agents) == 0:
+                    # If no agents exist yet, start from 0
+                    new_id = 0
+                else:
+                    # Otherwise, use max existing ID + 1
+                    new_id = obj._agents["unique_id"].max() + 1
+
+                # Add unique_id to the dictionary
+                agents = agents.copy()  # Create a copy to avoid modifying the original
+                agents["unique_id"] = new_id
+
             new_agents = pl.DataFrame(agents)
-        else:
+        else:  # Sequence[Any]
             if len(agents) != len(obj._agents.columns):
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
@@ -135,7 +166,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             new_agents = pl.DataFrame([agents], schema=obj._agents.schema)
 
         if new_agents["unique_id"].dtype != pl.Int64:
-            raise TypeError("unique_id column must be of type int64.")
+            new_agents = new_agents.with_columns(pl.col("unique_id").cast(pl.Int64))
 
         # If self._mask is pl.Expr, then new mask is the same.
         # If self._mask is pl.Series[bool], then new mask has to be updated.
