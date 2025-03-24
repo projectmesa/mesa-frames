@@ -272,6 +272,7 @@ class AntPolarsLoop(AntPolarsBase):
         )
         return best_moves
 
+    # Resolved method with proper docstring
     def _prepare_cells(
         self, neighborhood: pl.DataFrame
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
