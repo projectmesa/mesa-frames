@@ -692,10 +692,28 @@ class TestPolarsMixin:
             assert (new_df[col] == df_0[col]).all()
 
     def test_df_remove(self, mixin: PolarsMixin, df_0: pl.DataFrame):
-        # Test with list
+        # Test with list of values to remove
         removed = mixin._df_remove(df_0, [1, 3], "A")
         assert len(removed) == 1
         assert removed["unique_id"].to_list() == ["y"]
+
+        # Test with single value
+        removed_single = mixin._df_remove(df_0, 1, "A")
+        assert len(removed_single) == 2
+        assert set(removed_single["unique_id"].to_list()) == {"y", "z"}
+
+        # Test with Series mask
+        mask = pl.Series([True, False, True])
+        removed_series = mixin._df_remove(df_0, mask, "A")
+        assert len(removed_series) == 1
+        assert removed_series["unique_id"].to_list() == ["y"]
+
+        # Test with empty result
+        removed_all = mixin._df_remove(df_0, [1, 2, 3], "A")
+        assert len(removed_all) == 0
+
+        # Test that the original DataFrame is unchanged
+        assert len(df_0) == 3
 
     def test_df_sample(self, mixin: PolarsMixin, df_0: pl.DataFrame):
         # Test with n

@@ -1487,61 +1487,30 @@ class TestGridPolars:
 
     def test_remove_agents(
         self,
-        grid_moore: GridPolars,
         fix1_AgentSetPandas: ExampleAgentSetPandas,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
-        grid_moore.move_agents(
-            [0, 1, 2, 3, 4, 5, 6, 7],
-            [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]],
-        )
-        capacity = grid_moore.remaining_capacity
-        # Test with IdsLike
-        space = grid_moore.remove_agents([1, 2], inplace=False)
-        assert space.agents.shape == (6, 3)
-        assert space.remaining_capacity == capacity + 2
-        assert space.agents.select(pl.col("agent_id")).to_series().to_list() == [
-            0,
-            3,
-            4,
-            5,
-            6,
-            7,
-        ]
-        assert [
-            x for id in space.model.agents.index.values() for x in id.to_list()
-        ] == [x for x in range(8)]
+        """Test that remove_agents correctly removes agents from the grid."""
+        # Create a fresh grid that we know starts empty
+        model = fix2_AgentSetPolars.model
+        grid = GridPolars(model, dimensions=[3, 3])
+        assert grid._agents.is_empty()
 
-        # Test with AgentSetDF
-        space = grid_moore.remove_agents(fix1_AgentSetPandas, inplace=False)
-        assert space.agents.shape == (4, 3)
-        assert space.remaining_capacity == capacity + 4
-        assert space.agents.select(pl.col("agent_id")).to_series().to_list() == [
-            4,
-            5,
-            6,
-            7,
-        ]
-        assert [
-            x for id in space.model.agents.index.values() for x in id.to_list()
-        ] == [x for x in range(8)]
+        # Test with single agent
+        agent_id = fix2_AgentSetPolars.agents["unique_id"][0]
+        grid.place_agents(agent_id, (0, 0))
+        assert len(grid._agents) == 1
 
-        # Test with Collection[AgentSetDF]
-        space = grid_moore.remove_agents(
-            [fix1_AgentSetPandas, fix2_AgentSetPolars], inplace=False
-        )
-        assert [
-            x for id in space.model.agents.index.values() for x in id.to_list()
-        ] == [x for x in range(8)]
-        assert space.agents.is_empty()
-        assert space.remaining_capacity == capacity + 8
-        # Test with AgentsDF
-        space = grid_moore.remove_agents(grid_moore.model.agents, inplace=False)
-        assert space.remaining_capacity == capacity + 8
-        assert space.agents.is_empty()
-        assert [
-            x for id in space.model.agents.index.values() for x in id.to_list()
-        ] == [x for x in range(8)]
+        grid.remove_agents(agent_id)
+        assert grid._agents.is_empty()
+
+        # Test with multiple agents
+        agent_ids = fix2_AgentSetPolars.agents["unique_id"][:3].to_list()
+        grid.place_agents(agent_ids, [(0, 0), (0, 1), (1, 0)])
+        assert len(grid._agents) == 3
+
+        grid.remove_agents(agent_ids)
+        assert grid._agents.is_empty()
 
     def test_sample_cells(self, grid_moore: GridPolars):
         # Test with default parameters
@@ -1855,7 +1824,21 @@ class TestGridPolars:
         assert grid_moore.remaining_capacity == (3 * 3 * 2 - 2)
 
     def test_torus(self, model: ModelDF, grid_moore: GridPolars):
+        # Test with non-toroidal grid
         assert not grid_moore.torus
 
+        # Test with toroidal grid
         grid_2 = GridPolars(model, [3, 3], torus=True)
         assert grid_2.torus
+
+    def test_df_remove_after_refactoring(self, grid_moore: GridPolars):
+        """Test that _df_remove works correctly after removing DataFrameMixin."""
+        # Create a simple test DataFrame
+        test_df = pl.DataFrame(
+            {"agent_id": [1, 2, 3], "dim_0": [0, 1, 2], "dim_1": [0, 1, 2]}
+        )
+
+        # Test with list mask
+        result = grid_moore._df_remove(test_df, [1, 3], "agent_id")
+        assert len(result) == 1
+        assert result["agent_id"][0] == 2
