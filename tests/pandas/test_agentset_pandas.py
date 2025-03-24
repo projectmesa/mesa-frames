@@ -485,8 +485,3 @@ class Test_AgentSetPandas:
         assert all(math.isnan(val) for val in pos["dim_0"].tolist()[2:])
         assert pos["dim_1"].tolist()[:2] == [0, 1]
         assert all(math.isnan(val) for val in pos["dim_1"].tolist()[2:])
-
-    def test_shift_indexes(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
-        agents = fix1_AgentSetPandas
-        agents.shift_indexes(10, inplace=True)
-        assert agents.agents.index.tolist() == [10, 11, 12, 13]

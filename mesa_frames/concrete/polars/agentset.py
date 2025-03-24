@@ -311,13 +311,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             )
         return new_obj
 
-    def shift_indexes(self, first_index: int, inplace: bool = True):
-        obj = self._get_obj(inplace)
-        obj._agents = obj._agents.with_columns(
-            pl.arange(first_index, first_index + len(obj._agents)).alias("unique_id")
-        )
-        return obj
-
     def _concatenate_agentsets(
         self,
         agentsets: Iterable[Self],

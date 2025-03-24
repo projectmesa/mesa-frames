@@ -286,11 +286,6 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         new_obj._mask = pl.Series(self._mask)
         return new_obj
 
-    def shift_indexes(self, first_index: int, inplace: bool = True):
-        obj = self._get_obj(inplace)
-        obj._agents.index = np.arange(first_index, first_index + len(obj._agents))
-        return obj
-
     def _concatenate_agentsets(
         self,
         agentsets: Iterable[Self],

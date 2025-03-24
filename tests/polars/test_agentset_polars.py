@@ -511,8 +511,3 @@ class Test_AgentSetPolars:
         assert pos.columns == ["unique_id", "dim_0", "dim_1"]
         assert pos["dim_0"].to_list() == [0, 1, None, None]
         assert pos["dim_1"].to_list() == [0, 1, None, None]
-
-    def test_shift_indexes(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
-        agents = fix1_AgentSetPolars
-        agents.shift_indexes(10, inplace=True)
-        assert agents.agents["unique_id"].to_list() == [10, 11, 12, 13]

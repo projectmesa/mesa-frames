@@ -998,8 +998,3 @@ class Test_AgentsDF:
                 == agents1._agentsets[1].select(mask1, negate=True).active_agents
             )
         )
-
-    def test_shift_indexes(self, fix_AgentsDF: AgentsDF):
-        agents = fix_AgentsDF
-        agents.shift_indexes(20)
-        assert agents._ids.to_list() == [20, 21, 22, 23, 24, 25, 26, 27]
