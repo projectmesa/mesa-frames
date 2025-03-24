@@ -6,6 +6,7 @@ from typing import Literal
 # import geopandas as gpd
 # import geopolars as gpl
 import pandas as pd
+from pandas import Series, DataFrame, Index
 import polars as pl
 from numpy import ndarray
 from typing_extensions import Any
@@ -19,9 +20,9 @@ AgnosticIds = int | Collection[int]
 
 ###----- pandas Types -----###
 
-PandasMask = pd.Series | pd.DataFrame | AgnosticMask
-AgentPandasMask = AgnosticAgentMask | pd.Series | pd.DataFrame
-PandasIdsLike = AgnosticIds | pd.Series | pd.Index
+PandasMask = Series | DataFrame | AgnosticMask
+AgentPandasMask = AgnosticAgentMask | Series | DataFrame
+PandasIdsLike = AgnosticIds | Series | Index
 PandasGridCapacity = ndarray
 
 ###----- Polars Types -----###
@@ -33,11 +34,11 @@ PolarsGridCapacity = list[pl.Expr]
 
 ###----- Generic -----###
 # GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
-DataFrame = pd.DataFrame | pl.DataFrame
+DataFrame = DataFrame | pl.DataFrame
 DataFrameInput = dict[str, Any] | Sequence[Sequence] | DataFrame
-Series = pd.Series | pl.Series
-Index = pd.Index | pl.Series
-BoolSeries = pd.Series | pl.Series
+Series = Series | pl.Series
+Index = Index | pl.Series
+BoolSeries = Series | pl.Series
 Mask = PandasMask | PolarsMask
 AgentMask = AgentPandasMask | AgentPolarsMask
 IdsLike = AgnosticIds | PandasIdsLike | PolarsIdsLike

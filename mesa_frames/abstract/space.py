@@ -7,7 +7,7 @@ including discrete spaces and grids, using DataFrame-based approaches for improv
 performance and scalability.
 
 Classes:
-    SpaceDF(CopyMixin, DataFrameMixin):
+    SpaceDF(CopyMixin):
         An abstract base class that defines the common interface for all space
         classes in mesa-frames. It combines fast copying functionality with
         DataFrame operations.
@@ -60,7 +60,7 @@ from typing_extensions import Any, Self
 
 from mesa_frames import AgentsDF
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
-from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
+from mesa_frames.abstract.mixin import CopyMixin
 from mesa_frames.types_ import (
     ArrayLike,
     BoolSeries,
@@ -83,7 +83,7 @@ if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
 
 
-class SpaceDF(CopyMixin, DataFrameMixin):
+class SpaceDF(CopyMixin):
     """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames."""
 
     _model: "ModelDF"

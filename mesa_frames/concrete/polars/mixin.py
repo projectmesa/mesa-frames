@@ -1,21 +1,18 @@
 """
 Polars-specific mixin for DataFrame operations in mesa-frames.
 
-This module provides a concrete implementation of the DataFrameMixin using Polars
-as the backend for DataFrame operations. It defines the PolarsMixin class, which
-implements DataFrame operations specific to Polars, offering efficient data
+This module provides a standalone implementation of DataFrame operations using Polars
+as the backend. It defines the PolarsMixin class, which implements efficient data
 manipulation and analysis capabilities for mesa-frames components.
 
 Classes:
-    PolarsMixin(DataFrameMixin):
+    PolarsMixin:
         A Polars-based implementation of DataFrame operations. This class provides
         methods for manipulating and analyzing data stored in Polars DataFrames,
         tailored for use in mesa-frames components like AgentSetPolars and GridPolars.
 
 The PolarsMixin class is designed to be used as a mixin with other mesa-frames
-classes, providing them with Polars-specific DataFrame functionality. It implements
-the abstract methods defined in the DataFrameMixin, ensuring consistent DataFrame
-operations across the mesa-frames package.
+classes, providing them with Polars-specific DataFrame functionality.
 
 Usage:
     The PolarsMixin is typically used in combination with other base classes:
@@ -635,3 +632,6 @@ class PolarsMixin(DataFrameMixin):
         if index:
             return df.with_columns({index.name: index})
         return df
+
+    def _df_remove(self, df: DataFrame, mask: PolarsMask, index_cols: str) -> DataFrame:
+        return self._df_get_masked_df(df, index_cols, mask, negate=True)
