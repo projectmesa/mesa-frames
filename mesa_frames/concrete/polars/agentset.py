@@ -74,7 +74,6 @@ if TYPE_CHECKING:
     from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
 import numpy as np
-import uuid
 
 
 @copydoc(AgentSetDF)
