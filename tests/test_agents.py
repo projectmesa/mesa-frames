@@ -99,7 +99,9 @@ class Test_AgentsDF:
         assert agents.contains(agentset_pandas["unique_id"][0])
 
         # Test with a list of ids
-        assert agents.contains([agentset_pandas["unique_id"][0], "not_a_unique_id"]).to_list() == [True, False]
+        assert agents.contains(
+            [agentset_pandas["unique_id"][0], "not_a_unique_id"]
+        ).to_list() == [True, False]
 
     def test_copy(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -210,7 +212,9 @@ class Test_AgentsDF:
 
         original_index_for_pandas_df = agents._agentsets[0].index.copy()
         agents.do("add_wealth", 1, mask=mask_dictionary)
-        agents._agentsets[0].agents = agents._agentsets[0].agents.reindex(original_index_for_pandas_df)
+        agents._agentsets[0].agents = agents._agentsets[0].agents.reindex(
+            original_index_for_pandas_df
+        )
         assert (
             agents._agentsets[0].agents["wealth"].to_list()
             == expected_result_0.to_list()
@@ -502,7 +506,12 @@ class Test_AgentsDF:
     ):
         agents = fix_AgentsDF
         agents_different_index = deepcopy(fix1_AgentSetPandas)
-        agents_different_index._agents.index = ["not_id_1", "not_id_2", "not_id_3", "not_id_4"]
+        agents_different_index._agents.index = [
+            "not_id_1",
+            "not_id_2",
+            "not_id_3",
+            "not_id_4",
+        ]
         result = agents._check_ids_presence([fix1_AgentSetPandas])
         assert result.filter(
             pl.col("unique_id").is_in(fix1_AgentSetPandas._agents.index)

@@ -15,10 +15,14 @@ from tests.polars.test_agentset_polars import (
     fix2_AgentSetPolars,
 )
 
+
 def get_unique_ids(model: ModelDF) -> pl.Series:
     pandas_set = model.get_agents_of_type(model.agent_types[0])
     polars_set = model.get_agents_of_type(model.agent_types[1])
-    return pl.concat([pl.Series(pandas_set["unique_id"].to_list()), polars_set["unique_id"]])
+    return pl.concat(
+        [pl.Series(pandas_set["unique_id"].to_list()), polars_set["unique_id"]]
+    )
+
 
 # This serves otherwise ruff complains about the two fixtures not being used
 def not_called():
@@ -37,7 +41,7 @@ class TestGridPandas:
         model = ModelDF()
         model.agents.add([fix1_AgentSetPandas, fix2_AgentSetPolars])
         return model
-    
+
     @pytest.fixture
     def grid_moore(self, model: ModelDF) -> GridPandas:
         space = GridPandas(model, dimensions=[3, 3], capacity=2)
@@ -159,7 +163,9 @@ class TestGridPandas:
         # Test with IdsLike
         grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
         unique_ids = get_unique_ids(grid_moore.model)
-        dir = grid_moore.get_directions(agents0=unique_ids[[0, 1]], agents1=unique_ids[[4, 5]])
+        dir = grid_moore.get_directions(
+            agents0=unique_ids[[0, 1]], agents1=unique_ids[[4, 5]]
+        )
         assert isinstance(dir, pd.DataFrame)
         assert dir["dim_0"].to_list() == [0, -1]
         assert dir["dim_1"].to_list() == [1, 1]
@@ -181,7 +187,9 @@ class TestGridPandas:
         assert (dir == 0).all().all()
 
         # Test with normalize
-        dir = grid_moore.get_directions(agents0=unique_ids[[0, 1]], agents1=unique_ids[[4, 5]], normalize=True)
+        dir = grid_moore.get_directions(
+            agents0=unique_ids[[0, 1]], agents1=unique_ids[[4, 5]], normalize=True
+        )
         # Check if the vectors are normalized (length should be 1)
         assert np.allclose(np.sqrt(dir["dim_0"] ** 2 + dir["dim_1"] ** 2), 1.0)
         # Check specific normalized values
@@ -213,7 +221,9 @@ class TestGridPandas:
         # Test with IdsLike
         grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
         unique_ids = get_unique_ids(grid_moore.model)
-        dist = grid_moore.get_distances(agents0=unique_ids[[0, 1]], agents1=unique_ids[[4, 5]])
+        dist = grid_moore.get_distances(
+            agents0=unique_ids[[0, 1]], agents1=unique_ids[[4, 5]]
+        )
         assert isinstance(dist, pd.DataFrame)
         assert np.allclose(dist["distance"].to_list(), [1.0, np.sqrt(2)])
 
@@ -294,7 +304,9 @@ class TestGridPandas:
         assert neighborhood["dim_1_center"].to_list() == [1] * 8
 
         # Test with agent=Sequence[int], pos=Sequence[GridCoordinate]
-        neighborhood = grid_moore.get_neighborhood(radius=[1, 2], agents=unique_ids[[0, 1]])
+        neighborhood = grid_moore.get_neighborhood(
+            radius=[1, 2], agents=unique_ids[[0, 1]]
+        )
         assert isinstance(neighborhood, pd.DataFrame)
         assert neighborhood.shape == (8 + 6, 5)
         assert neighborhood["radius"].sort_values().to_list() == [1] * 11 + [2] * 3
@@ -521,7 +533,9 @@ class TestGridPandas:
             neighbors = grid_moore.get_neighbors(radius=[1, 2], pos=[1, 1])
 
         # Test with von_neumann neighborhood
-        grid_von_neumann.move_agents(unique_ids[[0, 1, 2, 3]], [[0, 1], [1, 0], [1, 2], [2, 1]])
+        grid_von_neumann.move_agents(
+            unique_ids[[0, 1, 2, 3]], [[0, 1], [1, 0], [1, 2], [2, 1]]
+        )
         neighbors = grid_von_neumann.get_neighbors(radius=1, pos=[1, 1])
         assert isinstance(neighbors, pd.DataFrame)
         assert neighbors.index.name == "agent_id"
@@ -532,7 +546,8 @@ class TestGridPandas:
 
         # Test with hexagonal neighborhood (odd cell [5,4] and even cell [5,5])
         grid_hexagonal.move_agents(
-            unique_ids[range(8)], [[4, 4], [4, 5], [5, 3], [5, 5], [6, 3], [6, 4], [5, 4], [5, 6]]
+            unique_ids[range(8)],
+            [[4, 4], [4, 5], [5, 3], [5, 5], [6, 3], [6, 4], [5, 4], [5, 6]],
         )
         neighbors = grid_hexagonal.get_neighbors(radius=[2, 3], pos=[[5, 4], [5, 5]])
         assert isinstance(neighbors, pd.DataFrame)
@@ -602,7 +617,7 @@ class TestGridPandas:
         space = grid_moore.move_agents(agents=unique_ids[1], pos=[1, 1], inplace=False)
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
-        # reorder the agents according to the original order 
+        # reorder the agents according to the original order
         agents = space.agents.reindex(unique_ids).dropna()
         assert agents.index.to_list() == unique_ids[[0, 1]].to_list()
         assert agents["dim_0"].to_list() == [0, 1]
@@ -855,7 +870,9 @@ class TestGridPandas:
         # Test with agents=int, pos=DataFrame
         pos = pd.DataFrame({"dim_0": [0], "dim_1": [2]})
         with pytest.warns(RuntimeWarning):
-            space = grid_moore.place_agents(agents=unique_ids[1], pos=pos, inplace=False)
+            space = grid_moore.place_agents(
+                agents=unique_ids[1], pos=pos, inplace=False
+            )
         assert space.remaining_capacity == (2 * 3 * 3 - 2)
         assert len(space.agents) == 2
         assert space.agents.index.to_list() == unique_ids[[0, 1]]
