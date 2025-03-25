@@ -35,7 +35,7 @@ Here's a comparison between mesa-frames and mesa:
 === "mesa-frames"
 
     ```python
-    class MoneyAgentPolarsConcise(AgentSetPolars): 
+    class MoneyAgentPolarsConcise(AgentSetPolars):
         # initialization...
         def give_money(self):
             # Active agents are changed to wealthy agents
@@ -59,7 +59,7 @@ Here's a comparison between mesa-frames and mesa:
 === "mesa"
 
     ```python
-    class MoneyAgent(mesa.Agent): 
+    class MoneyAgent(mesa.Agent):
         # initialization...
         def give_money(self):
             # Verify agent has some wealth
