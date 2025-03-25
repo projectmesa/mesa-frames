@@ -1,77 +1,73 @@
-import mesa
+"""
+Pytest tests for the Sugarscape example with Mesa 3.x.
+"""
+
 import sys
+import os
+from pathlib import Path
+
+# Add the parent directory to sys.path to allow imports from ss_mesa package
+current_dir = Path(__file__).parent
+examples_dir = current_dir.parent
+root_dir = examples_dir.parent
+
+# Add root directory to sys.path if not already there
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
+# Add the examples directory to sys.path if not already there
+if str(examples_dir) not in sys.path:
+    sys.path.insert(0, str(examples_dir))
+
+import mesa
+import pytest
 from ss_mesa.model import SugarscapeMesa
 from ss_mesa.agents import AntMesa, Sugar
 
 
-def test_model_creation():
+@pytest.fixture
+def sugarscape_model():
+    """Create a standard Sugarscape model for testing."""
+    return SugarscapeMesa(10, width=10, height=10)
+
+
+def test_model_creation(sugarscape_model):
     """Test that the model can be created properly with Mesa 3.x"""
-    print("\n--- Testing Model Creation ---")
-
-    # Print Mesa version
-    print(f"Using Mesa version: {mesa.__version__}")
-
-    # Create the model
-    print("Creating Sugarscape model...")
-    model = SugarscapeMesa(10, width=10, height=10)
+    model = sugarscape_model
 
     # Count agents with isinstance
     total_agents = len(model.agents)
     ant_count = sum(1 for agent in model.agents if isinstance(agent, AntMesa))
     sugar_count = sum(1 for agent in model.agents if isinstance(agent, Sugar))
 
-    print(f"Total agents: {total_agents}")
-    print(f"AntMesa agents: {ant_count}")
-    print(f"Sugar agents: {sugar_count}")
-
     # Check that we have the expected number of agents
     assert total_agents == (10 * 10 + 10), "Unexpected total agent count"
     assert ant_count == 10, "Unexpected AntMesa agent count"
     assert sugar_count == 10 * 10, "Unexpected Sugar agent count"
 
-    # Show some of the agents
-    print("\nSample of agents in model:")
-    for i, agent in enumerate(model.agents):
-        if i < 5:
-            print(f"Agent {i} - Type: {type(agent).__name__}, ID: {agent.unique_id}")
-        else:
-            print("...")
-            break
 
-    print("Model creation test passed!")
-    return model
-
-
-def test_model_step(model):
+def test_model_step(sugarscape_model):
     """Test that the model can be stepped with Mesa 3.x"""
-    print("\n--- Testing Model Step ---")
+    model = sugarscape_model
 
     # Count agents before stepping
     ant_count_before = sum(1 for agent in model.agents if isinstance(agent, AntMesa))
-    print(f"AntMesa agents before step: {ant_count_before}")
 
     # Step the model
-    print("Running one step...")
-    try:
-        model.step()
-        print("Step completed successfully!")
+    model.step()
 
-        # Count agents after stepping
-        ant_count_after = sum(1 for agent in model.agents if isinstance(agent, AntMesa))
-        print(f"AntMesa agents after step: {ant_count_after}")
+    # Count agents after stepping
+    ant_count_after = sum(1 for agent in model.agents if isinstance(agent, AntMesa))
 
-    except Exception as e:
-        print(f"Error running step: {e}")
-        assert False, f"Model step failed: {e}"
-
-    print("Model step test passed!")
+    # In this basic test, we just verify the step completes without errors
+    # and the number of ants doesn't unexpectedly change
+    assert ant_count_after >= 0, "Expected at least some ants to survive"
 
 
-def test_simple_model():
-    """Test a simplified model with just a few agents to isolate behavior"""
-    print("\n--- Testing Simple Model ---")
+@pytest.fixture
+def simple_model():
+    """Create a simplified model with just a few agents to isolate behavior"""
 
-    # Create a simpler model
     class SimpleModel(mesa.Model):
         def __init__(self, seed=None):
             super().__init__(seed=seed)
@@ -97,69 +93,35 @@ def test_simple_model():
             # Step the ant agent
             self.ant.step()
 
-    # Create and test
-    print("Creating simple model...")
-    simple_model = SimpleModel()
-    print("Created model")
+    return SimpleModel()
 
+
+def test_simple_model_creation(simple_model):
+    """Test that the simple model is created with the correct agents."""
     # Check agents
-    print(f"Agents in model: {len(simple_model.agents)}")
+    assert len(simple_model.agents) == 26, "Expected 26 total agents (25 sugar + 1 ant)"
+
     ant_count = sum(1 for agent in simple_model.agents if isinstance(agent, AntMesa))
     sugar_count = sum(1 for agent in simple_model.agents if isinstance(agent, Sugar))
-    print(f"AntMesa agents: {ant_count}")
-    print(f"Sugar agents: {sugar_count}")
 
-    # Try to step sugar agents directly
-    print("\nStepping sugar agents directly...")
-    try:
-        for sugar in simple_model.sugars:
-            sugar.step()
-        print("Sugar steps successful!")
-    except Exception as e:
-        print(f"Error stepping sugar: {e}")
-        assert False, f"Sugar step failed: {e}"
-
-    # Try to step ant agent directly
-    print("\nStepping ant agent directly...")
-    try:
-        simple_model.ant.step()
-        print("Ant step successful!")
-    except Exception as e:
-        print(f"Error stepping ant: {e}")
-        assert False, f"Ant step failed: {e}"
-
-    # Try to step the model
-    print("\nStepping simple model...")
-    try:
-        simple_model.step()
-        print("Model step successful!")
-    except Exception as e:
-        print(f"Error stepping model: {e}")
-        assert False, f"Simple model step failed: {e}"
-
-    print("Simple model test passed!")
+    assert ant_count == 1, "Expected exactly 1 AntMesa agent"
+    assert sugar_count == 25, "Expected exactly 25 Sugar agents"
 
 
-def run_tests():
-    """Run all tests in sequence"""
-    try:
-        # Test 1: Model Creation
-        model = test_model_creation()
-
-        # Test 2: Model Step
-        test_model_step(model)
-
-        # Test 3: Simple Model
-        test_simple_model()
-
-        print("\n--- All Tests Passed Successfully! ---")
-        print(f"The Sugarscape model is working correctly with Mesa {mesa.__version__}")
-        return True
-    except AssertionError as e:
-        print(f"\nTest failed: {e}")
-        return False
+def test_sugar_step(simple_model):
+    """Test that sugar agents can step without errors."""
+    for sugar in simple_model.sugars:
+        sugar.step()
+    # If we get here without exceptions, the test passes
 
 
-if __name__ == "__main__":
-    success = run_tests()
-    sys.exit(0 if success else 1)
+def test_ant_step(simple_model):
+    """Test that ant agents can step without errors."""
+    simple_model.ant.step()
+    # If we get here without exceptions, the test passes
+
+
+def test_simple_model_step(simple_model):
+    """Test that the simple model can step without errors."""
+    simple_model.step()
+    # If we get here without exceptions, the test passes

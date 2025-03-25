@@ -1,5 +1,0 @@
-Mesa version: 3.1.4
-
-Creating Sugarscape model...
-Created model with 50 AntMesa agents
-Successfully ran the Sugarscape model with Mesa 3.x!
