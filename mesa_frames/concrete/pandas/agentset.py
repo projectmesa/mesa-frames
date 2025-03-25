@@ -114,25 +114,71 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
+
         if isinstance(agents, pd.DataFrame):
-            new_agents = agents
-            if "unique_id" != agents.index.name:
-                try:
-                    new_agents.set_index("unique_id", inplace=True, drop=True)
-                except KeyError:
-                    raise KeyError("DataFrame must have a unique_id column/index.")
+            # Check for unique_id column/index
+            if "unique_id" != agents.index.name and "unique_id" not in agents.columns:
+                # Generate unique IDs for new agents
+                if len(obj._agents) == 0:
+                    # If no agents exist yet, start from 0
+                    start_id = 0
+                else:
+                    # Otherwise, start from the max existing ID + 1
+                    start_id = obj._agents.index.max() + 1
+
+                # Create a new index with unique IDs
+                new_index = pd.Index(
+                    range(start_id, start_id + len(agents)), name="unique_id"
+                )
+
+                # Set the index to the agents DataFrame
+                new_agents = agents.copy()
+                new_agents.index = new_index
+            else:
+                new_agents = agents
+                if "unique_id" != agents.index.name:
+                    try:
+                        new_agents.set_index("unique_id", inplace=True, drop=True)
+                    except KeyError:
+                        raise KeyError("DataFrame must have a unique_id column/index.")
         elif isinstance(agents, dict):
             if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
+                # Generate a unique ID
+                if len(obj._agents) == 0:
+                    # If no agents exist yet, start from 0
+                    new_id = 0
+                else:
+                    # Otherwise, use max existing ID + 1
+                    new_id = obj._agents.index.max() + 1
+
+                # Add unique_id to the dictionary
+                agents = agents.copy()  # Create a copy to avoid modifying the original
+                agents["unique_id"] = new_id
+
             index = agents.pop("unique_id")
             if not isinstance(index, list):
                 index = [index]
             new_agents = pd.DataFrame(agents, index=pd.Index(index, name="unique_id"))
         else:
             if len(agents) != len(obj._agents.columns) + 1:
-                raise ValueError(
-                    "Length of data must match the number of columns in the AgentSet if being added as a Collection."
-                )
+                # Check if we need to add a unique_id
+                if len(agents) == len(obj._agents.columns):
+                    # Generate a unique ID
+                    if len(obj._agents) == 0:
+                        # If no agents exist yet, start from 0
+                        new_id = 0
+                    else:
+                        # Otherwise, use max existing ID + 1
+                        new_id = obj._agents.index.max() + 1
+
+                    # Create a new list with unique_id as the first element
+                    agents_list = list(agents)
+                    agents = [new_id] + agents_list
+                else:
+                    raise ValueError(
+                        "Length of data must match the number of columns in the AgentSet if being added as a Collection."
+                    )
+
             columns = pd.Index(["unique_id"]).append(obj._agents.columns.copy())
             new_agents = pd.DataFrame([agents], columns=columns).set_index(
                 "unique_id", drop=True

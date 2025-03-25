@@ -93,6 +93,23 @@ class Test_AgentSetPolars:
         assert agents.agents["unique_id"].to_list() == [0, 1, 2, 3, 4, 5]
         assert agents.agents["age"].to_list() == [10, 20, 30, 40, 50, 60]
 
+        # Test auto-generation of unique_ids
+        # For DataFrame
+        df_without_id = pl.DataFrame({"wealth": [7, 8], "age": [70, 80]})
+        result = agents.add(df_without_id, inplace=False)
+        # Should auto-generate IDs 6 and 7
+        assert result.agents["unique_id"].to_list() == [0, 1, 2, 3, 4, 5, 6, 7]
+        assert result.agents["wealth"].to_list() == [1, 2, 3, 4, 5, 6, 7, 8]
+        assert result.agents["age"].to_list() == [10, 20, 30, 40, 50, 60, 70, 80]
+
+        # For dict
+        dict_without_id = {"wealth": 9, "age": 90}
+        result = agents.add(dict_without_id, inplace=False)
+        # Should auto-generate ID 6
+        assert result.agents["unique_id"].to_list() == [0, 1, 2, 3, 4, 5, 6]
+        assert result.agents["wealth"].to_list() == [1, 2, 3, 4, 5, 6, 9]
+        assert result.agents["age"].to_list() == [10, 20, 30, 40, 50, 60, 90]
+
     def test_contains(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
 
