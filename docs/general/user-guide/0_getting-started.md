@@ -32,8 +32,6 @@ Check out these resources to understand vectorization and why it speeds up the c
 
 Here's a comparison between mesa-frames and mesa:
 
-
-
 === "mesa-frames"
 
     ```python
@@ -105,8 +103,8 @@ If you're familiar with mesa, this guide will help you understand the key differ
 
     ```python
     class MoneyAgentSet(AgentSetPolars):
-        def **init**(self, n, model):
-            super().**init**(model)
+        def __init__(self, n, model):
+            super().__init__(model)
             self += pl.DataFrame({
                 "unique_id": pl.arange(n),
                 "wealth": pl.ones(n)
@@ -123,8 +121,8 @@ If you're familiar with mesa, this guide will help you understand the key differ
 
     ```python
     class MoneyAgent(Agent):
-        def **init**(self, unique_id, model):
-            super().**init**(unique_id, model)
+        def __init__(self, unique_id, model):
+            super().__init__(unique_id, model)
             self.wealth = 1
 
         def step(self):
@@ -143,8 +141,8 @@ If you're familiar with mesa, this guide will help you understand the key differ
 
     ```python
     class MoneyModel(ModelDF):
-        def **init**(self, N):
-            super().**init**()
+        def __init__(self, N):
+            super().__init__()
             self.agents += MoneyAgentSet(N, self)
 
         def step(self):
@@ -156,7 +154,7 @@ If you're familiar with mesa, this guide will help you understand the key differ
 
     ```python
     class MoneyModel(Model):
-        def **init**(self, N):
+        def __init__(self, N):
             self.num_agents = N
             self.schedule = RandomActivation(self)
             for i in range(self.num_agents):
@@ -185,4 +183,3 @@ When simultaneous activation is not possible, you need to handle race conditions
 2. **Looping Mechanism 🔁**: Implement a looping mechanism on vectorized operations.
 
 For a more detailed implementation of handling race conditions, please refer to the `examples/sugarscape-ig` in the mesa-frames repository. This example demonstrates how to implement the Sugarscape model with instantaneous growback, which requires careful handling of sequential agent actions.
-
