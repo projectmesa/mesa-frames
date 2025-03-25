@@ -32,11 +32,13 @@ Check out these resources to understand vectorization and why it speeds up the c
 
 Here's a comparison between mesa-frames and mesa:
 
+
+
 === "mesa-frames"
 
-```python
-class MoneyAgentPolarsConcise(AgentSetPolars): # initialization...
-
+    ```python
+    class MoneyAgentPolarsConcise(AgentSetPolars): 
+        # initialization...
         def give_money(self):
             # Active agents are changed to wealthy agents
             self.select(self.wealth > 0)
@@ -54,13 +56,13 @@ class MoneyAgentPolarsConcise(AgentSetPolars): # initialization...
 
             # Add the income to the other agents
             self[new_wealth, "wealth"] += new_wealth["len"]
-```
+    ```
 
 === "mesa"
 
-```python
-class MoneyAgent(mesa.Agent): # initialization...
-
+    ```python
+    class MoneyAgent(mesa.Agent): 
+        # initialization...
         def give_money(self):
             # Verify agent has some wealth
             if self.wealth > 0:
@@ -68,7 +70,7 @@ class MoneyAgent(mesa.Agent): # initialization...
                 if other_agent is not None:
                     other_agent.wealth += 1
                     self.wealth -= 1
-```
+    ```
 
 As you can see, while in mesa you should iterate through all the agents' steps in the model class, here you execute the method once for all agents.
 
@@ -81,9 +83,9 @@ The supported backends right now are
 
 Users can use the polars backend:
 
-    ```python
-    from mesa_frames import AgentSetPolars
-    ```
+```python
+from mesa_frames import AgentSetPolars
+```
 
 Currently, AgentSetDF and GridDF are implemented using the Polars backend as AgentSetPolars and GridPolars.
 We encourage you to use the Polars implementation for increased performance. We are working on creating a unique interface [here](https://github.com/projectmesa/mesa-frames/discussions/12). Let us know what you think!
@@ -101,37 +103,36 @@ If you're familiar with mesa, this guide will help you understand the key differ
 
 === "mesa-frames"
 
-```python
-class MoneyAgentSet(AgentSetPolars):
-def **init**(self, n, model):
-super().**init**(model)
-self += pl.DataFrame({
-"unique_id": pl.arange(n),
-"wealth": pl.ones(n)
-})
-
+    ```python
+    class MoneyAgentSet(AgentSetPolars):
+        def **init**(self, n, model):
+            super().**init**(model)
+            self += pl.DataFrame({
+                "unique_id": pl.arange(n),
+                "wealth": pl.ones(n)
+                })
         def step(self):
             givers = self.wealth > 0
             receivers = self.agents.sample(n=len(self.active_agents))
             self[givers, "wealth"] -= 1
             new_wealth = receivers.groupby("unique_id").count()
             self[new_wealth["unique_id"], "wealth"] += new_wealth["count"]
-```
+    ```
 
 === "mesa"
 
-```python
-class MoneyAgent(Agent):
-def **init**(self, unique_id, model):
-super().**init**(unique_id, model)
-self.wealth = 1
+    ```python
+    class MoneyAgent(Agent):
+        def **init**(self, unique_id, model):
+            super().**init**(unique_id, model)
+            self.wealth = 1
 
         def step(self):
             if self.wealth > 0:
                 other_agent = self.random.choice(self.model.schedule.agents)
                 other_agent.wealth += 1
                 self.wealth -= 1
-```
+    ```
 
 ### Model Structure 🏗️
 
@@ -140,30 +141,31 @@ self.wealth = 1
 
 === "mesa-frames"
 
-```python
-class MoneyModel(ModelDF):
-def **init**(self, N):
-super().**init**()
-self.agents += MoneyAgentSet(N, self)
+    ```python
+    class MoneyModel(ModelDF):
+        def **init**(self, N):
+            super().**init**()
+            self.agents += MoneyAgentSet(N, self)
 
         def step(self):
             self.agents.do("step")
-```
+
+    ```
 
 === "mesa"
 
-```python
-class MoneyModel(Model):
-def **init**(self, N):
-self.num_agents = N
-self.schedule = RandomActivation(self)
-for i in range(self.num_agents):
-a = MoneyAgent(i, self)
-self.schedule.add(a)
+    ```python
+    class MoneyModel(Model):
+        def **init**(self, N):
+            self.num_agents = N
+            self.schedule = RandomActivation(self)
+            for i in range(self.num_agents):
+                a = MoneyAgent(i, self)
+                self.schedule.add(a)
 
         def step(self):
             self.schedule.step()
-```
+    ```
 
 ### Transition Tips 💡
 
@@ -179,8 +181,8 @@ When simultaneous activation is not possible, you need to handle race conditions
 1. **Custom UDF with Numba 🔧**: Use a custom User Defined Function (UDF) with Numba for efficient sequential processing.
 
    - [Polars UDF Guide](https://docs.pola.rs/user-guide/expressions/user-defined-functions/)
-   - [pandas Numba Engine](https://pandas.pydata.org/pandas-docs/stable/user_guide/window.html#numba-engine)
 
 2. **Looping Mechanism 🔁**: Implement a looping mechanism on vectorized operations.
 
 For a more detailed implementation of handling race conditions, please refer to the `examples/sugarscape-ig` in the mesa-frames repository. This example demonstrates how to implement the Sugarscape model with instantaneous growback, which requires careful handling of sequential agent actions.
+
