@@ -63,6 +63,10 @@ mkdocs = [
   "mkdocs-include-markdown-plugin"
 ]
 
+numba = [
+  "numba>=0.56.0",
+]
+
 sphinx = [
   "sphinx",
   "sphinx-rtd-theme",
@@ -87,9 +91,8 @@ test = [
 ]
 
 dev = [
-  "mesa_frames[test, docs]",
+  "mesa_frames[test, docs, numba]",
   "mesa~=2.4.0",
-  "numba",
 ]
 
 [tool.hatch.envs.test]
