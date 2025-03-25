@@ -43,8 +43,8 @@ GitHub: https://github.com/projectmesa/mesa-frames
 
 from mesa_frames.concrete.agents import AgentsDF
 from mesa_frames.concrete.model import ModelDF
-from mesa_frames.concrete.polars.agentset import AgentSetPolars
-from mesa_frames.concrete.polars.space import GridPolars
+from mesa_frames.concrete.agentset import AgentSetPolars
+from mesa_frames.concrete.space import GridPolars
 
 __all__ = [
     "AgentsDF",

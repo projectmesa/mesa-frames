@@ -22,7 +22,7 @@ Usage:
 
     from mesa_frames.concrete.model import ModelDF
     from mesa_frames.concrete.agents import AgentsDF
-    from mesa_frames.concrete.polars import AgentSetPolars
+    from mesa_frames.concrete import AgentSetPolars
 
     class MyCustomModel(ModelDF):
         def __init__(self):

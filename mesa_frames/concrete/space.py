@@ -21,8 +21,8 @@ Usage:
     spatial environment:
 
     from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.polars.space import GridPolars
-    from mesa_frames.concrete.polars.agentset import AgentSetPolars
+    from mesa_frames.concrete.space import GridPolars
+    from mesa_frames.concrete.agentset import AgentSetPolars
 
     class MyAgents(AgentSetPolars):
         # ... agent implementation ...
@@ -49,7 +49,7 @@ import numpy as np
 import polars as pl
 
 from mesa_frames.abstract.space import GridDF
-from mesa_frames.concrete.polars.mixin import PolarsMixin
+from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.utils import copydoc
 
 

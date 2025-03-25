@@ -21,7 +21,7 @@ Usage:
     The PolarsMixin is typically used in combination with other base classes:
 
     from mesa_frames.abstract import AgentSetDF
-    from mesa_frames.concrete.polars.mixin import PolarsMixin
+    from mesa_frames.concrete.mixin import PolarsMixin
 
     class AgentSetPolars(AgentSetDF, PolarsMixin):
         def __init__(self, model):

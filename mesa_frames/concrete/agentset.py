@@ -21,7 +21,7 @@ Usage:
     AgentsDF collection:
 
     from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.polars.agentset import AgentSetPolars
+    from mesa_frames.concrete.agentset import AgentSetPolars
     import polars as pl
 
     class MyAgents(AgentSetPolars):
@@ -65,7 +65,7 @@ from polars._typing import IntoExpr
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
-from mesa_frames.concrete.polars.mixin import PolarsMixin
+from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
 from mesa_frames.utils import copydoc
 

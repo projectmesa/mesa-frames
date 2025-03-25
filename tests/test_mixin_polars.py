@@ -3,7 +3,7 @@ import polars as pl
 import pytest
 import typeguard as tg
 
-from mesa_frames.concrete.polars.mixin import PolarsMixin
+from mesa_frames.concrete.mixin import PolarsMixin
 
 
 @tg.typechecked
