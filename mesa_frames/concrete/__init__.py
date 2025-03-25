@@ -1,12 +1,12 @@
 """
 Concrete implementations of mesa-frames components.
 
-This package provides concrete implementations of the abstract base 
-classes defined in mesa_frames.abstract. It offers ready-to-use 
+This package provides concrete implementations of the abstract base
+classes defined in mesa_frames.abstract. It offers ready-to-use
 components for building agent-based models with a DataFrame-based storage system.
 
 The implementation leverages Polars as the backend for high-performance DataFrame operations.
-It includes optimized classes for agent sets, spatial structures, and data manipulation, 
+It includes optimized classes for agent sets, spatial structures, and data manipulation,
 ensuring efficient model execution.
 
 Subpackages:
