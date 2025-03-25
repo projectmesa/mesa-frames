@@ -49,17 +49,17 @@ class MyAgentSet(AgentSetPolars):
             "unique_id": pl.arange(n_agents, eager=True),
             "value": pl.ones(n_agents, eager=True)
         })
-    
+
     def complex_calculation(self):
         # Extract data to numpy arrays for Numba processing
         values = self.agents["value"].to_numpy()
-        
+
         # Call the Numba-accelerated function
         results = self._calculate_with_numba(values)
-        
+
         # Update the agent values
         self["value"] = results
-    
+
     @staticmethod
     @jit(nopython=True)
     def _calculate_with_numba(values):
@@ -88,17 +88,17 @@ class MyVectorizedAgentSet(AgentSetPolars):
             "unique_id": pl.arange(n_agents, eager=True),
             "value": pl.ones(n_agents, eager=True)
         })
-    
+
     def complex_calculation(self):
         # Extract data to numpy arrays
         values = self.agents["value"].to_numpy()
-        
+
         # Call the vectorized function
         results = self._vectorized_calculation(values)
-        
+
         # Update the agent values
         self["value"] = results
-    
+
     @staticmethod
     @vectorize([float64(float64)], nopython=True)
     def _vectorized_calculation(x):
@@ -123,28 +123,28 @@ class MyCudaAgentSet(AgentSetPolars):
             "unique_id": pl.arange(n_agents, eager=True),
             "value": pl.ones(n_agents, eager=True)
         })
-    
+
     def complex_calculation(self):
         # Extract data to numpy arrays
         values = self.agents["value"].to_numpy()
-        
+
         # Prepare output array
         results = np.empty_like(values)
-        
+
         # Call the CUDA kernel
         threads_per_block = 256
         blocks_per_grid = (len(values) + threads_per_block - 1) // threads_per_block
         self._cuda_calculation[blocks_per_grid, threads_per_block](values, results)
-        
+
         # Update the agent values
         self["value"] = results
-    
+
     @staticmethod
     @cuda.jit
     def _cuda_calculation(values, results):
         # Calculate thread index
         i = cuda.grid(1)
-        
+
         # Check array bounds
         if i < values.size:
             # Complex calculation
@@ -158,7 +158,7 @@ The Sugarscape example in mesa-frames demonstrates a more advanced pattern using
 ```python
 class AgentSetWithNumba(AgentSetPolars):
     numba_target = "cpu"  # Can be "cpu", "parallel", or "cuda"
-    
+
     def _get_accelerated_function(self):
         @guvectorize(
             [
@@ -179,15 +179,15 @@ class AgentSetWithNumba(AgentSetPolars):
             # Function implementation
             # This will be compiled for the specified target
             # (CPU, parallel, or CUDA)
-            
+
             # Perform calculations and populate output array
-            
+
         return vectorized_function
 ```
 
 ## Real-World Example: Sugarscape Implementation
 
-The mesa-frames repository includes a complete example of Numba acceleration in the Sugarscape model. 
+The mesa-frames repository includes a complete example of Numba acceleration in the Sugarscape model.
 The implementation includes three variants:
 
 1. **AntPolarsNumbaCPU**: Single-core CPU acceleration
@@ -221,4 +221,4 @@ pip install -e ".[numba]"
 
 ## Conclusion
 
-Numba acceleration provides a powerful way to optimize performance-critical parts of your mesa-frames models. By selectively applying Numba to computationally intensive methods, you can achieve significant performance improvements while maintaining the overall structure and readability of your model code. 
+Numba acceleration provides a powerful way to optimize performance-critical parts of your mesa-frames models. By selectively applying Numba to computationally intensive methods, you can achieve significant performance improvements while maintaining the overall structure and readability of your model code.
