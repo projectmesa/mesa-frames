@@ -1,50 +1,20 @@
 import matplotlib.pyplot as plt
-from mesa_frames import AgentSetPolars
 import mesa
 import numpy as np
 import pandas as pd
 import perfplot
 import polars as pl
 import seaborn as sns
+import importlib.metadata
+from packaging import version
 
 from mesa_frames import AgentSetPandas, AgentSetPolars, ModelDF
 
 
 ### ---------- Mesa implementation ---------- ###
 def mesa_implementation(n_agents: int) -> None:
-    model = MoneyModelDF(n_agents, None)
+    model = MoneyModel(n_agents)
     model.run_model(100)
-
-
-class MoneyAgentPolars(AgentSetPolars):
-    def __init__(self, n: int, model: ModelDF):
-        super().__init__(model)
-        # Adding the agents to the agent set
-        self += pl.DataFrame(
-            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
-        )
-
-    def step(self) -> None:
-        # The give_money method is called
-        self.do("give_money")
-
-    def give_money(self):
-        # Active agents are changed to wealthy agents
-        self.select(self.wealth > 0)
-
-        # Receiving agents are sampled (only native expressions currently supported)
-        other_agents = self.agents.sample(
-            n=len(self.active_agents), with_replacement=True
-        )
-
-        # Wealth of wealthy is decreased by 1
-        self["active", "wealth"] -= 1
-
-        # Compute the income of the other agents (only native expressions currently supported)
-        new_wealth = other_agents.group_by("unique_id").len()
-
-        # Add the income to the other agents
-        self[new_wealth, "wealth"] += new_wealth["len"]
 
 
 class MoneyAgent(mesa.Agent):
@@ -74,6 +44,11 @@ class MoneyModel(mesa.Model):
         self.num_agents = N
         # Create scheduler and assign it to the model
         self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
+        installed_version = version.parse(importlib.metadata.version("mesa"))
+        required_version = version.parse("2.4.0")
+
+        if installed_version < required_version:
+            self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
 
     def step(self):
         """Advance the model by one step."""
@@ -273,7 +248,7 @@ class MoneyModelDF(ModelDF):
     def __init__(self, N: int, agents_cls):
         super().__init__()
         self.n_agents = N
-        self.agents += MoneyAgentPolars(N, self)
+        self.agents += agents_cls(N, self)
 
     def step(self):
         # Executes the step method for every agentset in self.agents
