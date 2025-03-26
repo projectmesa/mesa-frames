@@ -75,6 +75,10 @@ class Test_AgentSetPolars:
     ):
         agents = fix1_AgentSetPolars
 
+        # Test with a pl.Dataframe
+        with pytest.raises(ValueError):
+            agents.add(pl.DataFrame({"unique_id": [4, 5], "wealth": [5, 6], "age": [50, 60]}))
+
         # Test with a list (Sequence[Any])
         with pytest.raises(ValueError):
             agents.add([10, 5, 10])
