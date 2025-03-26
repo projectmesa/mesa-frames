@@ -43,7 +43,6 @@ class MoneyModel(mesa.Model):
         super().__init__()
         self.num_agents = N
         # Create scheduler and assign it to the model
-        self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
         installed_version = version.parse(importlib.metadata.version("mesa"))
         required_version = version.parse("2.4.0")
 
