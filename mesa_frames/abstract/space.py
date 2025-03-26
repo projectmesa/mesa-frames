@@ -456,7 +456,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
                 elif isinstance(a, AgentsDF):
                     ids.append(self._srs_constructor(a._ids, name="agent_id"))
             return self._df_concat(ids, ignore_index=True)
-        elif isinstance(agents, int):
+        elif isinstance(agents, str):
             return self._srs_constructor([agents], name="agent_id")
         else:  # IDsLike
             return self._srs_constructor(agents, name="agent_id")
@@ -1169,7 +1169,7 @@ class GridDF(DiscreteSpaceDF):
         self._agents = self._df_constructor(
             columns=["agent_id"] + self._pos_col_names,
             index_cols="agent_id",
-            dtypes={col: int for col in ["agent_id"] + self._pos_col_names},
+            dtypes={"agent_id": str} | {col: int for col in self._pos_col_names},
         )
 
         cells_df_dtypes = {col: int for col in self._pos_col_names}

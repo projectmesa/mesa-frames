@@ -53,6 +53,8 @@ refer to the class docstring.
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
+import uuid
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -103,43 +105,43 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         self._model = model
         self._agents = (
             pd.DataFrame(columns=["unique_id"])
-            .astype({"unique_id": "int64"})
+            .astype({"unique_id": str})
             .set_index("unique_id")
         )
         self._mask = pd.Series(True, index=self._agents.index, dtype=pd.BooleanDtype())
 
     def add(  # noqa : D102
         self,
-        agents: pd.DataFrame | Sequence[Any] | dict[str, Any],
+        agents: pd.DataFrame | AgentSetDF | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
-        if isinstance(agents, pd.DataFrame):
+        if isinstance(agents, AgentSetDF):
+            new_agents = agents.agents
+        elif isinstance(agents, pd.DataFrame):
+            if "unique_id" == agents.index.name or "unique_id" in agents.columns:
+                raise ValueError("Dataframe should not have a unique_id index/column.")
             new_agents = agents
-            if "unique_id" != agents.index.name:
-                try:
-                    new_agents.set_index("unique_id", inplace=True, drop=True)
-                except KeyError:
-                    raise KeyError("DataFrame must have a unique_id column/index.")
         elif isinstance(agents, dict):
-            if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
-            index = agents.pop("unique_id")
-            if not isinstance(index, list):
-                index = [index]
-            new_agents = pd.DataFrame(agents, index=pd.Index(index, name="unique_id"))
+            if "unique_id" in agents:
+                raise ValueError("Dictionary should not have a unique_id key.")
+            if isinstance(next(iter(agents.values())), list):
+                index = range(len(next(iter(agents.values()))))
+            else:
+                index = [0]
+            new_agents = pd.DataFrame(agents, index=index)
         else:
-            if len(agents) != len(obj._agents.columns) + 1:
+            if len(agents) != len(obj._agents.columns):
                 raise ValueError(
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
-            columns = pd.Index(["unique_id"]).append(obj._agents.columns.copy())
-            new_agents = pd.DataFrame([agents], columns=columns).set_index(
-                "unique_id", drop=True
-            )
+            new_agents = pd.DataFrame([agents], columns=obj._agents.columns.copy())
 
-        if new_agents.index.dtype != "int64":
-            new_agents.index = new_agents.index.astype("int64")
+        if not isinstance(agents, AgentSetDF):
+            new_agents["unique_id"] = pd.Series(
+                [uuid.uuid4().hex for _ in range(len(new_agents))], dtype=str
+            )
+            new_agents.set_index("unique_id", inplace=True, drop=True)
 
         if not obj._agents.index.intersection(new_agents.index).empty:
             raise KeyError("Some IDs already exist in the agent set.")
@@ -165,7 +167,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             return pd.Series(
                 agents.isin(self._agents.index), index=agents, dtype=pd.BooleanDtype()
             )
-        elif isinstance(agents, Collection):
+        elif isinstance(agents, Collection) and not isinstance(agents, str):
             return pd.Series(list(agents), index=list(agents)).isin(self._agents.index)
         else:
             return agents in self._agents.index
@@ -210,6 +212,11 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
                 and all(isinstance(n, str) for n in attr_names)
             )
         ) and values is not None:
+            if isinstance(values, Collection) and len(values) > len(masked_df):
+                values.index = pd.Index(
+                    [uuid.uuid4().hex for _ in range(len(values) - len(masked_df))],
+                    dtype=object,
+                )
             if not isinstance(attr_names, str):  # isinstance(attr_names, Collection)
                 attr_names = list(attr_names)
             masked_df.loc[:, attr_names] = values
@@ -218,7 +225,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
                 "Either attr_names must be a dictionary with columns as keys and values or values must be provided."
             )
 
-        non_masked_df = obj._agents[~b_mask]
+        non_masked_df = obj._agents[~b_mask] if len(b_mask) > 0 else pd.DataFrame()
         original_index = obj._agents.index
         obj._agents = pd.concat([non_masked_df, masked_df])
         obj._agents = obj._agents.reindex(original_index)
@@ -313,10 +320,10 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         mask: AgentPandasMask = None,
     ) -> pd.Series:
         if isinstance(mask, pd.Series) and mask.dtype == bool:
-            return mask
+            return pd.Series(mask.values, index=self._agents.index)
         elif isinstance(mask, pd.DataFrame):
             return pd.Series(
-                self._agents.index.isin(mask.index), index=self._agents.index
+                self._agents.index.isin(mask["unique_id"]), index=self._agents.index
             )
         elif isinstance(mask, list):
             return pd.Series(self._agents.index.isin(mask), index=self._agents.index)
@@ -324,7 +331,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             return pd.Series(True, index=self._agents.index)
         elif isinstance(mask, str) and mask == "active":
             return self._mask
-        elif isinstance(mask, Collection):
+        elif isinstance(mask, Collection) and not isinstance(mask, str):
             return pd.Series(self._agents.index.isin(mask), index=self._agents.index)
         else:
             return pd.Series(self._agents.index.isin([mask]), index=self._agents.index)
@@ -344,7 +351,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             return pd.DataFrame(index=mask.index).join(
                 self._agents, on="unique_id", how="left"
             )
-        elif isinstance(mask, pd.Series):
+        elif isinstance(mask, (pd.Series, pd.Index)):
             mask_df = mask.to_frame("unique_id").set_index("unique_id")
             return mask_df.join(self._agents, on="unique_id", how="left")
         elif mask is None or mask == "all":
@@ -433,7 +440,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
 
     @property
     def active_agents(self) -> pd.DataFrame:  # noqa : D102
-        return self._agents.loc[self._mask]
+        return self._agents.loc[self._mask] if len(self._mask) > 0 else self._agents
 
     @active_agents.setter
     def active_agents(self, mask: AgentPandasMask) -> None:
