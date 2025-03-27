@@ -88,7 +88,8 @@ test = [
 
 dev = [
   "mesa_frames[test, docs]",
-  "mesa>=3.1.4",
+  "mesa>=3.1.4; python_version >= '3.11'",
+  "mesa~=3.0.0; python_version < '3.11'",
   "numba",
 ]
 
