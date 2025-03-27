@@ -26,7 +26,8 @@ class SugarscapeMesa(mesa.Model):
         Create a new Instant Growback model with the given parameters.
 
         """
-        super().__init__()
+        # Initialize the Mesa base class (required in Mesa 3.0)
+        super().__init__(seed=seed)
 
         # Set parameters
         if sugar_grid is None:
@@ -37,48 +38,62 @@ class SugarscapeMesa(mesa.Model):
             metabolism = np.random.randint(2, 4, n_agents)
         if vision is None:
             vision = np.random.randint(1, 6, n_agents)
-        if seed is not None:
-            self.reset_randomizer(seed)
 
         self.width, self.height = sugar_grid.shape
         self.n_agents = n_agents
         self.space = mesa.space.MultiGrid(self.width, self.height, torus=False)
-        self.agents: list = []
-
-        agent_id = 0
         self.sugars = []
 
+        # Create sugar resources
+        sugar_count = 0
         for _, (x, y) in self.space.coord_iter():
             max_sugar = sugar_grid[x, y]
-            sugar = Sugar(agent_id, self, max_sugar)
-            agent_id += 1
+            sugar = Sugar(self, max_sugar)
             self.space.place_agent(sugar, (x, y))
             self.sugars.append(sugar)
+            sugar_count += 1
 
-        # Create agent:
+        # Create AntMesa agents
+        ant_count = 0
         for i in range(self.n_agents):
+            # Determine position
             if initial_positions is not None:
                 x = initial_positions["dim_0"][i]
                 y = initial_positions["dim_1"][i]
             else:
                 x = self.random.randrange(self.width)
                 y = self.random.randrange(self.height)
-            ssa = AntMesa(
-                agent_id, self, False, initial_sugar[i], metabolism[i], vision[i]
+
+            # Create and place agent
+            ant = AntMesa(
+                self,
+                moore=False,
+                sugar=initial_sugar[i],
+                metabolism=metabolism[i],
+                vision=vision[i],
             )
-            agent_id += 1
-            self.space.place_agent(ssa, (x, y))
-            self.agents.append(ssa)
+            self.space.place_agent(ant, (x, y))
+            ant_count += 1
 
         self.running = True
 
     def step(self):
-        self.random.shuffle(self.agents)
-        [agent.step() for agent in self.agents]
-        [sugar.step() for sugar in self.sugars]
+        # Get all AntMesa agents
+        ant_agents = [agent for agent in self.agents if isinstance(agent, AntMesa)]
+
+        # Randomize the order
+        self.random.shuffle(ant_agents)
+
+        # Step each ant agent directly
+        for ant in ant_agents:
+            ant.step()
+
+        # Process Sugar agents directly
+        for sugar in self.sugars:
+            sugar.step()
 
     def run_model(self, step_count=200):
         for i in range(step_count):
-            if len(self.agents) == 0:
+            if self.agents.count(AntMesa) == 0:
                 return
             self.step()
