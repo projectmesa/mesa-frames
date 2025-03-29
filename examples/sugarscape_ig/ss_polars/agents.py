@@ -309,7 +309,9 @@ class AntPolarsLoop(AntPolarsBase):
         return occupied_cells, free_cells, target_cells
 
     def _get_best_moves(self):
-        assert not __debug__ or NotImplementedError("Subclasses must implement this method")
+        assert not __debug__ or NotImplementedError(
+            "Subclasses must implement this method"
+        )
 
 
 class AntPolarsLoopNoVec(AntPolarsLoop):

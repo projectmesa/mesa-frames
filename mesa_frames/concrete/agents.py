@@ -109,13 +109,16 @@ class AgentsDF(AgentContainer):
         obj = self._get_obj(inplace)
         other_list = obj._return_agentsets_list(agents)
         if __debug__:
-            assert not obj._check_agentsets_presence(
-                other_list).any(), "Some agentsets are already present in the AgentsDF."
+            assert not obj._check_agentsets_presence(other_list).any(), (
+                "Some agentsets are already present in the AgentsDF."
+            )
         new_ids = pl.concat(
             [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
         )
         if __debug__:
-            assert not new_ids.is_duplicated().any(), "Some of the agent IDs are not unique."
+            assert not new_ids.is_duplicated().any(), (
+                "Some of the agent IDs are not unique."
+            )
         obj._agentsets.extend(other_list)
         obj._ids = new_ids
         return obj
@@ -248,7 +251,9 @@ class AgentsDF(AgentContainer):
                 if deleted == len(removed_ids):
                     break
             if __debug__:
-                assert deleted >= len(removed_ids), "There exist some IDs which are not present in any agentset."
+                assert deleted >= len(removed_ids), (
+                    "There exist some IDs which are not present in any agentset."
+                )
 
         try:
             obj.space.remove_agents(removed_ids, inplace=True)
@@ -440,7 +445,9 @@ class AgentsDF(AgentContainer):
     def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
         if __debug__:
             # Avoids infinite recursion of private attributes
-            assert not name.startswith("_"), f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            assert not name.startswith("_"), (
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
 
         return {agentset: getattr(agentset, name) for agentset in self._agentsets}
 
