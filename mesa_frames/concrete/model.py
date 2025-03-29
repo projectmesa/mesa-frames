@@ -175,14 +175,13 @@ class ModelDF:
         try:
             return self._agents
         except AttributeError:
-            raise ValueError(
+            assert False, (
                 "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
             )
 
     @agents.setter
     def agents(self, agents: AgentsDF) -> None:
-        if not isinstance(agents, AgentsDF):
-            raise TypeError("agents must be an instance of AgentsDF")
+        assert isinstance(agents, AgentsDF), "agents must be an instance of AgentsDF"
         self._agents = agents
 
     @property
