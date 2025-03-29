@@ -92,7 +92,7 @@ class Test_AgentSetPolars:
 
         with pytest.raises(
             ValueError,
-            match="Some ids are duplicated in the AgentSet that are trying to be added.",
+            match="Some ids are duplicated in the AgentSet that are trying to be added together.",
         ):
             result = agents.add(agents4.agents, inplace=False)
 
