@@ -33,6 +33,17 @@ def fix1_AgentSetPolars() -> ExampleAgentSetPolars:
 
 
 @pytest.fixture
+def fix4_AgentSetPolars() -> ExampleAgentSetPolars:
+    model = ModelDF()
+    agents = ExampleAgentSetPolars(model)
+    agents.add({"unique_id": [0, 1, 2, 3]})
+    agents["wealth"] = agents.starting_wealth
+    agents["age"] = [10, 20, 30, 40]
+    model.agents.add(agents)
+    return agents
+
+
+@pytest.fixture
 def fix2_AgentSetPolars() -> ExampleAgentSetPolars:
     model = ModelDF()
     agents = ExampleAgentSetPolars(model)
@@ -73,9 +84,17 @@ class Test_AgentSetPolars:
         self,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix4_AgentSetPolars: ExampleAgentSetPolars,
     ):
         agents = fix1_AgentSetPolars
         agents2 = fix2_AgentSetPolars
+        agents4 = fix4_AgentSetPolars
+
+        with pytest.raises(
+            ValueError,
+            match="Some ids are duplicated in the AgentSet that are trying to be added.",
+        ):
+            result = agents.add(agents4.agents, inplace=False)
 
         # Test with a DataFrame
         result = agents.add(agents2.agents, inplace=False)
