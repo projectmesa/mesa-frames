@@ -169,6 +169,7 @@ class AntPolarsBase(AgentSetPolars):
         """
         assert False, "Subclasses must implement this method"
 
+
 class AntPolarsLoopDF(AntPolarsBase):
     def get_best_moves(self, neighborhood: pl.DataFrame):
         best_moves = pl.DataFrame()

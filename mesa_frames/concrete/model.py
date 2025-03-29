@@ -175,7 +175,9 @@ class ModelDF:
         try:
             return self._agents
         except AttributeError:
-            assert False, "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
+            assert False, (
+                "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
+            )
 
     @agents.setter
     def agents(self, agents: AgentsDF) -> None:
@@ -207,10 +209,9 @@ class ModelDF:
         ValueError
             If the space has not been set for the model.
         """
-        if not self._space:
-            raise ValueError(
-                "You haven't set the space for the model. Use model.space = your_space"
-            )
+        assert self._space, (
+            "You haven't set the space for the model. Use model.space = your_space"
+        )
         return self._space
 
     @space.setter
