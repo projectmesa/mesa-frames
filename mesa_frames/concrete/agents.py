@@ -108,9 +108,8 @@ class AgentsDF(AgentContainer):
         """
         obj = self._get_obj(inplace)
         other_list = obj._return_agentsets_list(agents)
-        assert not obj._check_agentsets_presence(other_list).any(), (
-            "Some agentsets are already present in the AgentsDF."
-        )
+        if obj._check_agentsets_presence(other_list).any():
+            raise ValueError("Some agentsets are already present in the AgentsDF.")
         new_ids = pl.concat(
             [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
         )
@@ -248,7 +247,7 @@ class AgentsDF(AgentContainer):
                 if deleted == len(removed_ids):
                     break
             if deleted < len(removed_ids):  # TODO: fix type hint
-                assert False, (
+                raise KeyError(
                     "There exist some IDs which are not present in any agentset"
                 )
         try:
