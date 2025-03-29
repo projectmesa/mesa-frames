@@ -4,7 +4,7 @@ import pytest
 import typeguard as tg
 
 from mesa_frames import GridPolars, ModelDF
-from tests.test_agentset_polars import (
+from tests.test_agentset import (
     ExampleAgentSetPolars,
     fix1_AgentSetPolars,
     fix2_AgentSetPolars,
