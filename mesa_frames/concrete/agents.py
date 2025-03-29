@@ -108,13 +108,14 @@ class AgentsDF(AgentContainer):
         """
         obj = self._get_obj(inplace)
         other_list = obj._return_agentsets_list(agents)
-        if obj._check_agentsets_presence(other_list).any():
-            raise ValueError("Some agentsets are already present in the AgentsDF.")
+        if __debug__:
+            assert not obj._check_agentsets_presence(
+                other_list).any(), "Some agentsets are already present in the AgentsDF."
         new_ids = pl.concat(
             [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
         )
-        if new_ids.is_duplicated().any():
-            raise ValueError("Some of the agent IDs are not unique.")
+        if __debug__:
+            assert not new_ids.is_duplicated().any(), "Some of the agent IDs are not unique."
         obj._agentsets.extend(other_list)
         obj._ids = new_ids
         return obj
@@ -246,10 +247,9 @@ class AgentsDF(AgentContainer):
                 deleted += initial_len - len(agentset)
                 if deleted == len(removed_ids):
                     break
-            if deleted < len(removed_ids):  # TODO: fix type hint
-                raise KeyError(
-                    "There exist some IDs which are not present in any agentset"
-                )
+            if __debug__:
+                assert deleted >= len(removed_ids), "There exist some IDs which are not present in any agentset."
+
         try:
             obj.space.remove_agents(removed_ids, inplace=True)
         except ValueError:
@@ -438,10 +438,10 @@ class AgentsDF(AgentContainer):
         return super().__add__(other)
 
     def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
-        if name.startswith("_"):  # Avoids infinite recursion of private attributes
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
+        if __debug__:
+            # Avoids infinite recursion of private attributes
+            assert not name.startswith("_"), f"'{self.__class__.__name__}' object has no attribute '{name}'"
+
         return {agentset: getattr(agentset, name) for agentset in self._agentsets}
 
     @overload

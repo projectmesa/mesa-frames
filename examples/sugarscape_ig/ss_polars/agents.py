@@ -167,7 +167,7 @@ class AntPolarsBase(AgentSetPolars):
         pl.DataFrame
             DataFrame with the best moves for each agent
         """
-        raise NotImplementedError("Subclasses must implement this method")
+        assert not __debug__, "Subclasses must implement this method"
 
 
 class AntPolarsLoopDF(AntPolarsBase):
@@ -309,7 +309,7 @@ class AntPolarsLoop(AntPolarsBase):
         return occupied_cells, free_cells, target_cells
 
     def _get_best_moves(self):
-        raise NotImplementedError("Subclasses must implement this method")
+        assert not __debug__ or NotImplementedError("Subclasses must implement this method")
 
 
 class AntPolarsLoopNoVec(AntPolarsLoop):
