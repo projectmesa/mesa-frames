@@ -207,7 +207,10 @@ class ModelDF:
         ValueError
             If the space has not been set for the model.
         """
-        assert self._space, "You haven't set the space for the model. Use model.space = your_space"
+        if not self._space:
+            raise ValueError(
+                "You haven't set the space for the model. Use model.space = your_space"
+            )
         return self._space
 
     @space.setter
