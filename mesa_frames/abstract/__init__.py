@@ -20,7 +20,7 @@ Classes:
 
 These abstract classes and mixins provide the foundation for the concrete
 implementations in mesa-frames, ensuring consistent interfaces and shared
-functionality across different backend implementations (e.g., pandas, Polars).
+functionality across different backend implementations (currently support only Polars).
 
 Usage:
     These classes are not meant to be instantiated directly. Instead, they
