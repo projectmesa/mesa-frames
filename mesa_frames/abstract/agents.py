@@ -1065,7 +1065,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         obj = self._get_obj(inplace)
 
         # Apply move_to_optimal to each agent set in the container
-        for agent_set in obj.agent_sets.values():
+        for agent_set in obj:
             agent_set.move_to_optimal(
                 attr_names=attr_names,
                 rank_order=rank_order,
