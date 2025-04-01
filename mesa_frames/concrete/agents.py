@@ -225,7 +225,10 @@ class AgentsDF(AgentContainer):
             removed_ids = pl.Series(dtype=pl.UInt64)
             for id in ids:
                 removed_ids = pl.concat(
-                    [removed_ids, pl.Series(obj._agentsets[id]["unique_id"], dtype=pl.UInt64)]
+                    [
+                        removed_ids,
+                        pl.Series(obj._agentsets[id]["unique_id"], dtype=pl.UInt64),
+                    ]
                 )
                 obj._agentsets.pop(id)
 

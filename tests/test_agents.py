@@ -99,9 +99,10 @@ class Test_AgentsDF:
         assert agents.contains(agentset_pandas["unique_id"][0])
 
         # Test with a list of ids
-        assert agents.contains(
-            [agentset_pandas["unique_id"][0], 0]
-        ).to_list() == [True, False]
+        assert agents.contains([agentset_pandas["unique_id"][0], 0]).to_list() == [
+            True,
+            False,
+        ]
 
     def test_copy(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF

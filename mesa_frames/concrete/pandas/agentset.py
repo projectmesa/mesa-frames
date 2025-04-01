@@ -411,9 +411,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         # To make these types of bugs reproducible, when __debug__ is True every ids will be generated bigger than a int64
         low = 1 if not __debug__ else np.iinfo(np.int64).max + 1
         return pd.Series(
-            self.random.integers(
-                low, np.iinfo(np.uint64).max, size=n, dtype=np.uint64
-            )
+            self.random.integers(low, np.iinfo(np.uint64).max, size=n, dtype=np.uint64)
         )
 
     def __getattr__(self, name: str) -> Any:  # noqa : D105

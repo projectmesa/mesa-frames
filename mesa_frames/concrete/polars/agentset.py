@@ -139,7 +139,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 )
             new_agents = pl.DataFrame(
                 [self._generate_unique_ids(1).to_list() + agents],
-                schema=obj._agents.schema
+                schema=obj._agents.schema,
             )
 
         if "unique_id" not in new_agents:
@@ -237,7 +237,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             )
         unique_id_column = None
         if "unique_id" not in obj._agents:
-            unique_id_column = self._generate_unique_ids(len(masked_df)).alias("unique_id")
+            unique_id_column = self._generate_unique_ids(len(masked_df)).alias(
+                "unique_id"
+            )
             obj._agents = obj._agents.with_columns(unique_id_column)
             masked_df = masked_df.with_columns(unique_id_column)
         b_mask = obj._get_bool_mask(mask)
@@ -479,7 +481,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     def __getattr__(self, key: str) -> pl.Series:
         super().__getattr__(key)
         return self._agents[key]
-    
+
     def _generate_unique_ids(self, n: int) -> pl.Series:
         # Generating unique ids as uint64 there is a 50% chance of creating a value which fits in a int64
         # pl.Series constructor infers dtype from elements passed, so if the passed values fit is a int64
@@ -487,9 +489,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         # To make these types of bugs reproducible, when __debug__ is True every ids will be generated bigger than a int64
         low = 1 if not __debug__ else np.iinfo(np.int64).max + 1
         return pl.Series(
-            self.random.integers(
-                low, np.iinfo(np.uint64).max, size=n, dtype=np.uint64
-            )
+            self.random.integers(low, np.iinfo(np.uint64).max, size=n, dtype=np.uint64)
         )
 
     @overload
