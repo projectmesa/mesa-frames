@@ -117,6 +117,15 @@ wheels = [
 ]
 
 [[package]]
+name = "beartype"
+version = "0.20.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/99/eaf0847301a6ca2042927c83f8cc72a29c153132ce49d9a720fe121440ba/beartype-0.20.2.tar.gz", hash = "sha256:38c60c065ad99364a8c767e8a0e71ba8263d467b91414ed5dcffb7758a2e8079", size = 1410390 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/78/05/536d025b3e17cf938f836665dde32e86f65ee76acd0ae14e22bda6aee274/beartype-0.20.2-py3-none-any.whl", hash = "sha256:5171a91ecf01438a59884f0cde37d2d5da2c992198b53d6ba31db3940f47ff04", size = 1161292 },
+]
+
+[[package]]
 name = "beautifulsoup4"
 version = "4.13.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1387,6 +1396,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "autodocsumm" },
+    { name = "beartype" },
     { name = "mesa" },
     { name = "mkdocs-git-revision-date-localized-plugin" },
     { name = "mkdocs-include-markdown-plugin" },
@@ -1404,7 +1414,6 @@ dev = [
     { name = "sphinx-copybutton" },
     { name = "sphinx-design" },
     { name = "sphinx-rtd-theme" },
-    { name = "typeguard" },
 ]
 docs = [
     { name = "autodocsumm" },
@@ -1439,9 +1448,9 @@ sphinx = [
     { name = "sphinx-rtd-theme" },
 ]
 test = [
+    { name = "beartype" },
     { name = "pytest" },
     { name = "pytest-cov" },
-    { name = "typeguard" },
 ]
 
 [package.dev-dependencies]
@@ -1454,6 +1463,8 @@ requires-dist = [
     { name = "autodocsumm", marker = "extra == 'dev'" },
     { name = "autodocsumm", marker = "extra == 'docs'" },
     { name = "autodocsumm", marker = "extra == 'sphinx'" },
+    { name = "beartype", marker = "extra == 'dev'" },
+    { name = "beartype", marker = "extra == 'test'" },
     { name = "mesa", marker = "extra == 'dev'" },
     { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'dev'" },
     { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'docs'" },
@@ -1501,8 +1512,6 @@ requires-dist = [
     { name = "sphinx-rtd-theme", marker = "extra == 'dev'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'sphinx'" },
-    { name = "typeguard", marker = "extra == 'dev'" },
-    { name = "typeguard", marker = "extra == 'test'" },
     { name = "typing-extensions", specifier = ">=4.9" },
 ]
 
@@ -3030,19 +3039,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/eb/79/72064e6a701c2183016abbbfedaba506d81e30e232a68c9f0d6f6fcd1574/traitlets-5.14.3.tar.gz", hash = "sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7", size = 161621 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl", hash = "sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f", size = 85359 },
-]
-
-[[package]]
-name = "typeguard"
-version = "4.4.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "importlib-metadata", marker = "python_full_version < '3.10'" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/70/60/8cd6a3d78d00ceeb2193c02b7ed08f063d5341ccdfb24df88e61f383048e/typeguard-4.4.2.tar.gz", hash = "sha256:a6f1065813e32ef365bc3b3f503af8a96f9dd4e0033a02c28c4a4983de8c6c49", size = 75746 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cf/4b/9a77dc721aa0b7f74440a42e4ef6f9a4fae7324e17f64f88b96f4c25cc05/typeguard-4.4.2-py3-none-any.whl", hash = "sha256:77a78f11f09777aeae7fa08585f33b5f4ef0e7335af40005b0c422ed398ff48c", size = 35801 },
 ]
 
 [[package]]
