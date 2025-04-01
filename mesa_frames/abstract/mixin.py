@@ -47,10 +47,10 @@ from collections.abc import Collection, Hashable, Iterator, Sequence
 from copy import copy, deepcopy
 from typing import Literal
 
+from beartype import beartype
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series
-from beartype import beartype
 
 
 @beartype
@@ -266,7 +266,7 @@ class DataFrameMixin(ABC):
     @abstractmethod
     def _df_constructor(
         self,
-        data: Sequence[Sequence] | dict[str | Any] | DataFrame | None = None,
+        data: Sequence[Sequence] | dict[str, Any] | DataFrame | None = None,
         columns: list[str] | None = None,
         index: Index | None = None,
         index_cols: str | list[str] | None = None,

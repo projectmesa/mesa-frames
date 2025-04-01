@@ -47,29 +47,22 @@ the class docstring.
 from __future__ import annotations  # For forward references
 
 from collections import defaultdict
-from typing import Any, Union, cast
-
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing_extensions import Self, overload
-
-from typing import Literal
+from typing import Any, Literal, Union, cast
 
 import polars as pl
 from beartype import beartype
+from typing_extensions import Self, overload
 
-from mesa_frames.abstract.agents import AgentContainer
+from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.types_ import (
     AgentMask,
-    AgentSetDF,
     BoolSeries,
     DataFrame,
     IdsLike,
     Index,
     Series,
 )
-
-# Import ModelDF for type checking only
-from mesa_frames.concrete.model import ModelDF
 
 # Type alias for numeric IDs that could be either Python int or NumPy int
 NumericID = Union[int, pl.Series]
@@ -92,7 +85,7 @@ class AgentsDF(AgentContainer):
     _agentsets: list[AgentSetDF]
     _ids: pl.Series
 
-    def __init__(self, model: ModelDF) -> None:
+    def __init__(self, model: "mesa_frames.concrete.model.ModelDF") -> None:
         """Initialize a new AgentsDF.
 
         Parameters

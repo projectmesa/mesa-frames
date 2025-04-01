@@ -41,12 +41,11 @@ the class docstring.
 """
 
 from collections.abc import Sequence
-from typing import Literal
+from typing import Literal, Union
 
 import numpy as np
 from beartype import beartype
 
-from mesa_frames.abstract.space import SpaceDF
 from mesa_frames.concrete.agents import AgentsDF
 
 
@@ -64,7 +63,9 @@ class ModelDF:
     running: bool
     _seed: int | Sequence[int]
     _agents: AgentsDF  # Where the agents are stored
-    _space: SpaceDF | None  # This will be a MultiSpaceDF object
+    _space: (
+        Union["mesa_frames.abstract.space.SpaceDF", None] | None
+    )  # This will be a MultiSpaceDF object
 
     def __init__(self, seed: int | Sequence[int] | None = None) -> None:
         """Create a new model.
@@ -196,7 +197,7 @@ class ModelDF:
         return [agent.__class__ for agent in self._agents._agentsets]
 
     @property
-    def space(self) -> SpaceDF:
+    def space(self) -> Union["mesa_frames.abstract.space.SpaceDF", None]:
         """Get the space object associated with the model.
 
         Returns
@@ -216,5 +217,5 @@ class ModelDF:
         return self._space
 
     @space.setter
-    def space(self, space: SpaceDF) -> None:
+    def space(self, space: Union["mesa_frames.abstract.space.SpaceDF", None]) -> None:
         self._space = space
