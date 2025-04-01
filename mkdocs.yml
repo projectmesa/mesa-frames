@@ -44,7 +44,8 @@ theme:
 # Plugins
 plugins:
   - search
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      execute: true  # Ensures the notebooks run and generate output
   - git-revision-date-localized:
       enable_creation_date: true
   - minify:
