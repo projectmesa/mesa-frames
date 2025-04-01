@@ -58,7 +58,7 @@ class PolarsMixin(DataFrameMixin):
     """Polars-specific implementation of DataFrame operations."""
 
     # TODO: complete with other dtypes
-    _dtypes_mapping: dict[str, Any] = {"int64": pl.Int64, "bool": pl.Boolean}
+    _dtypes_mapping: dict[str, Any] = {"int64": pl.Int64, "bool": pl.Boolean, "uint64": pl.UInt64}
 
     def _df_add(
         self,

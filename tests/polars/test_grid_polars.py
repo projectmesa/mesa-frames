@@ -1070,7 +1070,7 @@ class TestGridPolars:
         # Test with agents not in the model
         with pytest.raises(ValueError):
             space = grid_moore.place_agents(
-                agents=["not_unique_id1", "not_unique_id2"],
+                agents=[0, 1],
                 pos=[[0, 0], [1, 0]],
                 inplace=False,
             )
