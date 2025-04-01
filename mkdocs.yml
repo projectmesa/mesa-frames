@@ -110,7 +110,7 @@ nav:
   - User Guide:
     - Getting Started: user-guide/0_getting-started.md
     - Classes: user-guide/1_classes.md
-    - Introductory Tutorial: user-guide/2_introductory-tutorial.md
+    - Introductory Tutorial: user-guide/2_introductory-tutorial.ipynb
     - Advanced Tutorial: user-guide/3_advanced-tutorial.md
     - Benchmarks: user-guide/4_benchmarks.md
   - API Reference: api/index.html
