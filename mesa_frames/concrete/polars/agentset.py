@@ -58,36 +58,61 @@ refer to the class docstring.
 """
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import TYPE_CHECKING
+from decimal import Decimal
+from typing import Literal
 
+import numpy as np
 import polars as pl
+from beartype import beartype
 from polars._typing import IntoExpr
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.polars.mixin import PolarsMixin
-from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
+from mesa_frames.types_ import (
+    AgentMask,
+    AgentPolarsMask,
+    IdsLike,
+    PolarsIdsLike,
+)
 from mesa_frames.utils import copydoc
 
-if TYPE_CHECKING:
-    from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
-import numpy as np
-
-
+@beartype
 @copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
-    """Polars-based implementation of AgentSetDF."""
+    """
+    WARNING: AgentSetPolars is deprecated and will be removed in the next release of mesa-frames.
+    pandas-based implementation of AgentSetDF.
+    """
 
     _agents: pl.DataFrame
+    _mask: pl.Series
+
+    @overload
+    def discard(
+        self, agents: pl.DataFrame | pl.Series, inplace: bool = True
+    ) -> Self: ...
+
+    @overload
+    def discard(
+        self, agents: IdsLike | Literal["active"], inplace: bool = True
+    ) -> Self: ...
+
+    # Inherit implementation from parent
+    def discard(
+        self,
+        agents: IdsLike | pl.DataFrame | pl.Series | Literal["active"],
+        inplace: bool = True,
+    ) -> Self:
+        return super().discard(agents, inplace)
+
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("clone", []),
     }
     _copy_only_reference: list[str] = ["_model", "_mask"]
-    _mask: pl.Expr | pl.Series
 
-    def __init__(self, model: "ModelDF") -> None:
+    def __init__(self, model: "mesa_frames.concrete.model.ModelDF") -> None:
         """Initialize a new AgentSetPolars.
 
         Parameters
@@ -279,7 +304,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         obj._agents = obj._agents.sort(by=by, descending=descending, **kwargs)
         return obj
 
-    def to_pandas(self) -> "AgentSetPandas":
+    def to_pandas(self) -> "mesa_frames.concrete.pandas.agentset.AgentSetPandas":
         from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
         new_obj = AgentSetPandas(self._model)

@@ -47,12 +47,14 @@ from typing import Literal
 
 import numpy as np
 import polars as pl
+from beartype import beartype
 
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.polars.mixin import PolarsMixin
 from mesa_frames.utils import copydoc
 
 
+@beartype
 @copydoc(GridDF)
 class GridPolars(GridDF, PolarsMixin):
     """Polars-based implementation of GridDF."""

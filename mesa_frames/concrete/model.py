@@ -41,17 +41,16 @@ the class docstring.
 """
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import Literal
 
 import numpy as np
+from beartype import beartype
 
 from mesa_frames.abstract.space import SpaceDF
 from mesa_frames.concrete.agents import AgentsDF
 
-if TYPE_CHECKING:
-    from mesa_frames.abstract.agents import AgentSetDF
 
-
+@beartype
 class ModelDF:
     """Base class for models in the mesa-frames library.
 

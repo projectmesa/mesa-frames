@@ -48,8 +48,10 @@ from typing_extensions import Any, overload
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import DataFrame, PandasMask
 import warnings
+from beartype import beartype
 
 
+@beartype
 class PandasMixin(DataFrameMixin):
     """WARNING: PandasMixin is deprecated and will be removed in the next release of mesa-frames.
     pandas-based implementation of DataFrame operations.

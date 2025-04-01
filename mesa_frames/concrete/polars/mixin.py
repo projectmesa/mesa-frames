@@ -48,12 +48,14 @@ from typing import Literal
 
 import pandas as pd
 import polars as pl
+from beartype import beartype
 from typing_extensions import Any, overload
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import DataFrame, PolarsMask
 
 
+@beartype
 class PolarsMixin(DataFrameMixin):
     """Polars-specific implementation of DataFrame operations."""
 

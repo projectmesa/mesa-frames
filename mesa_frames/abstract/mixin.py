@@ -50,8 +50,10 @@ from typing import Literal
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series
+from beartype import beartype
 
 
+@beartype
 class CopyMixin(ABC):
     """A mixin class that provides a fast copy method for the class that inherits it."""
 
@@ -173,6 +175,7 @@ class CopyMixin(ABC):
         return self.copy(deep=True, memo=memo)
 
 
+@beartype
 class DataFrameMixin(ABC):
     """A mixin class which defines an interface for DataFrame operations. Most methods are abstract and should be implemented by the concrete backend."""
 

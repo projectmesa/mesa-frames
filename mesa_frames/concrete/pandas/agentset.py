@@ -51,26 +51,23 @@ For more detailed information on the AgentSetPandas class and its methods,
 refer to the class docstring.
 """
 
+import warnings
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 import polars as pl
 from typing_extensions import Any, Self, overload
+from beartype import beartype
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.pandas.mixin import PandasMixin
 from mesa_frames.concrete.polars.agentset import AgentSetPolars
 from mesa_frames.types_ import AgentPandasMask, PandasIdsLike
 from mesa_frames.utils import copydoc
-import warnings
 
 
-if TYPE_CHECKING:
-    from mesa_frames.concrete.model import ModelDF
-
-
+@beartype
 @copydoc(AgentSetDF)
 class AgentSetPandas(AgentSetDF, PandasMixin):
     """WARNING: AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.
@@ -85,7 +82,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         "_mask": ("copy", ["deep"]),
     }
 
-    def __init__(self, model: "ModelDF") -> None:
+    def __init__(self, model: "mesa_frames.concrete.model.ModelDF") -> None:
         """Initialize a new AgentSetPandas.
 
         Overload this method to add custom initialization logic but make sure to call super().__init__(model).
