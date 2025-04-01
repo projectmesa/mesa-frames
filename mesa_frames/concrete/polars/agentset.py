@@ -402,7 +402,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             return pl.repeat(True, len(self._agents))
         elif mask == "active":
             return self._mask
-        elif isinstance(mask, Collection) and not isinstance(mask, str):
+        elif isinstance(mask, Collection):
             return bool_mask_from_series(pl.Series(mask, dtype=pl.UInt64))
         else:
             return bool_mask_from_series(pl.Series([mask], dtype=pl.UInt64))
@@ -435,7 +435,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         elif mask == "active":
             return self._agents.filter(self._mask)
         else:
-            if isinstance(mask, Collection) and not isinstance(mask, str):
+            if isinstance(mask, Collection):
                 mask_series = pl.Series(mask, dtype=pl.UInt64)
             else:
                 mask_series = pl.Series([mask], dtype=pl.UInt64)

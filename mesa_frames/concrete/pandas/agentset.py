@@ -327,7 +327,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             return pd.Series(True, index=self._agents.index)
         elif isinstance(mask, str) and mask == "active":
             return self._mask
-        elif isinstance(mask, Collection) and not isinstance(mask, str):
+        elif isinstance(mask, Collection):
             return pd.Series(self._agents.index.isin(mask), index=self._agents.index)
         else:
             return pd.Series(self._agents.index.isin([mask]), index=self._agents.index)
