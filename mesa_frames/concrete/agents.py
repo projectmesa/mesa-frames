@@ -82,7 +82,7 @@ class AgentsDF(AgentContainer):
         """
         self._model = model
         self._agentsets = []
-        self._ids = pl.Series(name="unique_id", dtype=pl.Utf8)
+        self._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
 
     def add(
         self, agents: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True
@@ -221,7 +221,7 @@ class AgentsDF(AgentContainer):
             # We have to get the index of the original AgentSetDF because the copy made AgentSetDFs with different hash
             ids = [self._agentsets.index(agentset) for agentset in iter(agents)]
             ids.sort(reverse=True)
-            removed_ids = pl.Series(dtype=pl.Utf8)
+            removed_ids = pl.Series(dtype=pl.UInt64)
             for id in ids:
                 removed_ids = pl.concat(
                     [removed_ids, pl.Series(obj._agentsets[id]["unique_id"])]
@@ -351,7 +351,7 @@ class AgentsDF(AgentContainer):
         """
         presence_df = pl.DataFrame(
             data={"unique_id": self._ids, "present": True},
-            schema={"unique_id": pl.Utf8, "present": pl.Boolean},
+            schema={"unique_id": pl.UInt64, "present": pl.Boolean},
         )
         for agentset in other:
             new_ids = pl.Series(agentset.index)

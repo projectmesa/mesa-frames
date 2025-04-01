@@ -128,7 +128,7 @@ class Test_AgentSetPolars:
 
         # Test with a single value
         assert agents.contains(agents["unique_id"][0])
-        assert not agents.contains("not_a_unique_id")
+        assert not agents.contains(0)
 
         # Test with a list
         assert all(agents.contains(agents["unique_id"][0, 1]) == [True, True])
@@ -223,7 +223,7 @@ class Test_AgentSetPolars:
         agents.remove(agents["unique_id"][0, 1])
         assert all(agents.agents["unique_id"] == remaining_agents_id)
         with pytest.raises(KeyError):
-            agents.remove(["not_a_unique_id"])
+            agents.remove([0])
 
     def test_select(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
@@ -340,7 +340,7 @@ class Test_AgentSetPolars:
         # Test with a single value
         agents = fix1_AgentSetPolars
         assert agents["unique_id"][0] in agents
-        assert "not_a_unique_id" not in agents
+        assert 0 not in agents
 
     def test__copy__(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars

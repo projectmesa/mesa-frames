@@ -138,14 +138,13 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                     "Length of data must match the number of columns in the AgentSet if being added as a Collection."
                 )
             new_agents = pl.DataFrame(
-                [[uuid.uuid4().hex] + agents], schema=obj._agents.schema
+                [self._generate_unique_ids(1).to_list() + agents],
+                schema=obj._agents.schema
             )
 
         if "unique_id" not in new_agents:
             new_agents = new_agents.with_columns(
-                pl.Series([uuid.uuid4().hex for _ in range(len(new_agents))]).alias(
-                    "unique_id"
-                )
+                self._generate_unique_ids(len(new_agents)).alias("unique_id")
             )
 
         # If self._mask is pl.Expr, then new mask is the same.
@@ -174,7 +173,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         if isinstance(agents, pl.Series):
             return agents.is_in(self._agents["unique_id"])
         elif isinstance(agents, Collection) and not isinstance(agents, str):
-            return pl.Series(agents).is_in(self._agents["unique_id"])
+            return pl.Series(agents, dtype=pl.UInt64).is_in(self._agents["unique_id"])
         else:
             return agents in self._agents["unique_id"]
 
@@ -238,9 +237,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             )
         unique_id_column = None
         if "unique_id" not in obj._agents:
-            unique_id_column = pl.Series(
-                [uuid.uuid4().hex for _ in range(len(masked_df))]
-            ).alias("unique_id")
+            unique_id_column = self._generate_unique_ids(len(masked_df)).alias("unique_id")
             obj._agents = obj._agents.with_columns(unique_id_column)
             masked_df = masked_df.with_columns(unique_id_column)
         b_mask = obj._get_bool_mask(mask)
@@ -404,9 +401,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         elif mask == "active":
             return self._mask
         elif isinstance(mask, Collection) and not isinstance(mask, str):
-            return bool_mask_from_series(pl.Series(mask))
+            return bool_mask_from_series(pl.Series(mask, dtype=pl.UInt64))
         else:
-            return bool_mask_from_series(pl.Series([mask]))
+            return bool_mask_from_series(pl.Series([mask], dtype=pl.UInt64))
 
     def _get_masked_df(
         self,
@@ -437,9 +434,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             return self._agents.filter(self._mask)
         else:
             if isinstance(mask, Collection) and not isinstance(mask, str):
-                mask_series = pl.Series(mask)
+                mask_series = pl.Series(mask, dtype=pl.UInt64)
             else:
-                mask_series = pl.Series([mask])
+                mask_series = pl.Series([mask], dtype=pl.UInt64)
             if not mask_series.is_in(self._agents["unique_id"]).all():
                 raise KeyError(
                     "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
@@ -482,6 +479,13 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     def __getattr__(self, key: str) -> pl.Series:
         super().__getattr__(key)
         return self._agents[key]
+    
+    def _generate_unique_ids(self, n: int) -> pl.Series:
+        return pl.Series(
+            self.random.integers(
+                1, np.iinfo(np.uint64).max, size=n, dtype=np.uint64
+            )
+        )
 
     @overload
     def __getitem__(
