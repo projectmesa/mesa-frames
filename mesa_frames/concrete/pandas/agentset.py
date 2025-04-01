@@ -53,7 +53,6 @@ refer to the class docstring.
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
-import uuid
 import warnings
 
 import numpy as np
@@ -105,7 +104,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         self._model = model
         self._agents = (
             pd.DataFrame(columns=["unique_id"])
-            .astype({"unique_id": str})
+            .astype({"unique_id": np.uint64})
             .set_index("unique_id")
         )
         self._mask = pd.Series(True, index=self._agents.index, dtype=pd.BooleanDtype())
@@ -138,9 +137,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             new_agents = pd.DataFrame([agents], columns=obj._agents.columns.copy())
 
         if not isinstance(agents, AgentSetDF):
-            new_agents["unique_id"] = pd.Series(
-                [uuid.uuid4().hex for _ in range(len(new_agents))], dtype=str
-            )
+            new_agents["unique_id"] = self._generate_unique_ids(len(new_agents))
             new_agents.set_index("unique_id", inplace=True, drop=True)
 
         if not obj._agents.index.intersection(new_agents.index).empty:
@@ -214,8 +211,7 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         ) and values is not None:
             if isinstance(values, Collection) and len(values) > len(masked_df):
                 values.index = pd.Index(
-                    [uuid.uuid4().hex for _ in range(len(values) - len(masked_df))],
-                    dtype=object,
+                    self._generate_unique_ids(len(values)), name="unique_id"
                 )
             if not isinstance(attr_names, str):  # isinstance(attr_names, Collection)
                 attr_names = list(attr_names)
@@ -407,6 +403,18 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
                 index=self._agents.index,
                 dtype=pd.BooleanDtype(),
             )
+
+    def _generate_unique_ids(self, n: int) -> pd.Series:
+        # Generating unique ids as uint64 there is a 50% chance of creating a value which fits in a int64
+        # pl.Series constructor infers dtype from elements passed, so if the passed values fit is a int64
+        # the created series will be of dtype int64.
+        # To make these types of bugs reproducible, when __debug__ is True every ids will be generated bigger than a int64
+        low = 1 if not __debug__ else np.iinfo(np.int64).max + 1
+        return pd.Series(
+            self.random.integers(
+                low, np.iinfo(np.uint64).max, size=n, dtype=np.uint64
+            )
+        )
 
     def __getattr__(self, name: str) -> Any:  # noqa : D105
         super().__getattr__(name)

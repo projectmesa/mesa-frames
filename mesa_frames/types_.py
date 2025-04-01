@@ -15,7 +15,7 @@ AgnosticMask = (
     Any | Sequence[Any] | None
 )  # Any is a placeholder for any type if it's a single value
 AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
-AgnosticIds = str | Collection[str]
+AgnosticIds = int | Collection[int]
 
 ###----- pandas Types -----###
 

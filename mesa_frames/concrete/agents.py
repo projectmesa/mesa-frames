@@ -48,6 +48,7 @@ from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING, Literal, cast
 
+import numpy as np
 import polars as pl
 from typing_extensions import Any, Self, overload
 
@@ -124,7 +125,7 @@ class AgentsDF(AgentContainer):
     def contains(
         self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]
     ) -> bool | pl.Series:
-        if isinstance(agents, str):
+        if isinstance(agents, np.uint64):
             return agents in self._ids
         elif isinstance(agents, AgentSetDF):
             return self._check_agentsets_presence([agents]).any()
@@ -137,7 +138,7 @@ class AgentsDF(AgentContainer):
             else:  # IDsLike
                 agents = cast(IdsLike, agents)
 
-                return pl.Series(agents).is_in(self._ids)
+                return pl.Series(agents, dtype=pl.UInt64).is_in(self._ids)
 
     @overload
     def do(
@@ -224,16 +225,16 @@ class AgentsDF(AgentContainer):
             removed_ids = pl.Series(dtype=pl.UInt64)
             for id in ids:
                 removed_ids = pl.concat(
-                    [removed_ids, pl.Series(obj._agentsets[id]["unique_id"])]
+                    [removed_ids, pl.Series(obj._agentsets[id]["unique_id"], dtype=pl.UInt64)]
                 )
                 obj._agentsets.pop(id)
 
         else:  # IDsLike
-            if isinstance(agents, str):
+            if isinstance(agents, (int, np.uint64)):
                 agents = [agents]
             elif isinstance(agents, DataFrame):
                 agents = agents["unique_id"]
-            removed_ids = pl.Series(agents)
+            removed_ids = pl.Series(agents, dtype=pl.UInt64)
             deleted = 0
 
             for agentset in obj._agentsets:
@@ -354,7 +355,7 @@ class AgentsDF(AgentContainer):
             schema={"unique_id": pl.UInt64, "present": pl.Boolean},
         )
         for agentset in other:
-            new_ids = pl.Series(agentset.index)
+            new_ids = pl.Series(agentset.index, dtype=pl.UInt64)
             presence_df = pl.concat(
                 [
                     presence_df,
