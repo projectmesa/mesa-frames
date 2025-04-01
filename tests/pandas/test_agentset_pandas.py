@@ -207,7 +207,7 @@ class Test_AgentSetPandas:
         result = agents.remove(agents.index[[0, 1]], inplace=False)
         assert all(result.index == agents.index[[2, 3]])
         with pytest.raises(KeyError):
-            agents.remove(["not_present_agent_unique_id"])
+            agents.remove([0])
 
     def test_select(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
         agents = fix1_AgentSetPandas
@@ -317,7 +317,7 @@ class Test_AgentSetPandas:
         # Test with a single value
         agents = fix1_AgentSetPandas
         assert agents["unique_id"][0] in agents
-        assert "not_present_agent_unique_id" not in agents
+        assert 0 not in agents
 
     def test__copy__(self, fix1_AgentSetPandas: ExampleAgentSetPandas):
         agents = fix1_AgentSetPandas
