@@ -89,7 +89,7 @@ test = [
 dev = [
   "mesa_frames[test, docs]",
   "mesa~=2.4.0",
-  "numba",
+  "numba>=0.60",
 ]
 
 [tool.hatch.envs.test]
