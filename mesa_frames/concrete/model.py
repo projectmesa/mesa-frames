@@ -183,7 +183,9 @@ class ModelDF:
     @agents.setter
     def agents(self, agents: AgentsDF) -> None:
         if __debug__:  # Only execute in non-optimized mode
-            assert isinstance(agents, AgentsDF), "agents must be an instance of AgentsDF"
+            assert isinstance(agents, AgentsDF), (
+                "agents must be an instance of AgentsDF"
+            )
         self._agents = agents
 
     @property
