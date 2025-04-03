@@ -33,8 +33,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Life",
 ]
 dependencies = [
-  "numpy~=2.0.2",
-  "numba",
+  "numpy>=2.0.2",
   "typing-extensions>=4.9", #typing-extensions.Self added in 4.9
   ## pandas
   "pandas>=2.2",
