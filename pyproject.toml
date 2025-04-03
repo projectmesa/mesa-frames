@@ -32,7 +32,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Life",
 ]
 dependencies = [
-  "numpy~=1.26",
+  "numpy>=2.0.2",
   "typing-extensions>=4.9", #typing-extensions.Self added in 4.9
   "pyarrow",
   ## polars
@@ -85,7 +85,7 @@ test = [
 dev = [
   "mesa_frames[test, docs]",
   "mesa~=2.4.0",
-  "numba",
+  "numba>=0.60",
 ]
 
 [tool.hatch.envs.test]

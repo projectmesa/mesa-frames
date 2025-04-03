@@ -5,6 +5,8 @@ import numpy as np
 import perfplot
 import polars as pl
 import seaborn as sns
+import importlib.metadata
+from packaging import version
 
 from mesa_frames import AgentSetPolars, ModelDF
 
@@ -41,7 +43,11 @@ class MoneyModel(mesa.Model):
         super().__init__()
         self.num_agents = N
         # Create scheduler and assign it to the model
-        self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
+        installed_version = version.parse(importlib.metadata.version("mesa"))
+        required_version = version.parse("2.4.0")
+
+        if installed_version < required_version:
+            self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
 
     def step(self):
         """Advance the model by one step."""
