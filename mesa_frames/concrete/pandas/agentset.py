@@ -70,9 +70,11 @@ from mesa_frames.utils import copydoc
 @beartype
 @copydoc(AgentSetDF)
 class AgentSetPandas(AgentSetDF, PandasMixin):
-    """WARNING: AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.
+    """
+    WARNING: AgentSetPandas is deprecated and will be removed in the next release of mesa-frames.
 
     pandas-based implementation of AgentSetDF.
+
     """
 
     _agents: pd.DataFrame
