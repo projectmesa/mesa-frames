@@ -43,7 +43,7 @@ dependencies = [
   "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
   #"geopolars" (currently in pre-alpha)
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dynamic = [
   "version"
 ]
