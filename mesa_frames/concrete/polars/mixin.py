@@ -173,7 +173,7 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_constructor(
         self,
-        data: dict[str | Any] | Sequence[Sequence] | DataFrame | None = None,
+        data: dict[str, Any] | Sequence[Sequence] | DataFrame | None = None,
         columns: list[str] | None = None,
         index: Sequence[Hashable] | None = None,
         index_cols: str | list[str] | None = None,

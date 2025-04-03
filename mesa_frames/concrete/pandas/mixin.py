@@ -163,7 +163,7 @@ class PandasMixin(DataFrameMixin):
 
     def _df_constructor(
         self,
-        data: Sequence[Sequence] | dict[str | Any] | DataFrame | None = None,
+        data: Sequence[Sequence] | dict[str, Any] | DataFrame | None = None,
         columns: list[str] | None = None,
         index: Sequence[Hashable] | None = None,
         index_cols: str | list[str] | None = None,
