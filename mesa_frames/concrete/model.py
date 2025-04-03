@@ -175,13 +175,15 @@ class ModelDF:
         try:
             return self._agents
         except AttributeError:
-            assert False, (
-                "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
-            )
+            if __debug__:  # Only execute in non-optimized mode
+                assert False, (
+                    "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
+                )
 
     @agents.setter
     def agents(self, agents: AgentsDF) -> None:
-        assert isinstance(agents, AgentsDF), "agents must be an instance of AgentsDF"
+        if __debug__:  # Only execute in non-optimized mode
+            assert isinstance(agents, AgentsDF), "agents must be an instance of AgentsDF"
         self._agents = agents
 
     @property

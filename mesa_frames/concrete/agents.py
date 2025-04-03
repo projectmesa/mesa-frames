@@ -439,9 +439,10 @@ class AgentsDF(AgentContainer):
 
     def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
         # Avoids infinite recursion of private attributes
-        assert not name.startswith("_"), (
-            f"'{self.__class__.__name__}' object has no attribute '{name}'"
-        )
+        if __debug__:  # Only execute in non-optimized mode
+            assert not name.startswith("_"), (
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
         return {agentset: getattr(agentset, name) for agentset in self._agentsets}
 
     @overload

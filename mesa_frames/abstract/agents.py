@@ -999,9 +999,10 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any:
-        assert name != "_agents", (
-            "The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
-        )
+        if __debug__:  # Only execute in non-optimized mode
+            assert name != "_agents", (
+                "The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
+            )
 
     @overload
     def __getitem__(self, key: str | tuple[AgentMask, str]) -> Series | DataFrame: ...
