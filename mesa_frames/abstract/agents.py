@@ -17,7 +17,7 @@ Classes:
         to combine agent container functionality with DataFrame operations.
 
 These abstract classes are designed to be subclassed by concrete implementations
-that use specific DataFrame libraries (e.g., pandas, Polars) as their backend.
+that use Polars library as their backend.
 
 Usage:
     These classes should not be instantiated directly. Instead, they should be
@@ -25,10 +25,10 @@ Usage:
 
     from mesa_frames.abstract.agents import AgentSetDF
 
-    class AgentSetPandas(AgentSetDF):
+    class AgentSetPolars(AgentSetDF):
         def __init__(self, model):
             super().__init__(model)
-            # Implementation using pandas DataFrame
+            # Implementation using polars DataFrame
             ...
 
         # Implement other abstract methods
@@ -541,10 +541,9 @@ class AgentContainer(CopyMixin):
 
     def __setitem__(
         self,
-        key: str
-        | Collection[str]
-        | AgentMask
-        | tuple[AgentMask, str | Collection[str]],
+        key: (
+            str | Collection[str] | AgentMask | tuple[AgentMask, str | Collection[str]]
+        ),
         values: Any,
     ) -> None:
         """Implement the [] operator for setting values in the AgentContainer.
