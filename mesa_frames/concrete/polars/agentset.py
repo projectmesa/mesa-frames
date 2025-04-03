@@ -143,7 +143,13 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         if isinstance(obj._mask, pl.Series):
             original_active_indices = obj._agents.filter(obj._mask)["unique_id"]
 
-        obj._agents = pl.concat([obj._agents, new_agents], how="diagonal_relaxed")
+        combined_agents = pl.concat([obj._agents, new_agents], how="diagonal_relaxed")
+        if combined_agents["unique_id"].is_duplicated().any():
+            raise ValueError(
+                "Some ids are duplicated in the AgentSet that are trying to be added together."
+            )
+
+        obj._agents = combined_agents
 
         if isinstance(obj._mask, pl.Series):
             obj._update_mask(original_active_indices, new_agents["unique_id"])
