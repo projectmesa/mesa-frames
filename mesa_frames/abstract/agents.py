@@ -999,8 +999,8 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any:
-        if name == "_agents":
-            raise RuntimeError(
+        if __debug__:  # Only execute in non-optimized mode
+            assert name != "_agents", (
                 "The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
             )
 
