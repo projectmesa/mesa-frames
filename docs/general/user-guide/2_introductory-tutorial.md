@@ -141,20 +141,6 @@ mesa-frames (pl native):
   Number of agents: 500000, Time: 1.55 seconds
   Number of agents: 700000, Time: 2.61 seconds
 ---------------
----------------
-mesa-frames (pd concise):
-  Number of agents: 100000, Time: 2.37 seconds
-  Number of agents: 300000, Time: 7.47 seconds
-  Number of agents: 500000, Time: 13.29 seconds
-  Number of agents: 700000, Time: 18.32 seconds
----------------
----------------
-mesa-frames (pd native):
-  Number of agents: 100000, Time: 1.63 seconds
-  Number of agents: 300000, Time: 5.76 seconds
-  Number of agents: 500000, Time: 9.48 seconds
-  Number of agents: 700000, Time: 13.58 seconds
----------------
 ```
 
 Speed-up over mesa: 🚀
@@ -171,27 +157,11 @@ mesa-frames (pl native):
   Number of agents: 300000, Speed-up: 17.60x 💨
   Number of agents: 500000, Speed-up: 17.34x 💨
   Number of agents: 700000, Speed-up: 15.46x 💨
----------------
-mesa-frames (pd concise):
-  Number of agents: 100000, Speed-up: 1.60x 💨
-  Number of agents: 300000, Speed-up: 2.00x 💨
-  Number of agents: 500000, Speed-up: 2.02x 💨
-  Number of agents: 700000, Speed-up: 2.20x 💨
----------------
-mesa-frames (pd native):
-  Number of agents: 100000, Speed-up: 2.33x 💨
-  Number of agents: 300000, Speed-up: 2.60x 💨
-  Number of agents: 500000, Speed-up: 2.83x 💨
-  Number of agents: 700000, Speed-up: 2.97x 💨
----------------
 ```
 
 ## Conclusion 🎉
 
 - All mesa-frames implementations significantly outperform the original mesa implementation. 🏆
-- The Polars backend consistently provides better performance than the pandas backend. 🐻‍❄️ > 🐼
 - The native implementation for Polars shows better performance than their concise counterparts. 💪
 - The Polars native implementation shows the most impressive speed-up, ranging from 10.86x to 17.60x faster than mesa! 🚀🚀🚀
-- Even the "slowest" mesa-frames implementation (pandas concise) is still 1.60x to 2.20x faster than mesa. 👍
 - The performance advantage of mesa-frames becomes more pronounced as the number of agents increases. 📈
-- Experiments were conducted using both Polars and pandas; however, the pandas implementation has been deprecated.

@@ -72,24 +72,6 @@ Here's a comparison between mesa-frames and mesa:
 
 As you can see, while in mesa you should iterate through all the agents' steps in the model class, here you execute the method once for all agents.
 
-### Backend Flexibility 🔄
-
-mesa-frames aims to support multiple DataFrame backends:
-The supported backends right now are
-
-- **Polars**: A high-performance DataFrame library written in Rust
-
-Users can use the polars backend:
-
-```python
-from mesa_frames import AgentSetPolars
-```
-
-Currently, AgentSetDF and GridDF are implemented using the Polars backend as AgentSetPolars and GridPolars.
-We encourage you to use the Polars implementation for increased performance. We are working on creating a unique interface [here](https://github.com/projectmesa/mesa-frames/discussions/12). Let us know what you think!
-
-Soon we will also have multiple other backends like Dask, cuDF, and Dask-cuDF!
-
 ## Coming from mesa 🔀
 
 If you're familiar with mesa, this guide will help you understand the key differences in code structure between mesa and mesa-frames.

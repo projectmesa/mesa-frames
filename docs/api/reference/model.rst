@@ -1,5 +1,5 @@
-ModelDF
-=======
+Model
+=====
 
 .. currentmodule:: mesa_frames
 
