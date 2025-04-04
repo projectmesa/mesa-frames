@@ -1,55 +1,44 @@
 """
-Pandas-based implementation of spatial structures for mesa-frames.
+Polars-based implementation of spatial structures for mesa-frames.
 
-This module provides concrete implementations of spatial structures using pandas
-as the backend for DataFrame operations. It defines the GridPandas class, which
-implements a 2D grid structure using pandas DataFrames for efficient spatial
+This module provides concrete implementations of spatial structures using Polars
+as the backend for DataFrame operations. It defines the GridPolars class, which
+implements a 2D grid structure using Polars DataFrames for efficient spatial
 operations and agent positioning.
 
 Classes:
-    GridPandas(GridDF, PandasMixin):
-        A pandas-based implementation of a 2D grid. This class uses pandas
+    GridPolars(GridDF, PolarsMixin):
+        A Polars-based implementation of a 2D grid. This class uses Polars
         DataFrames to store and manipulate spatial data, providing high-performance
         operations for large-scale spatial simulations.
 
-The GridPandas class is designed to be used within ModelDF instances to represent
-the spatial environment of the simulation. It leverages the power of pandas for
+The GridPolars class is designed to be used within ModelDF instances to represent
+the spatial environment of the simulation. It leverages the power of Polars for
 fast and efficient data operations on spatial attributes and agent positions.
 
 Usage:
-    The GridPandas class can be used directly in a model to represent the
+    The GridPolars class can be used directly in a model to represent the
     spatial environment:
 
     from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.pandas.space import GridPandas
-    from mesa_frames.concrete.pandas.agentset import AgentSetPandas
+    from mesa_frames.concrete.space import GridPolars
+    from mesa_frames.concrete.agentset import AgentSetPolars
 
-    class MyAgents(AgentSetPandas):
+    class MyAgents(AgentSetPolars):
         # ... agent implementation ...
 
     class MyModel(ModelDF):
         def __init__(self, width, height):
             super().__init__()
-            self.space = GridPandas(self, [width, height])
+            self.space = GridPolars(self, [width, height])
             self.agents += MyAgents(self)
 
         def step(self):
             # Move agents
-            self.space.move_agents(self.agents, positions)
+            self.space.move_agents(self.agents)
             # ... other model logic ...
 
-Features:
-    - Efficient storage and retrieval of agent positions
-    - Fast operations for moving agents and querying neighborhoods
-    - Seamless integration with pandas-based agent sets
-    - Support for various boundary conditions (e.g., wrapped, bounded)
-
-Note:
-    This implementation relies on pandas, so users should ensure that pandas
-    is installed and imported. The performance characteristics of this class
-    will depend on the pandas version and the specific operations used.
-
-For more detailed information on the GridPandas class and its methods,
+For more detailed information on the GridPolars class and its methods,
 refer to the class docstring.
 """
 
@@ -57,46 +46,35 @@ from collections.abc import Callable, Sequence
 from typing import Literal
 
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from mesa_frames.abstract.space import GridDF
-from mesa_frames.concrete.pandas.mixin import PandasMixin
+from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.utils import copydoc
-import warnings
 
 
 @copydoc(GridDF)
-class GridPandas(GridDF, PandasMixin):
-    """WARNING: GridPandas is deprecated and will be removed in the next release of mesa-frames.
-    pandas-based implementation of GridDF.
-    """  # noqa: D205
+class GridPolars(GridDF, PolarsMixin):
+    """Polars-based implementation of GridDF."""
 
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "GridPandas is deprecated and will be removed in the next release of mesa-frames.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__init__(*args, **kwargs)
-
-    _agents: pd.DataFrame
+    _agents: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
-        "_agents": ("copy", ["deep"]),
-        "_cells": ("copy", ["deep"]),
+        "_agents": ("clone", []),
+        "_cells": ("clone", []),
         "_cells_capacity": ("copy", []),
-        "_offsets": ("copy", ["deep"]),
+        "_offsets": ("clone", []),
     }
-    _cells: pd.DataFrame
+    _cells: pl.DataFrame
     _cells_capacity: np.ndarray
-    _offsets: pd.DataFrame
+    _offsets: pl.DataFrame
 
     def _empty_cell_condition(self, cap: np.ndarray) -> np.ndarray:
         # Create a boolean mask of the same shape as cap
         empty_mask = np.ones_like(cap, dtype=bool)
 
-        if not self._agents.empty:
+        if not self._agents.is_empty():
             # Get the coordinates of all agents
-            agent_coords = self._agents[self._pos_col_names].to_numpy(int)
+            agent_coords = self._agents[self._pos_col_names].to_numpy()
 
             # Mark cells containing agents as not empty
             empty_mask[tuple(agent_coords.T)] = False
@@ -116,13 +94,9 @@ class GridPandas(GridDF, PandasMixin):
         with_replacement: bool,
         condition: Callable[[np.ndarray], np.ndarray],
         respect_capacity: bool = True,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
         # Get the coordinates of cells that meet the condition
         coords = np.array(np.where(condition(self._cells_capacity))).T
-
-        # If the grid has infinite capacity, there is no need to respect capacity
-        if np.any(self._cells_capacity == np.inf):
-            respect_capacity = False
 
         if respect_capacity and condition != self._full_cell_condition:
             capacities = self._cells_capacity[tuple(coords.T)]
@@ -180,12 +154,14 @@ class GridPandas(GridDF, PandasMixin):
             sampled_coords = coords
 
         # Convert the coordinates to a DataFrame
-        sampled_cells = pd.DataFrame(sampled_coords, columns=self._pos_col_names)
+        sampled_cells = pl.DataFrame(
+            sampled_coords, schema=self._pos_col_names, orient="row"
+        )
         return sampled_cells
 
     def _update_capacity_agents(
         self,
-        agents: pd.DataFrame,
+        agents: pl.DataFrame,
         operation: Literal["movement", "removal"],
     ) -> np.ndarray:
         # Update capacity for agents that were already on the grid
@@ -195,29 +171,33 @@ class GridPandas(GridDF, PandasMixin):
 
         if operation == "movement":
             # Increase capacity at old positions
-            old_positions = tuple(masked_df[self._pos_col_names].to_numpy(int).T)
+            old_positions = tuple(masked_df[self._pos_col_names].to_numpy().T)
             np.add.at(self._cells_capacity, old_positions, 1)
 
             # Decrease capacity at new positions
-            new_positions = tuple(agents[self._pos_col_names].to_numpy(int).T)
+            new_positions = tuple(agents[self._pos_col_names].to_numpy().T)
             np.add.at(self._cells_capacity, new_positions, -1)
         elif operation == "removal":
             # Increase capacity at the positions of removed agents
-            positions = tuple(masked_df[self._pos_col_names].to_numpy(int).T)
+            positions = tuple(masked_df[self._pos_col_names].to_numpy().T)
             np.add.at(self._cells_capacity, positions, 1)
         return self._cells_capacity
 
-    def _update_capacity_cells(self, cells: pd.DataFrame) -> np.ndarray:
+    def _update_capacity_cells(self, cells: pl.DataFrame) -> np.ndarray:
         # Get the coordinates of the cells to update
-        coords = cells.index
+        coords = cells[self._pos_col_names]
 
         # Get the current capacity of updatable cells
-        current_capacity = self._cells.reindex(coords, fill_value=self._capacity)[
-            "capacity"
-        ].to_numpy()
+        current_capacity = (
+            coords.join(self._cells, on=self._pos_col_names, how="left")
+            .fill_null(self._capacity)["capacity"]
+            .to_numpy()
+        )
 
         # Calculate the number of agents currently in each cell
-        agents_in_cells = current_capacity - self._cells_capacity[tuple(zip(*coords))]
+        agents_in_cells = (
+            current_capacity - self._cells_capacity[tuple(zip(*coords.to_numpy()))]
+        )
 
         # Update the capacity in self._cells_capacity
         new_capacity = cells["capacity"].to_numpy() - agents_in_cells
@@ -227,7 +207,7 @@ class GridPandas(GridDF, PandasMixin):
             "New capacity of a cell cannot be less than the number of agents in it."
         )
 
-        self._cells_capacity[tuple(zip(*coords))] = new_capacity
+        self._cells_capacity[tuple(zip(*coords.to_numpy()))] = new_capacity
 
         return self._cells_capacity
 

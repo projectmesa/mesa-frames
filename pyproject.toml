@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mesa_frames"
-description = "An extension to the Mesa framework which uses pandas/Polars DataFrames for enhanced performance"
+description = "An extension to the Mesa framework which uses Polars DataFrames for enhanced performance"
 authors = [
   { name = "Project Mesa Team", email = "projectmesa@googlegroups.com" },
   { name = "Adam Amer"},
@@ -15,7 +15,6 @@ keywords = [
     "simulation",
     "simulation-environment",
     "gis",
-    "pandas",
     "simulation-framework",
     "agent-based-modeling",
     "complex-systems",
@@ -33,12 +32,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Life",
 ]
 dependencies = [
-  "numpy~=1.26",
+  "numpy>=2.0.2",
   "typing-extensions>=4.9", #typing-extensions.Self added in 4.9
-  ## pandas
-  "pandas>=2.2",
-  "pyarrow", #for conversion to pandas
-  #"geopandas" (only after GeoGrid / ContinousSpace is implemented)
+  "pyarrow",
   ## polars
   "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
   #"geopolars" (currently in pre-alpha)
@@ -93,6 +89,7 @@ test = [
 dev = [
   "mesa_frames[test, docs, numba]",
   "mesa~=2.4.0",
+  "numba>=0.60",
 ]
 
 [tool.hatch.envs.test]
