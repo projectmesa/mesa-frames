@@ -42,7 +42,6 @@ class SugarscapeMesa(mesa.Model):
         self.width, self.height = sugar_grid.shape
         self.n_agents = n_agents
         self.space = mesa.space.MultiGrid(self.width, self.height, torus=False)
-        self.sugars = []
 
         # Create sugar resources
         sugar_count = 0
@@ -50,7 +49,6 @@ class SugarscapeMesa(mesa.Model):
             max_sugar = sugar_grid[x, y]
             sugar = Sugar(self, max_sugar)
             self.space.place_agent(sugar, (x, y))
-            self.sugars.append(sugar)
             sugar_count += 1
 
         # Create AntMesa agents
@@ -89,7 +87,7 @@ class SugarscapeMesa(mesa.Model):
             ant.step()
 
         # Process Sugar agents directly
-        for sugar in self.sugars:
+        for sugar in [agent for agent in self.agents if isinstance(agent, Sugar)]:
             sugar.step()
 
     def run_model(self, step_count=200):
