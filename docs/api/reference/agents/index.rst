@@ -1,13 +1,8 @@
-AgentSetDF
-==========
+Agents
+======
 
 .. currentmodule:: mesa_frames
 
-.. autoclass:: AgentSetPandas
-    :members:
-    :inherited-members:
-    :autosummary:
-    :autosummary-nosignatures:
 
 .. autoclass:: AgentSetPolars
     :members:
@@ -15,3 +10,8 @@ AgentSetDF
     :autosummary:
     :autosummary-nosignatures:
 
+.. autoclass:: AgentsDF
+    :members:
+    :inherited-members:
+    :autosummary:
+    :autosummary-nosignatures:
