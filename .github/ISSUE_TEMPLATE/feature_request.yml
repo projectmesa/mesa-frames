@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this feature request! 🙏  
+        Thanks for taking the time to fill out this feature request! 🙏
         We appreciate your ideas to improve our project.
   - type: textarea
     id: problem_description
