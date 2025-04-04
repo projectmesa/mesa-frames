@@ -115,4 +115,5 @@ nav:
   - API Reference: api/index.html
   - Contributing:
     - Contribution Guide: contributing.md
+    - Benchmarking: contributing/benchmarks.md
     - Roadmap: roadmap.md

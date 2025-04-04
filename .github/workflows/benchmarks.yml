@@ -1,0 +1,250 @@
+name: Benchmarks
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Add explicit permissions for the workflow
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  benchmark:
+    name: Run Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e ".[dev]"
+        python -m pip install perfplot matplotlib seaborn
+
+    - name: Try to set up GPU support (optional)
+      run: |
+        # Try to install CUDA dependencies for GPU-accelerated benchmarks
+        # This won't fail the workflow if it doesn't work, as most CI runners don't have GPUs
+        python -m pip install numba cupy-cuda11x || echo "GPU support not available (expected for most CI runners)"
+
+    - name: Run SugarScape Benchmark (Small Dataset)
+      run: |
+        cd examples/sugarscape_ig
+        python -c '
+        import sys
+        import time
+        from performance_comparison import SugarScapeSetup, mesa_frames_polars_numba_parallel, mesa_implementation
+
+        # Run a smaller subset for CI benchmarks (faster execution)
+        setup = SugarScapeSetup(50000)
+
+        print("Running mesa-frames implementation...")
+        start_time = time.time()
+        mf_model = mesa_frames_polars_numba_parallel(setup)
+        mf_time = time.time() - start_time
+        print(f"mesa-frames implementation completed in {mf_time:.2f} seconds")
+
+        print("Running mesa implementation...")
+        start_time = time.time()
+        mesa_model = mesa_implementation(setup)
+        mesa_time = time.time() - start_time
+        print(f"mesa implementation completed in {mesa_time:.2f} seconds")
+
+        print("Benchmark complete!")
+
+        # Save timing results for the PR comment
+        with open("sugarscape_results.txt", "w") as f:
+            f.write(f"mesa-frames: {mf_time:.2f}s\n")
+            f.write(f"mesa: {mesa_time:.2f}s\n")
+            f.write(f"speedup: {mesa_time/mf_time:.2f}x\n")
+        '
+
+    - name: Run Boltzmann Wealth Benchmark (Small Dataset)
+      run: |
+        cd examples/boltzmann_wealth
+        python -c '
+        import sys
+        import time
+        from performance_plot import mesa_frames_polars_concise, mesa_implementation
+
+        # Run a smaller subset for CI benchmarks (faster execution)
+        print("Running mesa-frames implementation...")
+        start_time = time.time()
+        mf_model = mesa_frames_polars_concise(10000)
+        mf_time = time.time() - start_time
+        print(f"mesa-frames implementation completed in {mf_time:.2f} seconds")
+
+        print("Running mesa implementation...")
+        start_time = time.time()
+        mesa_model = mesa_implementation(10000)
+        mesa_time = time.time() - start_time
+        print(f"mesa implementation completed in {mesa_time:.2f} seconds")
+
+        print("Benchmark complete!")
+
+        # Save timing results for the PR comment
+        with open("boltzmann_results.txt", "w") as f:
+            f.write(f"mesa-frames: {mf_time:.2f}s\n")
+            f.write(f"mesa: {mesa_time:.2f}s\n")
+            f.write(f"speedup: {mesa_time/mf_time:.2f}x\n")
+        '
+
+    - name: Generate Simple Benchmark Visualizations
+      run: |
+        python -c '
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import os
+
+        # Function to read benchmark results
+        def read_results(filename):
+            results = {}
+            with open(filename, "r") as f:
+                for line in f:
+                    key, value = line.strip().split(": ")
+                    results[key] = value
+            return results
+
+        # Create visualization for Sugarscape benchmark
+        sugarscape_results = read_results("examples/sugarscape_ig/sugarscape_results.txt")
+        boltzmann_results = read_results("examples/boltzmann_wealth/boltzmann_results.txt")
+
+        # Create a simple bar chart comparing execution times
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # Sugarscape plot
+        sugarscape_mesa_time = float(sugarscape_results["mesa"].replace("s", ""))
+        sugarscape_mf_time = float(sugarscape_results["mesa-frames"].replace("s", ""))
+        ax1.bar(["mesa-frames", "mesa"], [sugarscape_mf_time, sugarscape_mesa_time])
+        ax1.set_title("SugarScape Benchmark (50k agents)")
+        ax1.set_ylabel("Execution time (s)")
+        ax1.text(0, sugarscape_mf_time/2, f"{sugarscape_mf_time:.2f}s",
+                ha="center", va="center", color="white", fontweight="bold")
+        ax1.text(1, sugarscape_mesa_time/2, f"{sugarscape_mesa_time:.2f}s",
+                ha="center", va="center", color="white", fontweight="bold")
+        ax1.text(0.5, max(sugarscape_mf_time, sugarscape_mesa_time) * 0.9,
+                f"Speedup: {sugarscape_results[\"speedup\"]}",
+                ha="center", va="center", bbox=dict(facecolor="white", alpha=0.8))
+
+        # Boltzmann plot
+        boltzmann_mesa_time = float(boltzmann_results["mesa"].replace("s", ""))
+        boltzmann_mf_time = float(boltzmann_results["mesa-frames"].replace("s", ""))
+        ax2.bar(["mesa-frames", "mesa"], [boltzmann_mf_time, boltzmann_mesa_time])
+        ax2.set_title("Boltzmann Wealth Benchmark (10k agents)")
+        ax2.set_ylabel("Execution time (s)")
+        ax2.text(0, boltzmann_mf_time/2, f"{boltzmann_mf_time:.2f}s",
+                ha="center", va="center", color="white", fontweight="bold")
+        ax2.text(1, boltzmann_mesa_time/2, f"{boltzmann_mesa_time:.2f}s",
+                ha="center", va="center", color="white", fontweight="bold")
+        ax2.text(0.5, max(boltzmann_mf_time, boltzmann_mesa_time) * 0.9,
+                f"Speedup: {boltzmann_results[\"speedup\"]}",
+                ha="center", va="center", bbox=dict(facecolor="white", alpha=0.8))
+
+        plt.tight_layout()
+        plt.savefig("benchmark_results.png", dpi=150)
+        print("Benchmark visualization saved as benchmark_results.png")
+        '
+
+    - name: Prepare Artifacts Directory
+      run: |
+        mkdir -p benchmark_artifacts
+        cp examples/sugarscape_ig/*.png benchmark_artifacts/ || true
+        cp examples/sugarscape_ig/*.txt benchmark_artifacts/ || true
+        cp examples/boltzmann_wealth/*.png benchmark_artifacts/ || true
+        cp examples/boltzmann_wealth/*.txt benchmark_artifacts/ || true
+        cp benchmark_results.png benchmark_artifacts/ || true
+
+    - name: Save Benchmark Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: benchmark_artifacts
+
+    - name: Log Benchmark Results (Fallback)
+      if: always()
+      run: |
+        echo "===== BENCHMARK RESULTS (FALLBACK) ====="
+        echo "SugarScape Benchmark Results:"
+        if [ -f "examples/sugarscape_ig/sugarscape_results.txt" ]; then
+          cat examples/sugarscape_ig/sugarscape_results.txt
+        else
+          echo "Results file not found"
+        fi
+
+        echo "Boltzmann Wealth Benchmark Results:"
+        if [ -f "examples/boltzmann_wealth/boltzmann_results.txt" ]; then
+          cat examples/boltzmann_wealth/boltzmann_results.txt
+        else
+          echo "Results file not found"
+        fi
+
+    - name: Create Result Summary for PR Comment
+      if: github.event_name == 'pull_request'
+      id: result_summary
+      run: |
+        # Create summary file
+        echo '## 📊 Performance Benchmark Results' > summary.md
+        echo '' >> summary.md
+        echo 'The benchmarks have been executed.' >> summary.md
+        echo '' >> summary.md
+
+        echo '### SugarScape Model (50k agents, 100 steps)' >> summary.md
+        echo '```' >> summary.md
+        if [ -f "examples/sugarscape_ig/sugarscape_results.txt" ]; then
+          cat examples/sugarscape_ig/sugarscape_results.txt >> summary.md
+        else
+          echo "Results file not found" >> summary.md
+        fi
+        echo '```' >> summary.md
+        echo '' >> summary.md
+
+        echo '### Boltzmann Wealth Model (10k agents, 100 steps)' >> summary.md
+        echo '```' >> summary.md
+        if [ -f "examples/boltzmann_wealth/boltzmann_results.txt" ]; then
+          cat examples/boltzmann_wealth/boltzmann_results.txt >> summary.md
+        else
+          echo "Results file not found" >> summary.md
+        fi
+        echo '```' >> summary.md
+        echo '' >> summary.md
+
+        echo "[Click here to see full benchmark results](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})" >> summary.md
+        echo "Note: Benchmark results are now available as artifacts on the GitHub Actions run page." >> summary.md
+
+        # Set output
+        SUMMARY=$(cat summary.md)
+        echo "summary<<EOF" >> $GITHUB_OUTPUT
+        echo "$SUMMARY" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Add Benchmark Comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+
+          // Create a comment with benchmark results
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `${{ steps.result_summary.outputs.summary }}`
+          });
