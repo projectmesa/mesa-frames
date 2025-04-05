@@ -60,7 +60,6 @@ def fix3_AgentSetPolars() -> ExampleAgentSetPolars:
 def fix3_AgentSetPolars() -> ExampleAgentSetPolars:
     model = ModelDF()
     agents = ExampleAgentSetPolars(model)
-    agents.add({"unique_id": [9, 10, 11, 12]})
     agents["wealth"] = agents.starting_wealth + 7
     agents["age"] = [12, 13, 14, 116]
     return agents
