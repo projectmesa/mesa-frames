@@ -16,6 +16,7 @@ from tests.test_agentset import (
 def not_called():
     fix2_AgentSetPolars()
 
+
 def get_unique_ids(model: ModelDF) -> pl.Series:
     # return model.get_agents_of_type(model.agent_types[0])["unique_id"]
     return pl.concat(
@@ -34,7 +35,7 @@ class TestGridPolars:
         model = ModelDF()
         model.agents.add([fix1_AgentSetPolars, fix2_AgentSetPolars])
         return model
-    
+
     @pytest.fixture
     def grid_moore(self, model: ModelDF) -> GridPolars:
         space = GridPolars(model, dimensions=[3, 3], capacity=2)

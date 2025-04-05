@@ -452,11 +452,15 @@ class SpaceDF(CopyMixin, DataFrameMixin):
                 if isinstance(a, AgentSetDF):
                     ids.append(
                         self._srs_constructor(
-                            self._df_index(a, "unique_id"), name="agent_id", dtype="uint64"
+                            self._df_index(a, "unique_id"),
+                            name="agent_id",
+                            dtype="uint64",
                         )
                     )
                 elif isinstance(a, AgentsDF):
-                    ids.append(self._srs_constructor(a._ids, name="agent_id", dtype="uint64"))
+                    ids.append(
+                        self._srs_constructor(a._ids, name="agent_id", dtype="uint64")
+                    )
             return self._df_concat(ids, ignore_index=True)
         elif isinstance(agents, int):
             return self._srs_constructor([agents], name="agent_id", dtype="uint64")

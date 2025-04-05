@@ -511,7 +511,7 @@ class Test_AgentsDF:
         self,
         fix_AgentsDF: AgentsDF,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars
+        fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         agents = fix_AgentsDF.remove(fix2_AgentSetPolars, inplace=False)
         agents_different_index = deepcopy(fix2_AgentSetPolars)
