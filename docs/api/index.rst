@@ -15,13 +15,13 @@ This page provides a high-level overview of all public mesa-frames objects, func
     .. grid-item-card::
 
         .. toctree::
-           :maxdepth: 1
+           :maxdepth: 2
 
            reference/model
 
     .. grid-item-card::
 
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             reference/space/index

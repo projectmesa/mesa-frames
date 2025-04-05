@@ -22,14 +22,14 @@ Usage:
 
     from mesa_frames.concrete.model import ModelDF
     from mesa_frames.concrete.agents import AgentsDF
-    from mesa_frames.concrete.pandas import AgentSetPandas
+    from mesa_frames.concrete import AgentSetPolars
 
     class MyCustomModel(ModelDF):
         def __init__(self):
             super().__init__()
             # Adding agent sets to the collection
-            self.agents += AgentSetPandas(self)
-            self.agents += AnotherAgentSetPandas(self)
+            self.agents += AgentSetPolars(self)
+            self.agents += AnotherAgentSetPolars(self)
 
         def step(self):
             # Step all agent sets
@@ -111,9 +111,13 @@ class AgentsDF(AgentContainer):
         other_list = obj._return_agentsets_list(agents)
         if obj._check_agentsets_presence(other_list).any():
             raise ValueError("Some agentsets are already present in the AgentsDF.")
-        for agentset in other_list:
-            obj._agentsets.append(agentset)
-            obj._ids = pl.concat([obj._ids, pl.Series(agentset["unique_id"], dtype=pl.UInt64)])
+        new_ids = pl.concat(
+            [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
+        )
+        if new_ids.is_duplicated().any():
+            raise ValueError("Some of the agent IDs are not unique.")
+        obj._agentsets.extend(other_list)
+        obj._ids = new_ids
         return obj
 
     @overload
@@ -125,7 +129,7 @@ class AgentsDF(AgentContainer):
     def contains(
         self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]
     ) -> bool | pl.Series:
-        if isinstance(agents, np.uint64):
+        if isinstance(agents, int):
             return agents in self._ids
         elif isinstance(agents, AgentSetDF):
             return self._check_agentsets_presence([agents]).any()
@@ -452,10 +456,12 @@ class AgentsDF(AgentContainer):
     @overload
     def __getitem__(
         self,
-        key: Collection[str]
-        | AgnosticAgentMask
-        | IdsLike
-        | tuple[dict[AgentSetDF, AgentMask], Collection[str]],
+        key: (
+            Collection[str]
+            | AgnosticAgentMask
+            | IdsLike
+            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+        ),
     ) -> dict[str, DataFrame]: ...
 
     def __getitem__(
