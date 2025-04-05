@@ -20,7 +20,7 @@ def get_unique_ids(model: ModelDF) -> pl.Series:
     pandas_set = model.get_agents_of_type(model.agent_types[0])
     polars_set = model.get_agents_of_type(model.agent_types[1])
     return pl.concat(
-        [pl.Series(pandas_set["unique_id"].to_list()), polars_set["unique_id"]]
+        [pl.Series(pandas_set["unique_id"].to_list(), dtype=pl.UInt64), polars_set["unique_id"]]
     )
 
 

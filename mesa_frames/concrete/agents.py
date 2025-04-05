@@ -113,7 +113,7 @@ class AgentsDF(AgentContainer):
             raise ValueError("Some agentsets are already present in the AgentsDF.")
         for agentset in other_list:
             obj._agentsets.append(agentset)
-            obj._ids = pl.concat([obj._ids, pl.Series(agentset["unique_id"])])
+            obj._ids = pl.concat([obj._ids, pl.Series(agentset["unique_id"], dtype=pl.UInt64)])
         return obj
 
     @overload

@@ -405,13 +405,8 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
             )
 
     def _generate_unique_ids(self, n: int) -> pd.Series:
-        # Generating unique ids as uint64 there is a 50% chance of creating a value which fits in a int64
-        # pl.Series constructor infers dtype from elements passed, so if the passed values fit is a int64
-        # the created series will be of dtype int64.
-        # To make these types of bugs reproducible, when __debug__ is True every ids will be generated bigger than a int64
-        low = 1 if not __debug__ else np.iinfo(np.int64).max + 1
         return pd.Series(
-            self.random.integers(low, np.iinfo(np.uint64).max, size=n, dtype=np.uint64)
+            self.random.integers(1, np.iinfo(np.uint64).max, size=n, dtype=np.uint64)
         )
 
     def __getattr__(self, name: str) -> Any:  # noqa : D105
