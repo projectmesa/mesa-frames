@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
 
 import numpy as np
-
+import warnings
 
 @copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
@@ -496,11 +496,31 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         return reversed(iter(self._agents.iter_rows(named=True)))
 
     @property
+    def df(self) -> pl.DataFrame:
+        return self._agents
+
+    @df.setter
+    def df(self, agents: pl.DataFrame) -> None:
+        if "unique_id" not in agents.columns:
+            raise KeyError("DataFrame must have a unique_id column.")
+        self._agents = agents
+
+    @property
     def agents(self) -> pl.DataFrame:
+        warnings.warn(
+            "'agents' is deprecated. Use 'df' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return self._agents
 
     @agents.setter
     def agents(self, agents: pl.DataFrame) -> None:
+        warnings.warn(
+            "Setting 'agents' is deprecated. Use 'df' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if "unique_id" not in agents.columns:
             raise KeyError("DataFrame must have a unique_id column.")
         self._agents = agents

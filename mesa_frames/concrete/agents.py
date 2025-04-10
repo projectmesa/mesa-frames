@@ -62,6 +62,8 @@ from mesa_frames.types_ import (
     Series,
 )
 
+import warnings
+
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
 
@@ -551,8 +553,14 @@ class AgentsDF(AgentContainer):
         """
         return super().__sub__(agents)
 
+
     @property
     def agents(self) -> dict[AgentSetDF, DataFrame]:
+        warnings.warn(
+            "'agents' is deprecated. Use 'df' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         return {agentset: agentset.agents for agentset in self._agentsets}
 
     @agents.setter
@@ -564,8 +572,27 @@ class AgentsDF(AgentContainer):
         other : Iterable[AgentSetDF]
             The AgentSetDFs to set.
         """
+        warnings.warn(
+            "Setting 'agents' is deprecated. Use 'df' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         self._agentsets = list(other)
 
+    @property
+    def df(self) -> dict[AgentSetDF, DataFrame]:
+        return {agentset: agentset.agents for agentset in self._agentsets}
+
+    @agents.setter
+    def df(self, other: Iterable[AgentSetDF]) -> None:
+        """Set the agents in the AgentsDF.
+
+        Parameters
+        ----------
+        other : Iterable[AgentSetDF]
+            The AgentSetDFs to set.
+        """
+        self._agentsets = list(other)
     @property
     def active_agents(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.active_agents for agentset in self._agentsets}
