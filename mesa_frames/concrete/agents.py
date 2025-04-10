@@ -553,13 +553,12 @@ class AgentsDF(AgentContainer):
         """
         return super().__sub__(agents)
 
-
     @property
     def agents(self) -> dict[AgentSetDF, DataFrame]:
         warnings.warn(
             "'agents' is deprecated. Use 'df' instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         return {agentset: agentset.agents for agentset in self._agentsets}
 
@@ -575,7 +574,7 @@ class AgentsDF(AgentContainer):
         warnings.warn(
             "Setting 'agents' is deprecated. Use 'df' instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         self._agentsets = list(other)
 
@@ -593,6 +592,7 @@ class AgentsDF(AgentContainer):
             The AgentSetDFs to set.
         """
         self._agentsets = list(other)
+
     @property
     def active_agents(self) -> dict[AgentSetDF, DataFrame]:
         return {agentset: agentset.active_agents for agentset in self._agentsets}

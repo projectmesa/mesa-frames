@@ -210,8 +210,7 @@ class Test_AgentSetPolars:
         # Test with default arguments. Should select all agents
         selected = agents.select(inplace=False)
         assert (
-            selected.active_agents["wealth"].to_list()
-            == agents.df["wealth"].to_list()
+            selected.active_agents["wealth"].to_list() == agents.df["wealth"].to_list()
         )
 
         # Test with a pl.Series[bool]

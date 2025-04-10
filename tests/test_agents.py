@@ -170,12 +170,10 @@ class Test_AgentsDF:
         # Test with no return_results, no mask, inplace
         agents.do("add_wealth", 1)
         assert (
-            agents._agentsets[0].df["wealth"].to_list()
-            == expected_result_0.to_list()
+            agents._agentsets[0].df["wealth"].to_list() == expected_result_0.to_list()
         )
         assert (
-            agents._agentsets[1].df["wealth"].to_list()
-            == expected_result_1.to_list()
+            agents._agentsets[1].df["wealth"].to_list() == expected_result_1.to_list()
         )
 
         # Test with return_results=True, no mask, inplace
@@ -189,21 +187,15 @@ class Test_AgentsDF:
             agents._agentsets[1]: None,
         }
         assert (
-            agents._agentsets[0].df["wealth"].to_list()
-            == expected_result_0.to_list()
+            agents._agentsets[0].df["wealth"].to_list() == expected_result_0.to_list()
         )
         assert (
-            agents._agentsets[1].df["wealth"].to_list()
-            == expected_result_1.to_list()
+            agents._agentsets[1].df["wealth"].to_list() == expected_result_1.to_list()
         )
 
         # Test with a mask, inplace
-        mask0 = (
-            agents._agentsets[0].df["wealth"] > 10
-        )  # No agent should be selected
-        mask1 = (
-            agents._agentsets[1].df["wealth"] > 10
-        )  # All agents should be selected
+        mask0 = agents._agentsets[0].df["wealth"] > 10  # No agent should be selected
+        mask1 = agents._agentsets[1].df["wealth"] > 10  # All agents should be selected
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
 
         expected_result_0 = agents._agentsets[0].df["wealth"]
@@ -212,12 +204,10 @@ class Test_AgentsDF:
 
         agents.do("add_wealth", 1, mask=mask_dictionary)
         assert (
-            agents._agentsets[0].df["wealth"].to_list()
-            == expected_result_0.to_list()
+            agents._agentsets[0].df["wealth"].to_list() == expected_result_0.to_list()
         )
         assert (
-            agents._agentsets[1].df["wealth"].to_list()
-            == expected_result_1.to_list()
+            agents._agentsets[1].df["wealth"].to_list() == expected_result_1.to_list()
         )
 
     def test_get(
@@ -462,8 +452,7 @@ class Test_AgentsDF:
             agents.shuffle(inplace=True)
             if (
                 original_order_0 != agents._agentsets[0].df["unique_id"].to_list()
-                and original_order_1
-                != agents._agentsets[1].df["unique_id"].to_list()
+                and original_order_1 != agents._agentsets[1].df["unique_id"].to_list()
             ):
                 return
         assert False
@@ -471,12 +460,8 @@ class Test_AgentsDF:
     def test_sort(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
         agents.sort("wealth", ascending=False, inplace=True)
-        assert pl.Series(agents._agentsets[0].df["wealth"]).is_sorted(
-            descending=True
-        )
-        assert pl.Series(agents._agentsets[1].df["wealth"]).is_sorted(
-            descending=True
-        )
+        assert pl.Series(agents._agentsets[0].df["wealth"]).is_sorted(descending=True)
+        assert pl.Series(agents._agentsets[1].df["wealth"]).is_sorted(descending=True)
 
     def test_step(
         self,
@@ -554,14 +539,8 @@ class Test_AgentsDF:
         assert truth_value
 
         # Test with mask = "active"
-        mask0 = (
-            agents._agentsets[0].df["wealth"]
-            > agents._agentsets[0].df["wealth"][0]
-        )
-        mask1 = (
-            agents._agentsets[1].df["wealth"]
-            > agents._agentsets[1].df["wealth"][0]
-        )
+        mask0 = agents._agentsets[0].df["wealth"] > agents._agentsets[0].df["wealth"][0]
+        mask1 = agents._agentsets[1].df["wealth"] > agents._agentsets[1].df["wealth"][0]
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
         agents.select(mask=mask_dictionary)
         result = agents._get_bool_masks(mask="active")
@@ -905,14 +884,8 @@ class Test_AgentsDF:
         agents = fix_AgentsDF
 
         # Test with select
-        mask0 = (
-            agents._agentsets[0].df["wealth"]
-            > agents._agentsets[0].df["wealth"][0]
-        )
-        mask1 = (
-            agents._agentsets[1].df["wealth"]
-            > agents._agentsets[1].df["wealth"][0]
-        )
+        mask0 = agents._agentsets[0].df["wealth"] > agents._agentsets[0].df["wealth"][0]
+        mask1 = agents._agentsets[1].df["wealth"] > agents._agentsets[1].df["wealth"][0]
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
 
         agents1 = agents.select(mask=mask_dictionary, inplace=False)
@@ -975,14 +948,8 @@ class Test_AgentsDF:
         agents = fix_AgentsDF
 
         # Test with select
-        mask0 = (
-            agents._agentsets[0].df["wealth"]
-            > agents._agentsets[0].df["wealth"][0]
-        )
-        mask1 = (
-            agents._agentsets[1].df["wealth"]
-            > agents._agentsets[1].df["wealth"][0]
-        )
+        mask0 = agents._agentsets[0].df["wealth"] > agents._agentsets[0].df["wealth"][0]
+        mask1 = agents._agentsets[1].df["wealth"] > agents._agentsets[1].df["wealth"][0]
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
         agents1 = agents.select(mask=mask_dictionary, inplace=False)
         result = agents1.inactive_agents
