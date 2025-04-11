@@ -69,22 +69,14 @@ from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
-from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
-from mesa_frames.utils import copydoc
-
 from mesa_frames.concrete.model import ModelDF
-
-import numpy as np
+from mesa_frames.types_ import AgentPolarsMask, IdsLike, PolarsIdsLike
+from mesa_frames.utils import copydoc
 
 
 @beartype
 @copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
-    """
-    WARNING: AgentSetPolars is deprecated and will be removed in the next release of mesa-frames.
-    pandas-based implementation of AgentSetDF.
-    """
-
     _agents: pl.DataFrame
     _mask: pl.Series
 
@@ -116,7 +108,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
         Parameters
         ----------
-        model : ModelDF
+        model : mesa_frames.concrete.model.ModelDF
             The model that the agent set belongs to.
         """
         self._model = model
