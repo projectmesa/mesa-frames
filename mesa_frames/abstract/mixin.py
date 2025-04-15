@@ -15,7 +15,7 @@ Classes:
     DataFrameMixin(ABC):
         A mixin class that defines an interface for DataFrame operations. This mixin
         provides a common set of methods that should be implemented by concrete
-        backend classes (e.g. Polars implementations) to ensure consistent
+        backend classes (e.g., pandas or Polars implementations) to ensure consistent
         DataFrame manipulation across the mesa-frames package.
 
 These mixin classes are not meant to be instantiated directly. Instead, they should

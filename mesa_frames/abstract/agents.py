@@ -17,7 +17,7 @@ Classes:
         to combine agent container functionality with DataFrame operations.
 
 These abstract classes are designed to be subclassed by concrete implementations
-that use Polars library as their backend.
+that use specific DataFrame libraries (e.g., pandas, Polars) as their backend.
 
 Usage:
     These classes should not be instantiated directly. Instead, they should be
@@ -25,10 +25,10 @@ Usage:
 
     from mesa_frames.abstract.agents import AgentSetDF
 
-    class AgentSetPolars(AgentSetDF):
+    class AgentSetPandas(AgentSetDF):
         def __init__(self, model):
             super().__init__(model)
-            # Implementation using polars DataFrame
+            # Implementation using pandas DataFrame
             ...
 
         # Implement other abstract methods
@@ -511,9 +511,10 @@ class AgentContainer(CopyMixin):
 
     def __setitem__(
         self,
-        key: (
-            str | Collection[str] | AgentMask | tuple[AgentMask, str | Collection[str]]
-        ),
+        key: str
+        | Collection[str]
+        | AgentMask
+        | tuple[AgentMask, str | Collection[str]],
         values: Any,
     ) -> None:
         """Implement the [] operator for setting values in the AgentContainer.
@@ -613,6 +614,19 @@ class AgentContainer(CopyMixin):
         str
             A string representation of the agents in the AgentContainer.
         """
+        ...
+
+    @abstractmethod
+    def move_to_optimal(
+        self,
+        attr_names: str | list[str],
+        rank_order: str | list[str] = "max",
+        radius: int | Series | None = None,
+        include_center: bool = True,
+        shuffle: bool = True,
+        inplace: bool = True,
+    ) -> Self:
+        """Move agents to optimal cells based on neighborhood ranking."""
         ...
 
     @property
@@ -1037,6 +1051,31 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     def __reversed__(self) -> Iterator:
         return reversed(self._agents)
+
+    def move_to_optimal(
+        self,
+        attr_names: str | list[str],
+        rank_order: str | list[str] = "max",
+        radius: int | Series | None = None,
+        include_center: bool = True,
+        shuffle: bool = True,
+        inplace: bool = True,
+    ) -> Self:
+        """Move all agent sets to optimal cells based on neighborhood ranking."""
+        obj = self._get_obj(inplace)
+
+        # Apply move_to_optimal to each agent set in the container
+        for agent_set in obj:
+            agent_set.move_to_optimal(
+                attr_names=attr_names,
+                rank_order=rank_order,
+                radius=radius,
+                include_center=include_center,
+                shuffle=shuffle,
+                inplace=True,
+            )
+
+        return obj
 
     @property
     def agents(self) -> DataFrame:

@@ -1,17 +1,16 @@
-AgentSetDF
-==========
+GridDF
+======
 
 .. currentmodule:: mesa_frames
 
-.. autoclass:: AgentSetPandas
+.. autoclass:: GridPandas
     :members:
     :inherited-members:
     :autosummary:
     :autosummary-nosignatures:
 
-.. autoclass:: AgentSetPolars
+.. autoclass:: GridPolars
     :members:
     :inherited-members:
     :autosummary:
     :autosummary-nosignatures:
-

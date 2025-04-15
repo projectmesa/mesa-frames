@@ -21,7 +21,7 @@ Usage:
     AgentsDF collection:
 
     from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.agentset import AgentSetPolars
+    from mesa_frames.concrete.polars.agentset import AgentSetPolars
     import polars as pl
 
     class MyAgents(AgentSetPolars):
@@ -65,12 +65,13 @@ from polars._typing import IntoExpr
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
-from mesa_frames.concrete.mixin import PolarsMixin
+from mesa_frames.concrete.polars.mixin import PolarsMixin
 from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
 if TYPE_CHECKING:
     from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.pandas.agentset import AgentSetPandas
 
 import numpy as np
 
@@ -277,6 +278,21 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             descending = [not a for a in ascending]
         obj._agents = obj._agents.sort(by=by, descending=descending, **kwargs)
         return obj
+
+    def to_pandas(self) -> "AgentSetPandas":
+        from mesa_frames.concrete.pandas.agentset import AgentSetPandas
+
+        new_obj = AgentSetPandas(self._model)
+        new_obj._agents = self._agents.to_pandas()
+        if isinstance(self._mask, pl.Series):
+            new_obj._mask = self._mask.to_pandas()
+        else:  # self._mask is Expr
+            new_obj._mask = (
+                self._agents["unique_id"]
+                .is_in(self._agents.filter(self._mask)["unique_id"])
+                .to_pandas()
+            )
+        return new_obj
 
     def _concatenate_agentsets(
         self,

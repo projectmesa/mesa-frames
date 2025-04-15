@@ -21,7 +21,7 @@ Classes:
         DiscreteSpaceDF and adds grid-specific functionality.
 
 These abstract classes are designed to be subclassed by concrete implementations
-that use Polars library as their backend.
+that use specific DataFrame libraries (e.g., pandas, Polars) as their backend.
 They provide a common interface and shared functionality across different types
 of spatial structures in agent-based models.
 
@@ -31,10 +31,10 @@ Usage:
 
     from mesa_frames.abstract.space import GridDF
 
-    class GridPolars(GridDF):
+    class GridPandas(GridDF):
         def __init__(self, model, dimensions, torus, capacity, neighborhood_type):
             super().__init__(model, dimensions, torus, capacity, neighborhood_type)
-            # Implementation using polars DataFrame
+            # Implementation using pandas DataFrame
             ...
 
         # Implement other abstract methods
@@ -50,7 +50,7 @@ For more detailed information on each class, refer to their individual docstring
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, TypeVar, Union
 from warnings import warn
 
 import numpy as np
@@ -58,11 +58,14 @@ import polars as pl
 from numpy.random import Generator
 from typing_extensions import Any, Self
 
-from mesa_frames import AgentsDF
+
+from mesa_frames.concrete.polars.agentset import AgentSetPolars
+from mesa_frames.concrete.agents import AgentsDF
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
     ArrayLike,
+    AgentLike,
     BoolSeries,
     DataFrame,
     DiscreteCoordinate,
@@ -630,7 +633,7 @@ class DiscreteSpaceDF(SpaceDF):
         ----------
         agents : IdsLike | AgentContainer | Collection[AgentContainer]
             The agents to move to available cells/positions
-        inplace : bool, optional
+        inplace: bool, optional
             Whether to perform the operation inplace, by default True
 
         Returns
@@ -1035,6 +1038,299 @@ class DiscreteSpaceDF(SpaceDF):
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}\n{str(self.cells)}"
+
+    def move_to_optimal(
+        self,
+        agents: AgentLike,
+        attr_names: str | list[str],
+        rank_order: str | list[str] = "max",
+        radius: int | pl.Series | None = None,
+        include_center: bool = True,
+        shuffle: bool = True,
+    ) -> None:
+        """Move agents to optimal cells based on neighborhood ranking.
+
+        This method allows agents to move to cells in their neighborhood that
+        optimize one or more cell attributes according to specified ranking criteria.
+
+        Parameters
+        ----------
+        agents : AgentLike
+            The agents to move
+        attr_names : str | list[str]
+            The name(s) of cell attributes to optimize
+        rank_order : str | list[str], optional
+            The order to rank the attributes "max" or "min", by default "max"
+        radius : int | pl.Series | None, optional
+            The radius of the neighborhood to consider for each agent, by default None
+            If None, the agent's "vision" attribute is used if available
+        include_center : bool, optional
+            Whether to include the agent's current position in the optimization, by default True
+        shuffle : bool, optional
+            Whether to shuffle the agents before optimization, by default True
+
+        Raises
+        ------
+        ValueError
+            If the length of attr_names and rank_order don't match or radius is None and agents
+            don't have a "vision" attribute
+        """
+        if isinstance(attr_names, str):
+            attr_names = [attr_names]
+        if isinstance(rank_order, str):
+            rank_order = [rank_order] * len(attr_names)
+        if len(attr_names) != len(rank_order):
+            raise ValueError("attr_names and rank_order must have the same length")
+
+        # Filter out agents that are not placed in the grid
+        placed_agents_ids = self.agents["agent_id"].to_list()
+
+        # Find the intersection of agent IDs with placed agent IDs
+        agent_ids = []
+
+        # Determine agent IDs based on the type of agents object
+        if hasattr(agents, "index") and callable(
+            getattr(agents.index, "to_list", None)
+        ):
+            # For objects with an index attribute (like AgentSetPolars)
+            try:
+                agent_ids = [
+                    id for id in agents.index.to_list() if id in placed_agents_ids
+                ]
+            except AttributeError:
+                # Fallback if to_list isn't available but index is
+                agent_ids = [id for id in agents.index if id in placed_agents_ids]
+        elif isinstance(agents, pl.DataFrame):
+            # For DataFrame objects
+            id_col = "unique_id" if "unique_id" in agents.columns else "agent_id"
+            agent_ids = [
+                id for id in agents[id_col].to_list() if id in placed_agents_ids
+            ]
+        else:
+            # Try to get agent IDs from space directly
+            try:
+                # Look for agent IDs in the space that match any in our agent set
+                agent_ids = placed_agents_ids
+            except:
+                raise ValueError("Could not determine agent IDs for movement")
+
+        # If no agents are placed, return early
+        if not agent_ids:
+            return
+
+        # Handle radius based on agent type
+        if radius is None:
+            # Check for vision attribute using various methods
+            has_vision = False
+            vision_values = None
+
+            # First check: direct attribute check
+            if hasattr(agents, "vision") and isinstance(
+                agents.vision, (list, pl.Series)
+            ):
+                has_vision = True
+                vision_values = agents.vision
+                if isinstance(vision_values, pl.Series):
+                    all_vision = vision_values.to_list()
+                else:
+                    all_vision = vision_values
+
+            # Second check: for DataFrame objects
+            elif isinstance(agents, pl.DataFrame) and "vision" in agents.columns:
+                has_vision = True
+                vision_df = agents.filter(pl.col(id_col).is_in(agent_ids))
+                all_vision = vision_df["vision"].to_list()
+
+            # Third check: for AgentSet objects with a get method
+            elif hasattr(agents, "get") and callable(agents.get):
+                try:
+                    vision_values = agents.get("vision")
+                    has_vision = True
+                    if hasattr(vision_values, "filter") and callable(
+                        vision_values.filter
+                    ):
+                        # If we can filter the vision values
+                        vision_values = vision_values.filter(
+                            pl.col("unique_id").is_in(agent_ids)
+                        )
+                        all_vision = vision_values.to_list()
+                    else:
+                        # Otherwise just use all vision values
+                        all_vision = vision_values.to_list()
+                except:
+                    # Fourth check: direct access to agents._agents DataFrame
+                    if (
+                        hasattr(agents, "_agents")
+                        and "vision" in agents._agents.columns
+                    ):
+                        has_vision = True
+                        vision_df = agents._agents.filter(
+                            pl.col("unique_id").is_in(agent_ids)
+                        )
+                        all_vision = vision_df["vision"].to_list()
+
+            # Fifth check: for containers with an agents attribute
+            elif hasattr(agents, "agents"):
+                if (
+                    isinstance(agents.agents, pl.DataFrame)
+                    and "vision" in agents.agents.columns
+                ):
+                    has_vision = True
+                    vision_df = agents.agents.filter(
+                        pl.col("unique_id").is_in(agent_ids)
+                    )
+                    all_vision = vision_df["vision"].to_list()
+
+                # Special case for AgentSetPolars instance
+                elif hasattr(agents.agents, "vision"):
+                    has_vision = True
+                    all_vision = agents.agents.vision.to_list()
+
+            # If vision attribute was not found, raise error
+            if not has_vision:
+                raise ValueError(
+                    "radius must be specified if agents do not have a 'vision' attribute"
+                )
+
+            # Now create a radius list that exactly matches the agent_ids we found
+            # We need to map each agent ID to its vision value
+
+            # Create a mapping from agent_id to vision
+            agent_to_vision = {}
+
+            # Try different ways to build the mapping
+            if (
+                isinstance(agents, pl.DataFrame)
+                and "vision" in agents.columns
+                and "unique_id" in agents.columns
+            ):
+                # For DataFrame objects with ID and vision columns
+                for row in agents.select(["unique_id", "vision"]).iter_rows():
+                    agent_to_vision[row[0]] = row[1]
+            elif (
+                hasattr(agents, "_agents")
+                and "vision" in agents._agents.columns
+                and "unique_id" in agents._agents.columns
+            ):
+                # For AgentSet objects with _agents DataFrame
+                for row in agents._agents.select(["unique_id", "vision"]).iter_rows():
+                    agent_to_vision[row[0]] = row[1]
+            elif (
+                hasattr(agents, "agents")
+                and isinstance(agents.agents, pl.DataFrame)
+                and "vision" in agents.agents.columns
+            ):
+                # For containers with agents DataFrame
+                for row in agents.agents.select(["unique_id", "vision"]).iter_rows():
+                    agent_to_vision[row[0]] = row[1]
+            else:
+                # Fallback: just use a default vision value for all agents
+                agent_to_vision = {agent_id: 1 for agent_id in agent_ids}
+
+            # Create a radius list that exactly matches the agent_ids
+            radius = [agent_to_vision.get(agent_id, 1) for agent_id in agent_ids]
+
+        elif isinstance(radius, pl.Series):
+            # Ensure radius is a Python list if it's a Polars Series
+            radius = radius.to_list()
+        elif isinstance(radius, int):
+            # If radius is a single integer, repeat it for each agent
+            radius = [radius] * len(agent_ids)
+
+        # Ensure radius matches the number of agents
+        if isinstance(radius, list) and len(radius) != len(agent_ids):
+            # If lengths don't match, create a list of the same radius value repeated
+            if len(radius) == 1:
+                radius = radius * len(agent_ids)
+            else:
+                # Try to match up vision values with agent IDs
+                # If that's not possible, use the first value for all
+                radius = [radius[0]] * len(agent_ids)
+
+        # When getting the neighborhood, pass only the agent_ids list as agents
+        # to ensure we're only working with placed agents
+        neighborhood = self.get_neighborhood(
+            radius=radius, agents=agent_ids, include_center=include_center
+        )
+        neighborhood = neighborhood.join(self.cells, on=["dim_0", "dim_1"])
+
+        # Get positions from the space's agents DataFrame to avoid using .pos on filtered objects
+        agent_positions = self.agents.rename({"agent_id": "unique_id"})
+
+        neighborhood = neighborhood.with_columns(
+            agent_id_center=neighborhood.join(
+                agent_positions,
+                left_on=["dim_0_center", "dim_1_center"],
+                right_on=["dim_0", "dim_1"],
+            )["unique_id"]
+        )
+
+        if shuffle:
+            agent_order = (
+                neighborhood.unique(subset=["agent_id_center"], keep="first")
+                .select("agent_id_center")
+                .sample(fraction=1.0, seed=self.model.random.integers(0, 2**31 - 1))
+                .with_row_index("agent_order")
+            )
+        else:
+            agent_order = (
+                neighborhood.unique(
+                    subset=["agent_id_center"], keep="first", maintain_order=True
+                )
+                .with_row_index("agent_order")
+                .select(["agent_id_center", "agent_order"])
+            )
+        neighborhood = neighborhood.join(agent_order, on="agent_id_center")
+        sort_cols = []
+        sort_desc = []
+        for attr, order in zip(attr_names, rank_order):
+            sort_cols.append(attr)
+            sort_desc.append(order.lower() == "max")
+        neighborhood = neighborhood.sort(
+            sort_cols + ["radius", "dim_0", "dim_1"],
+            descending=sort_desc + [False, False, False],
+        )
+        neighborhood = neighborhood.join(
+            agent_order.select(
+                pl.col("agent_id_center").alias("agent_id"),
+                pl.col("agent_order").alias("blocking_agent_order"),
+            ),
+            on="agent_id",
+            how="left",
+        ).rename({"agent_id": "blocking_agent_id"})
+        best_moves = pl.DataFrame()
+        while len(best_moves) < len(agent_ids):  # Use length of agent_ids instead
+            neighborhood = neighborhood.with_columns(
+                priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
+            )
+            new_best_moves = (
+                neighborhood.group_by("agent_id_center", maintain_order=True)
+                .first()
+                .unique(subset=["dim_0", "dim_1"], keep="first", maintain_order=True)
+            )
+            condition = pl.col("blocking_agent_id").is_null() | (
+                pl.col("blocking_agent_id") == pl.col("agent_id_center")
+            )
+            if len(best_moves) > 0:
+                condition = condition | pl.col("blocking_agent_id").is_in(
+                    best_moves["agent_id_center"]
+                )
+            condition = condition & (pl.col("priority") == 1)
+            new_best_moves = new_best_moves.filter(condition)
+            if len(new_best_moves) == 0:
+                break
+            best_moves = pl.concat([best_moves, new_best_moves])
+            neighborhood = neighborhood.filter(
+                ~pl.col("agent_id_center").is_in(best_moves["agent_id_center"])
+            )
+            neighborhood = neighborhood.join(
+                best_moves.select(["dim_0", "dim_1"]), on=["dim_0", "dim_1"], how="anti"
+            )
+        if len(best_moves) > 0:
+            self.move_agents(
+                best_moves.sort("agent_order")["agent_id_center"],
+                best_moves.sort("agent_order").select(["dim_0", "dim_1"]),
+            )
 
     @property
     def cells(self) -> DataFrame:

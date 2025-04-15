@@ -7,6 +7,7 @@ import polars as pl
 import seaborn as sns
 from polars.testing import assert_frame_equal
 from ss_mesa.model import SugarscapeMesa
+from ss_pandas.model import SugarscapePandas
 from ss_polars.agents import (
     AntPolarsLoopDF,
     AntPolarsLoopNoVec,
@@ -55,6 +56,20 @@ class SugarScapeSetup:
 
 def mesa_implementation(setup: SugarScapeSetup):
     model = SugarscapeMesa(
+        setup.n,
+        setup.sugar_grid,
+        setup.initial_sugar,
+        setup.metabolism,
+        setup.vision,
+        setup.initial_positions,
+        setup.seed,
+    )
+    model.run_model(100)
+    return model
+
+
+def mesa_frames_pandas_concise(setup: SugarScapeSetup):
+    model = SugarscapePandas(
         setup.n,
         setup.sugar_grid,
         setup.initial_sugar,
@@ -179,10 +194,12 @@ def main():
     # Mesa comparison
     sns.set_theme(style="whitegrid")
     labels_0 = [
+        # "mesa-frames (pd concise)", # Pandas to be removed because of performance
         "mesa-frames (pl numba parallel)",
         "mesa",
     ]
     kernels_0 = [
+        # mesa_frames_pandas_concise,
         mesa_frames_polars_numba_parallel,
         mesa_implementation,
     ]
@@ -193,6 +210,7 @@ def main():
 
     # mesa-frames comparison
     labels_1 = [
+        # "mesa-frames (pd concise)",
         "mesa-frames (pl loop DF)",
         "mesa-frames (pl loop no vec)",
         "mesa-frames (pl numba CPU)",

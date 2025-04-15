@@ -22,14 +22,14 @@ Usage:
 
     from mesa_frames.concrete.model import ModelDF
     from mesa_frames.concrete.agents import AgentsDF
-    from mesa_frames.concrete import AgentSetPolars
+    from mesa_frames.concrete.pandas import AgentSetPandas
 
     class MyCustomModel(ModelDF):
         def __init__(self):
             super().__init__()
             # Adding agent sets to the collection
-            self.agents += AgentSetPolars(self)
-            self.agents += AnotherAgentSetPolars(self)
+            self.agents += AgentSetPandas(self)
+            self.agents += AnotherAgentSetPandas(self)
 
         def step(self):
             # Step all agent sets
@@ -452,12 +452,10 @@ class AgentsDF(AgentContainer):
     @overload
     def __getitem__(
         self,
-        key: (
-            Collection[str]
-            | AgnosticAgentMask
-            | IdsLike
-            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
-        ),
+        key: Collection[str]
+        | AgnosticAgentMask
+        | IdsLike
+        | tuple[dict[AgentSetDF, AgentMask], Collection[str]],
     ) -> dict[str, DataFrame]: ...
 
     def __getitem__(
@@ -550,6 +548,30 @@ class AgentsDF(AgentContainer):
             A new AgentsDF with the removed AgentSetDFs.
         """
         return super().__sub__(agents)
+
+    def move_to_optimal(
+        self,
+        attr_names: str | list[str],
+        rank_order: str | list[str] = "max",
+        radius: int | Series | None = None,
+        include_center: bool = True,
+        shuffle: bool = True,
+        inplace: bool = True,
+    ) -> Self:
+        """Move all agent sets to optimal cells based on neighborhood ranking."""
+        obj = self._get_obj(inplace)
+
+        for agent_set in obj.agent_sets.values():
+            agent_set.move_to_optimal(
+                attr_names=attr_names,
+                rank_order=rank_order,
+                radius=radius,
+                include_center=include_center,
+                shuffle=shuffle,
+                inplace=True,
+            )
+
+        return obj
 
     @property
     def agents(self) -> dict[AgentSetDF, DataFrame]:

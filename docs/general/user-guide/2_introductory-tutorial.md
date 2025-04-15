@@ -7,7 +7,7 @@ In this tutorial, we'll implement the Boltzmann Wealth Model using mesa-frames. 
 First, let's import the necessary modules and set up our model class:
 
 ```python
-from mesa_frames import ModelDF, AgentSetPolars
+from mesa_frames import ModelDF, AgentSetPandas, AgentSetPolars
 
 class MoneyModelDF(ModelDF):
     def __init__(self, N: int, agents_cls):
@@ -23,11 +23,35 @@ class MoneyModelDF(ModelDF):
             self.step()
 ```
 
-This `MoneyModelDF` class will work for Polars implementations.
+This `MoneyModelDF` class will work for both pandas and Polars implementations.
 
 ## Implementing the AgentSet 👥
 
-Now, let's implement our `MoneyAgentSet` using Polars backends. You can switch between the two implementations:
+Now, let's implement our `MoneyAgentSet` using both pandas and Polars backends. You can switch between the two implementations:
+
+=== "pandas 🐼"
+
+    ```python
+        import pandas as pd
+        import numpy as np
+
+        class MoneyAgentPandas(AgentSetPandas):
+            def __init__(self, n: int, model: ModelDF) -> None:
+                super().__init__(model)
+                self += pd.DataFrame(
+                    {"unique_id": np.arange(n, dtype="int64"), "wealth": np.ones(n)}
+                )
+
+            def step(self) -> None:
+                self.do("give_money")
+
+            def give_money(self):
+                self.select(self.wealth > 0)
+                other_agents = self.agents.sample(n=len(self.active_agents), replace=True)
+                self["active", "wealth"] -= 1
+                new_wealth = other_agents.groupby("unique_id").count()
+                self[new_wealth.index, "wealth"] += new_wealth["wealth"]
+    ```
 
 === "Polars 🐻‍❄️"
 
@@ -57,8 +81,8 @@ Now, let's implement our `MoneyAgentSet` using Polars backends. You can switch b
 Now that we have our model and agent set defined, let's run a simulation:
 
 ```python
-
-agent_class = MoneyAgentPolars
+# Choose either MoneyAgentPandas or MoneyAgentPolars
+agent_class = MoneyAgentPandas  # or MoneyAgentPolars
 
 # Create and run the model
 model = MoneyModelDF(1000, agent_class)
@@ -112,6 +136,10 @@ for implementation in ["mesa", "mesa-frames (pl concise)", "mesa-frames (pl nati
             time = run_simulation(lambda n: MoneyModelDF(n, MoneyAgentPolarsConcise), n_agents, n_steps)
         elif implementation == "mesa-frames (pl native)":
             time = run_simulation(lambda n: MoneyModelDF(n, MoneyAgentPolarsNative), n_agents, n_steps)
+        elif implementation == "mesa-frames (pd concise)":
+            time = run_simulation(lambda n: MoneyModelDF(n, MoneyAgentPandasConcise), n_agents, n_steps)
+        else:  # mesa-frames (pd native)
+            time = run_simulation(lambda n: MoneyModelDF(n, MoneyAgentPandasNative), n_agents, n_steps)
 
         print(f"  Number of agents: {n_agents}, Time: {time:.2f} seconds")
     print("---------------")
@@ -141,6 +169,20 @@ mesa-frames (pl native):
   Number of agents: 500000, Time: 1.55 seconds
   Number of agents: 700000, Time: 2.61 seconds
 ---------------
+---------------
+mesa-frames (pd concise):
+  Number of agents: 100000, Time: 2.37 seconds
+  Number of agents: 300000, Time: 7.47 seconds
+  Number of agents: 500000, Time: 13.29 seconds
+  Number of agents: 700000, Time: 18.32 seconds
+---------------
+---------------
+mesa-frames (pd native):
+  Number of agents: 100000, Time: 1.63 seconds
+  Number of agents: 300000, Time: 5.76 seconds
+  Number of agents: 500000, Time: 9.48 seconds
+  Number of agents: 700000, Time: 13.58 seconds
+---------------
 ```
 
 Speed-up over mesa: 🚀
@@ -157,11 +199,26 @@ mesa-frames (pl native):
   Number of agents: 300000, Speed-up: 17.60x 💨
   Number of agents: 500000, Speed-up: 17.34x 💨
   Number of agents: 700000, Speed-up: 15.46x 💨
+---------------
+mesa-frames (pd concise):
+  Number of agents: 100000, Speed-up: 1.60x 💨
+  Number of agents: 300000, Speed-up: 2.00x 💨
+  Number of agents: 500000, Speed-up: 2.02x 💨
+  Number of agents: 700000, Speed-up: 2.20x 💨
+---------------
+mesa-frames (pd native):
+  Number of agents: 100000, Speed-up: 2.33x 💨
+  Number of agents: 300000, Speed-up: 2.60x 💨
+  Number of agents: 500000, Speed-up: 2.83x 💨
+  Number of agents: 700000, Speed-up: 2.97x 💨
+---------------
 ```
 
 ## Conclusion 🎉
 
 - All mesa-frames implementations significantly outperform the original mesa implementation. 🏆
-- The native implementation for Polars shows better performance than their concise counterparts. 💪
+- The Polars backend consistently provides better performance than the pandas backend. 🐻‍❄️ > 🐼
+- The native implementation for both Polars and pandas shows better performance than their concise counterparts. 💪
 - The Polars native implementation shows the most impressive speed-up, ranging from 10.86x to 17.60x faster than mesa! 🚀🚀🚀
+- Even the "slowest" mesa-frames implementation (pandas concise) is still 1.60x to 2.20x faster than mesa. 👍
 - The performance advantage of mesa-frames becomes more pronounced as the number of agents increases. 📈
