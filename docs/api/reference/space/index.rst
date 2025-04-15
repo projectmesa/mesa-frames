@@ -2,7 +2,10 @@ Space
 =====
 This page provides a high-level overview of possible space objects for mesa-frames models.
 
-.. toctree::
-    :maxdepth: 2
+.. currentmodule:: mesa_frames
 
-    grid/index
+.. autoclass:: GridPolars
+    :members:
+    :inherited-members:
+    :autosummary:
+    :autosummary-nosignatures:
