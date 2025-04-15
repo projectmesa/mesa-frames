@@ -21,7 +21,7 @@ Classes:
         DiscreteSpaceDF and adds grid-specific functionality.
 
 These abstract classes are designed to be subclassed by concrete implementations
-that use Polars library as their backend.
+that use specific DataFrame libraries (e.g., pandas, Polars) as their backend.
 They provide a common interface and shared functionality across different types
 of spatial structures in agent-based models.
 
@@ -31,10 +31,10 @@ Usage:
 
     from mesa_frames.abstract.space import GridDF
 
-    class GridPolars(GridDF):
+    class GridPandas(GridDF):
         def __init__(self, model, dimensions, torus, capacity, neighborhood_type):
             super().__init__(model, dimensions, torus, capacity, neighborhood_type)
-            # Implementation using polars DataFrame
+            # Implementation using pandas DataFrame
             ...
 
         # Implement other abstract methods

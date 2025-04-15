@@ -1378,6 +1378,7 @@ version = "0.1.1.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },
+    { name = "pandas" },
     { name = "polars" },
     { name = "pyarrow" },
     { name = "typing-extensions" },
@@ -1453,7 +1454,7 @@ requires-dist = [
     { name = "autodocsumm", marker = "extra == 'dev'" },
     { name = "autodocsumm", marker = "extra == 'docs'" },
     { name = "autodocsumm", marker = "extra == 'sphinx'" },
-    { name = "mesa", marker = "extra == 'dev'", specifier = "~=2.4.0" },
+    { name = "mesa", marker = "extra == 'dev'" },
     { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'dev'" },
     { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'docs'" },
     { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'mkdocs'" },
@@ -1474,6 +1475,7 @@ requires-dist = [
     { name = "numpydoc", marker = "extra == 'dev'" },
     { name = "numpydoc", marker = "extra == 'docs'" },
     { name = "numpydoc", marker = "extra == 'sphinx'" },
+    { name = "pandas", specifier = ">=2.2" },
     { name = "perfplot", marker = "extra == 'dev'" },
     { name = "perfplot", marker = "extra == 'docs'" },
     { name = "polars", specifier = ">=1.0.0" },

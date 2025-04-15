@@ -4,7 +4,7 @@ ci:
 repos:
 - repo: https://github.com/astral-sh/ruff-pre-commit
   # Ruff version.
-  rev: v0.11.4
+  rev: v0.11.2
   hooks:
     # Run the linter.
     - id: ruff
@@ -42,7 +42,7 @@ repos:
         ".markdownlint.json",
       ]
 - repo: https://github.com/jsh9/pydoclint  # For checking docstrings
-  rev: 0.6.5
+  rev: 0.6.2
   hooks:
     - id: pydoclint
       args: [--style=numpy, --skip-checking-raises=True, --allow-init-docstring=True]

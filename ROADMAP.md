@@ -4,17 +4,18 @@ This document outlines the development roadmap for the mesa-frames project. It p
 
 ## 0.1.0 Stable Release Goals 🎯
 
-### 1. Transitioning polars implementation from eager API to lazy API
+### 1. Deprecating pandas and Transitioning to polars
 
-One of our major priorities was to move from pandas to polars as the primary dataframe backend. This transition was motivated by performance considerations.
-Now we should transition to using the lazily evaluated version of polars.
+One of our major priorities is to move from pandas to polars as the primary dataframe backend. This transition is motivated by performance considerations. We should use the lazily evaluated version of polars.
 
-**Related issues:** [#10: GPU integration: Dask, cuda (cudf) and RAPIDS (Polars)](https://github.com/projectmesa/mesa-frames/issues/10), [#89: Investigate using Ibis for the common interface library to any DF backend](https://github.com/projectmesa/mesa-frames/issues/89), [#52: Use of LazyFrames for Polars implementation](https://github.com/projectmesa/mesa-frames/issues/52)
+**Related issues:** [#89: Investigate using Ibis for the common interface library to any DF backend](https://github.com/projectmesa/mesa-frames/issues/89), [#10: GPU integration: Dask, cuda (cudf) and RAPIDS (Polars)](https://github.com/projectmesa/mesa-frames/issues/10)
 
 #### Progress and Next Steps
 
 - We are exploring [Ibis](https://ibis-project.org/) or [narwhals](https://github.com/narwhals-dev/narwhals) as a common interface library that could support multiple backends (Polars, DuckDB, Spark etc.), but since most of the development is currently in polars, we will currently continue using Polars.
-- We're transitioning to the lazy API, mainly in order to use GPU acceleration
+- The pandas backend is becoming increasingly problematic to maintain and will eventually be deprecated
+- Benchmarking is underway to quantify performance differences between different backends
+- We're investigating GPU acceleration options, including the potential integration with RAPIDS ecosystem
 
 ### 2. Handling Concurrency Management
 

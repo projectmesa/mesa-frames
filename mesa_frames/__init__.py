@@ -7,13 +7,14 @@ performance and scalability while maintaining a syntax similar to Mesa.
 
 Key Features:
 - Utilizes DataFrame storage for agents, enabling vectorized operations
-- Supports Polars as backend libraries
+- Supports both pandas and Polars as backend libraries
 - Provides similar syntax to Mesa for ease of transition
 - Allows for vectorized functions when simultaneous activation of agents is possible
 - Implements SIMD processing for optimized simultaneous operations
 - Includes GridDF for efficient grid-based spatial modeling
 
 Main Components:
+- AgentSetPandas: Agent set implementation using pandas backend
 - AgentSetPolars: Agent set implementation using Polars backend
 - ModelDF: Base model class for mesa-frames
 - GridDF: Grid space implementation for spatial modeling
@@ -43,13 +44,17 @@ GitHub: https://github.com/projectmesa/mesa-frames
 
 from mesa_frames.concrete.agents import AgentsDF
 from mesa_frames.concrete.model import ModelDF
-from mesa_frames.concrete.agentset import AgentSetPolars
-from mesa_frames.concrete.space import GridPolars
+from mesa_frames.concrete.pandas.agentset import AgentSetPandas
+from mesa_frames.concrete.pandas.space import GridPandas
+from mesa_frames.concrete.polars.agentset import AgentSetPolars
+from mesa_frames.concrete.polars.space import GridPolars
 
 __all__ = [
     "AgentsDF",
+    "AgentSetPandas",
     "AgentSetPolars",
     "ModelDF",
+    "GridPandas",
     "GridPolars",
 ]
 

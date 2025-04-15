@@ -33,10 +33,10 @@ Check out these resources to understand vectorization and why it speeds up the c
 Here's a comparison between mesa-frames and mesa:
 
 === "mesa-frames"
-
     ```python
     class MoneyAgentPolarsConcise(AgentSetPolars):
         # initialization...
+
         def give_money(self):
             # Active agents are changed to wealthy agents
             self.select(self.wealth > 0)
@@ -57,10 +57,10 @@ Here's a comparison between mesa-frames and mesa:
     ```
 
 === "mesa"
-
     ```python
     class MoneyAgent(mesa.Agent):
         # initialization...
+
         def give_money(self):
             # Verify agent has some wealth
             if self.wealth > 0:
@@ -72,6 +72,25 @@ Here's a comparison between mesa-frames and mesa:
 
 As you can see, while in mesa you should iterate through all the agents' steps in the model class, here you execute the method once for all agents.
 
+### Backend Flexibility 🔄
+
+mesa-frames aims to support multiple DataFrame backends:
+The supported backends right now are
+
+- **pandas**: A widely-used data manipulation library
+- **Polars**: A high-performance DataFrame library written in Rust
+
+Users can choose the backend that best suits their needs:
+
+    ```python
+    from mesa_frames import AgentSetPandas  # or AgentSetPolars
+    ```
+
+Currently, there are two implementations of AgentSetDF and GridDF, one for each backend implementation: AgentSetPandas and AgentSetPolars, and GridPandas and GridPolars.
+We encourage you to use the Polars implementation for increased performance. We are working on creating a unique interface [here](https://github.com/projectmesa/mesa-frames/discussions/12). Let us know what you think!
+
+Soon we will also have multiple other backends like Dask, cuDF, and Dask-cuDF!
+
 ## Coming from mesa 🔀
 
 If you're familiar with mesa, this guide will help you understand the key differences in code structure between mesa and mesa-frames.
@@ -82,15 +101,15 @@ If you're familiar with mesa, this guide will help you understand the key differ
 - mesa-frames: Agents are rows in a DataFrame, grouped into AgentSets. Methods are defined for AgentSets and operate on all agents simultaneously.
 
 === "mesa-frames"
-
     ```python
     class MoneyAgentSet(AgentSetPolars):
-        def __init__(self, n, model):
-            super().__init__(model)
+        def **init**(self, n, model):
+            super().**init**(model)
             self += pl.DataFrame({
                 "unique_id": pl.arange(n),
                 "wealth": pl.ones(n)
-                })
+            })
+
         def step(self):
             givers = self.wealth > 0
             receivers = self.agents.sample(n=len(self.active_agents))
@@ -100,11 +119,10 @@ If you're familiar with mesa, this guide will help you understand the key differ
     ```
 
 === "mesa"
-
     ```python
     class MoneyAgent(Agent):
-        def __init__(self, unique_id, model):
-            super().__init__(unique_id, model)
+        def **init**(self, unique_id, model):
+            super().**init**(unique_id, model)
             self.wealth = 1
 
         def step(self):
@@ -120,23 +138,20 @@ If you're familiar with mesa, this guide will help you understand the key differ
 - mesa-frames: Models manage AgentSets and directly control the simulation flow.
 
 === "mesa-frames"
-
     ```python
     class MoneyModel(ModelDF):
-        def __init__(self, N):
-            super().__init__()
+        def **init**(self, N):
+            super().**init**()
             self.agents += MoneyAgentSet(N, self)
 
         def step(self):
             self.agents.do("step")
-
     ```
 
 === "mesa"
-
     ```python
     class MoneyModel(Model):
-        def __init__(self, N):
+        def **init**(self, N):
             self.num_agents = N
             self.schedule = RandomActivation(self)
             for i in range(self.num_agents):
@@ -150,7 +165,7 @@ If you're familiar with mesa, this guide will help you understand the key differ
 ### Transition Tips 💡
 
 1. **Think in Sets 🎭**: Instead of individual agents, think about operations on groups of agents.
-2. **Leverage DataFrame Operations 🛠️**: Familiarize yourself with Polars operations for efficient agent manipulation.
+2. **Leverage DataFrame Operations 🛠️**: Familiarize yourself with pandas or Polars operations for efficient agent manipulation.
 3. **Vectorize Logic 🚅**: Convert loops and conditionals to vectorized operations where possible.
 4. **Use AgentSets 📦**: Group similar agents into AgentSets instead of creating many individual agent classes.
 
@@ -161,6 +176,7 @@ When simultaneous activation is not possible, you need to handle race conditions
 1. **Custom UDF with Numba 🔧**: Use a custom User Defined Function (UDF) with Numba for efficient sequential processing.
 
    - [Polars UDF Guide](https://docs.pola.rs/user-guide/expressions/user-defined-functions/)
+   - [pandas Numba Engine](https://pandas.pydata.org/pandas-docs/stable/user_guide/window.html#numba-engine)
 
 2. **Looping Mechanism 🔁**: Implement a looping mechanism on vectorized operations.
 
