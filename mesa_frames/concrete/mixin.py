@@ -176,7 +176,7 @@ class PolarsMixin(DataFrameMixin):
         columns: list[str] | None = None,
         index: Sequence[Hashable] | None = None,
         index_cols: str | list[str] | None = None,
-        dtypes: dict[str, str] | None = None,
+        dtypes: dict[str, Any] | None = None,
     ) -> pl.DataFrame:
         if dtypes is not None:
             dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
