@@ -1,10 +1,9 @@
 import numpy as np
-import pandas as pd
 import polars as pl
 import pytest
 import typeguard as tg
 
-from mesa_frames.concrete.polars.mixin import PolarsMixin
+from mesa_frames.concrete.mixin import PolarsMixin
 
 
 @tg.typechecked
@@ -260,6 +259,7 @@ class TestPolarsMixin:
         data = {"num": [1, 2, 3], "letter": ["a", "b", "c"]}
         df = mixin._df_constructor(data)
         assert isinstance(df, pl.DataFrame)
+
         assert list(df.columns) == ["num", "letter"]
         assert df["num"].to_list() == [1, 2, 3]
         assert df["letter"].to_list() == ["a", "b", "c"]
@@ -272,15 +272,6 @@ class TestPolarsMixin:
         assert isinstance(df, pl.DataFrame)
         assert list(df.columns) == ["num", "letter"]
         assert df["num"].dtype == pl.Int64
-        assert df["num"].to_list() == [1, 2, 3]
-        assert df["letter"].to_list() == ["a", "b", "c"]
-
-        # Test with pandas DataFrame
-        data = pd.DataFrame({"num": [1, 2, 3], "letter": ["a", "b", "c"]})
-        df = mixin._df_constructor(data)
-        assert isinstance(df, pl.DataFrame)
-        assert list(df.columns) == ["index", "num", "letter"]
-        assert df["index"].to_list() == [0, 1, 2]
         assert df["num"].to_list() == [1, 2, 3]
         assert df["letter"].to_list() == ["a", "b", "c"]
 

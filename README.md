@@ -4,12 +4,8 @@ mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) f
 
 ## Why DataFrames? 📊
 
-DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). At the moment, mesa-frames supports the use of two main libraries: pandas and Polars.
+DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). At the moment, mesa-frames supports the use of Polars library.
 
->[!WARNING]
->The pandas version will be deprecated in the next release. Refer to [this issue](https://github.com/projectmesa/mesa-frames/issues/89) for more information. Please consider transitioning to Polars for future compatibility.
-
-- [pandas](https://pandas.pydata.org/) is a popular data-manipulation Python library, developed using C and Cython. pandas is known for its ease of use, allowing for declarative programming and high performance.
 - [Polars](https://pola.rs/) is a new DataFrame library with a syntax similar to pandas but with several innovations, including a backend implemented in Rust, the Apache Arrow memory format, query optimization, and support for larger-than-memory DataFrames.
 
 The following is a performance graph showing execution time using mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
@@ -92,7 +88,7 @@ You can find the API documentation [here](https://projectmesa.github.io/mesa-fra
 
 ### Creation of an Agent
 
-The agent implementation differs from base mesa. Agents are only defined at the AgentSet level. You can import either `AgentSetPandas` or `AgentSetPolars`. As in mesa, you subclass and make sure to call `super().__init__(model)`. You can use the `add` method or the `+=` operator to add agents to the AgentSet. Most methods mirror the functionality of `mesa.AgentSet`. Additionally, `mesa-frames.AgentSet` implements many dunder methods such as `AgentSet[mask, attr]` to get and set items intuitively. All operations are by default inplace, but if you'd like to use functional programming, mesa-frames implements a fast copy method which aims to reduce memory usage, relying on reference-only and native copy methods.
+The agent implementation differs from base mesa. Agents are only defined at the AgentSet level. You can import `AgentSetPolars`. As in mesa, you subclass and make sure to call `super().__init__(model)`. You can use the `add` method or the `+=` operator to add agents to the AgentSet. Most methods mirror the functionality of `mesa.AgentSet`. Additionally, `mesa-frames.AgentSet` implements many dunder methods such as `AgentSet[mask, attr]` to get and set items intuitively. All operations are by default inplace, but if you'd like to use functional programming, mesa-frames implements a fast copy method which aims to reduce memory usage, relying on reference-only and native copy methods.
 
 ```python
 from mesa-frames import AgentSetPolars
