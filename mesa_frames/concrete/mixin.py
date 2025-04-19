@@ -47,12 +47,14 @@ from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
 import polars as pl
+from beartype import beartype
 from typing_extensions import Any, overload
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import DataFrame, PolarsMask
 
 
+@beartype
 class PolarsMixin(DataFrameMixin):
     """Polars-specific implementation of DataFrame operations."""
 
@@ -170,7 +172,7 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_constructor(
         self,
-        data: dict[str | Any] | Sequence[Sequence] | DataFrame | None = None,
+        data: dict[str, Any] | Sequence[Sequence] | DataFrame | None = None,
         columns: list[str] | None = None,
         index: Sequence[Hashable] | None = None,
         index_cols: str | list[str] | None = None,

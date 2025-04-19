@@ -50,11 +50,12 @@ For more detailed information on each class, refer to their individual docstring
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 from warnings import warn
 
 import numpy as np
 import polars as pl
+from beartype import beartype
 from numpy.random import Generator
 from typing_extensions import Any, Self
 
@@ -79,14 +80,12 @@ from mesa_frames.types_ import (
 
 ESPG = int
 
-if TYPE_CHECKING:
-    from mesa_frames.concrete.model import ModelDF
 
-
+@beartype
 class SpaceDF(CopyMixin, DataFrameMixin):
     """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames."""
 
-    _model: "ModelDF"
+    _model: "mesa_frames.concrete.model.ModelDF"
     _agents: DataFrame  # | GeoDataFrame  # Stores the agents placed in the space
     _center_col_names: list[
         str
@@ -95,7 +94,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         str
     ]  # The column names of the positions in the _agents dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
 
-    def __init__(self, model: "ModelDF") -> None:
+    def __init__(self, model: "mesa_frames.concrete.model.ModelDF") -> None:
         """Create a new SpaceDF.
 
         Parameters
@@ -517,7 +516,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return self._agents
 
     @property
-    def model(self) -> "ModelDF":
+    def model(self) -> "mesa_frames.concrete.model.ModelDF":
         """The model to which the space belongs.
 
         Returns
@@ -537,6 +536,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return self.model.random
 
 
+@beartype
 class DiscreteSpaceDF(SpaceDF):
     """The DiscreteSpaceDF class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames."""
 
@@ -549,7 +549,7 @@ class DiscreteSpaceDF(SpaceDF):
 
     def __init__(
         self,
-        model: "ModelDF",
+        model: "mesa_frames.concrete.model.ModelDF",
         capacity: int | None = None,
     ):
         """Create a new DiscreteSpaceDF.
@@ -1104,6 +1104,7 @@ class DiscreteSpaceDF(SpaceDF):
         ...
 
 
+@beartype
 class GridDF(DiscreteSpaceDF):
     """The GridDF class is an abstract class that defines the interface for all grid classes in mesa-frames.
 
@@ -1140,7 +1141,7 @@ class GridDF(DiscreteSpaceDF):
 
     def __init__(
         self,
-        model: "ModelDF",
+        model: "mesa_frames.concrete.model.ModelDF",
         dimensions: Sequence[int],
         torus: bool = False,
         capacity: int | None = None,
