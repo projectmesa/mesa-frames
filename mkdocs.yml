@@ -44,7 +44,8 @@ theme:
 # Plugins
 plugins:
   - search
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      execute: true  # Ensures the notebooks run and generate output
   - git-revision-date-localized:
       enable_creation_date: true
   - minify:
@@ -109,7 +110,7 @@ nav:
   - User Guide:
     - Getting Started: user-guide/0_getting-started.md
     - Classes: user-guide/1_classes.md
-    - Introductory Tutorial: user-guide/2_introductory-tutorial.md
+    - Introductory Tutorial: user-guide/2_introductory-tutorial.ipynb
     - Advanced Tutorial: user-guide/3_advanced-tutorial.md
     - Benchmarks: user-guide/4_benchmarks.md
     - Numba Acceleration: user-guide/notebooks/numba_acceleration.ipynb
