@@ -141,9 +141,8 @@ class AgentSetPandas(AgentSetDF, PandasMixin):
         if new_agents.index.dtype != "int64":
             new_agents.index = new_agents.index.astype("int64")
         if __debug__:  # Only execute in non-optimized mode
-            assert obj._agents.index.intersection(new_agents.index).empty, (
-                "Some IDs already exist in the agent set."
-            )
+            if not obj._agents.index.intersection(new_agents.index).empty:
+                raise ValueError("Some IDs already exist in the agent set.")
 
         original_active_indices = obj._mask.index[obj._mask].copy()
 
