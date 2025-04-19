@@ -62,7 +62,6 @@ from mesa_frames import AgentsDF
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
-    AgnosticIds,
     ArrayLike,
     BoolSeries,
     DataFrame,
