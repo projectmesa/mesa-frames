@@ -54,7 +54,6 @@ from typing import TYPE_CHECKING, Literal
 from warnings import warn
 
 import numpy as np
-import pandas as pd
 import polars as pl
 from numpy.random import Generator
 from typing_extensions import Any, Self
