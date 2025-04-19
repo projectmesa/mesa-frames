@@ -113,6 +113,7 @@ nav:
     - Introductory Tutorial: user-guide/2_introductory-tutorial.ipynb
     - Advanced Tutorial: user-guide/3_advanced-tutorial.md
     - Benchmarks: user-guide/4_benchmarks.md
+    - Numba Acceleration: user-guide/notebooks/numba_acceleration.ipynb
   - API Reference: api/index.html
   - Contributing:
     - Contribution Guide: contributing.md
