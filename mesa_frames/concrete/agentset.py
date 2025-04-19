@@ -59,8 +59,6 @@ refer to the class docstring.
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
-import uuid
-import warnings
 
 import polars as pl
 from polars._typing import IntoExpr
