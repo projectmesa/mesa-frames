@@ -61,6 +61,8 @@ from mesa_frames.types_ import (
     Series,
 )
 
+import warnings
+
 if TYPE_CHECKING:
     from mesa_frames.abstract.space import SpaceDF
     from mesa_frames.concrete.agents import AgentSetDF
@@ -647,6 +649,26 @@ class AgentContainer(CopyMixin):
 
     @property
     @abstractmethod
+    def df(self) -> DataFrame | dict[str, DataFrame]:
+        """The agents in the AgentContainer.
+
+        Returns
+        -------
+        DataFrame | dict[str, DataFrame]
+        """
+
+    @df.setter
+    @abstractmethod
+    def df(self, agents: DataFrame | list[AgentSetDF]) -> None:
+        """Set the agents in the AgentContainer.
+
+        Parameters
+        ----------
+        agents : DataFrame | list[AgentSetDF]
+        """
+
+    @property
+    @abstractmethod
     def agents(self) -> DataFrame | dict[str, DataFrame]:
         """The agents in the AgentContainer.
 
@@ -664,6 +686,11 @@ class AgentContainer(CopyMixin):
         ----------
         agents : DataFrame | list[AgentSetDF]
         """
+        warnings.warn(
+            "Setting 'agents' is deprecated. Use 'df' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     @property
     @abstractmethod
@@ -1039,7 +1066,27 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         return reversed(self._agents)
 
     @property
+    def df(self) -> DataFrame:
+        return self._agents
+
+    @df.setter
+    def df(self, agents: DataFrame) -> None:
+        """Set the agents in the AgentSetDF.
+
+        Parameters
+        ----------
+        agents : DataFrame
+            The agents to set.
+        """
+        self._agents = agents
+
+    @property
     def agents(self) -> DataFrame:
+        warnings.warn(
+            "'agents' is deprecated. Use 'df' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._agents
 
     @agents.setter
@@ -1051,6 +1098,11 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         agents : DataFrame
             The agents to set.
         """
+        warnings.warn(
+            "Setting 'agents' is deprecated. Use 'df' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._agents = agents
 
     @property
