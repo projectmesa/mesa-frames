@@ -507,26 +507,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         self._agents = agents
 
     @property
-    def agents(self) -> pl.DataFrame:
-        warnings.warn(
-            "'agents' is deprecated. Use 'df' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._agents
-
-    @agents.setter
-    def agents(self, agents: pl.DataFrame) -> None:
-        warnings.warn(
-            "Setting 'agents' is deprecated. Use 'df' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if "unique_id" not in agents.columns:
-            raise KeyError("DataFrame must have a unique_id column.")
-        self._agents = agents
-
-    @property
     def active_agents(self) -> pl.DataFrame:
         return self.agents.filter(self._mask)
 

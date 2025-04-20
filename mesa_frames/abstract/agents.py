@@ -669,31 +669,6 @@ class AgentContainer(CopyMixin):
 
     @property
     @abstractmethod
-    def agents(self) -> DataFrame | dict[str, DataFrame]:
-        """The agents in the AgentContainer.
-
-        Returns
-        -------
-        DataFrame | dict[str, DataFrame]
-        """
-
-    @agents.setter
-    @abstractmethod
-    def agents(self, agents: DataFrame | list[AgentSetDF]) -> None:
-        """Set the agents in the AgentContainer.
-
-        Parameters
-        ----------
-        agents : DataFrame | list[AgentSetDF]
-        """
-        warnings.warn(
-            "Setting 'agents' is deprecated. Use 'df' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    @property
-    @abstractmethod
     def active_agents(self) -> DataFrame | dict[str, DataFrame]:
         """The active agents in the AgentContainer.
 
