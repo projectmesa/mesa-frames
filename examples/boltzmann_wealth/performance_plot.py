@@ -106,9 +106,7 @@ class MoneyAgentPolarsConcise(AgentSetPolars):
         self.select(self.wealth > 0)
 
         # Receiving agents are sampled (only native expressions currently supported)
-        other_agents = self.df.sample(
-            n=len(self.active_agents), with_replacement=True
-        )
+        other_agents = self.df.sample(n=len(self.active_agents), with_replacement=True)
 
         # Wealth of wealthy is decreased by 1
         # 1. Using the __setitem__ method with self.active_agents mask
@@ -145,9 +143,7 @@ class MoneyAgentPolarsNative(AgentSetPolars):
         ## Active agents are changed to wealthy agents
         self.select(pl.col("wealth") > 0)
 
-        other_agents = self.df.sample(
-            n=len(self.active_agents), with_replacement=True
-        )
+        other_agents = self.df.sample(n=len(self.active_agents), with_replacement=True)
 
         # Wealth of wealthy is decreased by 1
         self.df = self.df.with_columns(
