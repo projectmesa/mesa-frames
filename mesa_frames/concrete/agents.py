@@ -86,7 +86,7 @@ class AgentsDF(AgentContainer):
     _agentsets: list[AgentSetDF]
     _ids: pl.Series
 
-    def __init__(self, model: "mesa_frames.concrete.model.ModelDF") -> None:
+    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
         """Initialize a new AgentsDF.
 
         Parameters
