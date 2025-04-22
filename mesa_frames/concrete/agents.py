@@ -52,6 +52,7 @@ from typing import Any, Literal, Union, cast
 
 import polars as pl
 from beartype import beartype
+from beartype.typing import Type
 from typing_extensions import Self, overload
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
@@ -85,7 +86,7 @@ class AgentsDF(AgentContainer):
     _agentsets: list[AgentSetDF]
     _ids: pl.Series
 
-    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
+    def __init__(self, model: "mesa_frames.concrete.model.ModelDF") -> None:
         """Initialize a new AgentsDF.
 
         Parameters
