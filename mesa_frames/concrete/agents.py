@@ -700,19 +700,19 @@ class AgentsDF(AgentContainer):
         self.select(agents, inplace=True)
 
     @property
-    def agentsets_by_type(self) -> dict[type[AgentSetDF], Self]:
+    def agentsets_by_type(self) -> dict[AgentSetDF, Self]:
         """Get the agent sets in the AgentsDF grouped by type.
 
         Returns
         -------
-        dict[type[AgentSetDF], Self]
+        dict[AgentSetDF, Self]
             A dictionary mapping agent set types to the corresponding AgentsDF.
         """
 
         def copy_without_agentsets() -> Self:
             return self.copy(deep=False, skip=["_agentsets"])
 
-        dictionary: dict[type[AgentSetDF], Self] = defaultdict(copy_without_agentsets)
+        dictionary: dict[AgentSetDF, Self] = defaultdict(copy_without_agentsets)
 
         for agentset in self._agentsets:
             agents_df = dictionary[agentset.__class__]
