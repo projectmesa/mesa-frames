@@ -201,7 +201,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.DataFrame,
         column: str,
-        values: Sequence[Any],
+        values: Collection[Any],
     ) -> pl.Series:
         return pl.Series("contains", values).is_in(df[column])
 
