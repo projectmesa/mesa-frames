@@ -45,7 +45,8 @@ from __future__ import annotations  # PEP 563: postponed evaluation of type anno
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional
+from beartype.typing import Union
 
 from beartype import beartype
 from numpy.random import Generator
@@ -70,18 +71,18 @@ class AgentContainer(CopyMixin):
     _copy_only_reference: list[str] = [
         "_model",
     ]
-    _model: mesa_frames.concrete.model.ModelDF
+    _model: "mesa_frames.concrete.model.ModelDF"
 
     @abstractmethod
     def __init__(self) -> None: ...
 
     def discard(
         self,
-        agents: (
-            IdsLike
-            | mesa_frames.concrete.agents.AgentSetDF
-            | Collection[mesa_frames.concrete.agents.AgentSetDF]
-        ),
+        agents: Union[
+            IdsLike,
+            "mesa_frames.concrete.agents.AgentSetDF",
+            Collection["mesa_frames.concrete.agents.AgentSetDF"],
+        ],
         inplace: bool = True,
     ) -> Self:
         """Remove agents from the AgentContainer. Does not raise an error if the agent is not found.
@@ -105,11 +106,11 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def add(
         self,
-        agents: (
-            DataFrameInput
-            | mesa_frames.concrete.agents.AgentSetDF
-            | Collection[mesa_frames.concrete.agents.AgentSetDF]
-        ),
+        agents: Union[
+            DataFrameInput,
+            "mesa_frames.concrete.agents.AgentSetDF",
+            Collection["mesa_frames.concrete.agents.AgentSetDF"],
+        ],
         inplace: bool = True,
     ) -> Self:
         """Add agents to the AgentContainer.
@@ -135,12 +136,12 @@ class AgentContainer(CopyMixin):
     @overload
     @abstractmethod
     def contains(
-        self, agents: mesa_frames.concrete.agents.AgentSetDF | IdsLike
+        self, agents: Union["mesa_frames.concrete.agents.AgentSetDF", IdsLike]
     ) -> BoolSeries: ...
 
     @abstractmethod
     def contains(
-        self, agents: int | mesa_frames.concrete.agents.AgentSetDF | IdsLike
+        self, agents: Union[int, "mesa_frames.concrete.agents.AgentSetDF", IdsLike]
     ) -> bool | BoolSeries:
         """Check if agents with the specified IDs are in the AgentContainer.
 
@@ -177,7 +178,7 @@ class AgentContainer(CopyMixin):
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs: Any,
-    ) -> Any | dict[mesa_frames.concrete.agents.AgentSetDF, Any]: ...
+    ) -> Any | dict[type["mesa_frames.concrete.agents.AgentSetDF"], Any]: ...
 
     @abstractmethod
     def do(
@@ -188,7 +189,7 @@ class AgentContainer(CopyMixin):
         return_results: bool = False,
         inplace: bool = True,
         **kwargs: Any,
-    ) -> Self | Any | dict[mesa_frames.concrete.agents.AgentSetDF, Any]:
+    ) -> Self | Any | dict[type["mesa_frames.concrete.agents.AgentSetDF"], Any]:
         """Invoke a method on the AgentContainer.
 
         Parameters
@@ -248,9 +249,11 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def remove(
         self,
-        agents: IdsLike
-        | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        agents: Union[
+            IdsLike,
+            "mesa_frames.concrete.agents.AgentSetDF",
+            Collection["mesa_frames.concrete.agents.AgentSetDF"],
+        ],
         inplace: bool = True,
     ) -> Self:
         """Remove the agents from the AgentContainer.
@@ -396,9 +399,11 @@ class AgentContainer(CopyMixin):
 
     def __add__(
         self,
-        other: DataFrameInput
-        | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        other: Union[
+            DataFrameInput,
+            "mesa_frames.concrete.agents.AgentSetDF",
+            Collection["mesa_frames.concrete.agents.AgentSetDF"],
+        ],
     ) -> Self:
         """Add agents to a new AgentContainer through the + operator.
 
@@ -415,7 +420,7 @@ class AgentContainer(CopyMixin):
         return self.add(agents=other, inplace=False)
 
     def __contains__(
-        self, agents: int | mesa_frames.concrete.agents.AgentSetDF
+        self, agents: Union[int, "mesa_frames.concrete.agents.AgentSetDF"]
     ) -> bool:
         """Check if an agent is in the AgentContainer.
 
@@ -481,9 +486,11 @@ class AgentContainer(CopyMixin):
 
     def __iadd__(
         self,
-        other: DataFrameInput
-        | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        other: Union[
+            DataFrameInput,
+            "mesa_frames.concrete.agents.AgentSetDF",
+            Collection["mesa_frames.concrete.agents.AgentSetDF"],
+        ],
     ) -> Self:
         """Add agents to the AgentContainer through the += operator.
 
@@ -501,9 +508,11 @@ class AgentContainer(CopyMixin):
 
     def __isub__(
         self,
-        other: IdsLike
-        | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        other: Union[
+            IdsLike,
+            "mesa_frames.concrete.agents.AgentSetDF",
+            Collection["mesa_frames.concrete.agents.AgentSetDF"],
+        ],
     ) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
 
@@ -521,9 +530,11 @@ class AgentContainer(CopyMixin):
 
     def __sub__(
         self,
-        other: IdsLike
-        | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        other: Union[
+            IdsLike,
+            "mesa_frames.concrete.agents.AgentSetDF",
+            Collection["mesa_frames.concrete.agents.AgentSetDF"],
+        ],
     ) -> Self:
         """Remove agents from a new AgentContainer through the - operator.
 
@@ -646,7 +657,7 @@ class AgentContainer(CopyMixin):
         ...
 
     @property
-    def model(self) -> mesa_frames.concrete.model.ModelDF:
+    def model(self) -> "mesa_frames.concrete.model.ModelDF":
         """The model that the AgentContainer belongs to.
 
         Returns
@@ -688,7 +699,7 @@ class AgentContainer(CopyMixin):
     @agents.setter
     @abstractmethod
     def agents(
-        self, agents: DataFrame | list[mesa_frames.concrete.agents.AgentSetDF]
+        self, agents: Union[DataFrame, list["mesa_frames.concrete.agents.AgentSetDF"]]
     ) -> None:
         """Set the agents in the AgentContainer.
 
@@ -726,7 +737,7 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def inactive_agents(
         self,
-    ) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
+    ) -> DataFrame | dict[type["mesa_frames.concrete.agents.AgentSetDF"], DataFrame]:
         """The inactive agents in the AgentContainer.
 
         Returns
@@ -736,7 +747,7 @@ class AgentContainer(CopyMixin):
 
     @property
     @abstractmethod
-    def index(self) -> Index | dict[mesa_frames.concrete.agents.AgentSetDF, Index]:
+    def index(self) -> Index | dict[type["mesa_frames.concrete.agents.AgentSetDF"], Index]:
         """The ids in the AgentContainer.
 
         Returns
@@ -772,11 +783,11 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         AgentMask  # The underlying mask used for the active agents in the AgentSetDF.
     )
     _model: (
-        mesa_frames.concrete.model.ModelDF
+        "mesa_frames.concrete.model.ModelDF"
     )  # The model that the AgentSetDF belongs to.
 
     @abstractmethod
-    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
+    def __init__(self, model: "mesa_frames.concrete.model.ModelDF") -> None:
         self._model = model
 
     @abstractmethod
