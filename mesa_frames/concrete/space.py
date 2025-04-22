@@ -217,4 +217,4 @@ class GridPolars(GridDF, PolarsMixin):
     def remaining_capacity(self) -> int:
         if not self._capacity:
             return np.inf
-        return self._cells_capacity.sum()
+        return int(self._cells_capacity.sum())
