@@ -784,7 +784,9 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     _mask: (
         AgentMask  # The underlying mask used for the active agents in the AgentSetDF.
     )
-    _model: mesa_frames.concrete.model.ModelDF  # The model that the AgentSetDF belongs to.
+    _model: (
+        mesa_frames.concrete.model.ModelDF
+    )  # The model that the AgentSetDF belongs to.
 
     @abstractmethod
     def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
