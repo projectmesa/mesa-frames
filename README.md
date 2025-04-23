@@ -80,6 +80,8 @@ pip install -e .
 
 ## Usage
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/projectmesa/mesa-frames/blob/main/docs/general/user-guide/2_introductory-tutorial.ipynb)
+
 **Note:** mesa-frames is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
 
 You can find the API documentation [here](https://projectmesa.github.io/mesa-frames/api).

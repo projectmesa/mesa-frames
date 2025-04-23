@@ -260,7 +260,7 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         column: str,
-        values: Sequence[Any],
+        values: Collection[Any],
     ) -> BoolSeries: ...
 
     @abstractmethod

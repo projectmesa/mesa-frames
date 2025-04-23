@@ -108,7 +108,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
         Parameters
         ----------
-        model : mesa_frames.concrete.model.ModelDF
+        model : "mesa_frames.concrete.model.ModelDF"
             The model that the agent set belongs to.
         """
         self._model = model

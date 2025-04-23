@@ -176,7 +176,7 @@ class PolarsMixin(DataFrameMixin):
         columns: list[str] | None = None,
         index: Sequence[Hashable] | None = None,
         index_cols: str | list[str] | None = None,
-        dtypes: dict[str, Any] | None = None,
+        dtypes: dict[str, str | type] | None = None,
     ) -> pl.DataFrame:
         if dtypes is not None:
             dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
@@ -201,7 +201,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.DataFrame,
         column: str,
-        values: Sequence[Any],
+        values: Collection[Any],
     ) -> pl.Series:
         return pl.Series("contains", values).is_in(df[column])
 
