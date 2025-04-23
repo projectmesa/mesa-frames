@@ -40,12 +40,16 @@ For more detailed information on the ModelDF class and its methods, refer to
 the class docstring.
 """
 
+from __future__ import annotations
+
 from collections.abc import Sequence
-from typing import Literal, Union
+from typing import Literal
 
 import numpy as np
 from beartype import beartype
 
+from mesa_frames.abstract.agents import AgentSetDF
+from mesa_frames.abstract.space import SpaceDF
 from mesa_frames.concrete.agents import AgentsDF
 
 
@@ -63,9 +67,7 @@ class ModelDF:
     running: bool
     _seed: int | Sequence[int]
     _agents: AgentsDF  # Where the agents are stored
-    _space: (
-        Union["mesa_frames.abstract.space.SpaceDF", None] | None
-    )  # This will be a MultiSpaceDF object
+    _space: SpaceDF | None  # This will be a MultiSpaceDF object
 
     def __init__(self, seed: int | Sequence[int] | None = None) -> None:
         """Create a new model.
@@ -100,7 +102,7 @@ class ModelDF:
         """Get the current step count."""
         return self._steps
 
-    def get_agents_of_type(self, agent_type: type) -> "AgentSetDF":
+    def get_agents_of_type(self, agent_type: type) -> AgentSetDF:
         """Retrieve the AgentSetDF of a specified type.
 
         Parameters
@@ -197,25 +199,21 @@ class ModelDF:
         return [agent.__class__ for agent in self._agents._agentsets]
 
     @property
-    def space(self) -> Union["mesa_frames.abstract.space.SpaceDF", None]:
-        """Get the space object associated with the model.
+    def space(self) -> SpaceDF | None:
+        """The space of the model.
 
         Returns
         -------
-        SpaceDF
-            The space object associated with the model.
-
-        Raises
-        ------
-        ValueError
-            If the space has not been set for the model.
+        SpaceDF | None
         """
-        if not self._space:
-            raise ValueError(
-                "You haven't set the space for the model. Use model.space = your_space"
-            )
         return self._space
 
     @space.setter
-    def space(self, space: Union["mesa_frames.abstract.space.SpaceDF", None]) -> None:
+    def space(self, space: SpaceDF | None) -> None:
+        """Set the space of the model.
+
+        Parameters
+        ----------
+        space : SpaceDF | None
+        """
         self._space = space
