@@ -64,7 +64,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_add(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
@@ -89,7 +89,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_and(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
@@ -174,7 +174,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         data: dict[str, Any] | Sequence[Sequence] | DataFrame | None = None,
         columns: list[str] | None = None,
-        index: Sequence[Hashable] | None = None,
+        index: Collection[Hashable] | None = None,
         index_cols: str | list[str] | None = None,
         dtypes: dict[str, str | type] | None = None,
     ) -> pl.DataFrame:
@@ -208,7 +208,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_div(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
@@ -260,7 +260,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_ge(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
@@ -376,7 +376,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_lt(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
@@ -391,7 +391,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_mod(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
@@ -406,7 +406,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_mul(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
@@ -450,7 +450,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_operation(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         operation: Callable[[pl.Expr, pl.Expr], pl.Expr],
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
@@ -496,7 +496,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_or(
         self,
         df: pl.DataFrame,
-        other: pl.DataFrame | Sequence[float | int],
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
@@ -566,8 +566,8 @@ class PolarsMixin(DataFrameMixin):
     def _df_set_index(
         self,
         df: pl.DataFrame,
-        index_name: str,
-        new_index: Sequence[Hashable] | None = None,
+        index_name: str | list[str],
+        new_index: Collection[Hashable] | None = None,
     ) -> pl.DataFrame:
         if new_index is None:
             return df
@@ -603,7 +603,7 @@ class PolarsMixin(DataFrameMixin):
 
     def _srs_constructor(
         self,
-        data: Sequence[Any] | None = None,
+        data: Collection[Any] | None = None,
         name: str | None = None,
         dtype: str | None = None,
         index: Sequence[Any] | None = None,

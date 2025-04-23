@@ -395,7 +395,7 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         srs_name: str = "norm",
-        include_cols: Literal[True] = False,
+        include_cols: Literal[True] = True,
     ) -> DataFrame: ...
 
     @abstractmethod
@@ -455,7 +455,7 @@ class DataFrameMixin(ABC):
     def _df_set_index(
         self,
         df: DataFrame,
-        index_name: str,
+        index_name: str | list[str],
         new_index: Sequence[Hashable] | None = None,
     ) -> DataFrame: ...
 
@@ -466,8 +466,8 @@ class DataFrameMixin(ABC):
         data: DataFrame
         | Series
         | Sequence[Sequence]
-        | dict[str | Any]
-        | Sequence[Any]
+        | dict[str, Any]
+        | Collection[Any]
         | Any,
         new_columns: str | list[str] | None = None,
     ) -> DataFrame: ...
@@ -475,21 +475,23 @@ class DataFrameMixin(ABC):
     @abstractmethod
     def _srs_constructor(
         self,
-        data: Sequence[Any] | None = None,
+        data: Collection[Any] | None = None,
         name: str | None = None,
         dtype: Any | None = None,
-        index: Sequence[Any] | None = None,
+        index: Collection[Any] | None = None,
     ) -> Series: ...
 
     @abstractmethod
     def _srs_contains(
         self,
-        srs: Sequence[Any],
-        values: Any | Sequence[Any],
+        srs: Collection[Any],
+        values: Any | Collection[Any],
     ) -> BoolSeries: ...
 
     @abstractmethod
     def _srs_range(self, name: str, start: int, end: int, step: int = 1) -> Series: ...
 
     @abstractmethod
-    def _srs_to_df(self, srs: Series, index: Index | None = None) -> DataFrame: ...
+    def _srs_to_df(
+        self, srs: Series, index: Collection[Any] | None = None
+    ) -> DataFrame: ...
