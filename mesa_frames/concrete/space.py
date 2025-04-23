@@ -42,6 +42,7 @@ For more detailed information on the GridPolars class and its methods,
 refer to the class docstring.
 """
 
+import math
 from collections.abc import Callable, Sequence
 from typing import Literal
 
@@ -51,6 +52,7 @@ from beartype import beartype
 
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.mixin import PolarsMixin
+from mesa_frames.types_ import Infinity
 from mesa_frames.utils import copydoc
 
 
@@ -84,7 +86,7 @@ class GridPolars(GridDF, PolarsMixin):
         return empty_mask
 
     def _generate_empty_grid(
-        self, dimensions: Sequence[int], capacity: int
+        self, dimensions: Sequence[int], capacity: int | None
     ) -> np.ndarray:
         if not capacity:
             capacity = np.inf
@@ -163,7 +165,7 @@ class GridPolars(GridDF, PolarsMixin):
 
     def _update_capacity_agents(
         self,
-        agents: pl.DataFrame,
+        agents: pl.DataFrame | pl.Series,
         operation: Literal["movement", "removal"],
     ) -> np.ndarray:
         # Update capacity for agents that were already on the grid
@@ -214,7 +216,7 @@ class GridPolars(GridDF, PolarsMixin):
         return self._cells_capacity
 
     @property
-    def remaining_capacity(self) -> int:
+    def remaining_capacity(self) -> int | Infinity:
         if not self._capacity:
-            return np.inf
+            return math.inf
         return int(self._cells_capacity.sum())

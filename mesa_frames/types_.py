@@ -1,5 +1,7 @@
 """Type aliases for the mesa_frames package."""
 
+from __future__ import annotations
+
 from collections.abc import Collection, Sequence
 from datetime import date, datetime, time, timedelta
 from typing import Literal
@@ -90,4 +92,6 @@ SpaceCoordinates = DiscreteCoordinates | ContinousCoordinates
 GridCapacity = PolarsGridCapacity
 NetworkCapacity = DataFrame
 
-DiscreteSpaceCapacity = GridCapacity | NetworkCapacity
+import numpy as np
+
+DiscreteSpaceCapacity = GridCapacity | NetworkCapacity | np.ndarray
