@@ -1,8 +1,8 @@
 """Type aliases for the mesa_frames package."""
 
 from collections.abc import Collection, Sequence
+from datetime import date, datetime, time, timedelta
 from typing import Literal
-
 
 # import geopolars as gpl
 import polars as pl
@@ -22,6 +22,29 @@ PolarsMask = pl.Expr | pl.Series | pl.DataFrame | AgnosticMask
 AgentPolarsMask = AgnosticAgentMask | pl.Expr | pl.Series | pl.DataFrame | Sequence[int]
 PolarsIdsLike = AgnosticIds | pl.Series
 PolarsGridCapacity = list[pl.Expr]
+IntoExpr = (
+    int
+    | float
+    | date
+    | time
+    | datetime
+    | timedelta
+    | str
+    | bool
+    | bytes
+    | list[Any]
+    | pl.Expr
+    | pl.Series
+    | None
+)
+
+import math
+
+from beartype.typing import Annotated
+from beartype.vale import IsEqual
+
+# “Infinity” alias that only accepts math.inf
+Infinity = Annotated[float, IsEqual[math.inf]]
 
 ###----- Generic -----###
 # GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
