@@ -174,7 +174,7 @@ class PolarsMixin(DataFrameMixin):
         self,
         data: dict[str, Any] | Sequence[Sequence] | DataFrame | None = None,
         columns: list[str] | None = None,
-        index: Collection[Hashable] | None = None,
+        index: pl.DataFrame | pl.Series | Collection[Hashable] | None = None,
         index_cols: str | list[str] | None = None,
         dtypes: dict[str, str | type] | None = None,
     ) -> pl.DataFrame:
@@ -340,7 +340,15 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         return df.with_columns(pl.cum_count(by).over(by).alias(name))[name]
 
-    def _df_index(self, df: pl.DataFrame, index_col: str | list[str]) -> pl.Series:
+    @overload
+    def _df_index(self, df: pl.DataFrame, index_col: str) -> pl.Series: ...
+
+    @overload
+    def _df_index(self, df: pl.DataFrame, index_col: list[str]) -> pl.DataFrame: ...
+
+    def _df_index(
+        self, df: pl.DataFrame, index_col: str | list[str]
+    ) -> pl.Series | pl.DataFrame:
         return df[index_col]
 
     def _df_iterator(self, df: pl.DataFrame) -> Iterator[dict[str, Any]]:
