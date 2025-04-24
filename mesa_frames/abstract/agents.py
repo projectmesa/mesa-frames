@@ -450,6 +450,7 @@ class AgentContainer(CopyMixin):
             | Collection[str]
             | AgentMask
             | tuple[AgentMask, str]
+            | tuple[AgentMask, Collection[str]]
             | tuple[dict[AgentSetDF, AgentMask], str]
             | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
         ),
