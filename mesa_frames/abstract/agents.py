@@ -75,7 +75,8 @@ class AgentContainer(CopyMixin):
 
     def discard(
         self,
-        agents: IdsLike | AgentMask
+        agents: IdsLike
+        | AgentMask
         | mesa_frames.concrete.agents.AgentSetDF
         | Collection[mesa_frames.concrete.agents.AgentSetDF],
         inplace: bool = True,
@@ -101,7 +102,8 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def add(
         self,
-        agents: DataFrame | DataFrameInput
+        agents: DataFrame
+        | DataFrameInput
         | mesa_frames.concrete.agents.AgentSetDF
         | Collection[mesa_frames.concrete.agents.AgentSetDF],
         inplace: bool = True,
@@ -392,7 +394,10 @@ class AgentContainer(CopyMixin):
 
     def __add__(
         self,
-        other:  DataFrame | DataFrameInput| mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        other: DataFrame
+        | DataFrameInput
+        | mesa_frames.concrete.agents.AgentSetDF
+        | Collection[mesa_frames.concrete.agents.AgentSetDF],
     ) -> Self:
         """Add agents to a new AgentContainer through the + operator.
 
@@ -479,7 +484,9 @@ class AgentContainer(CopyMixin):
     def __iadd__(
         self,
         other: (
-            DataFrame | DataFrameInput | mesa_frames.concrete.agents.AgentSetDF
+            DataFrame
+            | DataFrameInput
+            | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
     ) -> Self:
@@ -760,7 +767,9 @@ class AgentContainer(CopyMixin):
 
     @property
     @abstractmethod
-    def pos(self) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
+    def pos(
+        self,
+    ) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
         """The position of the agents in the AgentContainer.
 
         Returns
@@ -789,8 +798,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     )  # The model that the AgentSetDF belongs to.
 
     @abstractmethod
-    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
-        ...
+    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None: ...
 
     @abstractmethod
     def add(
