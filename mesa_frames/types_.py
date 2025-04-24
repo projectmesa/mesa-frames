@@ -9,7 +9,6 @@ import math
 import polars as pl
 from numpy import ndarray
 import numpy as np
-from polars._typing import ArrowArrayExportable, ArrowStreamExportable
 # import geopolars as gpl # TODO: Uncomment when geopolars is available
 
 
