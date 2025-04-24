@@ -399,7 +399,7 @@ class AgentContainer(CopyMixin):
         self,
         other: (
             DataFrameInput
-            | mesa_frames.concrete.agents.AgentSetDF
+            | mesa_frames.concrete.agents.AgentSetDF | Collection[Any]
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
     ) -> Self:
@@ -487,7 +487,7 @@ class AgentContainer(CopyMixin):
     def __iadd__(
         self,
         other: (
-            DataFrameInput
+            DataFrameInput | Collection[Any]
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
@@ -998,17 +998,17 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         self, original_active_indices: Index, new_active_indices: Index | None = None
     ) -> None: ...
 
-    def __add__(self, other: DataFrame | Sequence[Any] | dict[str, Any]) -> Self:
+    def __add__(self, other: DataFrame | Collection[Any] | dict[str, Any]) -> Self:
         """Add agents to a new AgentSetDF through the + operator.
 
         Other can be:
         - A DataFrame: adds the agents from the DataFrame.
-        - A Sequence[Any]: should be one single agent to add.
+        - A Collection[Any]: should be one single agent to add.
         - A dictionary: keys should be attributes and values should be the values to add.
 
         Parameters
         ----------
-        other : DataFrame | Sequence[Any] | dict[str, Any]
+        other : DataFrame | Collection[Any] | dict[str, Any]
             The agents to add.
 
         Returns
@@ -1018,7 +1018,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """
         return super().__add__(other)
 
-    def __iadd__(self, other: DataFrame | Sequence[Any] | dict[str, Any]) -> Self:
+    def __iadd__(self, other: DataFrame | Collection[Any] | dict[str, Any]) -> Self:
         """
         Add agents to the AgentSetDF through the += operator.
 
