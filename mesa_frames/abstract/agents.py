@@ -682,12 +682,12 @@ class AgentContainer(CopyMixin):
         return self.model.random
 
     @property
-    def space(self) -> mesa_frames.abstract.space.SpaceDF:
+    def space(self) -> mesa_frames.abstract.space.SpaceDF | None:
         """The space of the model.
 
         Returns
         -------
-        mesa_frames.abstract.space.SpaceDF
+        mesa_frames.abstract.space.SpaceDF | None
         """
         return self.model.space
 
