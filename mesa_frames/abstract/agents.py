@@ -479,9 +479,7 @@ class AgentContainer(CopyMixin):
     def __iadd__(
         self,
         other: (
-            DataFrameInput
-            | Collection[Any]
-            | mesa_frames.concrete.agents.AgentSetDF
+            DataFrameInput | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
     ) -> Self:
@@ -503,16 +501,16 @@ class AgentContainer(CopyMixin):
         self,
         other: (
             IdsLike
+            | AgentMask
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
-            | DataFrame
         ),
     ) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
 
         Parameters
         ----------
-        other : IdsLike | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        other : IdsLike | AgentMask | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
             The agents to remove.
 
         Returns
@@ -526,7 +524,7 @@ class AgentContainer(CopyMixin):
         self,
         other: (
             IdsLike
-            | DataFrame
+            | AgentMask
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
@@ -535,7 +533,7 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        other : IdsLike | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        other : IdsLike | AgentMask | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
             The agents to remove.
 
         Returns
@@ -564,6 +562,8 @@ class AgentContainer(CopyMixin):
         - A list of strings(eg. AgentContainer[["str1", "str2"]]): sets the specified columns of the agents in the AgentContainer.
         - A tuple (eg. AgentContainer[AgentMask, "str"]): sets the specified column of the agents in the AgentContainer that satisfy the AgentMask.
         - A AgentMask (eg. AgentContainer[AgentMask]): sets the attributes of the agents in the AgentContainer that satisfy the AgentMask.
+        - A tuple with a dictionary (eg. AgentContainer[{AgentSetDF: AgentMask}, "str"]): sets the specified column of the agents in the AgentContainer that satisfy the AgentMask from the dictionary.
+        - A tuple with a dictionary (eg. AgentContainer[{AgentSetDF: AgentMask}, Collection[str]]): sets the specified columns of the agents in the AgentContainer that satisfy the AgentMask from the dictionary.
 
         Parameters
         ----------
@@ -737,35 +737,35 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def inactive_agents(
         self,
-    ) -> DataFrame | dict[type[mesa_frames.concrete.agents.AgentSetDF], DataFrame]:
+    ) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
         """The inactive agents in the AgentContainer.
 
         Returns
         -------
-        DataFrame | dict[type[mesa_frames.concrete.agents.AgentSetDF], DataFrame]
+        DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]
         """
 
     @property
     @abstractmethod
     def index(
         self,
-    ) -> Index | dict[type[mesa_frames.concrete.agents.AgentSetDF], Index]:
+    ) -> Index | dict[mesa_frames.concrete.agents.AgentSetDF, Index]:
         """The ids in the AgentContainer.
 
         Returns
         -------
-        Index | dict[type[mesa_frames.concrete.agents.AgentSetDF], Index]
+        Index | dict[mesa_frames.concrete.agents.AgentSetDF, Index]
         """
         ...
 
     @property
     @abstractmethod
-    def pos(self) -> DataFrame | dict[str, DataFrame]:
+    def pos(self) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
         """The position of the agents in the AgentContainer.
 
         Returns
         -------
-        DataFrame | dict[str, DataFrame]
+        DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]
         """
         ...
 
