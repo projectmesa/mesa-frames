@@ -512,6 +512,7 @@ class AgentContainer(CopyMixin):
             IdsLike
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | DataFrame
         ),
     ) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
@@ -532,6 +533,7 @@ class AgentContainer(CopyMixin):
         self,
         other: (
             IdsLike
+            | DataFrame
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),

@@ -497,7 +497,7 @@ class AgentsDF(AgentContainer):
     def __iter__(self) -> Iterator[dict[str, Any]]:
         return (agent for agentset in self._agentsets for agent in iter(agentset))
 
-    def __isub__(self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike) -> Self:
+    def __isub__(self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike | DataFrame) -> Self:
         """Remove AgentSetDFs from the AgentsDF through the -= operator.
 
         Parameters
@@ -542,7 +542,7 @@ class AgentsDF(AgentContainer):
     def __str__(self) -> str:
         return "\n".join([str(agentset) for agentset in self._agentsets])
 
-    def __sub__(self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike) -> Self:
+    def __sub__(self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike | DataFrame) -> Self:
         """Remove AgentSetDFs from a new AgentsDF through the - operator.
 
         Parameters
