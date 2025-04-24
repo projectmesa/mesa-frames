@@ -251,7 +251,8 @@ class AgentContainer(CopyMixin):
             IdsLike
             | DataFrame
             | mesa_frames.concrete.agents.AgentSetDF
-            | Collection[mesa_frames.concrete.agents.AgentSetDF] |  Literal["active"]
+            | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | Literal["active"]
         ),
         inplace: bool = True,
     ) -> Self:
@@ -399,7 +400,8 @@ class AgentContainer(CopyMixin):
         self,
         other: (
             DataFrameInput
-            | mesa_frames.concrete.agents.AgentSetDF | Collection[Any]
+            | mesa_frames.concrete.agents.AgentSetDF
+            | Collection[Any]
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
     ) -> Self:
@@ -488,7 +490,8 @@ class AgentContainer(CopyMixin):
     def __iadd__(
         self,
         other: (
-            DataFrameInput | Collection[Any]
+            DataFrameInput
+            | Collection[Any]
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
@@ -913,7 +916,9 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """Run a single step of the AgentSetDF. This method should be overridden by subclasses."""
         ...
 
-    def remove(self, agents: IdsLike | DataFrame | Literal["active"], inplace: bool = True) -> Self:
+    def remove(
+        self, agents: IdsLike | DataFrame | Literal["active"], inplace: bool = True
+    ) -> Self:
         if isinstance(agents, str) and agents == "active":
             agents = self.active_agents
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
