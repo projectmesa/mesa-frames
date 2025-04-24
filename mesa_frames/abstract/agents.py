@@ -79,6 +79,7 @@ class AgentContainer(CopyMixin):
     def discard(
         self,
         agents: IdsLike
+        | DataFrame
         | mesa_frames.concrete.agents.AgentSetDF
         | Collection[mesa_frames.concrete.agents.AgentSetDF],
         inplace: bool = True,
@@ -247,6 +248,7 @@ class AgentContainer(CopyMixin):
         self,
         agents: (
             IdsLike
+            | DataFrame
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
@@ -907,7 +909,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """Run a single step of the AgentSetDF. This method should be overridden by subclasses."""
         ...
 
-    def remove(self, agents: IdsLike, inplace: bool = True) -> Self:
+    def remove(self, agents: IdsLike | DataFrame, inplace: bool = True) -> Self:
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
             return self._get_obj(inplace)
         agents = self._df_index(self._get_masked_df(agents), "unique_id")
