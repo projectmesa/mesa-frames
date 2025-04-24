@@ -57,6 +57,8 @@ For more detailed information on the AgentSetPolars class and its methods,
 refer to the class docstring.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from decimal import Decimal
 from typing import Literal
@@ -64,13 +66,12 @@ from typing import Literal
 import numpy as np
 import polars as pl
 from beartype import beartype
-from polars._typing import IntoExpr
 from typing_extensions import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import ModelDF
-from mesa_frames.types_ import AgentPolarsMask, IdsLike, PolarsIdsLike
+from mesa_frames.types_ import AgentPolarsMask, IdsLike, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
 
@@ -103,7 +104,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     }
     _copy_only_reference: list[str] = ["_model", "_mask"]
 
-    def __init__(self, model: "mesa_frames.concrete.model.ModelDF") -> None:
+    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
         """Initialize a new AgentSetPolars.
 
         Parameters
