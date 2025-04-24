@@ -81,7 +81,8 @@ class AgentContainer(CopyMixin):
         agents: IdsLike
         | DataFrame
         | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        | Literal["active"],
         inplace: bool = True,
     ) -> Self:
         """Remove agents from the AgentContainer. Does not raise an error if the agent is not found.
@@ -250,7 +251,7 @@ class AgentContainer(CopyMixin):
             IdsLike
             | DataFrame
             | mesa_frames.concrete.agents.AgentSetDF
-            | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | Collection[mesa_frames.concrete.agents.AgentSetDF] |  Literal["active"]
         ),
         inplace: bool = True,
     ) -> Self:
@@ -909,7 +910,9 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """Run a single step of the AgentSetDF. This method should be overridden by subclasses."""
         ...
 
-    def remove(self, agents: IdsLike | DataFrame, inplace: bool = True) -> Self:
+    def remove(self, agents: IdsLike | DataFrame | Literal["active"], inplace: bool = True) -> Self:
+        if isinstance(agents, str) and agents == "active":
+            agents = self.active_agents
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
             return self._get_obj(inplace)
         agents = self._df_index(self._get_masked_df(agents), "unique_id")
