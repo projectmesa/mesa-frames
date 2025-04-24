@@ -1000,7 +1000,9 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     def __getattr__(self, name: str) -> Any:
         if __debug__:  # Only execute in non-optimized mode
             if name == "_agents":
-                raise AttributeError("The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method.")
+                raise AttributeError(
+                    "The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
+                )
 
     @overload
     def __getitem__(self, key: str | tuple[AgentMask, str]) -> Series | DataFrame: ...

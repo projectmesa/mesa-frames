@@ -441,7 +441,9 @@ class AgentsDF(AgentContainer):
         # Avoids infinite recursion of private attributes
         if __debug__:  # Only execute in non-optimized mode
             if name.startswith("_"):
-                raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+                raise AttributeError(
+                    f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                )
         return {agentset: getattr(agentset, name) for agentset in self._agentsets}
 
     @overload

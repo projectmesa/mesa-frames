@@ -176,7 +176,9 @@ class ModelDF:
             return self._agents
         except AttributeError:
             if __debug__:  # Only execute in non-optimized mode
-                raise RuntimeError("You haven't called super().__init__() in your model. Make sure to call it in your __init__ method.")
+                raise RuntimeError(
+                    "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
+                )
 
     @agents.setter
     def agents(self, agents: AgentsDF) -> None:
