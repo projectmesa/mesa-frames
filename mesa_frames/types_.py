@@ -11,7 +11,6 @@ from numpy import ndarray
 import numpy as np
 # import geopolars as gpl # TODO: Uncomment when geopolars is available
 
-
 ###----- Optional Types -----###
 try:
     import pandas as pd
@@ -37,7 +36,7 @@ AgnosticIds = int | Collection[int]
 
 ###----- Polars Types -----###
 PolarsDataFrameInput = Union[
-    Mapping[str, Union[Sequence[object], Mapping[str, Sequence[object]], pl.Series]],
+    Mapping[str, Union[Sequence[object], Mapping[str, Sequence[object]], pl.Series, Any]],
     Sequence[Any],
     np.ndarray,
     ArrowTable,

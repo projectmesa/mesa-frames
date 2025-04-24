@@ -101,7 +101,7 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def add(
         self,
-        agents: DataFrameInput
+        agents: DataFrame | DataFrameInput
         | mesa_frames.concrete.agents.AgentSetDF
         | Collection[mesa_frames.concrete.agents.AgentSetDF],
         inplace: bool = True,
@@ -110,7 +110,7 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        agents : DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        agents : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
             The agents to add.
         inplace : bool
             Whether to add the agents in place. Defaults to True.
@@ -392,13 +392,13 @@ class AgentContainer(CopyMixin):
 
     def __add__(
         self,
-        other:  DataFrameInput| mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        other:  DataFrame | DataFrameInput| mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF],
     ) -> Self:
         """Add agents to a new AgentContainer through the + operator.
 
         Parameters
         ----------
-        other : DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        other : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
             The agents to add.
 
         Returns
@@ -479,7 +479,7 @@ class AgentContainer(CopyMixin):
     def __iadd__(
         self,
         other: (
-            DataFrameInput | mesa_frames.concrete.agents.AgentSetDF
+            DataFrame | DataFrameInput | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
         ),
     ) -> Self:
@@ -487,7 +487,7 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        other : DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        other : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
             The agents to add.
 
         Returns
@@ -790,12 +790,12 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
-        self._model = model
+        ...
 
     @abstractmethod
     def add(
         self,
-        agents: DataFrameInput,
+        agents: DataFrame | DataFrameInput,
         inplace: bool = True,
     ) -> Self:
         """Add agents to the AgentSetDF.
@@ -807,7 +807,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
         Parameters
         ----------
-        agents : DataFrameInput
+        agents : DataFrame | DataFrameInput
             The agents to add.
         inplace : bool, optional
             If True, perform the operation in place, by default True
