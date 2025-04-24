@@ -42,6 +42,8 @@ Attributes and methods of each mixin class are documented in their respective
 docstrings.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Hashable, Iterator, Sequence
 from copy import copy, deepcopy
@@ -421,7 +423,7 @@ class DataFrameMixin(ABC):
     def _df_reindex(
         self,
         df: DataFrame,
-        other: Sequence[Hashable] | DataFrame,
+        other: Sequence[Hashable] | DataFrame | Series,
         new_index_cols: str | list[str],
         original_index_cols: str | list[str] | None = None,
     ) -> DataFrame: ...

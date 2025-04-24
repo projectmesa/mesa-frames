@@ -43,6 +43,8 @@ For more detailed information on the PolarsMixin class and its methods, refer to
 the class docstring.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 from typing import Literal
 
@@ -519,7 +521,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_reindex(
         self,
         df: pl.DataFrame,
-        other: Sequence[Hashable] | pl.DataFrame,
+        other: Sequence[Hashable] | pl.DataFrame | pl.Series,
         new_index_cols: str | list[str],
         original_index_cols: str | list[str] | None = None,
     ) -> pl.DataFrame:
