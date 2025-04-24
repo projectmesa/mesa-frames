@@ -1,15 +1,16 @@
 """Type aliases for the mesa_frames package."""
 
 from __future__ import annotations
-
 from collections.abc import Collection, Sequence
 from datetime import date, datetime, time, timedelta
-from typing import Literal
-
-# import geopolars as gpl
+from typing import Literal, Annotated
+from beartype.vale import IsEqual
+import math
 import polars as pl
 from numpy import ndarray
 from typing_extensions import Any
+import numpy as np
+# import geopolars as gpl # TODO: Uncomment when geopolars is available
 
 ####----- Agnostic Types -----####
 AgnosticMask = (
@@ -22,7 +23,7 @@ AgnosticIds = int | Collection[int]
 
 PolarsMask = pl.Expr | pl.Series | pl.DataFrame | AgnosticMask
 AgentPolarsMask = AgnosticAgentMask | pl.Expr | pl.Series | pl.DataFrame | Sequence[int]
-PolarsIdsLike = AgnosticIds | pl.Series
+PolarsIdsLike = AgnosticIds | pl.Series | pl.DataFrame
 PolarsGridCapacity = list[pl.Expr]
 IntoExpr = (
     int
@@ -40,14 +41,6 @@ IntoExpr = (
     | None
 )
 
-import math
-
-from beartype.typing import Annotated
-from beartype.vale import IsEqual
-
-# “Infinity” alias that only accepts math.inf
-Infinity = Annotated[float, IsEqual[math.inf]]
-
 ###----- Generic -----###
 # GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 DataFrame = pl.DataFrame
@@ -59,6 +52,7 @@ Mask = PolarsMask
 AgentMask = AgentPolarsMask
 IdsLike = AgnosticIds | PolarsIdsLike
 ArrayLike = ndarray | Series | Sequence
+Infinity = Annotated[float, IsEqual[math.inf]] # Only accepts math.inf
 
 ###----- Time ------###
 TimeT = float | int
@@ -91,7 +85,5 @@ SpaceCoordinates = DiscreteCoordinates | ContinousCoordinates
 
 GridCapacity = PolarsGridCapacity
 NetworkCapacity = DataFrame
-
-import numpy as np
 
 DiscreteSpaceCapacity = GridCapacity | NetworkCapacity | np.ndarray
