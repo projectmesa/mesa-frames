@@ -45,12 +45,9 @@ from __future__ import annotations  # PEP 563: postponed evaluation of type anno
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Literal, Optional
-
 from beartype import beartype
-from beartype.typing import Union
 from numpy.random import Generator
-from typing_extensions import Self, overload
+from typing import Self, overload, Any, Literal
 
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
