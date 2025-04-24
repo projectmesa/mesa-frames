@@ -75,18 +75,16 @@ class AgentContainer(CopyMixin):
 
     def discard(
         self,
-        agents: IdsLike
-        | DataFrame
+        agents: IdsLike | AgentMask
         | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF]
-        | Literal["active"],
+        | Collection[mesa_frames.concrete.agents.AgentSetDF],
         inplace: bool = True,
     ) -> Self:
         """Remove agents from the AgentContainer. Does not raise an error if the agent is not found.
 
         Parameters
         ----------
-        agents : IdsLike | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        agents : IdsLike | AgentMask | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
             The agents to remove
         inplace : bool
             Whether to remove the agent in place. Defaults to True.
