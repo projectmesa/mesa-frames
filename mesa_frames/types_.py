@@ -3,14 +3,31 @@
 from __future__ import annotations
 from collections.abc import Collection, Sequence
 from datetime import date, datetime, time, timedelta
-from typing import Literal, Annotated
+from typing import Literal, Annotated, Union, Any, Mapping
 from beartype.vale import IsEqual
 import math
 import polars as pl
 from numpy import ndarray
-from typing_extensions import Any
 import numpy as np
+from polars._typing import ArrowArrayExportable, ArrowStreamExportable
 # import geopolars as gpl # TODO: Uncomment when geopolars is available
+
+
+###----- Optional Types -----###
+try:
+    import pandas as pd
+    PandasDataFrame = pd.DataFrame
+except ImportError:
+    # just give us a class so annotations don’t break
+    PandasDataFrame = type("PandasDataFrame", (), {})
+    PandasSeries    = type("PandasSeries", (), {})
+
+try:
+    import pyarrow as pa
+    ArrowTable = pa.Table
+except ImportError:
+    ArrowTable = type("ArrowTable", (), {})
+
 
 ####----- Agnostic Types -----####
 AgnosticMask = (
@@ -20,7 +37,13 @@ AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
 AgnosticIds = int | Collection[int]
 
 ###----- Polars Types -----###
-
+PolarsDataFrameInput = Union[
+    Mapping[str, Union[Sequence[object], Mapping[str, Sequence[object]], pl.Series]],
+    Sequence[Any],
+    np.ndarray,
+    ArrowTable,
+    pd.DataFrame,
+]
 PolarsMask = pl.Expr | pl.Series | pl.DataFrame | AgnosticMask
 AgentPolarsMask = AgnosticAgentMask | pl.Expr | pl.Series | pl.DataFrame | Sequence[int]
 PolarsIdsLike = AgnosticIds | pl.Series | pl.DataFrame
@@ -44,7 +67,7 @@ IntoExpr = (
 ###----- Generic -----###
 # GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 DataFrame = pl.DataFrame
-DataFrameInput = dict[str, Any] | Sequence[Sequence] | DataFrame
+DataFrameInput = PolarsDataFrameInput
 Series = pl.Series
 Index = pl.Series
 BoolSeries = pl.Series | pl.Expr
