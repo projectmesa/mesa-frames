@@ -1474,7 +1474,7 @@ class GridDF(DiscreteSpaceDF):
 
     def remove_agents(
         self,
-        agents: AgentContainer | Collection[AgentContainer] | int | Sequence[int],
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
