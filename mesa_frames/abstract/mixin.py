@@ -50,7 +50,7 @@ from copy import copy, deepcopy
 from typing import Literal
 
 from beartype import beartype
-from typing_extensions import Any, Self, overload
+from typing import Any, Self, overload
 
 from mesa_frames.types_ import (
     BoolSeries,

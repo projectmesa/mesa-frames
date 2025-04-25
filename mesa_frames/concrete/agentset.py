@@ -66,7 +66,7 @@ from typing import Literal
 import numpy as np
 import polars as pl
 from beartype import beartype
-from typing_extensions import Any, Self, overload
+from typing import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin

@@ -1457,9 +1457,7 @@ dependencies = [
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "numpy", version = "2.2.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "polars" },
-    { name = "pre-commit" },
     { name = "pyarrow" },
-    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -1560,7 +1558,6 @@ requires-dist = [
     { name = "perfplot", marker = "extra == 'dev'" },
     { name = "perfplot", marker = "extra == 'docs'" },
     { name = "polars", specifier = ">=1.0.0" },
-    { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.2.0" },
     { name = "pyarrow" },
     { name = "pydata-sphinx-theme", marker = "extra == 'dev'" },
@@ -1584,7 +1581,6 @@ requires-dist = [
     { name = "sphinx-rtd-theme", marker = "extra == 'dev'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'sphinx'" },
-    { name = "typing-extensions", specifier = ">=4.9" },
 ]
 provides-extras = ["dev", "docs", "mkdocs", "sphinx", "test"]
 

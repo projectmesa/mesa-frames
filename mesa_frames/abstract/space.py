@@ -59,7 +59,7 @@ import numpy as np
 import polars as pl
 from beartype import beartype
 from numpy.random import Generator
-from typing_extensions import Any, Self
+from typing import Any, Self
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin

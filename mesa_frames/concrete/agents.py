@@ -48,12 +48,10 @@ from __future__ import annotations  # For forward references
 
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import Any, Literal, Union, cast
+from typing import Any, Literal, cast, Self, overload
 
 import polars as pl
 from beartype import beartype
-from beartype.typing import Type
-from typing_extensions import Self, overload
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.types_ import (

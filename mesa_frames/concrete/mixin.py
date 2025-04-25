@@ -50,7 +50,7 @@ from typing import Literal
 
 import polars as pl
 from beartype import beartype
-from typing_extensions import Any, overload
+from typing import Any, overload
 
 from mesa_frames.abstract.mixin import DataFrameMixin
 from mesa_frames.types_ import DataFrame, PolarsMask
