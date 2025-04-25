@@ -334,8 +334,8 @@ class DataFrameMixin(ABC):
 
     @abstractmethod
     def _df_index(
-        self, df: DataFrame, index_name: str | list[str]
-    ) -> Index | DataFrame: ...
+        self, df: DataFrame, index_name: str | Collection[str]
+    ) -> Index: ...
 
     @abstractmethod
     def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
@@ -423,7 +423,7 @@ class DataFrameMixin(ABC):
     def _df_reindex(
         self,
         df: DataFrame,
-        other: Sequence[Hashable] | DataFrame | Series,
+        other: Sequence[Hashable] | Index,
         new_index_cols: str | list[str],
         original_index_cols: str | list[str] | None = None,
     ) -> DataFrame: ...
@@ -459,7 +459,7 @@ class DataFrameMixin(ABC):
     def _df_set_index(
         self,
         df: DataFrame,
-        index_name: str | list[str],
+        index_name: str | Collection[str],
         new_index: Sequence[Hashable] | None = None,
     ) -> DataFrame: ...
 
