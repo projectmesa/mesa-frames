@@ -842,7 +842,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
             The updated AgentSetDF.
         """
         return super().discard(agents, inplace)
-    
+
     @overload
     def do(
         self,
@@ -929,9 +929,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """Run a single step of the AgentSetDF. This method should be overridden by subclasses."""
         ...
 
-    def remove(
-        self, agents: IdsLike | AgentMask, inplace: bool = True
-    ) -> Self:
+    def remove(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
         if isinstance(agents, str) and agents == "active":
             agents = self.active_agents
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
@@ -1024,7 +1022,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
         Other can be:
         - A DataFrame: adds the agents from the DataFrame.
-        - A DataFrameInput: passes the input to the DataFrame constructor. 
+        - A DataFrameInput: passes the input to the DataFrame constructor.
 
         Parameters
         ----------
