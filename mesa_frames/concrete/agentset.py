@@ -76,13 +76,15 @@ from mesa_frames.utils import copydoc
 @beartype
 @copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
-    _agents: pl.DataFrame
-    _mask: pl.Series
+    """Polars-based implementation of AgentSetDF."""
 
+    _agents: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("clone", []),
     }
     _copy_only_reference: list[str] = ["_model", "_mask"]
+    _mask: pl.Expr | pl.Series
+
 
     def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
         """Initialize a new AgentSetPolars.
