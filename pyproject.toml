@@ -38,6 +38,7 @@ dependencies = [
   ## polars
   "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
   #"geopolars" (currently in pre-alpha)
+  "pre-commit>=4.2.0",
 ]
 requires-python = ">=3.9"
 dynamic = [
@@ -86,6 +87,7 @@ dev = [
   "mesa_frames[test, docs]",
   "mesa~=2.4.0",
   "numba>=0.60",
+  "pre-commit>=4.2.0"
 ]
 
 [tool.hatch.envs.test]
