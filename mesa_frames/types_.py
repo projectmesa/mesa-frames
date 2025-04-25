@@ -38,6 +38,8 @@ AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
 AgnosticIds = int | Collection[int]
 
 ###----- Polars Types -----###
+PolarsIndex = pl.Series | pl.DataFrame
+PolarsBoolSrs = pl.Series | pl.Expr
 PolarsDataFrameInput = Union[
     Mapping[
         str, Union[Sequence[object], Mapping[str, Sequence[object]], pl.Series, Any]
@@ -72,8 +74,8 @@ IntoExpr = (
 DataFrame = pl.DataFrame
 DataFrameInput = PolarsDataFrameInput
 Series = pl.Series
-Index = pl.Series
-BoolSeries = pl.Series | pl.Expr
+Index = PolarsIndex
+BoolSeries = PolarsBoolSrs
 Mask = PolarsMask
 AgentMask = AgentPolarsMask
 IdsLike = AgnosticIds | PolarsIdsLike
