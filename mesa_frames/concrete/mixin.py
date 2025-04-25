@@ -46,14 +46,12 @@ the class docstring.
 from __future__ import annotations
 
 from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
-from typing import Literal
-
 import polars as pl
 from beartype import beartype
-from typing import Any, overload
+from typing import Any, overload, Literal
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import DataFrame, PolarsMask
+from mesa_frames.types_ import DataFrame, PolarsMask, PolarsDataFrameInput, PolarsIndex
 
 
 @beartype
@@ -174,9 +172,9 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_constructor(
         self,
-        data: dict[str, Any] | Sequence[Sequence] | DataFrame | None = None,
+        data: PolarsDataFrameInput | None = None,
         columns: list[str] | None = None,
-        index: pl.DataFrame | pl.Series | Collection[Hashable] | None = None,
+        index: PolarsIndex | Collection[Hashable] | None = None,
         index_cols: str | list[str] | None = None,
         dtypes: dict[str, str | type] | None = None,
     ) -> pl.DataFrame:

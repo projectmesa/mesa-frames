@@ -1126,8 +1126,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @property
     def pos(self) -> DataFrame:
-        pos = self._df_constructor(self.space.agents, index_cols="agent_id")
-        pos = self._df_get_masked_df(df=pos, index_cols="agent_id", mask=self.index)
+        pos = self._df_get_masked_df(df=self.space.agents, index_cols="agent_id", mask=self.index)
         pos = self._df_reindex(
             pos, self.index, new_index_cols="unique_id", original_index_cols="agent_id"
         )
