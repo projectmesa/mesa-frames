@@ -68,6 +68,7 @@ from mesa_frames.types_ import (
     ArrayLike,
     BoolSeries,
     DataFrame,
+    DataFrameInput,
     DiscreteCoordinate,
     DiscreteCoordinates,
     DiscreteSpaceCapacity,
@@ -1029,7 +1030,7 @@ class DiscreteSpaceDF(SpaceDF):
         return self._cells[key]
 
     def __setitem__(
-        self, cells: DiscreteCoordinates, properties: DataFrame | dict[str, Any]
+        self, cells: DiscreteCoordinates, properties: DataFrame | DataFrameInput
     ):
         """Set the properties of the specified cells.
 
@@ -1037,7 +1038,7 @@ class DiscreteSpaceDF(SpaceDF):
         ----------
         cells : DiscreteCoordinates
             The cells to set the properties for
-        properties : DataFrame | dict[str, Any]
+        properties : DataFrame | DataFrameInput
             The properties to set
         """
         self.set_cells(cells=cells, properties=properties, inplace=True)
