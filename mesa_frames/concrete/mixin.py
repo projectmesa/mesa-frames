@@ -344,10 +344,10 @@ class PolarsMixin(DataFrameMixin):
     def _df_index(self, df: pl.DataFrame, index_col: str) -> pl.Series: ...
 
     @overload
-    def _df_index(self, df: pl.DataFrame, index_col: list[str]) -> pl.DataFrame: ...
+    def _df_index(self, df: pl.DataFrame, index_col: Collection[str]) -> pl.DataFrame: ...
 
     def _df_index(
-        self, df: pl.DataFrame, index_col: str | list[str]
+        self, df: pl.DataFrame, index_col: str | Collection[str]
     ) -> pl.Series | pl.DataFrame:
         return df[index_col]
 
@@ -574,7 +574,7 @@ class PolarsMixin(DataFrameMixin):
     def _df_set_index(
         self,
         df: pl.DataFrame,
-        index_name: str | list[str],
+        index_name: str | Collection[str],
         new_index: Collection[Hashable] | None = None,
     ) -> pl.DataFrame:
         if new_index is None:
