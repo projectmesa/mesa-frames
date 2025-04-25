@@ -819,6 +819,23 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """
         ...
 
+    def discard(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
+        """Remove an agent from the AgentSetDF. Does not raise an error if the agent is not found.
+
+        Parameters
+        ----------
+        agents : IdsLike | AgentMask
+            The ids to remove
+        inplace : bool, optional
+            Whether to remove the agent in place, by default True
+
+        Returns
+        -------
+        Self
+            The updated AgentSetDF.
+        """
+        return super().discard(agents, inplace)
+    
     @overload
     def do(
         self,
