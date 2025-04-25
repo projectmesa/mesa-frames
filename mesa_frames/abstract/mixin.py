@@ -52,7 +52,14 @@ from typing import Literal
 from beartype import beartype
 from typing_extensions import Any, Self, overload
 
-from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series, DataFrameInput
+from mesa_frames.types_ import (
+    BoolSeries,
+    DataFrame,
+    Index,
+    Mask,
+    Series,
+    DataFrameInput,
+)
 
 
 @beartype
