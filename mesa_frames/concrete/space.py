@@ -42,7 +42,7 @@ For more detailed information on the GridPolars class and its methods,
 refer to the class docstring.
 """
 
-import math
+from math import inf
 from collections.abc import Callable, Sequence
 from typing import Literal
 
@@ -218,5 +218,5 @@ class GridPolars(GridDF, PolarsMixin):
     @property
     def remaining_capacity(self) -> int | Infinity:
         if not self._capacity:
-            return math.inf
+            return inf
         return int(self._cells_capacity.sum())
