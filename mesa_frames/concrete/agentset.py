@@ -60,13 +60,11 @@ refer to the class docstring.
 from __future__ import annotations
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from decimal import Decimal
-from typing import Literal
 
 import numpy as np
 import polars as pl
 from beartype import beartype
-from typing import Any, Self, overload
+from typing import Any, Self, overload, Literal
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
@@ -80,24 +78,6 @@ from mesa_frames.utils import copydoc
 class AgentSetPolars(AgentSetDF, PolarsMixin):
     _agents: pl.DataFrame
     _mask: pl.Series
-
-    @overload
-    def discard(
-        self, agents: pl.DataFrame | pl.Series, inplace: bool = True
-    ) -> Self: ...
-
-    @overload
-    def discard(
-        self, agents: IdsLike | Literal["active"], inplace: bool = True
-    ) -> Self: ...
-
-    # Inherit implementation from parent
-    def discard(
-        self,
-        agents: IdsLike | pl.DataFrame | pl.Series | Literal["active"],
-        inplace: bool = True,
-    ) -> Self:
-        return super().discard(agents, inplace)
 
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_agents": ("clone", []),
