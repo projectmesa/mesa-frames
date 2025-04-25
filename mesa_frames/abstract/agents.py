@@ -802,8 +802,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
         Agents can be the input to the DataFrame constructor. So, the input can be:
         - A DataFrame: adds the agents from the DataFrame.
-        - A dictionary: keys should be attributes and values should be the values to add.
-        - A Sequence[Sequence]: each inner sequence should be one single agent to add.
+        - A DataFrameInput: passes the input to the DataFrame constructor.
 
         Parameters
         ----------
@@ -923,7 +922,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         ...
 
     def remove(
-        self, agents: IdsLike | DataFrame | Literal["active"], inplace: bool = True
+        self, agents: IdsLike | AgentMask, inplace: bool = True
     ) -> Self:
         if isinstance(agents, str) and agents == "active":
             agents = self.active_agents
@@ -1012,17 +1011,16 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         self, original_active_indices: Index, new_active_indices: Index | None = None
     ) -> None: ...
 
-    def __add__(self, other: DataFrame | Collection[Any] | dict[str, Any]) -> Self:
+    def __add__(self, other: DataFrame | DataFrameInput) -> Self:
         """Add agents to a new AgentSetDF through the + operator.
 
         Other can be:
         - A DataFrame: adds the agents from the DataFrame.
-        - A Collection[Any]: should be one single agent to add.
-        - A dictionary: keys should be attributes and values should be the values to add.
+        - A DataFrameInput: passes the input to the DataFrame constructor. 
 
         Parameters
         ----------
-        other : DataFrame | Collection[Any] | dict[str, Any]
+        other : DataFrame | DataFrameInput
             The agents to add.
 
         Returns
@@ -1032,18 +1030,17 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """
         return super().__add__(other)
 
-    def __iadd__(self, other: DataFrame | Collection[Any] | dict[str, Any]) -> Self:
+    def __iadd__(self, other: DataFrame | DataFrameInput) -> Self:
         """
         Add agents to the AgentSetDF through the += operator.
 
         Other can be:
         - A DataFrame: adds the agents from the DataFrame.
-        - A Sequence[Any]: should be one single agent to add.
-        - A dictionary: keys should be attributes and values should be the values to add.
+        - A DataFrameInput: passes the input to the DataFrame constructor.
 
         Parameters
         ----------
-        other : DataFrame | Sequence[Any] | dict[str, Any]
+        other : DataFrame | DataFrameInput
             The agents to add.
 
         Returns
