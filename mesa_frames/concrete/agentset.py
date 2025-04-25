@@ -85,7 +85,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-
     def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
         """Initialize a new AgentSetPolars.
 
