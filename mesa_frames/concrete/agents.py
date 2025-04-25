@@ -252,12 +252,11 @@ class AgentsDF(AgentContainer):
                 raise KeyError(
                     "There exist some IDs which are not present in any agentset"
                 )
-        if obj.space is not None:
-            try:
-                obj.space.remove_agents(removed_ids, inplace=True)
-            except ValueError:
-                pass
-            obj._ids = obj._ids.filter(obj._ids.is_in(removed_ids).not_())
+        try:
+            obj.space.remove_agents(removed_ids, inplace=True)
+        except ValueError:
+            pass
+        obj._ids = obj._ids.filter(obj._ids.is_in(removed_ids).not_())
         return obj
 
     def select(

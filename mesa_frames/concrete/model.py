@@ -43,7 +43,6 @@ the class docstring.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal
 
 import numpy as np
 from beartype import beartype
@@ -199,13 +198,23 @@ class ModelDF:
         return [agent.__class__ for agent in self._agents._agentsets]
 
     @property
-    def space(self) -> SpaceDF | None:
-        """The space of the model.
+    def space(self) -> SpaceDF:
+        """Get the space object associated with the model.
 
         Returns
         -------
-        SpaceDF | None
+        SpaceDF
+            The space object associated with the model.
+
+        Raises
+        ------
+        ValueError
+            If the space has not been set for the model.
         """
+        if not self._space:
+            raise ValueError(
+                "You haven't set the space for the model. Use model.space = your_space"
+            )
         return self._space
 
     @space.setter
