@@ -3,7 +3,8 @@
 from __future__ import annotations
 from collections.abc import Collection, Sequence
 from datetime import date, datetime, time, timedelta
-from typing import Literal, Annotated, Union, Any, Mapping
+from typing import Literal, Annotated, Union, Any
+from collections.abc import Mapping
 from beartype.vale import IsEqual
 import math
 import polars as pl
@@ -14,14 +15,16 @@ import numpy as np
 ###----- Optional Types -----###
 try:
     import pandas as pd
+
     PandasDataFrame = pd.DataFrame
 except ImportError:
     # just give us a class so annotations don’t break
     PandasDataFrame = type("PandasDataFrame", (), {})
-    PandasSeries    = type("PandasSeries", (), {})
+    PandasSeries = type("PandasSeries", (), {})
 
 try:
     import pyarrow as pa
+
     ArrowTable = pa.Table
 except ImportError:
     ArrowTable = type("ArrowTable", (), {})
@@ -36,7 +39,9 @@ AgnosticIds = int | Collection[int]
 
 ###----- Polars Types -----###
 PolarsDataFrameInput = Union[
-    Mapping[str, Union[Sequence[object], Mapping[str, Sequence[object]], pl.Series, Any]],
+    Mapping[
+        str, Union[Sequence[object], Mapping[str, Sequence[object]], pl.Series, Any]
+    ],
     Sequence[Any],
     np.ndarray,
     ArrowTable,
@@ -73,7 +78,7 @@ Mask = PolarsMask
 AgentMask = AgentPolarsMask
 IdsLike = AgnosticIds | PolarsIdsLike
 ArrayLike = ndarray | Series | Sequence
-Infinity = Annotated[float, IsEqual[math.inf]] # Only accepts math.inf
+Infinity = Annotated[float, IsEqual[math.inf]]  # Only accepts math.inf
 
 ###----- Time ------###
 TimeT = float | int
