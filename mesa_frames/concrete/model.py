@@ -218,11 +218,11 @@ class ModelDF:
         return self._space
 
     @space.setter
-    def space(self, space: SpaceDF | None) -> None:
+    def space(self, space: SpaceDF) -> None:
         """Set the space of the model.
 
         Parameters
         ----------
-        space : SpaceDF | None
+        space : SpaceDF
         """
         self._space = space
