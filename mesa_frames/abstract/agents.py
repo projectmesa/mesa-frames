@@ -462,7 +462,7 @@ class AgentContainer(CopyMixin):
 
         Parameters
         ----------
-        key : str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[dict[AgentSetDF, AgentMask], str] | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+        key : str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]] | tuple[dict[AgentSetDF, AgentMask], str] | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
             The key to retrieve.
 
         Returns
