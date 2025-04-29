@@ -42,16 +42,27 @@ Attributes and methods of each mixin class are documented in their respective
 docstrings.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Hashable, Iterator, Sequence
 from copy import copy, deepcopy
 from typing import Literal
 
-from typing_extensions import Any, Self, overload
+from beartype import beartype
+from typing import Any, Self, overload
 
-from mesa_frames.types_ import BoolSeries, DataFrame, Index, Mask, Series
+from mesa_frames.types_ import (
+    BoolSeries,
+    DataFrame,
+    Index,
+    Mask,
+    Series,
+    DataFrameInput,
+)
 
 
+@beartype
 class CopyMixin(ABC):
     """A mixin class that provides a fast copy method for the class that inherits it."""
 
@@ -173,6 +184,7 @@ class CopyMixin(ABC):
         return self.copy(deep=True, memo=memo)
 
 
+@beartype
 class DataFrameMixin(ABC):
     """A mixin class which defines an interface for DataFrame operations. Most methods are abstract and should be implemented by the concrete backend."""
 
@@ -257,13 +269,13 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         column: str,
-        values: Sequence[Any],
+        values: Collection[Any],
     ) -> BoolSeries: ...
 
     @abstractmethod
     def _df_constructor(
         self,
-        data: Sequence[Sequence] | dict[str | Any] | DataFrame | None = None,
+        data: DataFrameInput | None = None,
         columns: list[str] | None = None,
         index: Index | None = None,
         index_cols: str | list[str] | None = None,
@@ -328,7 +340,7 @@ class DataFrameMixin(ABC):
     ) -> Series: ...
 
     @abstractmethod
-    def _df_index(self, df: DataFrame, index_name: str) -> Index: ...
+    def _df_index(self, df: DataFrame, index_name: str | Collection[str]) -> Index: ...
 
     @abstractmethod
     def _df_iterator(self, df: DataFrame) -> Iterator[dict[str, Any]]: ...
@@ -392,7 +404,7 @@ class DataFrameMixin(ABC):
         self,
         df: DataFrame,
         srs_name: str = "norm",
-        include_cols: Literal[True] = False,
+        include_cols: Literal[True] = True,
     ) -> DataFrame: ...
 
     @abstractmethod
@@ -416,7 +428,7 @@ class DataFrameMixin(ABC):
     def _df_reindex(
         self,
         df: DataFrame,
-        other: Sequence[Hashable] | DataFrame,
+        other: Sequence[Hashable] | Index,
         new_index_cols: str | list[str],
         original_index_cols: str | list[str] | None = None,
     ) -> DataFrame: ...
@@ -452,7 +464,7 @@ class DataFrameMixin(ABC):
     def _df_set_index(
         self,
         df: DataFrame,
-        index_name: str,
+        index_name: str | Collection[str],
         new_index: Sequence[Hashable] | None = None,
     ) -> DataFrame: ...
 
@@ -463,8 +475,8 @@ class DataFrameMixin(ABC):
         data: DataFrame
         | Series
         | Sequence[Sequence]
-        | dict[str | Any]
-        | Sequence[Any]
+        | dict[str, Any]
+        | Collection[Any]
         | Any,
         new_columns: str | list[str] | None = None,
     ) -> DataFrame: ...
@@ -472,21 +484,23 @@ class DataFrameMixin(ABC):
     @abstractmethod
     def _srs_constructor(
         self,
-        data: Sequence[Any] | None = None,
+        data: Collection[Any] | None = None,
         name: str | None = None,
         dtype: Any | None = None,
-        index: Sequence[Any] | None = None,
+        index: Collection[Any] | None = None,
     ) -> Series: ...
 
     @abstractmethod
     def _srs_contains(
         self,
-        srs: Sequence[Any],
-        values: Any | Sequence[Any],
+        srs: Collection[Any],
+        values: Any | Collection[Any],
     ) -> BoolSeries: ...
 
     @abstractmethod
     def _srs_range(self, name: str, start: int, end: int, step: int = 1) -> Series: ...
 
     @abstractmethod
-    def _srs_to_df(self, srs: Series, index: Index | None = None) -> DataFrame: ...
+    def _srs_to_df(
+        self, srs: Series, index: Collection[Any] | None = None
+    ) -> DataFrame: ...

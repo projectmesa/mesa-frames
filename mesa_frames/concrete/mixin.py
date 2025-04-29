@@ -43,16 +43,18 @@ For more detailed information on the PolarsMixin class and its methods, refer to
 the class docstring.
 """
 
-from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
-from typing import Literal
+from __future__ import annotations
 
+from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
 import polars as pl
-from typing_extensions import Any, overload
+from beartype import beartype
+from typing import Any, overload, Literal
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import DataFrame, PolarsMask
+from mesa_frames.types_ import PolarsMask, PolarsDataFrameInput, PolarsIndex
 
 
+@beartype
 class PolarsMixin(DataFrameMixin):
     """Polars-specific implementation of DataFrame operations using LazyFrames."""
 
@@ -61,8 +63,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_add(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -88,8 +90,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_and(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -184,12 +186,12 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_constructor(
         self,
-        data: dict[str | Any] | Sequence[Sequence] | DataFrame | None = None,
+        data: PolarsDataFrameInput | None = None,
         columns: list[str] | None = None,
-        index: Sequence[Hashable] | None = None,
+        index: PolarsIndex | Collection[Hashable] | None = None,
         index_cols: str | list[str] | None = None,
-        dtypes: dict[str, str] | None = None,
-    ) -> pl.LazyFrame:
+        dtypes: dict[str, str | type] | None = None,
+    ) -> pl.DataFrame:
         if dtypes is not None:
             dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
 
@@ -222,14 +224,14 @@ class PolarsMixin(DataFrameMixin):
         self,
         df: pl.LazyFrame,
         column: str,
-        values: Sequence[Any],
-    ) -> pl.Expr:
-        return pl.col(column).is_in(values)
+        values: Collection[Any],
+    ) -> pl.Series:
+        return pl.Series("contains", values).is_in(df[column])
 
     def _df_div(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -268,8 +270,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_ge(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -350,8 +352,18 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Expr:
         return pl.cumcount().over(by).alias(name)
 
-    def _df_index(self, df: pl.LazyFrame, index_col: str | list[str]) -> pl.Expr:
-        return pl.col(index_col)
+    @overload
+    def _df_index(self, df: pl.DataFrame, index_col: str) -> pl.Series: ...
+
+    @overload
+    def _df_index(
+        self, df: pl.DataFrame, index_col: Collection[str]
+    ) -> pl.DataFrame: ...
+
+    def _df_index(
+        self, df: pl.DataFrame, index_col: str | Collection[str]
+    ) -> pl.Series | pl.DataFrame:
+        return df[index_col]
 
     def _df_iterator(self, df: pl.LazyFrame) -> Iterator[dict[str, Any]]:
         return iter(df.collect().iter_rows(named=True))
@@ -385,8 +397,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_lt(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -400,8 +412,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_mod(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -415,8 +427,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_mul(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -459,8 +471,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_operation(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         operation: Callable[[pl.Expr, pl.Expr], pl.Expr],
         axis: Literal["index", "columns"] = "index",
         index_cols: str | list[str] | None = None,
@@ -513,8 +525,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_or(
         self,
-        df: pl.LazyFrame,
-        other: pl.LazyFrame | Sequence[float | int],
+        df: pl.DataFrame,
+        other: pl.DataFrame | Collection[float | int],
         axis: Literal["index"] | Literal["columns"] = "index",
         index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -528,8 +540,8 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_reindex(
         self,
-        df: pl.LazyFrame,
-        other: Sequence[Hashable] | pl.LazyFrame,
+        df: pl.DataFrame,
+        other: Sequence[Hashable] | pl.DataFrame | pl.Series,
         new_index_cols: str | list[str],
         original_index_cols: str | list[str] | None = None,
     ) -> pl.LazyFrame:
@@ -583,10 +595,10 @@ class PolarsMixin(DataFrameMixin):
 
     def _df_set_index(
         self,
-        df: pl.LazyFrame,
-        index_name: str,
-        new_index: Sequence[Hashable] | None = None,
-    ) -> pl.LazyFrame:
+        df: pl.DataFrame,
+        index_name: str | Collection[str],
+        new_index: Collection[Hashable] | None = None,
+    ) -> pl.DataFrame:
         if new_index is None:
             return df
         return df.with_columns(**{index_name: new_index})
@@ -621,7 +633,7 @@ class PolarsMixin(DataFrameMixin):
 
     def _srs_constructor(
         self,
-        data: Sequence[Any] | None = None,
+        data: Collection[Any] | None = None,
         name: str | None = None,
         dtype: str | None = None,
         index: Sequence[Any] | None = None,
