@@ -268,6 +268,7 @@ class AgentContainer(CopyMixin):
         """
         ...
 
+    @abstractmethod
     def select(
         self,
         mask: AgentMask | None = None,
