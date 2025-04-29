@@ -344,7 +344,9 @@ class PolarsMixin(DataFrameMixin):
     def _df_index(self, df: pl.DataFrame, index_col: str) -> pl.Series: ...
 
     @overload
-    def _df_index(self, df: pl.DataFrame, index_col: Collection[str]) -> pl.DataFrame: ...
+    def _df_index(
+        self, df: pl.DataFrame, index_col: Collection[str]
+    ) -> pl.DataFrame: ...
 
     def _df_index(
         self, df: pl.DataFrame, index_col: str | Collection[str]
