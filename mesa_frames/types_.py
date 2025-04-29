@@ -18,7 +18,7 @@ try:
 
     PandasDataFrame = pd.DataFrame
 except ImportError:
-    # just give us a class so annotations don’t break
+    # just give us a class so annotations don't break
     PandasDataFrame = type("PandasDataFrame", (), {})
     PandasSeries = type("PandasSeries", (), {})
 
@@ -68,11 +68,15 @@ IntoExpr = (
     | pl.Series
     | None
 )
+PolarsLazyFrame = pl.LazyFrame
 
 ###----- Generic -----###
 # GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 DataFrame = pl.DataFrame
+LazyFrame = PolarsLazyFrame
 DataFrameInput = PolarsDataFrameInput
+BoolLF = pl.LazyFrame
+LazyIndex = pl.LazyFrame
 Series = pl.Series
 Index = PolarsIndex
 BoolSeries = PolarsBoolSrs
