@@ -51,7 +51,7 @@ from beartype import beartype
 from typing import Any, overload, Literal
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import DataFrame, PolarsMask, PolarsDataFrameInput, PolarsIndex
+from mesa_frames.types_ import PolarsMask, PolarsDataFrameInput, PolarsIndex
 
 
 @beartype
