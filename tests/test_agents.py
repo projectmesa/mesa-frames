@@ -95,10 +95,13 @@ class Test_AgentsDF:
         ]
 
         # Test with single id
-        assert agents.contains(0)
+        assert agents.contains(agentset_polars1["unique_id"][0])
 
         # Test with a list of ids
-        assert agents.contains([0, 10]).to_list() == [True, False]
+        assert agents.contains([agentset_polars1["unique_id"][0], 0]).to_list() == [
+            True,
+            False,
+        ]
 
     def test_copy(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -143,7 +146,7 @@ class Test_AgentsDF:
         agentset_polars2 = agents._agentsets[1]
         result = agents.discard(ids, inplace=False)
         assert (
-            result._agentsets[0].index[0]
+            result._agentsets[0]["unique_id"][0]
             == agentset_polars1._agents.select("unique_id").row(1)[0]
         )
         assert (
@@ -155,8 +158,8 @@ class Test_AgentsDF:
         result = agents.discard(fix2_AgentSetPolars, inplace=False)
 
         # Test if removing an ID not present raises KeyError
-        assert -100 not in agents._ids
-        result = agents.discard(-100, inplace=False)
+        assert 0 not in agents._ids
+        result = agents.discard(0, inplace=False)
 
     def test_do(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -210,7 +213,11 @@ class Test_AgentsDF:
         expected_result_1 = agents._agentsets[1].agents["wealth"]
         expected_result_1 += 1
 
+        # original_index_for_pandas_df = agents._agentsets[0].index.copy()
         agents.do("add_wealth", 1, mask=mask_dictionary)
+        # agents._agentsets[0].agents = agents._agentsets[0].agents.reindex(
+        #     original_index_for_pandas_df
+        # )
         assert (
             agents._agentsets[0].agents["wealth"].to_list()
             == expected_result_0.to_list()
@@ -306,7 +313,7 @@ class Test_AgentsDF:
         agentset_polars2 = agents._agentsets[1]
         result = agents.remove(ids, inplace=False)
         assert (
-            result._agentsets[0].index[0]
+            result._agentsets[0]["unique_id"][0]
             == agentset_polars1._agents.select("unique_id").row(1)[0]
         )
         assert (
@@ -319,9 +326,9 @@ class Test_AgentsDF:
             result = agents.remove(fix3_AgentSetPolars, inplace=False)
 
         # Test if removing an ID not present raises KeyError
-        assert -100 not in agents._ids
+        assert 0 not in agents._ids
         with pytest.raises(KeyError):
-            result = agents.remove(-100, inplace=False)
+            result = agents.remove(0, inplace=False)
 
     def test_select(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -371,7 +378,8 @@ class Test_AgentsDF:
         # Test with filter_func
 
         def filter_func(agentset: AgentSetDF) -> pl.Series:
-            return agentset.agents["wealth"] > agentset.agents["wealth"][0]
+            # TODO: when pandas support will be dropped, the conversion to python list won't be needed anymore
+            return agentset.agents["wealth"] > agentset.agents["wealth"].to_list()[0]
 
         selected = agents.select(filter_func=filter_func, inplace=False)
         assert (
@@ -503,15 +511,11 @@ class Test_AgentsDF:
         self,
         fix_AgentsDF: AgentsDF,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
-        agents = fix_AgentsDF
-        agents_different_index = deepcopy(fix1_AgentSetPolars)
-        agents_different_index._agents = agents_different_index._agents.with_columns(
-            pl.lit([-100, -200, -300, -400]).alias("unique_id")
-        )
+        agents = fix_AgentsDF.remove(fix2_AgentSetPolars, inplace=False)
+        agents_different_index = deepcopy(fix2_AgentSetPolars)
         result = agents._check_ids_presence([fix1_AgentSetPolars])
-
-        # Assertions using Polars filtering
         assert result.filter(
             pl.col("unique_id").is_in(fix1_AgentSetPolars._agents["unique_id"])
         )["present"].all()
@@ -556,7 +560,7 @@ class Test_AgentsDF:
         # Test with mask = "active"
         mask0 = (
             agents._agentsets[0].agents["wealth"]
-            > agents._agentsets[0].agents["wealth"][0]
+            > agents._agentsets[0].agents["wealth"].to_list()[0]
         )
         mask1 = (
             agents._agentsets[1].agents["wealth"]
@@ -571,7 +575,7 @@ class Test_AgentsDF:
         # Test with mask = IdsLike
         result = agents._get_bool_masks(
             mask=[
-                agents._agentsets[0].index[0],
+                agents._agentsets[0]["unique_id"][0],
                 agents._agentsets[1].agents["unique_id"][0],
             ]
         )
@@ -653,10 +657,10 @@ class Test_AgentsDF:
         assert fix3_AgentSetPolars not in agents
 
         # Test with single id present
-        assert 0 in agents
+        assert agentset_polars1["unique_id"][0] in agents
 
         # Test with single id not present
-        assert 10 not in agents
+        assert 0 not in agents
 
     def test___copy__(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -907,11 +911,11 @@ class Test_AgentsDF:
         # Test with select
         mask0 = (
             agents._agentsets[0].agents["wealth"]
-            > agents._agentsets[0].agents["wealth"][0]
+            > agents._agentsets[0].agents["wealth"].to_list()[0]
         )
         mask1 = (
             agents._agentsets[1].agents["wealth"]
-            > agents._agentsets[1].agents["wealth"][0]
+            > agents._agentsets[1].agents["wealth"].to_list()[0]
         )
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
 
@@ -977,7 +981,7 @@ class Test_AgentsDF:
         # Test with select
         mask0 = (
             agents._agentsets[0].agents["wealth"]
-            > agents._agentsets[0].agents["wealth"][0]
+            > agents._agentsets[0].agents["wealth"].to_list()[0]
         )
         mask1 = (
             agents._agentsets[1].agents["wealth"]

@@ -57,7 +57,11 @@ class PolarsMixin(DataFrameMixin):
     """Polars-specific implementation of DataFrame operations."""
 
     # TODO: complete with other dtypes
-    _dtypes_mapping: dict[str, Any] = {"int64": pl.Int64, "bool": pl.Boolean}
+    _dtypes_mapping: dict[str, Any] = {
+        "int64": pl.Int64,
+        "bool": pl.Boolean,
+        "uint64": pl.UInt64,
+    }
 
     def _df_add(
         self,
@@ -608,7 +612,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         if dtype is not None:
             dtype = self._dtypes_mapping[dtype]
-        return pl.Series(name=name, values=data, dtype=dtype)
+        return pl.Series(name=name, values=list(data), dtype=dtype)
 
     def _srs_contains(
         self,
