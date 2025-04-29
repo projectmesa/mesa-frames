@@ -1127,10 +1127,15 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @property
     def pos(self) -> DataFrame:
+        if self.space is None:
+            raise AttributeError(
+                "Attempted to access `pos`, but the model has no space attached."
+            )
         pos = self._df_get_masked_df(
             df=self.space.agents, index_cols="agent_id", mask=self.index
         )
         pos = self._df_reindex(
             pos, self.index, new_index_cols="unique_id", original_index_cols="agent_id"
+        )
         )
         return pos
