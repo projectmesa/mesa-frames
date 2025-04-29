@@ -153,3 +153,9 @@ cython_debug/
 
 .vscode/
 *.code-workspace
+
+# Test result files
+test_results.txt
+*_test_results.txt
+test_output.txt
+*_test_output.txt

@@ -17,8 +17,9 @@ def get_distance(pos_1, pos_2):
 
 
 class AntMesa(mesa.Agent):
-    def __init__(self, unique_id, model, moore=False, sugar=0, metabolism=0, vision=0):
-        super().__init__(unique_id, model)
+    def __init__(self, model, moore=False, sugar=0, metabolism=0, vision=0):
+        # unique_id is automatically assigned in Mesa 3.0
+        super().__init__(model)
         self.moore = moore
         self.sugar = sugar
         self.metabolism = metabolism
@@ -67,17 +68,23 @@ class AntMesa(mesa.Agent):
         self.eat()
         if self.sugar <= 0:
             self.model.space.remove_agent(self)
-            self.model.agents.remove(self)
+            # Agent is automatically removed from model.agents in Mesa 3.0
 
 
 class Sugar(mesa.Agent):
-    def __init__(self, unique_id, model, max_sugar):
-        super().__init__(unique_id, model)
+    def __init__(self, model, max_sugar):
+        # unique_id is automatically assigned in Mesa 3.0
+        super().__init__(model)
         self.amount = max_sugar
         self.max_sugar = max_sugar
 
     def step(self):
-        if self.model.space.is_cell_empty(self.pos):
+        """
+        Simple regrow rule for sugar: if no ant is present, grow back to max.
+        """
+        # Simple check for ant presence
+        pos_agents = self.model.space.get_cell_list_contents([self.pos])
+        has_ant = any(isinstance(agent, AntMesa) for agent in pos_agents)
+
+        if not has_ant:
             self.amount = self.max_sugar
-        else:
-            self.amount = 0
