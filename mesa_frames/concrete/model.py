@@ -40,18 +40,19 @@ For more detailed information on the ModelDF class and its methods, refer to
 the class docstring.
 """
 
+from __future__ import annotations
+
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
 
 import numpy as np
+from beartype import beartype
 
+from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.abstract.space import SpaceDF
 from mesa_frames.concrete.agents import AgentsDF
 
-if TYPE_CHECKING:
-    from mesa_frames.abstract.agents import AgentSetDF
 
-
+@beartype
 class ModelDF:
     """Base class for models in the mesa-frames library.
 
@@ -100,7 +101,7 @@ class ModelDF:
         """Get the current step count."""
         return self._steps
 
-    def get_agents_of_type(self, agent_type: type) -> "AgentSetDF":
+    def get_agents_of_type(self, agent_type: type) -> AgentSetDF:
         """Retrieve the AgentSetDF of a specified type.
 
         Parameters
@@ -218,4 +219,10 @@ class ModelDF:
 
     @space.setter
     def space(self, space: SpaceDF) -> None:
+        """Set the space of the model.
+
+        Parameters
+        ----------
+        space : SpaceDF
+        """
         self._space = space

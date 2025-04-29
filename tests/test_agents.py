@@ -507,7 +507,7 @@ class Test_AgentsDF:
         agents = fix_AgentsDF
         agents_different_index = deepcopy(fix1_AgentSetPolars)
         agents_different_index._agents = agents_different_index._agents.with_columns(
-            pl.lit([-100, -200, -300, -400]).alias("unique_id")
+            pl.Series([-100, -200, -300, -400]).alias("unique_id")
         )
         result = agents._check_ids_presence([fix1_AgentSetPolars])
 
