@@ -1137,5 +1137,4 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         pos = self._df_reindex(
             pos, self.index, new_index_cols="unique_id", original_index_cols="agent_id"
         )
-        )
         return pos
