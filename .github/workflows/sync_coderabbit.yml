@@ -39,7 +39,7 @@ jobs:
             echo "No change detected"
           fi
 
-      # 4 – Create PR with peter‑evans/create‑pull‑request  
+      # 4 – Create PR with peter‑evans/create‑pull‑request
       - name: Create or update pull request
         id: cpr
         if: env.updated == 'true'
