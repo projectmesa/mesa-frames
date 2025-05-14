@@ -60,7 +60,7 @@ jobs:
             This PR will merge automatically once all required checks succeed.
           labels: automated, coderabbit-sync
           delete-branch: true
-
+          
       # 5 – Enable auto‑merge on the PR so it lands once CI is green
       - name: Enable auto-merge
         if: steps.cpr.outputs.pull-request-number != ''
@@ -69,3 +69,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
           merge-method: squash
+
+      # 6 – Auto-approve the PR so it doesn't wait for a manual review
+      - name: Auto-approve
+        if: steps.cpr.outputs.pull-request-number
+        uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          # optional: customize the review message
+          review-message: "✅ Automated sync — no manual review needed"
+
