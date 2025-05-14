@@ -6,6 +6,10 @@ on:
   schedule:                 # or automatically every day at 05:00 UTC
     - cron: "0 5 * * *"
 
+concurrency:
+  group: sync-coderabbit
+  cancel-in-progress: true
+
 # ──────────────── Job ─────────────────────────────────────────────────────────
 jobs:
   sync-config:
@@ -16,7 +20,7 @@ jobs:
 
     env:
       UPSTREAM_RAW_URL: "https://raw.githubusercontent.com/projectmesa/mesa/main/.coderabbit.yaml"
-      SYNC_BRANCH:   "sync-coderabbit-from-mesa"
+      SYNC_BRANCH: "sync-coderabbit-from-mesa"
 
     steps:
       # 1 – Check out mesa‑frames (target repo)
@@ -65,3 +69,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
           merge-method: squash
+          
