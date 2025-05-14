@@ -52,7 +52,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.SYNC_BRANCH }}
           commit-message: "chore: sync .coderabbit.yaml from projectmesa/mesa@main"
-          title: "🔄 Sync .coderabbit.yaml from Mesa main"
+          title: "🔄 Sync .coderabbit.yaml from mesa:main"
           body: |
             Automated update of **.coderabbit.yaml** from \
             [projectmesa/mesa:main](${{ env.UPSTREAM_RAW_URL }}).
@@ -62,7 +62,7 @@ jobs:
           delete-branch: true
 
       # 5 – Enable auto‑merge on the PR so it lands once CI is green
-      - name: Enable auto‑merge
+      - name: Enable auto-merge
         if: steps.cpr.outputs.pull-request-number != ''
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
