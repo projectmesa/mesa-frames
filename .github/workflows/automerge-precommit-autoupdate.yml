@@ -13,9 +13,7 @@ jobs:
       contents: write         # needed to merge
 
     # only run for pre-commit.ci autoupdate PRs
-    if: |
-      github.actor == 'pre-commit-ci[bot]' ||
-      startsWith(github.event.pull_request.title, '[pre-commit.ci]')
+    if: github.actor == 'pre-commit-ci[bot]'
 
     steps:
       - name: Auto-approve the PR
