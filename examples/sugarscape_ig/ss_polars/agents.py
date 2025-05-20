@@ -167,8 +167,7 @@ class AntPolarsBase(AgentSetPolars):
         pl.DataFrame
             DataFrame with the best moves for each agent
         """
-        if __debug__:  # Only execute in non-optimized mode
-            raise NotImplementedError("Subclasses must implement this method")
+        raise NotImplementedError("Subclasses must implement this method")
 
 
 class AntPolarsLoopDF(AntPolarsBase):
