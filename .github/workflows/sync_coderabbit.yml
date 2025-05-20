@@ -1,0 +1,82 @@
+name: Sync .coderabbit.yaml from Mesa
+
+# ──────────────── Triggers ────────────────────────────────────────────────────
+on:
+  workflow_dispatch:        # run manually
+  schedule:                 # or automatically every day at 05:00 UTC
+    - cron: "0 5 * * *"
+
+concurrency:
+  group: sync-coderabbit
+  cancel-in-progress: true
+
+# ──────────────── Job ─────────────────────────────────────────────────────────
+jobs:
+  sync-config:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push branch & commit
+      pull-requests: write   # open PR & enable auto‑merge
+
+    env:
+      UPSTREAM_RAW_URL: "https://raw.githubusercontent.com/projectmesa/mesa/main/.coderabbit.yaml"
+      SYNC_BRANCH: "sync-coderabbit-from-mesa"
+
+    steps:
+      # 1 – Check out mesa‑frames (target repo)
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2 – Grab the latest config from Mesa
+      - name: Download upstream .coderabbit.yaml
+        run: |
+          curl -fsSL "$UPSTREAM_RAW_URL" -o .coderabbit.yaml.new
+
+      # 3 – Update working tree only if the file changed
+      - name: Replace file when changed
+        run: |
+          if ! cmp -s .coderabbit.yaml.new .coderabbit.yaml 2>/dev/null; then
+            mv .coderabbit.yaml.new .coderabbit.yaml
+            echo "updated=true" >> "$GITHUB_ENV"
+          else
+            echo "No change detected"
+          fi
+
+      # 4 – Create PR with peter‑evans/create‑pull‑request
+      - name: Create or update pull request
+        id: cpr
+        if: env.updated == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.SYNC_BRANCH }}
+          commit-message: "chore: sync .coderabbit.yaml from projectmesa/mesa@main"
+          title: "🔄 Sync .coderabbit.yaml from mesa:main"
+          body: |
+            Automated update of **.coderabbit.yaml** from \
+            [projectmesa/mesa:main](${{ env.UPSTREAM_RAW_URL }}).
+
+            This PR will merge automatically once all required checks succeed.
+          labels: automated, coderabbit-sync
+          delete-branch: true
+
+      # 5 – Enable auto‑merge on the PR so it lands once CI is green
+      - name: Enable auto-merge
+        if: steps.cpr.outputs.pull-request-number != ''
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: squash
+
+      # 6 – Auto-approve the PR so it doesn't wait for a manual review
+      - name: Auto-approve
+        if: steps.cpr.outputs.pull-request-number
+        uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          # optional: customize the review message
+          review-message: "✅ Automated sync — no manual review needed"
+

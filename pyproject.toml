@@ -91,7 +91,7 @@ dev = [
 
 numba = [
   "mesa_frames[test, docs]",
-  "mesa~=2.4.0",
+  "mesa~=2.3.4",
   "numba>=0.60",
 ]
 
