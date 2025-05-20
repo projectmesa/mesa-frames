@@ -101,9 +101,7 @@ class MoneyAgentPolarsConcise(AgentSetPolars):
         self.select(self.wealth > 0)
 
         # Receiving agents are sampled (only native expressions currently supported)
-        other_agents = self.agents.sample(
-            n=len(self.active_agents), with_replacement=True
-        )
+        other_agents = self.df.sample(n=len(self.active_agents), with_replacement=True)
 
         # Wealth of wealthy is decreased by 1
         # 1. Using the __setitem__ method with self.active_agents mask
@@ -140,12 +138,10 @@ class MoneyAgentPolarsNative(AgentSetPolars):
         ## Active agents are changed to wealthy agents
         self.select(pl.col("wealth") > 0)
 
-        other_agents = self.agents.sample(
-            n=len(self.active_agents), with_replacement=True
-        )
+        other_agents = self.df.sample(n=len(self.active_agents), with_replacement=True)
 
         # Wealth of wealthy is decreased by 1
-        self.agents = self.agents.with_columns(
+        self.df = self.df.with_columns(
             wealth=pl.when(pl.col("unique_id").is_in(self.active_agents["unique_id"]))
             .then(pl.col("wealth") - 1)
             .otherwise(pl.col("wealth"))
@@ -154,8 +150,8 @@ class MoneyAgentPolarsNative(AgentSetPolars):
         new_wealth = other_agents.group_by("unique_id").len()
 
         # Add the income to the other agents
-        self.agents = (
-            self.agents.join(new_wealth, on="unique_id", how="left")
+        self.df = (
+            self.df.join(new_wealth, on="unique_id", how="left")
             .fill_null(0)
             .with_columns(wealth=pl.col("wealth") + pl.col("len"))
             .drop("len")
