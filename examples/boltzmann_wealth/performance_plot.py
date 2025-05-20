@@ -42,12 +42,7 @@ class MoneyModel(mesa.Model):
     def __init__(self, N):
         super().__init__()
         self.num_agents = N
-        # Create scheduler and assign it to the model
-        installed_version = version.parse(importlib.metadata.version("mesa"))
-        required_version = version.parse("2.4.0")
-
-        if installed_version < required_version:
-            self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
+        self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
 
     def step(self):
         """Advance the model by one step."""
