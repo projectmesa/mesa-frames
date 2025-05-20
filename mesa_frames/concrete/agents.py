@@ -438,10 +438,12 @@ class AgentsDF(AgentContainer):
         return super().__add__(other)
 
     def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
-        if name.startswith("_"):  # Avoids infinite recursion of private attributes
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
+        # Avoids infinite recursion of private attributes
+        if __debug__:  # Only execute in non-optimized mode
+            if name.startswith("_"):
+                raise AttributeError(
+                    f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                )
         return {agentset: getattr(agentset, name) for agentset in self._agentsets}
 
     @overload
