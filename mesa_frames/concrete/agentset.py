@@ -57,24 +57,23 @@ For more detailed information on the AgentSetPolars class and its methods,
 refer to the class docstring.
 """
 
-from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+
+import numpy as np
 import polars as pl
-from polars._typing import IntoExpr
-from typing_extensions import Any, Self, overload
+from beartype import beartype
+from typing import Any, Self, overload, Literal
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
-from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
+from mesa_frames.concrete.model import ModelDF
+from mesa_frames.types_ import AgentPolarsMask, IdsLike, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
-if TYPE_CHECKING:
-    from mesa_frames.concrete.model import ModelDF
 
-import numpy as np
-
-
+@beartype
 @copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
     """Polars-based implementation of AgentSetDF."""
@@ -86,12 +85,12 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-    def __init__(self, model: "ModelDF") -> None:
+    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
         """Initialize a new AgentSetPolars.
 
         Parameters
         ----------
-        model : ModelDF
+        model : "mesa_frames.concrete.model.ModelDF"
             The model that the agent set belongs to.
         """
         self._model = model

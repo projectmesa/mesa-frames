@@ -41,9 +41,11 @@ License: MIT
 GitHub: https://github.com/projectmesa/mesa-frames
 """
 
+from __future__ import annotations
+
 from mesa_frames.concrete.agents import AgentsDF
-from mesa_frames.concrete.model import ModelDF
 from mesa_frames.concrete.agentset import AgentSetPolars
+from mesa_frames.concrete.model import ModelDF
 from mesa_frames.concrete.space import GridPolars
 
 __all__ = [
