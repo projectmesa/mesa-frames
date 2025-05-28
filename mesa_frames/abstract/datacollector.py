@@ -15,14 +15,14 @@ Classes:
 
 These classes are designed to be subclassed by concrete implementations that
 handle the specifics of data collection and storage such as in-memory, CSV,
-or database-backed collectors, potentially using Polars forhigh-performance 
+or database-backed collectors, potentially using Polars for high-performance 
 tabular operations.
 
 Usage:
     These classes should not be instantiated directly. Instead, they should be
-    subclassed to create concrete datacolllector:
+    subclassed to create concrete datacollector:
 
-    from mesa_frames.abstract.datacolllector import AbstractDataCollector
+    from mesa_frames.abstract.datacollector import AbstractDataCollector
 
     class DataCollector(AbstractDataCollector):
         def _collect(self):
