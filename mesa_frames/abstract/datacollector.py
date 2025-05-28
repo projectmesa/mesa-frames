@@ -1,5 +1,5 @@
 from abc import ABC,abstractmethod
-from typing import Callable, Dict, List, Optional, Union, Any
+from typing import Callable, Dict, Optional, Union, Any
 from agents import ModelDF
 
 class AbstractDataCollector(ABC):
