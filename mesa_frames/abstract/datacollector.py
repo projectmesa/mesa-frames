@@ -117,7 +117,7 @@ class AbstractDataCollector(ABC):
         self._flush()
         if self._reset_memory:
             self.reset()
-
+    
     def reset(self):
         """ method to reset the data in memory"""
         self._frames = []
