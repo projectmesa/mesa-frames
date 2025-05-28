@@ -34,7 +34,7 @@ Usage:
             ...
 
         def flush(self):
-            # Persists collected data if configured
+            # Persists collected data if configured and optionally deletes data from memory
             ...
 
         def register_stat(self, name, func):
@@ -66,6 +66,7 @@ class AbstractDataCollector(ABC):
         model_reporters: Optional[Dict[str, Callable]] = None,
         agent_reporters: Optional[Dict[str, Union[str, Callable]]] = None,
         trigger: Optional[Callable[[Any], bool]] = None,
+        reset_memory : bool = True,
         storage: Optional[str] = None
     ):
         """
@@ -88,6 +89,7 @@ class AbstractDataCollector(ABC):
         self._model_reporters = model_reporters or {}
         self._agent_reporters = agent_reporters or {}
         self._trigger = trigger or (lambda model: True)
+        self._reset_memory = reset_memory
         self._storage_uri = storage or "memory:"
         self._frames = [] 
 
@@ -111,10 +113,11 @@ class AbstractDataCollector(ABC):
         pass
 
     def flush(self) ->None:
-        """public method to flush the collected data and reset frames"""
+        """public method to flush the collected data and optionally reset in-memory data """
         self._flush()
-        self.reset()
-        
+        if self._reset_memory:
+            self.reset()
+
     def reset(self):
         """ method to reset the data in memory"""
         self._frames = []
