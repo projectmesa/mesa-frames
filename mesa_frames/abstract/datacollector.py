@@ -114,6 +114,7 @@ class AbstractDataCollector(ABC):
         """public method to flush the collected data and reset frames"""
         self._flush()
         self.reset()
+        
     def reset(self):
         """ method to reset the data in memory"""
         self._frames = []
