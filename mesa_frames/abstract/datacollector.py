@@ -36,13 +36,10 @@ Usage:
         def flush(self):
             # Persists collected data if configured and optionally deletes data from memory
             ...
-
-        def register_stat(self, name, func):
-            # Registers a custom statistic for post-processing
-            ...
+            
 The `collect()` method in the abstract base class automatically evaluates
 the trigger condition before invoking `_collect()`. Subclasses must implement
-`_collect()` along with `get_data()`, `flush()`, and `register_stat()`.
+`_collect()` along with `get_data()`, `flush()`.
 
 For more detailed information on each class, refer to their individual docstrings.
 """
