@@ -144,7 +144,6 @@ class AbstractDataCollector(ABC):
         """
         pass
 
-
     def flush(self) -> None:
         """
         Persist all collected data to configured backend.
