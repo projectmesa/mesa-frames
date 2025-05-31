@@ -144,7 +144,6 @@ class AbstractDataCollector(ABC):
         """
         pass
 
-    # def load_data(self,step:Optional[int]=None):
 
     def flush(self) -> None:
         """
