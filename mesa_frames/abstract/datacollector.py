@@ -179,5 +179,10 @@ class AbstractDataCollector(ABC):
 
     @abstractmethod
     def _flush(self) -> None:
-        """Persists collected data to external storage and"""
+        """
+        Implement persistence of collected data to external storage.
+
+        This method must be implemented by subclasses to handle
+        backend-specific data saving operations.
+        """
         pass
