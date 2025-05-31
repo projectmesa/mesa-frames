@@ -20,17 +20,17 @@ tabular operations.
 
 Usage:
     These classes should not be instantiated directly. Instead, they should be
-    subclassed to create concrete datacollector:
+    subclassed to create concrete DataCollector:
 
     from mesa_frames.abstract.datacollector import AbstractDataCollector
 
     class DataCollector(AbstractDataCollector):
-        def _collect(self):
+        def collect(self):
             # Implementation using Polars DataFrame to collect model and agent data
             ...
 
-        def get_data(self):
-            # Returns the collected data
+        def data(self):
+            # Returns the data currently in memory
             ...
 
         def flush(self):
@@ -39,7 +39,7 @@ Usage:
 
 The `collect()` method in the abstract base class automatically evaluates
 the trigger condition before invoking `_collect()`. Subclasses must implement
-`_collect()` along with `get_data()`, `flush()`.
+`_collect()` along with `data()`, `flush()`.
 
 For more detailed information on each class, refer to their individual docstrings.
 """
@@ -48,7 +48,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional, Union, Any
 from collections.abc import Callable
 from agents import ModelDF
-
 
 class AbstractDataCollector(ABC):
     """
@@ -59,15 +58,21 @@ class AbstractDataCollector(ABC):
     """
 
     _model: ModelDF
+    _model_reporters: Optional[Dict[str, Callable]]
+    _agent_reporters: Optional[Dict[str, Union[str, Callable]]]
+    _trigger: Callable[...,bool]
+    _reset_memory = bool
+    _storage_uri: Literal["memory:", "csv:", "postgresql:"]
+    _frames: List[pl.DataFrame]
 
     def __init__(
         self,
         model: ModelDF,
-        model_reporters: dict[str, Callable] | None = None,
-        agent_reporters: dict[str, str | Callable] | None = None,
-        trigger: Callable[[Any], bool] | None = None,
-        reset_memory: bool = True,
-        storage: str | None = None,
+        model_reporters: Optional[Dict[str, Callable]] = None,
+        agent_reporters: Optional[Dict[str, Union[str, Callable]]] = None,
+        trigger: Optional[Callable[[Any], bool]] = None,
+        reset_memory : bool = True,
+        storage: Optional[str] = None
     ):
         """
         Initialize a Datacollector
@@ -75,15 +80,17 @@ class AbstractDataCollector(ABC):
         Parameters
         ----------
         model : ModelDF
-            The model objet from which data is collected
-        model_reporters: Dict[str, Callable], Optional
-            functions to collect data at model level
-        agent_reporters: Dict[str, Union[str, Callable]], Optional
-            functions or attribute name to collect data at agent level
-        trigger: Callable, optional
-            a function(model) that returns a bool, default always collects
-        storage: Optional[str] = None
-            Storage backend URI (e.g. 'memory:','postgressql://...',etc.), default is to store in memory
+            The model object from which data is collected.
+        model_reporters : dict[str, Callable], optional
+            Functions to collect data at the model level.
+        agent_reporters : dict[str, Union[str, Callable]], optional
+            Attributes or functions to collect data at the agent level.
+        trigger : Callable, optional
+            A function(model) -> bool that determines whether to collect data.
+        reset_memory : bool
+            Whether to reset in-memory data after flushing. Default is True.
+        storage : str
+            Storage backend URI (e.g. 'memory:', 'csv:', 'postgresql:').
         """
         self._model = model
         self._model_reporters = model_reporters or {}
@@ -94,32 +101,35 @@ class AbstractDataCollector(ABC):
         self._frames = []
 
     def collect(self) -> None:
-        """Trigger data collection if condition is met"""
+        """ Trigger data collection if condition is met"""
         if self.should_collect():
-            self._collect()
+            self._collect() 
 
     def should_collect(self) -> bool:
-        """Evaluates whether data should be collected or not"""
+        """ Evaluates whether data should be collected or not"""
         return self._trigger(self._model)
 
     @abstractmethod
     def _collect(self):
-        """Performs actual data collection"""
+        """ performs actual data collection"""
         pass
-
+    
+    @property
     @abstractmethod
     def get_data(self) -> Any:
-        """Returns collected data currently in memory as a dataframe"""
+        """ returns collected data currently in memory as a dataframe"""
         pass
+    
+    #def load_data(self,step:Optional[int]=None):
 
-    def flush(self) -> None:
-        """Public method to flush the collected data and optionally reset in-memory data"""
+    def flush(self) ->None:
+        """public method to flush the collected data and optionally reset in-memory data """
         self._flush()
         if self._reset_memory:
             self.reset()
-
+    
     def reset(self):
-        """Method to reset the data in memory"""
+        """ method to reset the data in memory"""
         self._frames = []
 
     @abstractmethod
