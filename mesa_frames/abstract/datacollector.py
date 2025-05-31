@@ -15,7 +15,7 @@ Classes:
 
 These classes are designed to be subclassed by concrete implementations that
 handle the specifics of data collection and storage such as in-memory, CSV,
-or database-backed collectors, potentially using Polars for high-performance 
+or database-backed collectors, potentially using Polars for high-performance
 tabular operations.
 
 Usage:
@@ -36,17 +36,20 @@ Usage:
         def flush(self):
             # Persists collected data if configured and optionally deletes data from memory
             ...
-            
+
 The `collect()` method in the abstract base class automatically evaluates
 the trigger condition before invoking `_collect()`. Subclasses must implement
 `_collect()` along with `data()`, `flush()`.
 
 For more detailed information on each class, refer to their individual docstrings.
 """
-from abc import ABC,abstractmethod
-from typing import Callable, Dict, Optional, Union, Any, Literal,List
+
+from abc import ABC, abstractmethod
+from typing import Dict, Optional, Union, Any, Literal, List
+from collections.abc import Callable
 from agents import ModelDF
 import polars as pl
+
 
 class AbstractDataCollector(ABC):
     """
@@ -57,25 +60,25 @@ class AbstractDataCollector(ABC):
     """
 
     _model: ModelDF
-    _model_reporters: Optional[Dict[str, Callable]]
-    _agent_reporters: Optional[Dict[str, Union[str, Callable]]]
-    _trigger: Callable[...,bool]
+    _model_reporters: dict[str, Callable] | None
+    _agent_reporters: dict[str, str | Callable] | None
+    _trigger: Callable[..., bool]
     _reset_memory = bool
     _storage_uri: Literal["memory:", "csv:", "postgresql:"]
-    _frames: List[pl.DataFrame]
+    _frames: list[pl.DataFrame]
 
     def __init__(
         self,
         model: ModelDF,
-        model_reporters: Optional[Dict[str, Callable]] = None,
-        agent_reporters: Optional[Dict[str, Union[str, Callable]]] = None,
-        trigger: Optional[Callable[[Any], bool]] = None,
-        reset_memory : bool = True,
-        storage: Literal["memory:", "csv:", "postgresql:"] ="memory:"
+        model_reporters: dict[str, Callable] | None = None,
+        agent_reporters: dict[str, str | Callable] | None = None,
+        trigger: Callable[[Any], bool] | None = None,
+        reset_memory: bool = True,
+        storage: Literal["memory:", "csv:", "postgresql:"] = "memory:",
     ):
         """
         Initialize a Datacollector
-        
+
         Parameters
         ----------
         model : ModelDF
@@ -91,16 +94,16 @@ class AbstractDataCollector(ABC):
         storage : str
             Storage backend URI (e.g. 'memory:', 'csv:', 'postgresql:').
         """
-        self._model = model 
+        self._model = model
         self._model_reporters = model_reporters or {}
         self._agent_reporters = agent_reporters or {}
         self._trigger = trigger or (lambda model: True)
         self._reset_memory = reset_memory
         self._storage_uri = storage or "memory:"
-        self._frames = [] 
+        self._frames = []
 
     def collect(self) -> None:
-        """ 
+        """
         Trigger data collection if condition is met
 
         This method caslls _collect() to perform actual data collection
@@ -110,12 +113,12 @@ class AbstractDataCollector(ABC):
         >>> datacollector.collect()
         """
         if self._should_collect():
-            self._collect() 
+            self._collect()
 
     def _should_collect(self) -> bool:
-        """ 
+        """
         Evaluates whether data should be collected at current step
-        
+
         Returns
         -------
         bool
@@ -125,37 +128,37 @@ class AbstractDataCollector(ABC):
 
     @abstractmethod
     def _collect(self):
-        """ 
+        """
         Performs the actual data collection logic
 
         This method must be im
         """
         pass
-    
+
     @property
     @abstractmethod
     def data(self) -> Any:
-        """ 
+        """
         Returns collected data currently in memory as a dataframe
-        
+
         Example:
         -------
         >>> df = datacollector.data
         >>> print(df)
         """
         pass
-    
-    #def load_data(self,step:Optional[int]=None):
 
-    def flush(self) ->None:
+    # def load_data(self,step:Optional[int]=None):
+
+    def flush(self) -> None:
         """
         Persist all collected data to configured backend.
 
-        After flushing data optionally clears in-memory 
+        After flushing data optionally clears in-memory
         data buffer if `reset_memory` is True (default behavior).
 
         use this method to save collected data.
-        
+
         Parametrs
         ---------
         None (reset_memory controlled at intialization)
@@ -168,17 +171,17 @@ class AbstractDataCollector(ABC):
         self._flush()
         if self._reset_memory:
             self._reset()
-    
+
     def _reset(self):
         """
         Clear all collected data currently stored in memory.
 
         Use this to free memory or start fresh without affecting persisted data.
-        
+
         """
         self._frames = []
 
     @abstractmethod
     def _flush(self) -> None:
-        """persists collected data to external storage and"""
+        """Persists collected data to external storage and"""
         pass
