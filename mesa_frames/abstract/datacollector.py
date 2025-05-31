@@ -49,6 +49,7 @@ from typing import Dict, Optional, Union, Any
 from collections.abc import Callable
 from agents import ModelDF
 
+
 class AbstractDataCollector(ABC):
     """
     Abstract Base Class for Mesa-Frames DataCollector.
@@ -58,9 +59,9 @@ class AbstractDataCollector(ABC):
     """
 
     _model: ModelDF
-    _model_reporters: Optional[Dict[str, Callable]]
-    _agent_reporters: Optional[Dict[str, Union[str, Callable]]]
-    _trigger: Callable[...,bool]
+    _model_reporters: dict[str, Callable] | None
+    _agent_reporters: dict[str, str | Callable] | None
+    _trigger: Callable[..., bool]
     _reset_memory = bool
     _storage_uri: Literal["memory:", "csv:", "postgresql:"]
     _frames: List[pl.DataFrame]
@@ -68,11 +69,11 @@ class AbstractDataCollector(ABC):
     def __init__(
         self,
         model: ModelDF,
-        model_reporters: Optional[Dict[str, Callable]] = None,
-        agent_reporters: Optional[Dict[str, Union[str, Callable]]] = None,
-        trigger: Optional[Callable[[Any], bool]] = None,
-        reset_memory : bool = True,
-        storage: Optional[str] = None
+        model_reporters: dict[str, Callable] | None = None,
+        agent_reporters: dict[str, str | Callable] | None = None,
+        trigger: Callable[[Any], bool] | None = None,
+        reset_memory: bool = True,
+        storage: str | None = None,
     ):
         """
         Initialize a Datacollector
@@ -101,35 +102,35 @@ class AbstractDataCollector(ABC):
         self._frames = []
 
     def collect(self) -> None:
-        """ Trigger data collection if condition is met"""
+        """Trigger data collection if condition is met"""
         if self.should_collect():
-            self._collect() 
+            self._collect()
 
     def should_collect(self) -> bool:
-        """ Evaluates whether data should be collected or not"""
+        """Evaluates whether data should be collected or not"""
         return self._trigger(self._model)
 
     @abstractmethod
     def _collect(self):
-        """ performs actual data collection"""
+        """Performs actual data collection"""
         pass
-    
+
     @property
     @abstractmethod
     def get_data(self) -> Any:
-        """ returns collected data currently in memory as a dataframe"""
+        """Returns collected data currently in memory as a dataframe"""
         pass
-    
-    #def load_data(self,step:Optional[int]=None):
 
-    def flush(self) ->None:
-        """public method to flush the collected data and optionally reset in-memory data """
+    # def load_data(self,step:Optional[int]=None):
+
+    def flush(self) -> None:
+        """Public method to flush the collected data and optionally reset in-memory data"""
         self._flush()
         if self._reset_memory:
             self.reset()
-    
+
     def reset(self):
-        """ method to reset the data in memory"""
+        """Method to reset the data in memory"""
         self._frames = []
 
     @abstractmethod
