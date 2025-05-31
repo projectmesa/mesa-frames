@@ -37,10 +37,6 @@ Usage:
             # Persists collected data if configured and optionally deletes data from memory
             ...
 
-The `collect()` method in the abstract base class automatically evaluates
-the trigger condition before invoking `_collect()`. Subclasses must implement
-`_collect()` along with `data()`, `flush()`.
-
 For more detailed information on each class, refer to their individual docstrings.
 """
 
