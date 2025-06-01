@@ -85,7 +85,8 @@ dev = [
   "mesa_frames[test, docs]",
   "mesa~=2.3.4",
   "numba>=0.60",
-  "pre-commit>=4.2.0"
+  "ruff>=0.11.12",
+  "pre-commit>=4.2.0",
 ]
 
 [tool.hatch.envs.test]
