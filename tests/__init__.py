@@ -10,7 +10,7 @@ if os.getenv("MESA_FRAMES_RUNTIME_TYPECHECKING", "").lower() in ("1", "true", "y
         import warnings
 
         warnings.warn(
-            "MESA_FRAMES_RUNTIME_TYPECHECKING is enabled but beartype is not installed. "
+            "MESA_FRAMES_RUNTIME_TYPECHECKING is enabled but beartype is not installed.",
             ImportWarning,
             stacklevel=2,
         )
