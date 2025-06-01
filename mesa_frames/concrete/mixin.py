@@ -46,15 +46,14 @@ the class docstring.
 from __future__ import annotations
 
 from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
+from typing import Any, Literal, overload
+
 import polars as pl
-from beartype import beartype
-from typing import Any, overload, Literal
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import PolarsMask, PolarsDataFrameInput, PolarsIndex
+from mesa_frames.types_ import PolarsDataFrameInput, PolarsIndex, PolarsMask
 
 
-@beartype
 class PolarsMixin(DataFrameMixin):
     """Polars-specific implementation of DataFrame operations."""
 

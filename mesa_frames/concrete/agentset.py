@@ -60,11 +60,10 @@ refer to the class docstring.
 from __future__ import annotations
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
+from typing import Any, Literal, Self, overload
 
 import numpy as np
 import polars as pl
-from beartype import beartype
-from typing import Any, Self, overload, Literal
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
@@ -73,7 +72,6 @@ from mesa_frames.types_ import AgentPolarsMask, IdsLike, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
 
-@beartype
 @copydoc(AgentSetDF)
 class AgentSetPolars(AgentSetDF, PolarsMixin):
     """Polars-based implementation of AgentSetDF."""

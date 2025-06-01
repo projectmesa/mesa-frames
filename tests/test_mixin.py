@@ -1,12 +1,10 @@
 import numpy as np
 import polars as pl
 import pytest
-from beartype import beartype
 
 from mesa_frames.concrete.mixin import PolarsMixin
 
 
-@beartype
 class TestPolarsMixin:
     @pytest.fixture
     def mixin(self):

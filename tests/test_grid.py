@@ -1,7 +1,6 @@
 import numpy as np
 import polars as pl
 import pytest
-from beartype import beartype
 
 from mesa_frames import GridPolars, ModelDF
 from tests.test_agentset import (
@@ -16,7 +15,6 @@ def not_called():
     fix2_AgentSetPolars()
 
 
-@beartype
 class TestGridPolars:
     @pytest.fixture
     def model(

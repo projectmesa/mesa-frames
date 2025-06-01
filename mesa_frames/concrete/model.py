@@ -45,14 +45,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
-from beartype import beartype
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.abstract.space import SpaceDF
 from mesa_frames.concrete.agents import AgentsDF
 
 
-@beartype
 class ModelDF:
     """Base class for models in the mesa-frames library.
 

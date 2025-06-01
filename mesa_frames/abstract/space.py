@@ -52,14 +52,12 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
-from typing import Literal
+from typing import Any, Literal, Self
 from warnings import warn
 
 import numpy as np
 import polars as pl
-from beartype import beartype
 from numpy.random import Generator
-from typing import Any, Self
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
@@ -85,7 +83,6 @@ from mesa_frames.types_ import (
 ESPG = int
 
 
-@beartype
 class SpaceDF(CopyMixin, DataFrameMixin):
     """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames."""
 
@@ -539,7 +536,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return self.model.random
 
 
-@beartype
 class DiscreteSpaceDF(SpaceDF):
     """The DiscreteSpaceDF class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames."""
 
@@ -1117,7 +1113,6 @@ class DiscreteSpaceDF(SpaceDF):
         ...
 
 
-@beartype
 class GridDF(DiscreteSpaceDF):
     """The GridDF class is an abstract class that defines the interface for all grid classes in mesa-frames.
 

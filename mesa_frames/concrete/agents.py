@@ -48,10 +48,9 @@ from __future__ import annotations  # For forward references
 
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import Any, Literal, cast, Self, overload
+from typing import Any, Literal, Self, cast, overload
 
 import polars as pl
-from beartype import beartype
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.types_ import (
@@ -65,7 +64,6 @@ from mesa_frames.types_ import (
 )
 
 
-@beartype
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
 

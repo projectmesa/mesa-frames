@@ -45,9 +45,9 @@ from __future__ import annotations  # PEP 563: postponed evaluation of type anno
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
-from beartype import beartype
+from typing import Any, Literal, Self, overload
+
 from numpy.random import Generator
-from typing import Self, overload, Any, Literal
 
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
@@ -61,7 +61,6 @@ from mesa_frames.types_ import (
 )
 
 
-@beartype
 class AgentContainer(CopyMixin):
     """An abstract class for containing agents. Defines the common interface for AgentSetDF and AgentsDF."""
 
@@ -780,7 +779,6 @@ class AgentContainer(CopyMixin):
         ...
 
 
-@beartype
 class AgentSetDF(AgentContainer, DataFrameMixin):
     """The AgentSetDF class is a container for agents of the same type.
 
