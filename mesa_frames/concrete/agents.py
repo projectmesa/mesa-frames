@@ -592,7 +592,7 @@ class AgentsDF(AgentContainer):
         def copy_without_agentsets() -> Self:
             return self.copy(deep=False, skip=["_agentsets"])
 
-        dictionary: dict[type[AgentSetDF], Self] = defaultdict(copy_without_agentsets)
+        dictionary = defaultdict(copy_without_agentsets)
 
         for agentset in self._agentsets:
             agents_df = dictionary[agentset.__class__]
