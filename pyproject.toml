@@ -33,13 +33,12 @@ classifiers = [
 ]
 dependencies = [
   "numpy>=2.0.2",
-  "typing-extensions>=4.9", #typing-extensions.Self added in 4.9
   "pyarrow",
   ## polars
   "polars>=1.0.0", #polars._typing (see mesa_frames.types) added in 1.0.0
   #"geopolars" (currently in pre-alpha)
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dynamic = [
   "version"
 ]
@@ -79,7 +78,7 @@ docs = [
 test = [
   "pytest",
   "pytest-cov",
-  "typeguard",
+  "beartype",
 ]
 
 dev = [
@@ -95,6 +94,7 @@ features = ["test"]
 
 [tool.hatch.envs.dev] #Allows installing dev as virtual env
 features = ["dev"]
+env = { MESA_FRAMES_RUNTIME_TYPECHECKING = "true" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["mesa_frames"]

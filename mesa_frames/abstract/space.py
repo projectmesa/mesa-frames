@@ -47,24 +47,26 @@ Attributes and methods of each class are documented in their respective docstrin
 For more detailed information on each class, refer to their individual docstrings.
 """
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
-from typing import TYPE_CHECKING, Literal
+from typing import Any, Literal, Self
 from warnings import warn
 
 import numpy as np
 import polars as pl
 from numpy.random import Generator
-from typing_extensions import Any, Self
 
-from mesa_frames import AgentsDF
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
+from mesa_frames.concrete.agents import AgentsDF
 from mesa_frames.types_ import (
     ArrayLike,
     BoolSeries,
     DataFrame,
+    DataFrameInput,
     DiscreteCoordinate,
     DiscreteCoordinates,
     DiscreteSpaceCapacity,
@@ -72,6 +74,7 @@ from mesa_frames.types_ import (
     GridCoordinate,
     GridCoordinates,
     IdsLike,
+    Infinity,
     Series,
     SpaceCoordinate,
     SpaceCoordinates,
@@ -79,14 +82,10 @@ from mesa_frames.types_ import (
 
 ESPG = int
 
-if TYPE_CHECKING:
-    from mesa_frames.concrete.model import ModelDF
-
 
 class SpaceDF(CopyMixin, DataFrameMixin):
     """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames."""
 
-    _model: "ModelDF"
     _agents: DataFrame  # | GeoDataFrame  # Stores the agents placed in the space
     _center_col_names: list[
         str
@@ -95,12 +94,12 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         str
     ]  # The column names of the positions in the _agents dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
 
-    def __init__(self, model: "ModelDF") -> None:
+    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
         """Create a new SpaceDF.
 
         Parameters
         ----------
-        model : ModelDF
+        model : mesa_frames.concrete.model.ModelDF
         """
         self._model = model
 
@@ -187,7 +186,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             A DataFrame with the sampled agents
         """
         seed = self.random.integers(np.iinfo(np.int32).max)
-        return self._df_sample(self._agents, n=n, seed=seed)
+        return self._df_sample(self._agents, n=n, seed=int(seed))
 
     def swap_agents(
         self,
@@ -440,7 +439,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             return self._srs_constructor([], name="agent_id")
         if isinstance(agents, AgentSetDF):
             return self._srs_constructor(
-                self._df_index(agents, "unique_id"), name="agent_id"
+                self._df_index(agents.agents, "unique_id"), name="agent_id"
             )
         elif isinstance(agents, AgentsDF):
             return self._srs_constructor(agents._ids, name="agent_id")
@@ -450,7 +449,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
                 if isinstance(a, AgentSetDF):
                     ids.append(
                         self._srs_constructor(
-                            self._df_index(a, "unique_id"), name="agent_id"
+                            self._df_index(a.agents, "unique_id"), name="agent_id"
                         )
                     )
                 elif isinstance(a, AgentsDF):
@@ -517,12 +516,12 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return self._agents
 
     @property
-    def model(self) -> "ModelDF":
+    def model(self) -> mesa_frames.concrete.model.ModelDF:
         """The model to which the space belongs.
 
         Returns
         -------
-        'ModelDF'
+        'mesa_frames.concrete.model.ModelDF'
         """
         return self._model
 
@@ -549,14 +548,14 @@ class DiscreteSpaceDF(SpaceDF):
 
     def __init__(
         self,
-        model: "ModelDF",
+        model: mesa_frames.concrete.model.ModelDF,
         capacity: int | None = None,
     ):
         """Create a new DiscreteSpaceDF.
 
         Parameters
         ----------
-        model : ModelDF
+        model : mesa_frames.concrete.model.ModelDF
             The model to which the space belongs
         capacity : int | None, optional
             The maximum capacity for cells (default is infinite), by default None
@@ -817,16 +816,24 @@ class DiscreteSpaceDF(SpaceDF):
 
     # We define the cell conditions here, because ruff does not allow lambda functions
 
-    def _any_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
+    def _any_cell_condition(
+        self, cap: DiscreteSpaceCapacity
+    ) -> BoolSeries | np.ndarray:
         return self._cells_capacity
 
     @abstractmethod
-    def _empty_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries: ...
+    def _empty_cell_condition(
+        self, cap: DiscreteSpaceCapacity
+    ) -> BoolSeries | np.ndarray: ...
 
-    def _available_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
+    def _available_cell_condition(
+        self, cap: DiscreteSpaceCapacity
+    ) -> BoolSeries | np.ndarray:
         return cap > 0
 
-    def _full_cell_condition(self, cap: DiscreteSpaceCapacity) -> BoolSeries:
+    def _full_cell_condition(
+        self, cap: DiscreteSpaceCapacity
+    ) -> BoolSeries | np.ndarray:
         return cap == 0
 
     def _check_cells(
@@ -968,13 +975,13 @@ class DiscreteSpaceDF(SpaceDF):
 
     @abstractmethod
     def _update_capacity_agents(
-        self, agents: DataFrame, operation: Literal["movement", "removal"]
+        self, agents: DataFrame | Series, operation: Literal["movement", "removal"]
     ) -> DiscreteSpaceCapacity:
         """Update the cells' capacity after moving agents.
 
         Parameters
         ----------
-        agents : DataFrame
+        agents : DataFrame | Series
             The moved agents with their new positions
         operation : Literal["movement", "removal"]
             The operation that was performed on the agents
@@ -1018,14 +1025,16 @@ class DiscreteSpaceDF(SpaceDF):
         # then it must mean that it's in the _cells dataframe
         return self._cells[key]
 
-    def __setitem__(self, cells: DiscreteCoordinates, properties: DataFrame):
+    def __setitem__(
+        self, cells: DiscreteCoordinates, properties: DataFrame | DataFrameInput
+    ):
         """Set the properties of the specified cells.
 
         Parameters
         ----------
         cells : DiscreteCoordinates
             The cells to set the properties for
-        properties : DataFrame
+        properties : DataFrame | DataFrameInput
             The properties to set
         """
         self.set_cells(cells=cells, properties=properties, inplace=True)
@@ -1093,12 +1102,12 @@ class DiscreteSpaceDF(SpaceDF):
 
     @property
     @abstractmethod
-    def remaining_capacity(self) -> int | None:
+    def remaining_capacity(self) -> int | Infinity:
         """The remaining capacity of the cells in the grid.
 
         Returns
         -------
-        int | None
+        int | Infinity
             None if the capacity is infinite, otherwise the remaining capacity
         """
         ...
@@ -1140,7 +1149,7 @@ class GridDF(DiscreteSpaceDF):
 
     def __init__(
         self,
-        model: "ModelDF",
+        model: mesa_frames.concrete.model.ModelDF,
         dimensions: Sequence[int],
         torus: bool = False,
         capacity: int | None = None,
@@ -1150,7 +1159,7 @@ class GridDF(DiscreteSpaceDF):
 
         Parameters
         ----------
-        model : ModelDF
+        model : mesa_frames.concrete.model.ModelDF
             The model to which the space belongs
         dimensions : Sequence[int]
             The dimensions of the grid
@@ -1228,7 +1237,7 @@ class GridDF(DiscreteSpaceDF):
         self,
         radius: int | Sequence[int] | ArrayLike,
         pos: GridCoordinate | GridCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] = None,
+        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
         include_center: bool = False,
     ) -> DataFrame:
         pos_df = self._get_df_coords(pos, agents)
@@ -1461,7 +1470,7 @@ class GridDF(DiscreteSpaceDF):
 
     def remove_agents(
         self,
-        agents: AgentContainer | Collection[AgentContainer] | int | Sequence[int],
+        agents: IdsLike | AgentContainer | Collection[AgentContainer],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -1752,7 +1761,7 @@ class GridDF(DiscreteSpaceDF):
 
     @abstractmethod
     def _generate_empty_grid(
-        self, dimensions: Sequence[int], capacity: int
+        self, dimensions: Sequence[int], capacity: int | None
     ) -> GridCapacity:
         """Generate an empty grid with the specified dimensions and capacity.
 
@@ -1760,7 +1769,7 @@ class GridDF(DiscreteSpaceDF):
         ----------
         dimensions : Sequence[int]
             The dimensions of the grid
-        capacity : int
+        capacity : int | None
             The capacity of the grid
 
         Returns

@@ -153,3 +153,5 @@ cython_debug/
 
 .vscode/
 *.code-workspace
+llm_rules.md
+.python-version

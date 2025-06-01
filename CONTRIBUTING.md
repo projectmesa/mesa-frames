@@ -110,6 +110,17 @@ It is recommended to set up a virtual environment before installing dependencies
 
   - If using UV: `uv run pytest --cov`
 
+- **Optional: Enable runtime type checking** during development for enhanced type safety:
+
+  ```sh
+  MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest --cov
+  ```
+
+  !!! tip "Automatic with Hatch"
+      If you're using Hatch development environment (`hatch shell dev`), runtime type checking is automatically enabled. No manual setup needed!
+
+  For more details on runtime type checking, see the [Development Guidelines](https://projectmesa.github.io/mesa-frames/development/).
+
 #### **Step 6: Documentation Updates (If Needed)** 📖
 
 - If you add a new feature, update the documentation accordingly.
