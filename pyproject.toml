@@ -94,6 +94,7 @@ features = ["test"]
 
 [tool.hatch.envs.dev] #Allows installing dev as virtual env
 features = ["dev"]
+env = { MESA_FRAMES_RUNTIME_TYPECHECKING = "true" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["mesa_frames"]

@@ -4,7 +4,27 @@
 
 mesa-frames includes optional runtime type checking using [beartype](https://github.com/beartype/beartype) for development and debugging purposes. This feature helps catch type-related errors early during development and testing.
 
-### Enabling Runtime Type Checking
+!!! tip "Automatic for Hatch Development Environment"
+    When using Hatch for development (`hatch shell dev`), runtime type checking is **automatically enabled** by default. No manual setup required!
+
+### Development Environment Setup
+
+#### Option 1: Hatch Development Environment (Recommended)
+
+The easiest way to enable runtime type checking is to use Hatch's development environment:
+
+```bash
+# Enter the development environment (auto-enables runtime type checking)
+hatch shell dev
+
+# Verify it's enabled
+python -c "import os; print('Runtime type checking:', os.getenv('MESA_FRAMES_RUNTIME_TYPECHECKING'))"
+# → Runtime type checking: true
+```
+
+#### Option 2: Manual Environment Variable
+
+For other development setups, you can manually enable runtime type checking:
 
 Runtime type checking can be enabled by setting the `MESA_FRAMES_RUNTIME_TYPECHECKING` environment variable:
 
