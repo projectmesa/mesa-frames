@@ -6,11 +6,11 @@ mesa-frames includes optional runtime type checking using [beartype](https://git
 
 !!! tip "Automatically Enabled"
     Runtime type checking is **automatically enabled** in the following scenarios:
-    
+
     - **Hatch development environment** (`hatch shell dev`) — via `pyproject.toml` configuration
     - **VS Code debugging** — when using the debugger (`F5` or "Python Debugger: Current File")
     - **VS Code testing** — when running tests through VS Code's testing interface
-    
+
     No manual setup required in these environments!
 
 ### Development Environment Setup
@@ -38,7 +38,7 @@ Runtime type checking can be enabled by setting the `MESA_FRAMES_RUNTIME_TYPECHE
 export MESA_FRAMES_RUNTIME_TYPECHECKING=1
 # or
 export MESA_FRAMES_RUNTIME_TYPECHECKING=true
-# or 
+# or
 export MESA_FRAMES_RUNTIME_TYPECHECKING=yes
 ```
 
@@ -60,9 +60,11 @@ MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run python your_script.py
 #### In Your IDE or Development Environment
 
 **VS Code** (Already Configured):
+
 - **Debugging**: Runtime type checking is automatically enabled when using VS Code's debugger
 - **Testing**: Automatically enabled when running tests through VS Code's testing interface
 - **Manual override**: You can also add it manually in `.vscode/settings.json`:
+
     ```json
     {
         "python.env": {
@@ -73,7 +75,8 @@ MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run python your_script.py
 
 **PyCharm**:
 In your run configuration, add the environment variable:
-```
+
+```bash
 MESA_FRAMES_RUNTIME_TYPECHECKING=1
 ```
 
@@ -106,6 +109,7 @@ pip install beartype
     Runtime type checking adds significant overhead and should **only be used during development and testing**. Do not enable it in production environments.
 
 The overhead includes:
+
 - Function call interception and validation
 - Type checking computations at runtime
 - Memory usage for type checking infrastructure
@@ -127,6 +131,7 @@ The overhead includes:
 - Troubleshooting type-related issues
 
 ❌ **Not recommended for:**
+
 - Production deployments
 - Performance benchmarking
 - Large-scale simulations
