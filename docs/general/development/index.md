@@ -32,7 +32,7 @@ Runtime type checking can be enabled by setting the `MESA_FRAMES_RUNTIME_TYPECHE
 export MESA_FRAMES_RUNTIME_TYPECHECKING=1
 # or
 export MESA_FRAMES_RUNTIME_TYPECHECKING=true
-# or 
+# or
 export MESA_FRAMES_RUNTIME_TYPECHECKING=yes
 ```
 
@@ -97,6 +97,7 @@ pip install beartype
     Runtime type checking adds significant overhead and should **only be used during development and testing**. Do not enable it in production environments.
 
 The overhead includes:
+
 - Function call interception and validation
 - Type checking computations at runtime
 - Memory usage for type checking infrastructure
@@ -104,6 +105,7 @@ The overhead includes:
 ### When to Use Runtime Type Checking
 
 ✅ **Recommended for:**
+
 - Development and debugging
 - Writing new features
 - Running unit tests
@@ -111,6 +113,7 @@ The overhead includes:
 - Contributing to mesa-frames
 
 ❌ **Not recommended for:**
+
 - Production deployments
 - Performance benchmarking
 - Large-scale simulations
@@ -121,11 +124,13 @@ The overhead includes:
 If you encounter issues with runtime type checking:
 
 1. **Check beartype installation:**
+
    ```bash
    uv run python -c "import beartype; print(beartype.__version__)"
    ```
 
 2. **Verify environment variable:**
+
    ```bash
    echo $MESA_FRAMES_RUNTIME_TYPECHECKING
    ```
@@ -133,6 +138,7 @@ If you encounter issues with runtime type checking:
 3. **Check for warnings** in your application logs
 
 4. **Disable temporarily** if needed:
+
    ```bash
    unset MESA_FRAMES_RUNTIME_TYPECHECKING
    ```
