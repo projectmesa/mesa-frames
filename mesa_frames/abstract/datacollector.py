@@ -93,12 +93,24 @@ class AbstractDataCollector(ABC):
         self._model = model
         self._model_reporters = model_reporters or {}
         self._agent_reporters = agent_reporters or {}
-        self._trigger = trigger or (lambda model: True)
+        self._trigger = trigger or (lambda self.agent_model: False)
         self._reset_memory = reset_memory
         self._storage_uri = storage or "memory:"
         self._frames = []
 
-    def collect(self) -> None:
+    def collect(self)->None:
+        """
+        Trigger Data collection
+
+        This method caslls _collect() to perform actual data collection
+
+        Example
+        -------
+        >>> datacollector.collect()
+        """
+        self._collect()
+        
+    def conditional_collect(self) -> None:
         """
         Trigger data collection if condition is met
 
@@ -106,7 +118,7 @@ class AbstractDataCollector(ABC):
 
         Example
         -------
-        >>> datacollector.collect()
+        >>> datacollector.conditional_collect()
         """
         if self._should_collect():
             self._collect()
