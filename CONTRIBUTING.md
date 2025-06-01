@@ -116,8 +116,14 @@ It is recommended to set up a virtual environment before installing dependencies
   MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest --cov
   ```
 
-  !!! tip "Automatic with Hatch"
-      If you're using Hatch development environment (`hatch shell dev`), runtime type checking is automatically enabled. No manual setup needed!
+  !!! tip "Automatically Enabled"
+      Runtime type checking is automatically enabled in these scenarios:
+      
+      - **Hatch development environment** (`hatch shell dev`)
+      - **VS Code debugging** (when using the debugger)
+      - **VS Code testing** (when running tests through VS Code's testing interface)
+      
+      No manual setup needed in these environments!
 
   For more details on runtime type checking, see the [Development Guidelines](https://projectmesa.github.io/mesa-frames/development/).
 
