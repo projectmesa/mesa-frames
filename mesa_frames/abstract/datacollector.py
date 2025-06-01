@@ -36,7 +36,7 @@ Usage:
         def data(self):
             # Returns the data currently in memory
             ...
-            
+
         def flush(self):
             # Persists collected data if configured and optionally deletes data from memory
             ...
@@ -102,7 +102,7 @@ class AbstractDataCollector(ABC):
         self._storage_uri = storage or "memory:"
         self._frames = []
 
-    def collect(self)->None:
+    def collect(self) -> None:
         """
         Trigger Data collection
 
@@ -113,7 +113,7 @@ class AbstractDataCollector(ABC):
         >>> datacollector.collect()
         """
         self._collect()
-        
+
     def conditional_collect(self) -> None:
         """
         Trigger data collection if condition is met
@@ -200,9 +200,9 @@ class AbstractDataCollector(ABC):
         backend-specific data saving operations.
         """
         pass
-    
+
     @property
-    def seed(self)->int:
+    def seed(self) -> int:
         """
         Function to get the model seed
 
