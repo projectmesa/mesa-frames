@@ -4,8 +4,14 @@
 
 mesa-frames includes optional runtime type checking using [beartype](https://github.com/beartype/beartype) for development and debugging purposes. This feature helps catch type-related errors early during development and testing.
 
-!!! tip "Automatic for Hatch Development Environment"
-    When using Hatch for development (`hatch shell dev`), runtime type checking is **automatically enabled** by default. No manual setup required!
+!!! tip "Automatically Enabled"
+    Runtime type checking is **automatically enabled** in the following scenarios:
+    
+    - **Hatch development environment** (`hatch shell dev`) — via `pyproject.toml` configuration
+    - **VS Code debugging** — when using the debugger (`F5` or "Python Debugger: Current File")
+    - **VS Code testing** — when running tests through VS Code's testing interface
+    
+    No manual setup required in these environments!
 
 ### Development Environment Setup
 
@@ -38,6 +44,9 @@ export MESA_FRAMES_RUNTIME_TYPECHECKING=yes
 
 ### Usage Examples
 
+!!! info "Automatic Activation"
+    If you're using **Hatch dev environment**, **VS Code debugging**, or **VS Code testing**, runtime type checking is already enabled automatically. The examples below are for manual activation in other scenarios.
+
 #### For Development and Testing
 
 ```bash
@@ -50,10 +59,10 @@ MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run python your_script.py
 
 #### In Your IDE or Development Environment
 
-Add the environment variable to your development environment configuration:
-
-=== "VS Code"
-    In your `.vscode/settings.json`:
+**VS Code** (Already Configured):
+- **Debugging**: Runtime type checking is automatically enabled when using VS Code's debugger
+- **Testing**: Automatically enabled when running tests through VS Code's testing interface
+- **Manual override**: You can also add it manually in `.vscode/settings.json`:
     ```json
     {
         "python.env": {
@@ -62,11 +71,11 @@ Add the environment variable to your development environment configuration:
     }
     ```
 
-=== "PyCharm"
-    In your run configuration, add the environment variable:
-    ```
-    MESA_FRAMES_RUNTIME_TYPECHECKING=1
-    ```
+**PyCharm**:
+In your run configuration, add the environment variable:
+```
+MESA_FRAMES_RUNTIME_TYPECHECKING=1
+```
 
 ### How It Works
 
@@ -103,12 +112,19 @@ The overhead includes:
 
 ### When to Use Runtime Type Checking
 
-✅ **Recommended for:**
-- Development and debugging
-- Writing new features
-- Running unit tests
+✅ **Automatically enabled (recommended):**
+
+- Hatch development environment (`hatch shell dev`)
+- VS Code debugging sessions
+- VS Code test execution
+- Contributing to mesa-frames development
+
+✅ **Manual activation (when needed):**
+
+- Development and debugging in other IDEs
+- Writing new features outside VS Code
+- Running unit tests from command line
 - Troubleshooting type-related issues
-- Contributing to mesa-frames
 
 ❌ **Not recommended for:**
 - Production deployments
@@ -121,18 +137,26 @@ The overhead includes:
 If you encounter issues with runtime type checking:
 
 1. **Check beartype installation:**
+
    ```bash
    uv run python -c "import beartype; print(beartype.__version__)"
    ```
 
 2. **Verify environment variable:**
+
    ```bash
    echo $MESA_FRAMES_RUNTIME_TYPECHECKING
    ```
 
-3. **Check for warnings** in your application logs
+3. **For automatic configurations:**
+   - **Hatch dev**: Ensure you're in the dev environment (`hatch shell dev`)
+   - **VS Code debugging**: Check that the debugger configuration in `.vscode/launch.json` includes the environment variable
+   - **VS Code testing**: Verify that `.env.test` file exists and contains `MESA_FRAMES_RUNTIME_TYPECHECKING=true`
 
-4. **Disable temporarily** if needed:
+4. **Check for warnings** in your application logs
+
+5. **Disable temporarily** if needed:
+
    ```bash
    unset MESA_FRAMES_RUNTIME_TYPECHECKING
    ```
