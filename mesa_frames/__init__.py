@@ -56,7 +56,6 @@ if os.getenv("MESA_FRAMES_RUNTIME_TYPECHECKING", "").lower() in ("1", "true", "y
 
         warnings.warn(
             "MESA_FRAMES_RUNTIME_TYPECHECKING is enabled but beartype is not installed. "
-            "Install beartype with: uv pip install beartype",
             ImportWarning,
             stacklevel=2,
         )
