@@ -29,10 +29,14 @@ Usage:
             # Implementation using Polars DataFrame to collect model and agent data
             ...
 
+        def conditional_collect(self):
+            # Implementation using Polars DataFrame to collect model and agent data if trigger returns True
+            ...
+
         def data(self):
             # Returns the data currently in memory
             ...
-
+            
         def flush(self):
             # Persists collected data if configured and optionally deletes data from memory
             ...
@@ -196,3 +200,14 @@ class AbstractDataCollector(ABC):
         backend-specific data saving operations.
         """
         pass
+    
+    @property
+    def seed(self)->int:
+        """
+        Function to get the model seed
+
+        Example:
+        --------
+        >>> seed = datacollector.seed
+        """
+        return self._model._seed
