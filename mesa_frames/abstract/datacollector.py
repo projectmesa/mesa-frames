@@ -93,7 +93,7 @@ class AbstractDataCollector(ABC):
         self._model = model
         self._model_reporters = model_reporters or {}
         self._agent_reporters = agent_reporters or {}
-        self._trigger = trigger or (lambda self.agent_model: False)
+        self._trigger = trigger or (lambda model: False)
         self._reset_memory = reset_memory
         self._storage_uri = storage or "memory:"
         self._frames = []
