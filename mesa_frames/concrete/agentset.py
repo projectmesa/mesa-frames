@@ -98,14 +98,14 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     def add(
         self,
-        agents: Self | pl.DataFrame | Sequence[Any] | dict[str, Any],
+        agents: pl.DataFrame | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
     ) -> Self:
         """Add agents to the AgentSetPolars.
 
         Parameters
         ----------
-        agents : Self | pl.DataFrame | Sequence[Any] | dict[str, Any]
+        agents : pl.DataFrame | Sequence[Any] | dict[str, Any]
             The agents to add.
         inplace : bool, optional
             Whether to add the agents in place, by default True.
@@ -116,9 +116,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
-        if isinstance(agents, AgentSetPolars):
-            new_agents = agents.agents
-        elif isinstance(agents, pl.DataFrame):
+        if isinstance(agents, pl.DataFrame):
             if "unique_id" in agents.columns:
                 raise ValueError("Dataframe should not have a unique_id column.")
             new_agents = agents
