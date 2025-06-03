@@ -65,7 +65,6 @@ from typing import Any, Literal, Self, overload
 import numpy as np
 import polars as pl
 from polars._typing import IntoExpr
-from polars.exceptions import ShapeError
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
@@ -210,10 +209,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 values_series = pl.Series(values)
             else:
                 values_series = pl.repeat(values, len(masked_df))
-            try:
-                return masked_df.with_columns(values_series.alias(attr_name))
-            except ShapeError as error:
-                raise KeyError(error)
+            return masked_df.with_columns(values_series.alias(attr_name))
 
         if isinstance(attr_names, str) and values is not None:
             masked_df = process_single_attr(masked_df, attr_names, values)
