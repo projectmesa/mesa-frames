@@ -44,13 +44,14 @@ For more detailed information on the AgentsDF class and its methods, refer to
 the class docstring.
 """
 
+from __future__ import annotations  # For forward references
+
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import TYPE_CHECKING, Literal, cast
+from typing import Any, Literal, Self, cast, overload
 
 import numpy as np
 import polars as pl
-from typing_extensions import Any, Self, overload
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.types_ import (
@@ -63,9 +64,6 @@ from mesa_frames.types_ import (
     Series,
 )
 
-if TYPE_CHECKING:
-    from mesa_frames.concrete.model import ModelDF
-
 
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
@@ -73,12 +71,12 @@ class AgentsDF(AgentContainer):
     _agentsets: list[AgentSetDF]
     _ids: pl.Series
 
-    def __init__(self, model: "ModelDF") -> None:
+    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
         """Initialize a new AgentsDF.
 
         Parameters
         ----------
-        model : ModelDF
+        model : mesa_frames.concrete.model.ModelDF
             The model associated with the AgentsDF.
         """
         self._model = model
@@ -93,9 +91,9 @@ class AgentsDF(AgentContainer):
         Parameters
         ----------
         agents : AgentSetDF | Iterable[AgentSetDF]
-            The AgentSetDF to add.
+            The AgentSetDFs to add.
         inplace : bool, optional
-            Whether to add the AgentSetDF in place.
+            Whether to add the AgentSetDFs in place. Defaults to True.
 
         Returns
         -------
@@ -105,7 +103,7 @@ class AgentsDF(AgentContainer):
         Raises
         ------
         ValueError
-            If some agentsets are already present in the AgentsDF or if the IDs are not unique.
+            If any AgentSetDFs are already present or if IDs are not unique.
         """
         obj = self._get_obj(inplace)
         other_list = obj._return_agentsets_list(agents)
@@ -139,7 +137,7 @@ class AgentsDF(AgentContainer):
             elif isinstance(next(iter(agents)), AgentSetDF):
                 agents = cast(Iterable[AgentSetDF], agents)
                 return self._check_agentsets_presence(list(agents))
-            else:  # IDsLike
+            else:  # IdsLike
                 agents = cast(IdsLike, agents)
 
                 return pl.Series(agents, dtype=pl.UInt64).is_in(self._ids)
@@ -215,7 +213,9 @@ class AgentsDF(AgentContainer):
         }
 
     def remove(
-        self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike, inplace: bool = True
+        self,
+        agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike,
+        inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
@@ -402,13 +402,14 @@ class AgentsDF(AgentContainer):
 
     def _get_bool_masks(
         self,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
+        mask: (AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask]) = None,
     ) -> dict[AgentSetDF, BoolSeries]:
         return_dictionary = {}
         if not isinstance(mask, dict):
+            # No need to convert numpy integers - let polars handle them directly
             mask = {agentset: mask for agentset in self._agentsets}
-        for agentset, mask in mask.items():
-            return_dictionary[agentset] = agentset._get_bool_mask(mask)
+        for agentset, mask_value in mask.items():
+            return_dictionary[agentset] = agentset._get_bool_mask(mask_value)
         return return_dictionary
 
     def _return_agentsets_list(
@@ -442,16 +443,18 @@ class AgentsDF(AgentContainer):
         return super().__add__(other)
 
     def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
-        if name.startswith("_"):  # Avoids infinite recursion of private attributes
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
+        # Avoids infinite recursion of private attributes
+        if __debug__:  # Only execute in non-optimized mode
+            if name.startswith("_"):
+                raise AttributeError(
+                    f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                )
         return {agentset: getattr(agentset, name) for agentset in self._agentsets}
 
     @overload
     def __getitem__(
         self, key: str | tuple[dict[AgentSetDF, AgentMask], str]
-    ) -> dict[str, Series]: ...
+    ) -> dict[AgentSetDF, Series | pl.Expr]: ...
 
     @overload
     def __getitem__(
@@ -462,7 +465,7 @@ class AgentsDF(AgentContainer):
             | IdsLike
             | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
         ),
-    ) -> dict[str, DataFrame]: ...
+    ) -> dict[AgentSetDF, DataFrame]: ...
 
     def __getitem__(
         self,
@@ -474,7 +477,7 @@ class AgentsDF(AgentContainer):
             | tuple[dict[AgentSetDF, AgentMask], str]
             | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
         ),
-    ) -> dict[str, Series] | dict[str, DataFrame]:
+    ) -> dict[AgentSetDF, Series | pl.Expr] | dict[AgentSetDF, DataFrame]:
         return super().__getitem__(key)
 
     def __iadd__(self, agents: AgentSetDF | Iterable[AgentSetDF]) -> Self:
@@ -501,7 +504,7 @@ class AgentsDF(AgentContainer):
         Parameters
         ----------
         agents : AgentSetDF | Iterable[AgentSetDF] | IdsLike
-            The AgentSetDFs to remove.
+            The AgentSetDFs or agent IDs to remove.
 
         Returns
         -------
@@ -540,13 +543,13 @@ class AgentsDF(AgentContainer):
     def __str__(self) -> str:
         return "\n".join([str(agentset) for agentset in self._agentsets])
 
-    def __sub__(self, agents: IdsLike | AgentSetDF | Iterable[AgentSetDF]) -> Self:
+    def __sub__(self, agents: AgentSetDF | Iterable[AgentSetDF] | IdsLike) -> Self:
         """Remove AgentSetDFs from a new AgentsDF through the - operator.
 
         Parameters
         ----------
-        agents : IdsLike | AgentSetDF | Iterable[AgentSetDF]
-            The AgentSetDFs to remove.
+        agents : AgentSetDF | Iterable[AgentSetDF] | IdsLike
+            The AgentSetDFs or agent IDs to remove. Supports NumPy integer types.
 
         Returns
         -------
@@ -593,7 +596,7 @@ class AgentsDF(AgentContainer):
         def copy_without_agentsets() -> Self:
             return self.copy(deep=False, skip=["_agentsets"])
 
-        dictionary: dict[type[AgentSetDF], Self] = defaultdict(copy_without_agentsets)
+        dictionary = defaultdict(copy_without_agentsets)
 
         for agentset in self._agentsets:
             agents_df = dictionary[agentset.__class__]

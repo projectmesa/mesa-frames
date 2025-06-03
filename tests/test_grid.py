@@ -1,8 +1,6 @@
 import numpy as np
 import polars as pl
 import pytest
-import typeguard as tg
-from polars.testing import assert_frame_equal
 
 from mesa_frames import GridPolars, ModelDF
 from tests.test_agentset import (
@@ -24,7 +22,6 @@ def get_unique_ids(model: ModelDF) -> pl.Series:
     )
 
 
-@tg.typechecked
 class TestGridPolars:
     @pytest.fixture
     def model(
