@@ -439,7 +439,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             return self._srs_constructor([], name="agent_id", dtype="uint64")
         if isinstance(agents, AgentSetDF):
             return self._srs_constructor(
-                self._df_index(agents.agents, "unique_id"), name="agent_id"
+                self._df_index(agents.agents, "unique_id"),
+                name="agent_id",
+                dtype="uint64",
             )
         elif isinstance(agents, AgentsDF):
             return self._srs_constructor(agents._ids, name="agent_id", dtype="uint64")
@@ -449,7 +451,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
                 if isinstance(a, AgentSetDF):
                     ids.append(
                         self._srs_constructor(
-                            self._df_index(a.agents, "unique_id"), name="agent_id"
+                            self._df_index(a.agents, "unique_id"),
+                            name="agent_id",
+                            dtype="uint64",
                         )
                     )
                 elif isinstance(a, AgentsDF):

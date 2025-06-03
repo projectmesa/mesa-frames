@@ -603,7 +603,7 @@ class PolarsMixin(DataFrameMixin):
             )
         ):
             # This means that data is a Sequence of Sequences (rows)
-            data = pl.DataFrame(data, new_columns)
+            data = pl.DataFrame(data, new_columns, orient="row")
             original_df = original_df.select(pl.exclude(data.columns))
             return original_df.hstack(data)
         if not isinstance(data, dict):
@@ -632,7 +632,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         if not isinstance(values, Collection):
             values = [values]
-        return pl.Series(values).is_in(srs)
+        return pl.Series(values).is_in(pl.Series(srs))
 
     def _srs_range(
         self,

@@ -14,11 +14,6 @@ from tests.test_agentset import (
 )
 
 
-# This serves otherwise ruff complains about the two fixtures not being used
-def not_called():
-    fix2_AgentSetPolars()
-
-
 @pytest.fixture
 def fix_AgentsDF(
     fix1_AgentSetPolars: ExampleAgentSetPolars,

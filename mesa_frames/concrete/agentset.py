@@ -60,18 +60,18 @@ refer to the class docstring.
 from __future__ import annotations
 
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import Any, Literal, Self, overload
+from typing import Any, Literal, overload
 
 import numpy as np
 import polars as pl
 from polars._typing import IntoExpr
 from polars.exceptions import ShapeError
-from typing_extensions import Any, Self, overload
+from typing_extensions import Self
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import ModelDF
-from mesa_frames.types_ import AgentPolarsMask, IdsLike, IntoExpr, PolarsIdsLike
+from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
 
@@ -131,11 +131,12 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         else:
             if len(agents) != len(obj._agents.columns) - 1:
                 raise ValueError(
-                    "Length of data must match the number of columns in the AgentSet if being added as a Collection."
+                    "Length of data must match the number of columns in the AgentSet (excluding unique_id) if being added as a Collection."
                 )
             new_agents = pl.DataFrame(
-                [self._generate_unique_ids(1).to_list() + agents],
-                schema=obj._agents.schema,
+                [list(agents)],
+                schema=[col for col in obj._agents.schema if col != "unique_id"],
+                orient="row",
             )
 
         if "unique_id" not in new_agents:
@@ -243,7 +244,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         original_index = obj._agents.select("unique_id")
         obj._agents = pl.concat([non_masked_df, masked_df], how="diagonal_relaxed")
         obj._agents = original_index.join(obj._agents, on="unique_id", how="left")
-        obj._update_mask(original_index, unique_id_column)
+        obj._update_mask(original_index["unique_id"], unique_id_column)
         return obj
 
     def select(

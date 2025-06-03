@@ -1,6 +1,7 @@
 import numpy as np
 import polars as pl
 import pytest
+from polars.testing import assert_frame_equal
 
 from mesa_frames import GridPolars, ModelDF
 from tests.test_agentset import (
@@ -10,16 +11,13 @@ from tests.test_agentset import (
 )
 
 
-# This serves otherwise ruff complains about the two fixtures not being used
-def not_called():
-    fix2_AgentSetPolars()
-
-
 def get_unique_ids(model: ModelDF) -> pl.Series:
     # return model.get_agents_of_type(model.agent_types[0])["unique_id"]
-    return pl.concat(
-        [agent_set["unique_id"] for agent_set in model.agents.agents.values()],
-    )
+    series_list = [
+        agent_set["unique_id"].cast(pl.UInt64)
+        for agent_set in model.agents.agents.values()
+    ]
+    return pl.concat(series_list)
 
 
 class TestGridPolars:
@@ -1468,12 +1466,9 @@ class TestGridPolars:
             assert len(result) == 10
             assert isinstance(result, pl.DataFrame)
             assert result.columns == ["dim_0", "dim_1"]
-            counts = result.group_by("dim_0", "dim_1").agg(pl.count())
-            assert (counts.select(pl.col("count")) <= 2).to_series().all()
-            if (
-                not replacement
-                and (counts.select(pl.col("count")) > 1).to_series().any()
-            ):
+            counts = result.group_by("dim_0", "dim_1").agg(pl.len())
+            assert (counts.select(pl.col("len")) <= 2).to_series().all()
+            if not replacement and (counts.select(pl.col("len")) > 1).to_series().any():
                 replacement = True
             if same and last is not None:
                 same = (result.to_numpy() == last).all()
@@ -1491,7 +1486,7 @@ class TestGridPolars:
         assert len(result) == 14
         assert isinstance(result, pl.DataFrame)
         assert result.columns == ["dim_0", "dim_1"]
-        counts = result.group_by("dim_0", "dim_1").agg(pl.count())
+        counts = result.group_by("dim_0", "dim_1").agg(pl.len())
 
         ## (0, 1) and (1, 1) are not in the result
         assert not (
@@ -1512,7 +1507,7 @@ class TestGridPolars:
         assert len(result) == 16
         assert isinstance(result, pl.DataFrame)
         assert result.columns == ["dim_0", "dim_1"]
-        counts = result.group_by("dim_0", "dim_1").agg(pl.count())
+        counts = result.group_by("dim_0", "dim_1").agg(pl.len())
 
         # 16 should be the max number of available cells
         with pytest.raises(AssertionError):
