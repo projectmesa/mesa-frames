@@ -66,7 +66,7 @@ import numpy as np
 import polars as pl
 from polars._typing import IntoExpr
 from polars.exceptions import ShapeError
-from typing_extensions import Any, Self, overload
+from typing import Any, Self, overload
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
