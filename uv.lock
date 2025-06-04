@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.9"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -1792,7 +1793,6 @@ wheels = [
 
 [[package]]
 name = "mesa-frames"
-version = "0.1.1.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -1933,6 +1933,7 @@ requires-dist = [
     { name = "typeguard", marker = "extra == 'test'" },
     { name = "typing-extensions", specifier = ">=4.9" },
 ]
+provides-extras = ["dev", "docs", "mkdocs", "sphinx", "test"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "mesa-frames", extras = ["dev"], editable = "." }]
