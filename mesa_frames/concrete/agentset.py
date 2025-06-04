@@ -116,7 +116,12 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
-        if isinstance(agents, pl.DataFrame):
+        if isinstance(agents, AgentSetDF):
+            raise TypeError(
+                "AgentSetPolars.add() does not accept AgentSetDF objects. "
+                "Extract the DataFrame with agents.agents.drop('unique_id') first."
+            )
+        elif isinstance(agents, pl.DataFrame):
             if "unique_id" in agents.columns:
                 raise ValueError("Dataframe should not have a unique_id column.")
             new_agents = agents
@@ -125,20 +130,22 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 raise ValueError("Dictionary should not have a unique_id key.")
             new_agents = pl.DataFrame(agents)
         else:
-            if len(agents) != len(obj._agents.columns) - 1:
-                raise ValueError(
-                    "Length of data must match the number of columns in the AgentSet (excluding unique_id) if being added as a Collection."
+            if len(obj._agents) != 0:
+                # For non-empty AgentSet, check column count
+                expected_columns = len(obj._agents.columns) - 1  # Exclude unique_id
+                if len(agents) != expected_columns:
+                    raise ValueError(
+                        f"Length of data ({len(agents)}) must match the number of columns in the AgentSet (excluding unique_id): {expected_columns}"
+                    )
+                new_agents = pl.DataFrame(
+                    [list(agents)],
+                    schema=[col for col in obj._agents.schema if col != "unique_id"],
+                    orient="row",
                 )
-            new_agents = pl.DataFrame(
-                [list(agents)],
-                schema=[col for col in obj._agents.schema if col != "unique_id"],
-                orient="row",
-            )
 
-        if "unique_id" not in new_agents:
-            new_agents = new_agents.with_columns(
-                self._generate_unique_ids(len(new_agents)).alias("unique_id")
-            )
+        new_agents = new_agents.with_columns(
+            self._generate_unique_ids(len(new_agents)).alias("unique_id")
+        )
 
         # If self._mask is pl.Expr, then new mask is the same.
         # If self._mask is pl.Series[bool], then new mask has to be updated.

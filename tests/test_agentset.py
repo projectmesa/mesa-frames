@@ -108,19 +108,8 @@ class Test_AgentSetPolars:
     def test_add(
         self,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         agents = fix1_AgentSetPolars
-        agents2 = fix2_AgentSetPolars
-
-        # Test with another AgentSetPolars
-        result = agents.add(agents2, inplace=False)
-        assert all(
-            result["unique_id"]
-            == pl.concat([agents["unique_id"], agents2["unique_id"]])
-        )
-        assert all(result["age"] == pl.concat([agents["age"], agents2["age"]]))
-        assert all(result["wealth"] == pl.concat([agents["wealth"], agents2["wealth"]]))
 
         # Test with a pl.Dataframe
         result = agents.add(
@@ -324,17 +313,8 @@ class Test_AgentSetPolars:
     def test__add__(
         self,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
         agents = fix1_AgentSetPolars
-        agents2 = fix2_AgentSetPolars
-
-        # Test with two AgentSetPolars
-        agents3 = agents + agents2
-        assert all(
-            agents3["unique_id"]
-            == pl.concat([agents["unique_id"], agents2["unique_id"]])
-        )
 
         # Test with an AgentSetPolars and a DataFrame
         agents3 = agents + pl.DataFrame({"wealth": [5, 6], "age": [50, 60]})
