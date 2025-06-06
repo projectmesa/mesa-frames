@@ -77,21 +77,21 @@ class AbstractDataCollector(ABC):
         storage: Literal["memory:", "csv:", "postgresql:"] = "memory:",
     ):
         """
-        Initialize a Datacollector
+        Initialize a Datacollector.
 
         Parameters
         ----------
         model : ModelDF
             The model object from which data is collected.
-        model_reporters : dict[str, Callable], optional
+        model_reporters : dict[str, Callable] | None
             Functions to collect data at the model level.
-        agent_reporters : dict[str, Union[str, Callable]], optional
+        agent_reporters : dict[str, str | Callable] | None
             Attributes or functions to collect data at the agent level.
-        trigger : Callable, optional
+        trigger : Callable[[Any], bool] | None
             A function(model) -> bool that determines whether to collect data.
         reset_memory : bool
             Whether to reset in-memory data after flushing. Default is True.
-        storage : str
+        storage : Literal["memory:", "csv:", "postgresql:"]
             Storage backend URI (e.g. 'memory:', 'csv:', 'postgresql:').
         """
         self._model = model
@@ -169,9 +169,6 @@ class AbstractDataCollector(ABC):
 
         use this method to save collected data.
 
-        Parameters
-        ----------
-        None (reset_memory controlled at initialization)
 
         Example
         -------
