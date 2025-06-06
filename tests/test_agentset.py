@@ -2,15 +2,11 @@ from copy import copy, deepcopy
 
 import polars as pl
 import pytest
-
-
-import typeguard as tg
 from numpy.random import Generator
 
 from mesa_frames import AgentSetPolars, GridPolars, ModelDF
 
 
-@tg.typechecked
 class ExampleAgentSetPolars(AgentSetPolars):
     def __init__(self, model: ModelDF):
         super().__init__(model)

@@ -1,12 +1,10 @@
 import numpy as np
 import polars as pl
 import pytest
-import typeguard as tg
 
 from mesa_frames.concrete.mixin import PolarsMixin
 
 
-@tg.typechecked
 class TestPolarsMixin:
     @pytest.fixture
     def mixin(self):

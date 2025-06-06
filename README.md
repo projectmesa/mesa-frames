@@ -14,7 +14,7 @@ The following is a performance graph showing execution time using mesa and mesa-
 
 ![Performance Graph without Mesa](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
 
-(The script used to generate the graph can be found [here](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
+([You can check the script used to generate the graph here](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
 
 ## Installation
 
@@ -84,7 +84,7 @@ pip install -e .
 
 **Note:** mesa-frames is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
 
-You can find the API documentation [here](https://projectmesa.github.io/mesa-frames/api).
+[You can find the API documentation here](https://projectmesa.github.io/mesa-frames/api).
 
 ### Creation of an Agent
 
