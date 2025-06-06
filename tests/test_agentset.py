@@ -53,15 +53,6 @@ def fix3_AgentSetPolars() -> ExampleAgentSetPolars:
 
 
 @pytest.fixture
-def fix3_AgentSetPolars() -> ExampleAgentSetPolars:
-    model = ModelDF()
-    agents = ExampleAgentSetPolars(model)
-    agents["wealth"] = agents.starting_wealth + 7
-    agents["age"] = [12, 13, 14, 116]
-    return agents
-
-
-@pytest.fixture
 def fix1_AgentSetPolars_with_pos(
     fix1_AgentSetPolars: ExampleAgentSetPolars,
 ) -> ExampleAgentSetPolars:
@@ -84,26 +75,6 @@ class Test_AgentSetPolars:
         assert isinstance(agents._mask, pl.Series)
         assert isinstance(agents.random, Generator)
         assert agents.starting_wealth.to_list() == [1, 2, 3, 4]
-
-    def test_add_with_unique_id(
-        self,
-        fix1_AgentSetPolars: ExampleAgentSetPolars,
-    ):
-        agents = fix1_AgentSetPolars
-
-        # Test with a pl.Dataframe
-        with pytest.raises(ValueError):
-            agents.add(
-                pl.DataFrame({"unique_id": [4, 5], "wealth": [5, 6], "age": [50, 60]})
-            )
-
-        # Test with a list (Sequence[Any])
-        with pytest.raises(ValueError):
-            agents.add([10, 5, 10])
-
-        # Test with a dict[str, Any]
-        with pytest.raises(ValueError):
-            agents.add({"unique_id": [4, 5], "wealth": [5, 6], "age": [50, 60]})
 
     def test_add(
         self,

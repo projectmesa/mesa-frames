@@ -208,11 +208,7 @@ class Test_AgentsDF:
         expected_result_1 = agents._agentsets[1].agents["wealth"]
         expected_result_1 += 1
 
-        # original_index_for_pandas_df = agents._agentsets[0].index.copy()
         agents.do("add_wealth", 1, mask=mask_dictionary)
-        # agents._agentsets[0].agents = agents._agentsets[0].agents.reindex(
-        #     original_index_for_pandas_df
-        # )
         assert (
             agents._agentsets[0].agents["wealth"].to_list()
             == expected_result_0.to_list()
@@ -373,7 +369,6 @@ class Test_AgentsDF:
         # Test with filter_func
 
         def filter_func(agentset: AgentSetDF) -> pl.Series:
-            # TODO: when pandas support will be dropped, the conversion to python list won't be needed anymore
             return agentset.agents["wealth"] > agentset.agents["wealth"].to_list()[0]
 
         selected = agents.select(filter_func=filter_func, inplace=False)
