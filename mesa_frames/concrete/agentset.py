@@ -68,7 +68,7 @@ import polars as pl
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import ModelDF
-from mesa_frames.types_ import AgentPolarsMask, IdsLike, IntoExpr, PolarsIdsLike
+from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
 
@@ -92,7 +92,8 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The model that the agent set belongs to.
         """
         self._model = model
-        self._agents = pl.DataFrame(schema={"unique_id": pl.Int64})
+        # No definition of schema with unique_id, as it becomes hard to add new agents
+        self._agents = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._agents), dtype=pl.Boolean, eager=True)
 
     def add(
@@ -115,33 +116,51 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The updated AgentSetPolars.
         """
         obj = self._get_obj(inplace)
-        if isinstance(agents, pl.DataFrame):
-            if "unique_id" not in agents.columns:
-                raise KeyError("DataFrame must have a unique_id column.")
+        if isinstance(agents, AgentSetDF):
+            raise TypeError(
+                "AgentSetPolars.add() does not accept AgentSetDF objects. "
+                "Extract the DataFrame with agents.agents.drop('unique_id') first."
+            )
+        elif isinstance(agents, pl.DataFrame):
+            if "unique_id" in agents.columns:
+                raise ValueError("Dataframe should not have a unique_id column.")
             new_agents = agents
         elif isinstance(agents, dict):
-            if "unique_id" not in agents:
-                raise KeyError("Dictionary must have a unique_id key.")
+            if "unique_id" in agents:
+                raise ValueError("Dictionary should not have a unique_id key.")
             new_agents = pl.DataFrame(agents)
-        else:
-            if len(agents) != len(obj._agents.columns):
-                raise ValueError(
-                    "Length of data must match the number of columns in the AgentSet if being added as a Collection."
+        else:  # Sequence
+            if len(obj._agents) != 0:
+                # For non-empty AgentSet, check column count
+                expected_columns = len(obj._agents.columns) - 1  # Exclude unique_id
+                if len(agents) != expected_columns:
+                    raise ValueError(
+                        f"Length of data ({len(agents)}) must match the number of columns in the AgentSet (excluding unique_id): {expected_columns}"
+                    )
+                new_agents = pl.DataFrame(
+                    [list(agents)],
+                    schema=[col for col in obj._agents.schema if col != "unique_id"],
+                    orient="row",
                 )
-            new_agents = pl.DataFrame([agents], schema=obj._agents.schema)
+            else:
+                # For empty AgentSet, cannot infer schema from sequence
+                raise ValueError(
+                    "Cannot add a sequence to an empty AgentSet. Use a DataFrame or dict with column names."
+                )
 
-        if new_agents["unique_id"].dtype != pl.Int64:
-            raise TypeError("unique_id column must be of type int64.")
+        new_agents = new_agents.with_columns(
+            self._generate_unique_ids(len(new_agents)).alias("unique_id")
+        )
 
         # If self._mask is pl.Expr, then new mask is the same.
         # If self._mask is pl.Series[bool], then new mask has to be updated.
-
-        if isinstance(obj._mask, pl.Series):
+        originally_empty = len(obj._agents) == 0
+        if isinstance(obj._mask, pl.Series) and not originally_empty:
             original_active_indices = obj._agents.filter(obj._mask)["unique_id"]
 
         obj._agents = pl.concat([obj._agents, new_agents], how="diagonal_relaxed")
 
-        if isinstance(obj._mask, pl.Series):
+        if isinstance(obj._mask, pl.Series) and not originally_empty:
             obj._update_mask(original_active_indices, new_agents["unique_id"])
 
         return obj
@@ -158,8 +177,8 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     ) -> bool | pl.Series:
         if isinstance(agents, pl.Series):
             return agents.is_in(self._agents["unique_id"])
-        elif isinstance(agents, Collection):
-            return pl.Series(agents).is_in(self._agents["unique_id"])
+        elif isinstance(agents, Collection) and not isinstance(agents, str):
+            return pl.Series(agents, dtype=pl.UInt64).is_in(self._agents["unique_id"])
         else:
             return agents in self._agents["unique_id"]
 
@@ -185,7 +204,6 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
-        b_mask = obj._get_bool_mask(mask)
         masked_df = obj._get_masked_df(mask)
 
         if not attr_names:
@@ -196,17 +214,12 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             masked_df: pl.DataFrame, attr_name: str, values: Any
         ) -> pl.DataFrame:
             if isinstance(values, pl.DataFrame):
-                return masked_df.with_columns(values.to_series().alias(attr_name))
-            elif isinstance(values, pl.Expr):
-                return masked_df.with_columns(values.alias(attr_name))
-            if isinstance(values, pl.Series):
-                return masked_df.with_columns(values.alias(attr_name))
+                values_series = values.to_series()
+            elif isinstance(values, (pl.Expr, pl.Series, Collection)):
+                values_series = pl.Series(values)
             else:
-                if isinstance(values, Collection):
-                    values = pl.Series(values)
-                else:
-                    values = pl.repeat(values, len(masked_df))
-                return masked_df.with_columns(values.alias(attr_name))
+                values_series = pl.repeat(values, len(masked_df))
+            return masked_df.with_columns(values_series.alias(attr_name))
 
         if isinstance(attr_names, str) and values is not None:
             masked_df = process_single_attr(masked_df, attr_names, values)
@@ -224,10 +237,19 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             raise ValueError(
                 "attr_names must be a string, a collection of string or a dictionary with columns as keys and values."
             )
+        unique_id_column = None
+        if "unique_id" not in obj._agents:
+            unique_id_column = self._generate_unique_ids(len(masked_df)).alias(
+                "unique_id"
+            )
+            obj._agents = obj._agents.with_columns(unique_id_column)
+            masked_df = masked_df.with_columns(unique_id_column)
+        b_mask = obj._get_bool_mask(mask)
         non_masked_df = obj._agents.filter(b_mask.not_())
         original_index = obj._agents.select("unique_id")
         obj._agents = pl.concat([non_masked_df, masked_df], how="diagonal_relaxed")
         obj._agents = original_index.join(obj._agents, on="unique_id", how="left")
+        obj._update_mask(original_index["unique_id"], unique_id_column)
         return obj
 
     def select(
@@ -368,9 +390,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         elif mask == "active":
             return self._mask
         elif isinstance(mask, Collection):
-            return bool_mask_from_series(pl.Series(mask))
+            return bool_mask_from_series(pl.Series(mask, dtype=pl.UInt64))
         else:
-            return bool_mask_from_series(pl.Series([mask]))
+            return bool_mask_from_series(pl.Series([mask], dtype=pl.UInt64))
 
     def _get_masked_df(
         self,
@@ -401,9 +423,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             return self._agents.filter(self._mask)
         else:
             if isinstance(mask, Collection):
-                mask_series = pl.Series(mask)
+                mask_series = pl.Series(mask, dtype=pl.UInt64)
             else:
-                mask_series = pl.Series([mask])
+                mask_series = pl.Series([mask], dtype=pl.UInt64)
             if not mask_series.is_in(self._agents["unique_id"]).all():
                 raise KeyError(
                     "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
@@ -446,6 +468,11 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     def __getattr__(self, key: str) -> pl.Series:
         super().__getattr__(key)
         return self._agents[key]
+
+    def _generate_unique_ids(self, n: int) -> pl.Series:
+        return pl.Series(
+            self.random.integers(1, np.iinfo(np.uint64).max, size=n, dtype=np.uint64)
+        )
 
     @overload
     def __getitem__(

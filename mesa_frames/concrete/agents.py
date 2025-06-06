@@ -50,6 +50,7 @@ from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import Any, Literal, Self, cast, overload
 
+import numpy as np
 import polars as pl
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
@@ -80,7 +81,7 @@ class AgentsDF(AgentContainer):
         """
         self._model = model
         self._agentsets = []
-        self._ids = pl.Series(name="unique_id", dtype=pl.Int64)
+        self._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
 
     def add(
         self, agents: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True
@@ -139,7 +140,7 @@ class AgentsDF(AgentContainer):
             else:  # IdsLike
                 agents = cast(IdsLike, agents)
 
-                return pl.Series(agents).is_in(self._ids)
+                return pl.Series(agents, dtype=pl.UInt64).is_in(self._ids)
 
     @overload
     def do(
@@ -225,19 +226,22 @@ class AgentsDF(AgentContainer):
             # We have to get the index of the original AgentSetDF because the copy made AgentSetDFs with different hash
             ids = [self._agentsets.index(agentset) for agentset in iter(agents)]
             ids.sort(reverse=True)
-            removed_ids = pl.Series(dtype=pl.Int64)
+            removed_ids = pl.Series(dtype=pl.UInt64)
             for id in ids:
                 removed_ids = pl.concat(
-                    [removed_ids, pl.Series(obj._agentsets[id].index)]
+                    [
+                        removed_ids,
+                        pl.Series(obj._agentsets[id]["unique_id"], dtype=pl.UInt64),
+                    ]
                 )
                 obj._agentsets.pop(id)
 
         else:  # IDsLike
-            if isinstance(agents, int):
+            if isinstance(agents, (int, np.uint64)):
                 agents = [agents]
             elif isinstance(agents, DataFrame):
                 agents = agents["unique_id"]
-            removed_ids = pl.Series(agents)
+            removed_ids = pl.Series(agents, dtype=pl.UInt64)
             deleted = 0
 
             for agentset in obj._agentsets:
@@ -355,10 +359,10 @@ class AgentsDF(AgentContainer):
         """
         presence_df = pl.DataFrame(
             data={"unique_id": self._ids, "present": True},
-            schema={"unique_id": pl.Int64, "present": pl.Boolean},
+            schema={"unique_id": pl.UInt64, "present": pl.Boolean},
         )
         for agentset in other:
-            new_ids = pl.Series(agentset.index)
+            new_ids = pl.Series(agentset.index, dtype=pl.UInt64)
             presence_df = pl.concat(
                 [
                     presence_df,

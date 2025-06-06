@@ -436,29 +436,35 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self, agents: IdsLike | AgentContainer | Collection[AgentContainer]
     ) -> Series:
         if isinstance(agents, Sized) and len(agents) == 0:
-            return self._srs_constructor([], name="agent_id")
+            return self._srs_constructor([], name="agent_id", dtype="uint64")
         if isinstance(agents, AgentSetDF):
             return self._srs_constructor(
-                self._df_index(agents.agents, "unique_id"), name="agent_id"
+                self._df_index(agents.agents, "unique_id"),
+                name="agent_id",
+                dtype="uint64",
             )
         elif isinstance(agents, AgentsDF):
-            return self._srs_constructor(agents._ids, name="agent_id")
+            return self._srs_constructor(agents._ids, name="agent_id", dtype="uint64")
         elif isinstance(agents, Collection) and (isinstance(agents[0], AgentContainer)):
             ids = []
             for a in agents:
                 if isinstance(a, AgentSetDF):
                     ids.append(
                         self._srs_constructor(
-                            self._df_index(a.agents, "unique_id"), name="agent_id"
+                            self._df_index(a.agents, "unique_id"),
+                            name="agent_id",
+                            dtype="uint64",
                         )
                     )
                 elif isinstance(a, AgentsDF):
-                    ids.append(self._srs_constructor(a._ids, name="agent_id"))
+                    ids.append(
+                        self._srs_constructor(a._ids, name="agent_id", dtype="uint64")
+                    )
             return self._df_concat(ids, ignore_index=True)
         elif isinstance(agents, int):
-            return self._srs_constructor([agents], name="agent_id")
+            return self._srs_constructor([agents], name="agent_id", dtype="uint64")
         else:  # IDsLike
-            return self._srs_constructor(agents, name="agent_id")
+            return self._srs_constructor(agents, name="agent_id", dtype="uint64")
 
     @abstractmethod
     def _place_or_move_agents(
@@ -1178,7 +1184,7 @@ class GridDF(DiscreteSpaceDF):
         self._agents = self._df_constructor(
             columns=["agent_id"] + self._pos_col_names,
             index_cols="agent_id",
-            dtypes={col: int for col in ["agent_id"] + self._pos_col_names},
+            dtypes={"agent_id": "uint64"} | {col: int for col in self._pos_col_names},
         )
 
         cells_df_dtypes = {col: int for col in self._pos_col_names}
