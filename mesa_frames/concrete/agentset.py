@@ -129,7 +129,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             if "unique_id" in agents:
                 raise ValueError("Dictionary should not have a unique_id key.")
             new_agents = pl.DataFrame(agents)
-        else: # Sequence
+        else:  # Sequence
             if len(obj._agents) != 0:
                 # For non-empty AgentSet, check column count
                 expected_columns = len(obj._agents.columns) - 1  # Exclude unique_id
