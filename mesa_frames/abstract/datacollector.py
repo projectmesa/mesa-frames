@@ -169,9 +169,9 @@ class AbstractDataCollector(ABC):
 
         use this method to save collected data.
 
-        Parametrs
+        Parameters
         ---------
-        None (reset_memory controlled at intialization)
+        None (reset_memory controlled at initialization)
 
         Example
         -------
