@@ -380,18 +380,12 @@ class Test_AgentSetPolars:
     def test__iadd__(
         self,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
-    ):
-        agents = deepcopy(fix1_AgentSetPolars)
-        agents2 = fix2_AgentSetPolars
-
+    ):        
         # Test with an AgentSetPolars and a DataFrame
         agents = deepcopy(fix1_AgentSetPolars)
-        agents += agents2
-        assert all(
-            agents["unique_id"]
-            == pl.concat([fix1_AgentSetPolars["unique_id"], agents2["unique_id"]])
-        )
+        agents += pl.DataFrame({"wealth": [5, 6], "age": [50, 60]})
+        assert agents.agents["wealth"].to_list() == [1, 2, 3, 4, 5, 6]
+        assert agents.agents["age"].to_list() == [10, 20, 30, 40, 50, 60]
 
         # Test with an AgentSetPolars and a list
         agents = deepcopy(fix1_AgentSetPolars)
