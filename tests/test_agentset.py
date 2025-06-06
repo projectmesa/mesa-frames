@@ -99,6 +99,18 @@ class Test_AgentSetPolars:
         assert agents.agents["wealth"].to_list() == [1, 2, 3, 4, 5, 6]
         assert agents.agents["age"].to_list() == [10, 20, 30, 40, 50, 60]
 
+        # Test ValueError for dictionary with unique_id key (Line 131)
+        with pytest.raises(ValueError, match="Dictionary should not have a unique_id key"):
+            agents.add({"wealth": [7], "age": [70], "unique_id": [999]})
+
+        # Test ValueError for sequence length mismatch (Line 138)
+        with pytest.raises(ValueError, match="Length of data .* must match the number of columns"):
+            agents.add([10])  # Only one value but agents has 2 columns (wealth, age)
+
+        # Test with wrong sequence length
+        with pytest.raises(ValueError, match="Length of data .* must match the number of columns"):
+            agents.add([10, 20, 30])  # Three values but agents has 2 columns
+
     def test_contains(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
 
@@ -108,6 +120,11 @@ class Test_AgentSetPolars:
 
         # Test with a list
         assert all(agents.contains(agents["unique_id"][0, 1]) == [True, True])
+
+        # Test with Collection (not string) - Line 177
+        unique_ids = agents["unique_id"].to_list()
+        result = agents.contains(unique_ids[:2])
+        assert all(result == [True, True])
 
     def test_copy(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
@@ -266,6 +283,10 @@ class Test_AgentSetPolars:
         agents.set({"wealth": 10, "age": 20})
         assert agents.agents["wealth"].to_list() == [10, 10, 10, 10]
         assert agents.agents["age"].to_list() == [20, 20, 20, 20]
+
+        # Test with Collection values (Line 213) - using list as Collection
+        result = agents.set("wealth", [100, 200, 300, 400], inplace=False)
+        assert result.agents["wealth"].to_list() == [100, 200, 300, 400]
 
     def test_shuffle(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
