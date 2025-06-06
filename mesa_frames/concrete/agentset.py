@@ -143,6 +143,11 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                     schema=[col for col in obj._agents.schema if col != "unique_id"],
                     orient="row",
                 )
+            else:
+                # For empty AgentSet, cannot infer schema from sequence
+                raise ValueError(
+                    "Cannot add a sequence to an empty AgentSet. Use a DataFrame or dict with column names."
+                )
 
         new_agents = new_agents.with_columns(
             self._generate_unique_ids(len(new_agents)).alias("unique_id")

@@ -100,15 +100,21 @@ class Test_AgentSetPolars:
         assert agents.agents["age"].to_list() == [10, 20, 30, 40, 50, 60]
 
         # Test ValueError for dictionary with unique_id key (Line 131)
-        with pytest.raises(ValueError, match="Dictionary should not have a unique_id key"):
+        with pytest.raises(
+            ValueError, match="Dictionary should not have a unique_id key"
+        ):
             agents.add({"wealth": [7], "age": [70], "unique_id": [999]})
 
         # Test ValueError for sequence length mismatch (Line 138)
-        with pytest.raises(ValueError, match="Length of data .* must match the number of columns"):
+        with pytest.raises(
+            ValueError, match="Length of data .* must match the number of columns"
+        ):
             agents.add([10])  # Only one value but agents has 2 columns (wealth, age)
 
         # Test with wrong sequence length
-        with pytest.raises(ValueError, match="Length of data .* must match the number of columns"):
+        with pytest.raises(
+            ValueError, match="Length of data .* must match the number of columns"
+        ):
             agents.add([10, 20, 30])  # Three values but agents has 2 columns
 
     def test_contains(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
