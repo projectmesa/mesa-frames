@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - release**
+      - 'release**'
     paths-ignore:
       - '**.md'
   pull_request:
@@ -14,9 +14,6 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
-# This will cancel previous run if a newer job that obsoletes the said previous
-# run, is started.
-# Based on https://github.com/zulip/zulip/commit/4a11642cee3c8aec976d305d51a86e60e5d70522
 concurrency:
   group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
   cancel-in-progress: true
@@ -36,6 +33,9 @@ jobs:
             python-version: '3.11'
           - os: ubuntu
             python-version: '3.12'
+
+    env:
+      MESA_FRAMES_RUNTIME_TYPECHECKING: "true"
 
     steps:
       - uses: actions/checkout@v4
