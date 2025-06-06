@@ -104,9 +104,9 @@ class AbstractDataCollector(ABC):
 
     def collect(self) -> None:
         """
-        Trigger Data collection
+        Trigger Data collection.
 
-        This method caslls _collect() to perform actual data collection
+        This method caslls _collect() to perform actual data collection.
 
         Example
         -------
@@ -116,7 +116,7 @@ class AbstractDataCollector(ABC):
 
     def conditional_collect(self) -> None:
         """
-        Trigger data collection if condition is met
+        Trigger data collection if condition is met.
 
         This method caslls _collect() to perform actual data collection
 
@@ -129,7 +129,7 @@ class AbstractDataCollector(ABC):
 
     def _should_collect(self) -> bool:
         """
-        Evaluates whether data should be collected at current step
+        Evaluate whether data should be collected at current step.
 
         Returns
         -------
@@ -141,7 +141,7 @@ class AbstractDataCollector(ABC):
     @abstractmethod
     def _collect(self):
         """
-        Performs the actual data collection logic
+        Perform the actual data collection logic.
 
         This method must be im
         """
@@ -151,7 +151,7 @@ class AbstractDataCollector(ABC):
     @abstractmethod
     def data(self) -> Any:
         """
-        Returns collected data currently in memory as a dataframe
+        Returns collected data currently in memory as a dataframe.
 
         Example:
         -------
@@ -170,7 +170,7 @@ class AbstractDataCollector(ABC):
         use this method to save collected data.
 
         Parameters
-        ---------
+        ----------
         None (reset_memory controlled at initialization)
 
         Example
@@ -204,7 +204,7 @@ class AbstractDataCollector(ABC):
     @property
     def seed(self) -> int:
         """
-        Function to get the model seed
+        Function to get the model seed.
 
         Example:
         --------
