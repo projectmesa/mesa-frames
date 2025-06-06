@@ -380,7 +380,7 @@ class Test_AgentSetPolars:
     def test__iadd__(
         self,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
-    ):        
+    ):
         # Test with an AgentSetPolars and a DataFrame
         agents = deepcopy(fix1_AgentSetPolars)
         agents += pl.DataFrame({"wealth": [5, 6], "age": [50, 60]})
