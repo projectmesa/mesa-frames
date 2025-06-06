@@ -1198,7 +1198,7 @@ dependencies = [
     { name = "pyarrow" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "autodocsumm" },
     { name = "beartype" },
@@ -1238,92 +1238,64 @@ docs = [
     { name = "sphinx-design" },
     { name = "sphinx-rtd-theme" },
 ]
-mkdocs = [
-    { name = "mkdocs-git-revision-date-localized-plugin" },
-    { name = "mkdocs-include-markdown-plugin" },
-    { name = "mkdocs-jupyter" },
-    { name = "mkdocs-material" },
-    { name = "mkdocs-minify-plugin" },
-]
-sphinx = [
-    { name = "autodocsumm" },
-    { name = "numpydoc" },
-    { name = "pydata-sphinx-theme" },
-    { name = "sphinx" },
-    { name = "sphinx-copybutton" },
-    { name = "sphinx-design" },
-    { name = "sphinx-rtd-theme" },
-]
 test = [
     { name = "beartype" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "mesa-frames", extra = ["dev"] },
-]
-
 [package.metadata]
 requires-dist = [
-    { name = "autodocsumm", marker = "extra == 'dev'" },
-    { name = "autodocsumm", marker = "extra == 'docs'" },
-    { name = "autodocsumm", marker = "extra == 'sphinx'" },
-    { name = "beartype", marker = "extra == 'dev'" },
-    { name = "beartype", marker = "extra == 'test'" },
-    { name = "mesa", marker = "extra == 'dev'", specifier = "~=2.3.4" },
-    { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'dev'" },
-    { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'docs'" },
-    { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'mkdocs'" },
-    { name = "mkdocs-include-markdown-plugin", marker = "extra == 'dev'" },
-    { name = "mkdocs-include-markdown-plugin", marker = "extra == 'docs'" },
-    { name = "mkdocs-include-markdown-plugin", marker = "extra == 'mkdocs'" },
-    { name = "mkdocs-jupyter", marker = "extra == 'dev'" },
-    { name = "mkdocs-jupyter", marker = "extra == 'docs'" },
-    { name = "mkdocs-jupyter", marker = "extra == 'mkdocs'" },
-    { name = "mkdocs-material", marker = "extra == 'dev'" },
-    { name = "mkdocs-material", marker = "extra == 'docs'" },
-    { name = "mkdocs-material", marker = "extra == 'mkdocs'" },
-    { name = "mkdocs-minify-plugin", marker = "extra == 'dev'" },
-    { name = "mkdocs-minify-plugin", marker = "extra == 'docs'" },
-    { name = "mkdocs-minify-plugin", marker = "extra == 'mkdocs'" },
-    { name = "numba", marker = "extra == 'dev'", specifier = ">=0.60" },
     { name = "numpy", specifier = ">=2.0.2" },
-    { name = "numpydoc", marker = "extra == 'dev'" },
-    { name = "numpydoc", marker = "extra == 'docs'" },
-    { name = "numpydoc", marker = "extra == 'sphinx'" },
-    { name = "perfplot", marker = "extra == 'dev'" },
-    { name = "perfplot", marker = "extra == 'docs'" },
-    { name = "polars", specifier = ">=1.0.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.2.0" },
-    { name = "pyarrow" },
-    { name = "pydata-sphinx-theme", marker = "extra == 'dev'" },
-    { name = "pydata-sphinx-theme", marker = "extra == 'docs'" },
-    { name = "pydata-sphinx-theme", marker = "extra == 'sphinx'" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest", marker = "extra == 'test'" },
-    { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "pytest-cov", marker = "extra == 'test'" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11.12" },
-    { name = "seaborn", marker = "extra == 'dev'" },
-    { name = "seaborn", marker = "extra == 'docs'" },
-    { name = "sphinx", marker = "extra == 'dev'" },
-    { name = "sphinx", marker = "extra == 'docs'" },
-    { name = "sphinx", marker = "extra == 'sphinx'" },
-    { name = "sphinx-copybutton", marker = "extra == 'dev'" },
-    { name = "sphinx-copybutton", marker = "extra == 'docs'" },
-    { name = "sphinx-copybutton", marker = "extra == 'sphinx'" },
-    { name = "sphinx-design", marker = "extra == 'dev'" },
-    { name = "sphinx-design", marker = "extra == 'docs'" },
-    { name = "sphinx-design", marker = "extra == 'sphinx'" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'dev'" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'sphinx'" },
+    { name = "polars", specifier = ">=1.30.0" },
+    { name = "pyarrow", specifier = ">=20.0.0" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "mesa-frames", extras = ["dev"], editable = "." }]
+dev = [
+    { name = "autodocsumm", specifier = ">=0.2.14" },
+    { name = "beartype", specifier = ">=0.21.0" },
+    { name = "mesa", specifier = "~=2.3.4" },
+    { name = "mkdocs-git-revision-date-localized-plugin", specifier = ">=1.4.7" },
+    { name = "mkdocs-include-markdown-plugin", specifier = ">=7.1.5" },
+    { name = "mkdocs-jupyter", specifier = ">=0.25.1" },
+    { name = "mkdocs-material", specifier = ">=9.6.14" },
+    { name = "mkdocs-minify-plugin", specifier = ">=0.8.0" },
+    { name = "numba", specifier = ">=0.60.0" },
+    { name = "numpydoc", specifier = ">=1.8.0" },
+    { name = "perfplot", specifier = ">=0.10.2" },
+    { name = "pre-commit", specifier = ">=4.2.0" },
+    { name = "pydata-sphinx-theme", specifier = ">=0.16.1" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-cov", specifier = ">=6.1.1" },
+    { name = "ruff", specifier = ">=0.11.12" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "sphinx", specifier = ">=7.4.7" },
+    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
+    { name = "sphinx-design", specifier = ">=0.6.1" },
+    { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
+]
+docs = [
+    { name = "autodocsumm", specifier = ">=0.2.14" },
+    { name = "mkdocs-git-revision-date-localized-plugin", specifier = ">=1.4.7" },
+    { name = "mkdocs-include-markdown-plugin", specifier = ">=7.1.5" },
+    { name = "mkdocs-jupyter", specifier = ">=0.25.1" },
+    { name = "mkdocs-material", specifier = ">=9.6.14" },
+    { name = "mkdocs-minify-plugin", specifier = ">=0.8.0" },
+    { name = "numpydoc", specifier = ">=1.8.0" },
+    { name = "perfplot", specifier = ">=0.10.2" },
+    { name = "pydata-sphinx-theme", specifier = ">=0.16.1" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "sphinx", specifier = ">=7.4.7" },
+    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
+    { name = "sphinx-design", specifier = ">=0.6.1" },
+    { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
+]
+test = [
+    { name = "beartype", specifier = ">=0.21.0" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-cov", specifier = ">=6.1.1" },
+]
 
 [[package]]
 name = "mesa-viz-tornado"
