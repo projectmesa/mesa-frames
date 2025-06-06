@@ -18,17 +18,19 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install dependencies
+      - name: Install uv via GitHub Action
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install mesa-frames + docs dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install .[docs]
+          uv pip install --system .
+          uv pip install --group docs --system
 
       - name: Build MkDocs site (general documentation)
         run: mkdocs build --config-file mkdocs.yml --site-dir ./site
 
-      - name: Build Sphinx docs (api documentation)
-        run: |
-          sphinx-build -b html docs/api site/api
+      - name: Build Sphinx docs (API documentation)
+        run: sphinx-build -b html docs/api site/api
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
