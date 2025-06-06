@@ -64,7 +64,7 @@ from typing import Any, Literal, Self, overload
 
 import numpy as np
 import polars as pl
-from polars._typing import IntoExpr
+from mesa_frames.types_ import IntoExpr
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
