@@ -53,6 +53,7 @@ PolarsMask = pl.Expr | pl.Series | pl.DataFrame | AgnosticMask
 AgentPolarsMask = AgnosticAgentMask | pl.Expr | pl.Series | pl.DataFrame | Sequence[int]
 PolarsIdsLike = AgnosticIds | pl.Series | pl.DataFrame
 PolarsGridCapacity = list[pl.Expr]
+# Had to define this because beartype has issues with polars._typing.IntoExpr
 IntoExpr = (
     int
     | float

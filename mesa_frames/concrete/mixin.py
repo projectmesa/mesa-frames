@@ -58,7 +58,11 @@ class PolarsMixin(DataFrameMixin):
     """Polars-specific implementation of DataFrame operations."""
 
     # TODO: complete with other dtypes
-    _dtypes_mapping: dict[str, Any] = {"int64": pl.Int64, "bool": pl.Boolean}
+    _dtypes_mapping: dict[str, Any] = {
+        "int64": pl.Int64,
+        "bool": pl.Boolean,
+        "uint64": pl.UInt64,
+    }
 
     def _df_add(
         self,
@@ -599,7 +603,7 @@ class PolarsMixin(DataFrameMixin):
             )
         ):
             # This means that data is a Sequence of Sequences (rows)
-            data = pl.DataFrame(data, new_columns)
+            data = pl.DataFrame(data, new_columns, orient="row")
             original_df = original_df.select(pl.exclude(data.columns))
             return original_df.hstack(data)
         if not isinstance(data, dict):
@@ -619,7 +623,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         if dtype is not None:
             dtype = self._dtypes_mapping[dtype]
-        return pl.Series(name=name, values=data, dtype=dtype)
+        return pl.Series(name=name, values=list(data), dtype=dtype)
 
     def _srs_contains(
         self,
@@ -628,7 +632,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         if not isinstance(values, Collection):
             values = [values]
-        return pl.Series(values).is_in(srs)
+        return pl.Series(values).is_in(pl.Series(srs))
 
     def _srs_range(
         self,
