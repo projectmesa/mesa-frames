@@ -117,6 +117,13 @@ class Test_AgentSetPolars:
         ):
             agents.add([10, 20, 30])  # Three values but agents has 2 columns
 
+        # Test adding sequence to empty AgentSet - should raise ValueError
+        empty_agents = ExampleAgentSetPolars(agents.model)
+        with pytest.raises(
+            ValueError, match="Cannot add a sequence to an empty AgentSet"
+        ):
+            empty_agents.add([1, 2])  # Should raise error for empty AgentSet
+
     def test_contains(self, fix1_AgentSetPolars: ExampleAgentSetPolars):
         agents = fix1_AgentSetPolars
 

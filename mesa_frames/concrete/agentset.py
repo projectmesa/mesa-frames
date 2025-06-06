@@ -64,12 +64,11 @@ from typing import Any, Literal, Self, overload
 
 import numpy as np
 import polars as pl
-from mesa_frames.types_ import IntoExpr
 
 from mesa_frames.concrete.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import ModelDF
-from mesa_frames.types_ import AgentPolarsMask, PolarsIdsLike
+from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
 
