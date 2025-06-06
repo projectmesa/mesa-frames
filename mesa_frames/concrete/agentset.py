@@ -93,7 +93,8 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             The model that the agent set belongs to.
         """
         self._model = model
-        self._agents = pl.DataFrame(schema={"unique_id": pl.UInt64})
+        # No definition of schema with unique_id, as it becomes hard to add new agents
+        self._agents = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._agents), dtype=pl.Boolean, eager=True)
 
     def add(
