@@ -47,7 +47,7 @@ For more detailed information on each class, refer to their individual docstring
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Union, Any, Literal, List
 from collections.abc import Callable
-from agents import ModelDF
+from mesa_frames import ModelDF
 import polars as pl
 
 
@@ -106,7 +106,7 @@ class AbstractDataCollector(ABC):
         """
         Trigger Data collection.
 
-        This method caslls _collect() to perform actual data collection.
+        This method calls _collect() to perform actual data collection.
 
         Example
         -------
