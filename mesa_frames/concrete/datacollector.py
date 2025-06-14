@@ -115,7 +115,7 @@ class DataCollector(AbstractDataCollector):
         conn.commit()
         cur.close()
         conn.close()
-    
+    @property
     def data(self):
         model_frames = [lf.collect() for kind, step, lf in self._frames if kind == "model"]
         agent_frames = [lf.collect() for kind, step, lf in self._frames if kind == "agent"]
