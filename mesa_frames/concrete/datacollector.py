@@ -4,7 +4,6 @@ DATA COLLECTOR.
 and.
 """
 
-from mesa_frames.abstract.datacollector import AbstractDataCollector
 import polars as pl
 import boto3
 from urllib.parse import urlparse
@@ -27,77 +26,102 @@ class DataCollector(AbstractDataCollector):
             agent_reporters=agent_reporters,
             trigger=trigger,
             reset_memory=reset_memory,
-            storage=storage,
+            storage=storage, #literal won't work
         )
-
+        self._writers = {
+            "csv": self.write_csv_local,
+            "parquet": self.write_parquet_local,
+            "S3-csv": self.write_csv_s3,
+            #"S3-parquet": self.write_parquet_s3,
+            "postgres": self.write_postgres,
+        }
+    
 
     def _collect(self):
         model_data_dict ={}
-        model_data_dict['step'] = self._model.steps
-        model_data_dict['seed'] = self.seed
+        model_data_dict['step'] = self._model._steps
+        model_data_dict['seed'] = str(self.seed)
         for column_name,reporter in self._model_reporters.items():
             model_data_dict[column_name] = reporter(self._model)
         model_lazy_frame = pl.LazyFrame([model_data_dict])
-        self._frames.append(("model",self._model.steps, model_lazy_frame))
+        self._frames.append(("model",str(self._model._steps), model_lazy_frame))
+        if self._agent_reporters:
+            agent_data_dict = {}
+            for col_name, reporter in self._agent_reporters.items():
+                agent_data_dict[col_name] = reporter(self._model)
+            agent_lazy_frame = pl.LazyFrame(agent_data_dict)
+            agent_lazy_frame = agent_lazy_frame.with_columns([
+                pl.lit(self._model._steps).alias("step"),
+                pl.lit(str(self.seed)).alias("seed")
+            ])
+            self._frames.append(("agent", str(self._model._steps), agent_lazy_frame))
+
 
     def _flush(self):
-        kind_to_frames = {"model": [], "agent": []}
-        for kind,step,lf in self._frames:
-            kind_to_frames[kind].append((step,lf.collect()))
+        schema = self._storage_uri.split(":",1)[0]
+        uri = self._storage_uri.split(":",1)[1]
 
-        if self._storage_uri.startswith("csv:"):
-            base = self._storage_uri[4:]
-            for kind, dfs in kind_to_frames.items():
-                for i, df in dfs:
-                    df.write_csv(f"{base}/{kind}_step{i}.csv")
+        if schema not in self._writers:
+            raise ValueError("Unknown writer")
+        
+        self._writers[schema](uri)
+    
 
-        elif self._storage_uri.startswith("parquet:"):
-            base = self._storage_uri[8:]
-            for kind, dfs in kind_to_frames.items():
-                for i, df in dfs:
-                    df.write_parquet(f"{base}/{kind}_step{i}.parquet")
+    
+    def write_csv_local(self,uri):
+        for kind,step,df in self._frames:
+            df.collect().write_csv(f"{uri}/{kind}_step{step}.csv")
+    def write_parquet_local(self,uri):
+        for kind,step,df in self._frames:
+            df.collect().write_parquet(f"{uri}/{kind}_step{step}.parquet")
+    def write_csv_s3(self,uri):
+        self._write_s3(uri, format_="csv")
+    def _write_s3(self,uri,format_):
+        s3 = boto3.client("s3")
+        parsed = urlparse(uri)
+        bucket = parsed.netloc
+        prefix = parsed.path.lstrip("/")
+        for kind,step, lf in self._frames:
+            df = lf.collect()
+            with tempfile.NamedTemporaryFile(suffix=f".{format_}") as tmp:
+                if format_ == "csv":
+                    df.write_csv(tmp.name)
+                else:
+                    df.write_parquet(tmp.name)
+                key = f"{prefix}/{kind}_step{step}.{format_}"
+                s3.upload_file(tmp.name, bucket, key)
 
-        elif self._storage_uri.startswith("csvs3:") or self._storage_uri.startswith("parquets3:"):
-            format_ = "csv" if self._storage_uri.startswith("csvs3:") else "parquet"
-            s3_prefix = self._storage_uri.split(":", 1)[1]
-            s3 = boto3.client("s3")
-            parsed = urlparse(s3_prefix)
-            bucket = parsed.netloc
-            prefix = parsed.path.lstrip("/")
-
-            for kind, dfs in kind_to_frames.items():
-                for i, df in dfs:
-                    with tempfile.NamedTemporaryFile(suffix=f".{format_}") as tmp:
-                        if format_ == "csv":
-                            df.write_csv(tmp.name)
-                        else:
-                            df.write_parquet(tmp.name)
-                        key = f"{prefix}/{kind}_step{i}.{format_}"
-                        s3.upload_file(tmp.name, bucket, key)
-
-        elif self._storage_uri.startswith("postgres:"):
-            parsed = urlparse(self._storage_uri)
-            conn = psycopg2.connect(
-                dbname=parsed.path[1:],
-                user=parsed.username,
-                password=parsed.password,
-                host=parsed.hostname,
-                port=parsed.port
+    def write_postgres(self,uri):
+        parsed = urlparse(f"//{uri}")  
+        conn = psycopg2.connect(
+            dbname=parsed.path[1:],
+            user=parsed.username,
+            password=parsed.password,
+            host=parsed.hostname,
+            port=parsed.port
+        )
+        cur = conn.cursor()
+        for kind,step, lf in self._frames:
+            df = lf.collect()
+            table = f"{kind}_data"
+            cols = df.columns
+            values = [tuple(row) for row in df.rows()]
+            placeholders = ", ".join(["%s"] * len(cols))
+            columns = ", ".join(cols)
+            cur.executemany(
+                f"INSERT INTO {table} ({columns}) VALUES ({placeholders})",
+                values
             )
-            cur = conn.cursor()
-            # create table if it doesnt exist
-            # check every column is same
-            for kind, dfs in kind_to_frames.items():
-                table = f"{kind}_data"
-                for step,df in dfs:
-                    cols = df.columns
-                    values = [tuple(row) for row in df.rows()]
-                    placeholders = ", ".join(["%s"] * len(cols))
-                    columns = ", ".join(cols)
-                    cur.executemany(
-                        f"INSERT INTO {table} ({columns}) VALUES ({placeholders})",
-                        values
-                    )
-            conn.commit()
-            cur.close()
-            conn.close()
+        conn.commit()
+        cur.close()
+        conn.close()
+    
+    def data(self):
+        model_frames = [lf.collect() for kind, step, lf in self._frames if kind == "model"]
+        agent_frames = [lf.collect() for kind, step, lf in self._frames if kind == "agent"]
+        return {
+            "model": pl.concat(model_frames) if model_frames else pl.DataFrame(),
+            "agent": pl.concat(agent_frames) if agent_frames else pl.DataFrame()
+        }
+
+
