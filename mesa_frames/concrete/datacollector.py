@@ -116,6 +116,7 @@ class DataCollector(AbstractDataCollector):
         conn.commit()
         cur.close()
         conn.close()
+
     @property
     def data(self):
         model_frames = [
