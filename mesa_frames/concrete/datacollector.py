@@ -9,6 +9,7 @@ import boto3
 from urllib.parse import urlparse
 import tempfile
 import psycopg2
+from mesa_frames.abstract.datacollector import AbstractDataCollector
 
 
 class DataCollector(AbstractDataCollector):
