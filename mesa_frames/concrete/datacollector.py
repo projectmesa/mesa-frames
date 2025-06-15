@@ -37,6 +37,12 @@ class DataCollector(AbstractDataCollector):
             # "S3-parquet": self.write_parquet_s3,
             "postgres": self.write_postgres,
         }
+        self.schema = self._storage_uri.split(":", 1)[0]
+        if self.schema not in self._writers:
+            raise ValueError("Unknown writer")
+        self.uri = self._storage_uri.split(":", 1)[1]
+
+
 
     def _collect(self):
         if self._model_reporters:
@@ -59,15 +65,10 @@ class DataCollector(AbstractDataCollector):
                 ]
             )
             self._frames.append(("agent", str(self._model._steps), agent_lazy_frame))
+        
 
     def _flush(self):
-        schema = self._storage_uri.split(":", 1)[0]
-        uri = self._storage_uri.split(":", 1)[1]
-
-        if schema not in self._writers:
-            raise ValueError("Unknown writer")
-
-        self._writers[schema](uri)
+        self._writers[self.schema](self.uri)
 
     def write_csv_local(self, uri):
         for kind, step, df in self._frames:
