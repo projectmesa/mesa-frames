@@ -1,4 +1,4 @@
-name: build
+name: CI Checks
 
 on:
   push:
@@ -19,7 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  test_on_matrix:
+    name: build (${{ matrix.os }}, py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}-latest
     timeout-minutes: 6
 
@@ -64,3 +65,11 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: [test_on_matrix]
+    steps:
+      - name: All matrix builds and tests passed
+        run: echo "All matrix jobs completed successfully."
