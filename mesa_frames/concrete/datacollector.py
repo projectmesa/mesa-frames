@@ -38,13 +38,14 @@ class DataCollector(AbstractDataCollector):
         }
 
     def _collect(self):
-        model_data_dict = {}
-        model_data_dict["step"] = self._model._steps
-        model_data_dict["seed"] = str(self.seed)
-        for column_name, reporter in self._model_reporters.items():
-            model_data_dict[column_name] = reporter(self._model)
-        model_lazy_frame = pl.LazyFrame([model_data_dict])
-        self._frames.append(("model", str(self._model._steps), model_lazy_frame))
+        if self._model_reporters:
+            model_data_dict = {}
+            model_data_dict["step"] = self._model._steps
+            model_data_dict["seed"] = str(self.seed)
+            for column_name, reporter in self._model_reporters.items():
+                model_data_dict[column_name] = reporter(self._model)
+            model_lazy_frame = pl.LazyFrame([model_data_dict])
+            self._frames.append(("model", str(self._model._steps), model_lazy_frame))
         if self._agent_reporters:
             agent_data_dict = {}
             for col_name, reporter in self._agent_reporters.items():
@@ -116,6 +117,7 @@ class DataCollector(AbstractDataCollector):
         conn.commit()
         cur.close()
         conn.close()
+
     @property
     def data(self):
         model_frames = [
