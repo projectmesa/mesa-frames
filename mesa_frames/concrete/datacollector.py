@@ -1,5 +1,5 @@
 """
-Concrete class for data collection in mesa-frames
+Concrete class for data collection in mesa-frames.
 
 This module defines a DataCollector implementation that gathers and optionally persists
 model-level and agent-level data during simulations. It supports multiple storage backends,
@@ -33,10 +33,10 @@ class DataCollector(AbstractDataCollector):
         schema: str = "public",
     ):
         """
-        Initialize the DataCollector with model and agent reporters, storage configuration,
-        and optional data collection triggers.
-        
+        Initialize the DataCollector with configuration options.
+
         Args:
+
         model (ModelDF): The Mesa model instance to collect data from.
         model_reporters (dict[str, Callable], optional): Dictionary mapping column names
             to callables for model-level data collection.
@@ -49,6 +49,7 @@ class DataCollector(AbstractDataCollector):
             Backend for storing collected data.
         storage_uri (str, optional): URI or path corresponding to the selected storage backend.
         schema (str, optional): Schema name used for PostgreSQL storage.
+
         """
         super().__init__(
             model=model,
@@ -118,14 +119,14 @@ class DataCollector(AbstractDataCollector):
         self._frames.append(("agent", str(self._model._steps), agent_lazy_frame))
 
     @property
-    def data(self):
+    def data(self) -> dict[str, pl.DataFrame]:
         """
         Retrieve the collected data as eagerly evaluated Polars DataFrames.
 
         Returns
         -------
-            dict[str, pl.DataFrame]: A dictionary with keys "model" and "agent"
-            mapping to concatenated DataFrames of collected data.
+        dict[str, pl.DataFrame]:
+            A dictionary with keys "model" and "agent" mapping to concatenated DataFrames of collected data.
         """
         model_frames = [
             lf.collect() for kind, step, lf in self._frames if kind == "model"
@@ -146,7 +147,7 @@ class DataCollector(AbstractDataCollector):
         """
         self._writers[self._storage](self._storage_uri)
 
-    def write_csv_local(self, uri):
+    def write_csv_local(self, uri: str):
         """
         Write collected data to local CSV files.
 
@@ -156,7 +157,7 @@ class DataCollector(AbstractDataCollector):
         for kind, step, df in self._frames:
             df.collect().write_csv(f"{uri}/{kind}_step{step}.csv")
 
-    def write_parquet_local(self, uri):
+    def write_parquet_local(self, uri: str):
         """
         Write collected data to local Parquet files.
 
@@ -166,7 +167,7 @@ class DataCollector(AbstractDataCollector):
         for kind, step, df in self._frames:
             df.collect().write_parquet(f"{uri}/{kind}_step{step}.parquet")
 
-    def write_csv_s3(self, uri):
+    def write_csv_s3(self, uri: str):
         """
         Write collected data to AWS S3 in CSV format.
 
@@ -175,7 +176,7 @@ class DataCollector(AbstractDataCollector):
         """
         self._write_s3(uri, format_="csv")
 
-    def write_parquet_s3(self, uri):
+    def write_parquet_s3(self, uri: str):
         """
         Write collected data to AWS S3 in Parquet format.
 
@@ -206,7 +207,7 @@ class DataCollector(AbstractDataCollector):
                 key = f"{prefix}/{kind}_step{step}.{format_}"
                 s3.upload_file(tmp.name, bucket, key)
 
-    def write_postgres(self, uri):
+    def write_postgres(self, uri: str):
         """
         Write collected data to a PostgreSQL database.
 
@@ -232,7 +233,7 @@ class DataCollector(AbstractDataCollector):
         cur.close()
         conn.close()
 
-    def _get_db_connection(self, uri):
+    def _get_db_connection(self, uri: str):
         """
         Create a psycopg2 database connection from a URI.
 
@@ -241,7 +242,8 @@ class DataCollector(AbstractDataCollector):
 
         Returns
         -------
-            psycopg2.extensions.connection: A live connection object.
+        psycopg2.extensions.connection
+            A live connection object.
         """
         parsed = urlparse(f"//{uri}")
         conn = psycopg2.connect(

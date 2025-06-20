@@ -93,7 +93,7 @@ class AbstractDataCollector(ABC):
             A function(model) -> bool that determines whether to collect data.
         reset_memory : bool
             Whether to reset in-memory data after flushing. Default is True.
-        storage : Literal["memory:", "csv:", "postgresql:"]
+        storage : Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"        ]
             Storage backend URI (e.g. 'memory:', 'csv:', 'postgresql:').
         """
         self._model = model
