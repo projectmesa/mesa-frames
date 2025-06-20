@@ -188,6 +188,14 @@ class DataCollector(AbstractDataCollector):
         self._write_s3(uri,format_ = "parquet")
 
     def _write_s3(self, uri, format_):
+        """
+        Internal method to upload collected data to S3 in a specified format.
+
+        Args:
+            uri (str): S3 URI to upload to.
+            format_ (str): Format of the output files ("csv" or "parquet").
+        """
+
         s3 = boto3.client("s3")
         parsed = urlparse(uri)
         bucket = parsed.netloc
@@ -203,6 +211,16 @@ class DataCollector(AbstractDataCollector):
                 s3.upload_file(tmp.name, bucket, key)
 
     def write_postgres(self, uri):
+        """
+        Write collected data to a PostgreSQL database.
+
+        Each frame is inserted into the appropriate table (`model_data` or `agent_data`)
+        using batched insert queries.
+
+        Args:
+            uri (str): PostgreSQL connection URI in the form user:pass@host:port/dbname
+        """
+
         conn = self._get_db_connection(uri=uri)
         cur = conn.cursor()
         for kind, step, lf in self._frames:
@@ -221,6 +239,16 @@ class DataCollector(AbstractDataCollector):
 
     
     def _get_db_connection(self,uri):
+        """
+        Create a psycopg2 database connection from a URI.
+
+        Args:
+            uri (str): PostgreSQL connection URI in the form user:pass@host:port/dbname
+
+        Returns:
+            psycopg2.extensions.connection: A live connection object.
+        """
+
         parsed = urlparse(f"//{uri}")
         conn = psycopg2.connect(
             dbname=parsed.path[1:],
@@ -231,6 +259,13 @@ class DataCollector(AbstractDataCollector):
         )
         return conn
     def _validate_inputs(self):
+        """
+        Validate configuration and required schema for non-memory storage backends.
+
+        - Ensures a `storage_uri` is provided if needed.
+        - For PostgreSQL, validates that required tables and columns exist.
+        """
+
         if self.storage != "memory" and self._storage_uri ==None:
             raise ValueError("Please define a storage_uri to if to be stored not in memory")
 
@@ -241,18 +276,41 @@ class DataCollector(AbstractDataCollector):
             conn.close()
 
     def _validate_postgress_table_exists(self,conn):
+        """
+        Validate that the required PostgreSQL tables exist for storing model and agent data.
+
+        Args:
+            conn (psycopg2.connection): Open database connection.
+        """
+
         if self._model_reporters:
             self._validate_reporter_table(conn = conn,table_name = "model_data")
         if self._agent_reporters:
             self._validate_reporter_table(conn = conn,table_name = "agent_data")
     
     def _validate_postgress_columns_exists(self,conn):
+        """
+        Validate that required columns are present in the PostgreSQL tables.
+
+        Args:
+            conn (psycopg2.connection): Open database connection.
+        """
         if self._model_reporters:
             self._validate_reporter_table_columns(conn=conn,table_name="model_data",reporter=self._model_reporters)
         if self._agent_reporters:
             self._validate_reporter_table_columns(conn=conn,table_name="agent_data",reporter = self._agent_reporters)
         
     def _validate_reporter_table(self,conn,table_name):
+        """
+        Check if a given table exists in the PostgreSQL schema.
+
+        Args:
+            conn (psycopg2.connection): Open database connection.
+            table_name (str): Name of the table to check.
+
+        Raises:
+            ValueError: If the table does not exist in the schema.
+        """
         query = f"""
             SELECT EXISTS (
             SELECT FROM information_schema.tables 
@@ -262,6 +320,18 @@ class DataCollector(AbstractDataCollector):
             raise ValueError(f"{self._schema}{table_name} does not exist. To store collected data in DB please create a table with required columns")
         
     def _validate_reporter_table_columns(self,conn,table_name,reporter):
+        """
+        Check if the expected columns are present in a given PostgreSQL table.
+
+        Args:
+            conn (psycopg2.connection): Open database connection.
+            table_name (str): Name of the table to validate.
+            reporter (dict[str, Callable | str]): Dictionary of reporters whose keys are expected as columns.
+
+        Raises:
+            ValueError: If any expected columns are missing from the table.
+        """
+
         expected_columns = set(reporter.keys())
         query = f"""
             SELECT column_name
@@ -281,6 +351,17 @@ class DataCollector(AbstractDataCollector):
 
 
     def _execute_query_with_result(self, conn, query):
+        """
+        Execute a SQL query and return the fetched results.
+
+        Args:
+            conn (psycopg2.connection): Open database connection.
+            query (str): SQL query string.
+
+        Returns:
+            list[tuple]: Query result rows.
+        """
+
         with conn.cursor() as cur:
             cur.execute(query)
             return cur.fetchall()
