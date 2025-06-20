@@ -186,7 +186,7 @@ class DataCollector(AbstractDataCollector):
 
     def _write_s3(self, uri, format_):
         """
-        Internal method to upload collected data to S3 in a specified format.
+        Upload collected data to S3 in a specified format.
 
         Args:
             uri (str): S3 URI to upload to.
