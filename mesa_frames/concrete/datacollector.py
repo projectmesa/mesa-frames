@@ -25,7 +25,7 @@ class DataCollector(AbstractDataCollector):
         agent_reporters: dict[str, str | Callable] | None = None,
         trigger: Callable[[Any], bool] | None = None,
         reset_memory: bool = True,
-        storage: Literal["memory", "csv", "postgresql"] = "memory",
+        storage: Literal["memory", "csv","parquet","S3-csv","S3-parquet","postgresql"] = "memory",
         storage_uri: str = None,
         schema: str = 'public'
     ):
@@ -79,6 +79,19 @@ class DataCollector(AbstractDataCollector):
         )
         self._frames.append(("agent", str(self._model._steps), agent_lazy_frame))
 
+    @property
+    def data(self):
+        model_frames = [
+            lf.collect() for kind, step, lf in self._frames if kind == "model"
+        ]
+        agent_frames = [
+            lf.collect() for kind, step, lf in self._frames if kind == "agent"
+        ]
+        return {
+            "model": pl.concat(model_frames) if model_frames else pl.DataFrame(),
+            "agent": pl.concat(agent_frames) if agent_frames else pl.DataFrame(),
+        }
+    
     def _flush(self):
         self._writers[self.schema](self._storage_uri)
 
@@ -127,18 +140,6 @@ class DataCollector(AbstractDataCollector):
         cur.close()
         conn.close()
 
-    @property
-    def data(self):
-        model_frames = [
-            lf.collect() for kind, step, lf in self._frames if kind == "model"
-        ]
-        agent_frames = [
-            lf.collect() for kind, step, lf in self._frames if kind == "agent"
-        ]
-        return {
-            "model": pl.concat(model_frames) if model_frames else pl.DataFrame(),
-            "agent": pl.concat(agent_frames) if agent_frames else pl.DataFrame(),
-        }
     
     def _get_db_connection(self,uri):
         parsed = urlparse(f"//{uri}")
@@ -159,7 +160,6 @@ class DataCollector(AbstractDataCollector):
             self._validate_postgress_table_exists(conn)
             self._validate_postgress_columns_exists(conn)
             conn.close()
-
 
     def _validate_postgress_table_exists(self,conn):
         if self._model_reporters:
