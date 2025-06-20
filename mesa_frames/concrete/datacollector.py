@@ -35,7 +35,7 @@ class DataCollector(AbstractDataCollector):
         """
         Initialize the DataCollector with model and agent reporters, storage configuration,
         and optional data collection triggers.
-
+        
         Args:
         model (ModelDF): The Mesa model instance to collect data from.
         model_reporters (dict[str, Callable], optional): Dictionary mapping column names
