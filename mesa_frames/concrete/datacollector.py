@@ -69,6 +69,12 @@ class DataCollector(AbstractDataCollector):
         self._validate_inputs()
     
     def _collect(self):
+        """
+        Collect data from the model and agents for the current step.
+
+        This method checks for the presence of model and agent reporters
+        and calls the appropriate collection routines for each.
+        """ 
 
         if self._model_reporters:
             self._collect_model_reporters()
@@ -77,6 +83,12 @@ class DataCollector(AbstractDataCollector):
             self._collect_agent_reporters()
     
     def _collect_model_reporters(self):
+        """
+        Collect model-level data using the model_reporters.
+
+        Creates a LazyFrame containing the step, seed, and values
+        returned by each model reporter. Appends the LazyFrame to internal storage.
+        """
         model_data_dict = {}
         model_data_dict["step"] = self._model._steps
         model_data_dict["seed"] = str(self.seed)
@@ -86,6 +98,13 @@ class DataCollector(AbstractDataCollector):
         self._frames.append(("model", str(self._model._steps), model_lazy_frame))
 
     def _collect_agent_reporters(self):
+        """
+        Collect agent-level data using the agent_reporters.
+
+        Constructs a LazyFrame with one column per reporter and
+        includes `step` and `seed` metadata. Appends it to internal storage.
+        """
+
         agent_data_dict = {}
         for col_name, reporter in self._agent_reporters.items():
             agent_data_dict[col_name] = reporter(self._model)
@@ -100,6 +119,14 @@ class DataCollector(AbstractDataCollector):
 
     @property
     def data(self):
+        """
+        Retrieve the collected data as eagerly evaluated Polars DataFrames.
+
+        Returns:
+            dict[str, pl.DataFrame]: A dictionary with keys "model" and "agent"
+            mapping to concatenated DataFrames of collected data.
+        """
+
         model_frames = [
             lf.collect() for kind, step, lf in self._frames if kind == "model"
         ]
@@ -112,19 +139,52 @@ class DataCollector(AbstractDataCollector):
         }
     
     def _flush(self):
+        """
+        Flush the collected data to the configured external storage backend.
+
+        Uses the appropriate writer function based on the specified storage option.
+        """
         self._writers[self._storage](self._storage_uri)
 
     def write_csv_local(self, uri):
+        """
+        Write collected data to local CSV files.
+
+        Args:
+            uri (str): Local directory path to write files into.
+        """
+
         for kind, step, df in self._frames:
             df.collect().write_csv(f"{uri}/{kind}_step{step}.csv")
 
     def write_parquet_local(self, uri):
+        """
+        Write collected data to local Parquet files.
+
+        Args:
+            uri (str): Local directory path to write files into.
+        """
+
         for kind, step, df in self._frames:
             df.collect().write_parquet(f"{uri}/{kind}_step{step}.parquet")
 
     def write_csv_s3(self, uri):
+        """
+        Write collected data to AWS S3 in CSV format.
+
+        Args:
+            uri (str): S3 URI (e.g., s3://bucket/path) to upload files to.
+        """
+
         self._write_s3(uri, format_="csv")
     def write_parquet_s3(self,uri):
+        """
+        Write collected data to AWS S3 in Parquet format.
+
+        Args:
+            uri (str): S3 URI (e.g., s3://bucket/path) to upload files to.
+        """
+
         self._write_s3(uri,format_ = "parquet")
 
     def _write_s3(self, uri, format_):
