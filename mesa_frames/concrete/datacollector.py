@@ -12,6 +12,9 @@ from urllib.parse import urlparse
 import tempfile
 import psycopg2
 from mesa_frames.abstract.datacollector import AbstractDataCollector
+from typing import Any, Literal
+from collections.abc import Callable
+from mesa_frames import ModelDF
 
 
 class DataCollector(AbstractDataCollector):
@@ -22,7 +25,8 @@ class DataCollector(AbstractDataCollector):
         agent_reporters: dict[str, str | Callable] | None = None,
         trigger: Callable[[Any], bool] | None = None,
         reset_memory: bool = True,
-        storage: str["memory:", "csv:", "postgresql:"] = "memory:",
+        storage: Literal["memory", "csv", "postgresql"] = "memory",
+        storage_uri: str = None
     ):
         super().__init__(
             model=model,
@@ -36,38 +40,43 @@ class DataCollector(AbstractDataCollector):
             "csv": self.write_csv_local,
             "parquet": self.write_parquet_local,
             "S3-csv": self.write_csv_s3,
-            # "S3-parquet": self.write_parquet_s3,
+            "S3-parquet": self.write_parquet_s3,
             "postgres": self.write_postgres,
         }
-        self.schema = self._storage_uri.split(":", 1)[0]
-        if self.schema not in self._writers:
-            raise ValueError("Unknown writer")
-        self.uri = self._storage_uri.split(":", 1)[1]
-
+        self._storage_uri = storage_uri
+    
     def _collect(self):
+
         if self._model_reporters:
-            model_data_dict = {}
-            model_data_dict["step"] = self._model._steps
-            model_data_dict["seed"] = str(self.seed)
-            for column_name, reporter in self._model_reporters.items():
-                model_data_dict[column_name] = reporter(self._model)
-            model_lazy_frame = pl.LazyFrame([model_data_dict])
-            self._frames.append(("model", str(self._model._steps), model_lazy_frame))
+            self._collect_model_reporters()
+
         if self._agent_reporters:
-            agent_data_dict = {}
-            for col_name, reporter in self._agent_reporters.items():
-                agent_data_dict[col_name] = reporter(self._model)
-            agent_lazy_frame = pl.LazyFrame(agent_data_dict)
-            agent_lazy_frame = agent_lazy_frame.with_columns(
-                [
-                    pl.lit(self._model._steps).alias("step"),
-                    pl.lit(str(self.seed)).alias("seed"),
-                ]
-            )
-            self._frames.append(("agent", str(self._model._steps), agent_lazy_frame))
+            self._collect_agent_reporters()
+    
+    def _collect_model_reporters(self):
+        model_data_dict = {}
+        model_data_dict["step"] = self._model._steps
+        model_data_dict["seed"] = str(self.seed)
+        for column_name, reporter in self._model_reporters.items():
+            model_data_dict[column_name] = reporter(self._model)
+        model_lazy_frame = pl.LazyFrame([model_data_dict])
+        self._frames.append(("model", str(self._model._steps), model_lazy_frame))
+
+    def _collect_agent_reporters(self):
+        agent_data_dict = {}
+        for col_name, reporter in self._agent_reporters.items():
+            agent_data_dict[col_name] = reporter(self._model)
+        agent_lazy_frame = pl.LazyFrame(agent_data_dict)
+        agent_lazy_frame = agent_lazy_frame.with_columns(
+            [
+                pl.lit(self._model._steps).alias("step"),
+                pl.lit(str(self.seed)).alias("seed"),
+            ]
+        )
+        self._frames.append(("agent", str(self._model._steps), agent_lazy_frame))
 
     def _flush(self):
-        self._writers[self.schema](self.uri)
+        self._writers[self.schema](self._storage_uri)
 
     def write_csv_local(self, uri):
         for kind, step, df in self._frames:
@@ -131,3 +140,6 @@ class DataCollector(AbstractDataCollector):
             "model": pl.concat(model_frames) if model_frames else pl.DataFrame(),
             "agent": pl.concat(agent_frames) if agent_frames else pl.DataFrame(),
         }
+    def validate_inputs(self):
+        if self.storage != "memory" and self._storage_uri ==None:
+            raise ValueError("Please define a storage_uri to if to be stored not in memory")
