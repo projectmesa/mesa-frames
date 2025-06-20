@@ -1,6 +1,8 @@
 """
-DATA COLLECTOR.
+Concrete class for data collection in mesa-frames
 
+This modulde defines the core functionalities for data collection in mesa-frames
+It provides a 
 and.
 """
 
@@ -15,12 +17,12 @@ from mesa_frames.abstract.datacollector import AbstractDataCollector
 class DataCollector(AbstractDataCollector):
     def __init__(
         self,
-        model,
-        model_reporters=None,
-        agent_reporters=None,
-        trigger=None,
-        reset_memory=True,
-        storage="memory:",
+        model: ModelDF,
+        model_reporters: dict[str, Callable] | None = None,
+        agent_reporters: dict[str, str | Callable] | None = None,
+        trigger: Callable[[Any], bool] | None = None,
+        reset_memory: bool = True,
+        storage: str["memory:", "csv:", "postgresql:"] = "memory:",
     ):
         super().__init__(
             model=model,
