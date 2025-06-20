@@ -44,8 +44,6 @@ class DataCollector(AbstractDataCollector):
             raise ValueError("Unknown writer")
         self.uri = self._storage_uri.split(":", 1)[1]
 
-
-
     def _collect(self):
         if self._model_reporters:
             model_data_dict = {}
@@ -67,7 +65,6 @@ class DataCollector(AbstractDataCollector):
                 ]
             )
             self._frames.append(("agent", str(self._model._steps), agent_lazy_frame))
-        
 
     def _flush(self):
         self._writers[self.schema](self.uri)
