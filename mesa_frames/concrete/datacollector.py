@@ -26,7 +26,8 @@ class DataCollector(AbstractDataCollector):
         trigger: Callable[[Any], bool] | None = None,
         reset_memory: bool = True,
         storage: Literal["memory", "csv", "postgresql"] = "memory",
-        storage_uri: str = None
+        storage_uri: str = None,
+        schema: str = 'public'
     ):
         super().__init__(
             model=model,
@@ -44,6 +45,9 @@ class DataCollector(AbstractDataCollector):
             "postgres": self.write_postgres,
         }
         self._storage_uri = storage_uri
+        self._schema = schema
+
+        self._validate_inputs()
     
     def _collect(self):
 
@@ -105,14 +109,7 @@ class DataCollector(AbstractDataCollector):
                 s3.upload_file(tmp.name, bucket, key)
 
     def write_postgres(self, uri):
-        parsed = urlparse(f"//{uri}")
-        conn = psycopg2.connect(
-            dbname=parsed.path[1:],
-            user=parsed.username,
-            password=parsed.password,
-            host=parsed.hostname,
-            port=parsed.port,
-        )
+        conn = self._get_db_connection(uri=uri)
         cur = conn.cursor()
         for kind, step, lf in self._frames:
             df = lf.collect()
@@ -140,6 +137,61 @@ class DataCollector(AbstractDataCollector):
             "model": pl.concat(model_frames) if model_frames else pl.DataFrame(),
             "agent": pl.concat(agent_frames) if agent_frames else pl.DataFrame(),
         }
-    def validate_inputs(self):
+    
+    def _get_db_connection(self,uri):
+        parsed = urlparse(f"//{uri}")
+        conn = psycopg2.connect(
+            dbname=parsed.path[1:],
+            user=parsed.username,
+            password=parsed.password,
+            host=parsed.hostname,
+            port=parsed.port,
+        )
+        return conn
+    def _validate_inputs(self):
         if self.storage != "memory" and self._storage_uri ==None:
             raise ValueError("Please define a storage_uri to if to be stored not in memory")
+
+        if self.storage == "postgresql":
+            
+            conn = self._get_db_connection(self._storage_uri)
+            self._validate_postgress_table_exists(conn)
+            self._validate_postgress_columns_exists(conn)
+
+    def _validate_postgress_table_exists(self,conn):
+        if self._model_reporters:
+            self._validate_reporter_table(conn = conn,table_name = "model_data")
+            self._validate_reporter_table_columns(conn = conn,table_name = "model_data")
+        
+    def _validate_reporter_table(self,conn,table_name):
+        query = f"""
+            SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = '{self._schema}' AND table_name = '{table_name}'
+            );"""
+        if not self._execute_query_with_result(conn,query):
+            raise ValueError(f"Table model_data does not exist in the schema : {self._schema}")
+        
+    def _validate_reporter_table_columns(self,conn,table_name):
+        expected_columns = set(self._model_reporters.keys())
+        query = f"""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = '{self._schema}' AND table_name = '{table_name}';
+        """
+        
+        result = self._execute_query_with_result(conn, query)
+        if not result:
+            raise ValueError(f"Could not retrieve columns for table {self._schema}.{table_name}")
+        
+        existing_columns = set(row[0] for row in result)
+        missing_columns = expected_columns - existing_columns
+        
+        if missing_columns:
+            raise ValueError(f"Missing columns in table {self._schema}.{table_name}: {missing_columns}")
+
+
+    def _execute_query_with_result(self, conn, query):
+        with conn.cursor() as cur:
+            cur.execute(query)
+            return cur.fetchall()
