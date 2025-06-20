@@ -153,7 +153,6 @@ class DataCollector(AbstractDataCollector):
             raise ValueError("Please define a storage_uri to if to be stored not in memory")
 
         if self.storage == "postgresql":
-            
             conn = self._get_db_connection(self._storage_uri)
             self._validate_postgress_table_exists(conn)
             self._validate_postgress_columns_exists(conn)
@@ -161,7 +160,14 @@ class DataCollector(AbstractDataCollector):
     def _validate_postgress_table_exists(self,conn):
         if self._model_reporters:
             self._validate_reporter_table(conn = conn,table_name = "model_data")
-            self._validate_reporter_table_columns(conn = conn,table_name = "model_data")
+        if self._agent_reporters:
+            self._validate_reporter_table(conn = conn,table_name = "agent_data")
+    
+    def _validate_postgress_columns_exists(self,conn):
+        if self._model_reporters:
+            self._validate_reporter_table_columns(conn=conn,table_name="model_data")
+        if self._agent_reporters:
+            self._validate_reporter_table_columns(conn=conn,table_name="agent_data")
         
     def _validate_reporter_table(self,conn,table_name):
         query = f"""
@@ -170,7 +176,7 @@ class DataCollector(AbstractDataCollector):
             WHERE table_schema = '{self._schema}' AND table_name = '{table_name}'
             );"""
         if not self._execute_query_with_result(conn,query):
-            raise ValueError(f"Table model_data does not exist in the schema : {self._schema}")
+            raise ValueError(f"{self._schema}{table_name} does not exist. To store collected data in DB please create a table with required columns")
         
     def _validate_reporter_table_columns(self,conn,table_name):
         expected_columns = set(self._model_reporters.keys())
