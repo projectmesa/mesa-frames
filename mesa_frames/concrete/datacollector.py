@@ -1,9 +1,10 @@
 """
 Concrete class for data collection in mesa-frames
 
-This modulde defines the core functionalities for data collection in mesa-frames
-It provides a 
-and.
+This module defines a DataCollector implementation that gathers and optionally persists
+model-level and agent-level data during simulations. It supports multiple storage backends,
+including in-memory, CSV, Parquet, S3, and PostgreSQL, using Polars for efficient lazy
+data processing.
 """
 
 import polars as pl
@@ -26,9 +27,27 @@ class DataCollector(AbstractDataCollector):
         trigger: Callable[[Any], bool] | None = None,
         reset_memory: bool = True,
         storage: Literal["memory", "csv","parquet","S3-csv","S3-parquet","postgresql"] = "memory",
-        storage_uri: str = None,
+        storage_uri: str | None  = None,
         schema: str = 'public'
     ):
+        """
+        Initialize the DataCollector with model and agent reporters, storage configuration,
+    and optional data collection triggers.
+
+    Args:
+        model (ModelDF): The Mesa model instance to collect data from.
+        model_reporters (dict[str, Callable], optional): Dictionary mapping column names
+            to callables for model-level data collection.
+        agent_reporters (dict[str, str | Callable], optional): Dictionary mapping column names
+            to agent-level attribute names or callables.
+        trigger (Callable[[Any], bool], optional): A function that determines whether
+            to collect data at a given step.
+        reset_memory (bool, optional): If True, clear internal memory on reset.
+        storage (Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"]):
+            Backend for storing collected data.
+        storage_uri (str, optional): URI or path corresponding to the selected storage backend.
+        schema (str, optional): Schema name used for PostgreSQL storage.
+        """
         super().__init__(
             model=model,
             model_reporters=model_reporters,
@@ -93,7 +112,7 @@ class DataCollector(AbstractDataCollector):
         }
     
     def _flush(self):
-        self._writers[self.schema](self._storage_uri)
+        self._writers[self._storage](self._storage_uri)
 
     def write_csv_local(self, uri):
         for kind, step, df in self._frames:
@@ -106,8 +125,8 @@ class DataCollector(AbstractDataCollector):
     def write_csv_s3(self, uri):
         self._write_s3(uri, format_="csv")
     def write_parquet_s3(self,uri):
-        self.write_s3(uri,format_ = "parquet")
-        
+        self._write_s3(uri,format_ = "parquet")
+
     def _write_s3(self, uri, format_):
         s3 = boto3.client("s3")
         parsed = urlparse(uri)
@@ -169,9 +188,9 @@ class DataCollector(AbstractDataCollector):
     
     def _validate_postgress_columns_exists(self,conn):
         if self._model_reporters:
-            self._validate_reporter_table_columns(conn=conn,table_name="model_data")
+            self._validate_reporter_table_columns(conn=conn,table_name="model_data",reporter=self._model_reporters)
         if self._agent_reporters:
-            self._validate_reporter_table_columns(conn=conn,table_name="agent_data")
+            self._validate_reporter_table_columns(conn=conn,table_name="agent_data",reporter = self._agent_reporters)
         
     def _validate_reporter_table(self,conn,table_name):
         query = f"""
@@ -182,8 +201,8 @@ class DataCollector(AbstractDataCollector):
         if not self._execute_query_with_result(conn,query):
             raise ValueError(f"{self._schema}{table_name} does not exist. To store collected data in DB please create a table with required columns")
         
-    def _validate_reporter_table_columns(self,conn,table_name):
-        expected_columns = set(self._model_reporters.keys())
+    def _validate_reporter_table_columns(self,conn,table_name,reporter):
+        expected_columns = set(reporter.keys())
         query = f"""
             SELECT column_name
             FROM information_schema.columns
