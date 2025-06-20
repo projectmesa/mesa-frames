@@ -92,7 +92,9 @@ class DataCollector(AbstractDataCollector):
 
     def write_csv_s3(self, uri):
         self._write_s3(uri, format_="csv")
-
+    def write_parquet_s3(self,uri):
+        self.write_s3(uri,format_ = "parquet")
+        
     def _write_s3(self, uri, format_):
         s3 = boto3.client("s3")
         parsed = urlparse(uri)
@@ -103,7 +105,7 @@ class DataCollector(AbstractDataCollector):
             with tempfile.NamedTemporaryFile(suffix=f".{format_}") as tmp:
                 if format_ == "csv":
                     df.write_csv(tmp.name)
-                else:
+                elif format_ == "parquet":
                     df.write_parquet(tmp.name)
                 key = f"{prefix}/{kind}_step{step}.{format_}"
                 s3.upload_file(tmp.name, bucket, key)
@@ -156,6 +158,8 @@ class DataCollector(AbstractDataCollector):
             conn = self._get_db_connection(self._storage_uri)
             self._validate_postgress_table_exists(conn)
             self._validate_postgress_columns_exists(conn)
+            conn.close()
+
 
     def _validate_postgress_table_exists(self,conn):
         if self._model_reporters:
