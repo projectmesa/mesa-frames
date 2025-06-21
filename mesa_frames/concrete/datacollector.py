@@ -282,12 +282,12 @@ class DataCollector(AbstractDataCollector):
         - Ensures a `storage_uri` is provided if needed.
         - For PostgreSQL, validates that required tables and columns exist.
         """
-        if self.storage != "memory" and self._storage_uri == None:
+        if self._storage != "memory" and self._storage_uri == None:
             raise ValueError(
                 "Please define a storage_uri to if to be stored not in memory"
             )
 
-        if self.storage == "postgresql":
+        if self._storage == "postgresql":
             conn = self._get_db_connection(self._storage_uri)
             self._validate_postgress_table_exists(conn)
             self._validate_postgress_columns_exists(conn)
