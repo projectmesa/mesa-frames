@@ -16,6 +16,7 @@ from mesa_frames.abstract.datacollector import AbstractDataCollector
 from typing import Any, Literal
 from collections.abc import Callable
 from mesa_frames import ModelDF
+from psycopg2.extensions import connection
 
 
 class DataCollector(AbstractDataCollector):
@@ -35,8 +36,8 @@ class DataCollector(AbstractDataCollector):
         """
         Initialize the DataCollector with configuration options.
 
-        Args:
-
+        Parameters
+        ----------
         model (ModelDF): The Mesa model instance to collect data from.
         model_reporters (dict[str, Callable], optional): Dictionary mapping column names
             to callables for model-level data collection.
@@ -125,7 +126,7 @@ class DataCollector(AbstractDataCollector):
 
         Returns
         -------
-        dict[str, pl.DataFrame]:
+        dict[str, pl.DataFrame]
             A dictionary with keys "model" and "agent" mapping to concatenated DataFrames of collected data.
         """
         model_frames = [
@@ -151,8 +152,10 @@ class DataCollector(AbstractDataCollector):
         """
         Write collected data to local CSV files.
 
-        Args:
-            uri (str): Local directory path to write files into.
+        Parameters
+        ----------
+        uri : str
+            Local directory path to write files into.
         """
         for kind, step, df in self._frames:
             df.collect().write_csv(f"{uri}/{kind}_step{step}.csv")
@@ -161,8 +164,10 @@ class DataCollector(AbstractDataCollector):
         """
         Write collected data to local Parquet files.
 
-        Args:
-            uri (str): Local directory path to write files into.
+        Parameters
+        ----------
+        uri: str
+            Local directory path to write files into.
         """
         for kind, step, df in self._frames:
             df.collect().write_parquet(f"{uri}/{kind}_step{step}.parquet")
@@ -171,8 +176,10 @@ class DataCollector(AbstractDataCollector):
         """
         Write collected data to AWS S3 in CSV format.
 
-        Args:
-            uri (str): S3 URI (e.g., s3://bucket/path) to upload files to.
+        Parameters
+        ----------
+        uri: str
+            S3 URI (e.g., s3://bucket/path) to upload files to.
         """
         self._write_s3(uri, format_="csv")
 
@@ -180,18 +187,23 @@ class DataCollector(AbstractDataCollector):
         """
         Write collected data to AWS S3 in Parquet format.
 
-        Args:
-            uri (str): S3 URI (e.g., s3://bucket/path) to upload files to.
+        Parameters
+        ----------
+        uri: str
+            S3 URI (e.g., s3://bucket/path) to upload files to.
         """
         self._write_s3(uri, format_="parquet")
 
-    def _write_s3(self, uri, format_):
+    def _write_s3(self, uri: str, format_: str):
         """
         Upload collected data to S3 in a specified format.
 
-        Args:
-            uri (str): S3 URI to upload to.
-            format_ (str): Format of the output files ("csv" or "parquet").
+        Parameters
+        ----------
+        uri: str
+            S3 URI to upload to.
+        format_: str
+            Format of the output files ("csv" or "parquet").
         """
         s3 = boto3.client("s3")
         parsed = urlparse(uri)
@@ -214,8 +226,10 @@ class DataCollector(AbstractDataCollector):
         Each frame is inserted into the appropriate table (`model_data` or `agent_data`)
         using batched insert queries.
 
-        Args:
-            uri (str): PostgreSQL connection URI in the form user:pass@host:port/dbname
+        Parameters
+        ----------
+        uri: str
+            PostgreSQL connection URI in the form user:pass@host:port/dbname
         """
         conn = self._get_db_connection(uri=uri)
         cur = conn.cursor()
@@ -233,16 +247,18 @@ class DataCollector(AbstractDataCollector):
         cur.close()
         conn.close()
 
-    def _get_db_connection(self, uri: str):
+    def _get_db_connection(self, uri: str) -> connection:
         """
         Create a psycopg2 database connection from a URI.
 
-        Args:
-            uri (str): PostgreSQL connection URI in the form user:pass@host:port/dbname
+        Parameters
+        ----------
+        uri : str
+            PostgreSQL connection URI in the form user:pass@host:port/dbname
 
         Returns
         -------
-        psycopg2.extensions.connection
+        connection
             A live connection object.
         """
         parsed = urlparse(f"//{uri}")
@@ -273,24 +289,28 @@ class DataCollector(AbstractDataCollector):
             self._validate_postgress_columns_exists(conn)
             conn.close()
 
-    def _validate_postgress_table_exists(self, conn):
+    def _validate_postgress_table_exists(self, conn: connection):
         """
         Validate that the required PostgreSQL tables exist for storing model and agent data.
 
-        Args:
-            conn (psycopg2.connection): Open database connection.
+        Parameters
+        ----------
+        conn: connection
+            Open database connection.
         """
         if self._model_reporters:
             self._validate_reporter_table(conn=conn, table_name="model_data")
         if self._agent_reporters:
             self._validate_reporter_table(conn=conn, table_name="agent_data")
 
-    def _validate_postgress_columns_exists(self, conn):
+    def _validate_postgress_columns_exists(self, conn: connection):
         """
         Validate that required columns are present in the PostgreSQL tables.
 
-        Args:
-            conn (psycopg2.connection): Open database connection.
+        Parameters
+        ----------
+        conn: connection
+            Open database connection.
         """
         if self._model_reporters:
             self._validate_reporter_table_columns(
@@ -301,17 +321,21 @@ class DataCollector(AbstractDataCollector):
                 conn=conn, table_name="agent_data", reporter=self._agent_reporters
             )
 
-    def _validate_reporter_table(self, conn, table_name):
+    def _validate_reporter_table(self, conn: connection, table_name: str):
         """
         Check if a given table exists in the PostgreSQL schema.
 
-        Args:
-            conn (psycopg2.connection): Open database connection.
-            table_name (str): Name of the table to check.
+        Parameters
+        ----------
+        conn : connection
+            Open database connection.
+        table_name : str
+            Name of the table to check.
 
         Raises
         ------
-            ValueError: If the table does not exist in the schema.
+        ValueError
+            If the table does not exist in the schema.
         """
         query = f"""
             SELECT EXISTS (
@@ -323,18 +347,25 @@ class DataCollector(AbstractDataCollector):
                 f"{self._schema}{table_name} does not exist. To store collected data in DB please create a table with required columns"
             )
 
-    def _validate_reporter_table_columns(self, conn, table_name, reporter):
+    def _validate_reporter_table_columns(
+        self, conn: connection, table_name: str, reporter: dict[str, Callable | str]
+    ):
         """
         Check if the expected columns are present in a given PostgreSQL table.
 
-        Args:
-            conn (psycopg2.connection): Open database connection.
-            table_name (str): Name of the table to validate.
-            reporter (dict[str, Callable | str]): Dictionary of reporters whose keys are expected as columns.
+        Parameters
+        ----------
+        conn : connection
+            Open database connection.
+        table_name :str
+            Name of the table to validate.
+        reporter : dict[str, Callable | str]
+            Dictionary of reporters whose keys are expected as columns.
 
         Raises
         ------
-            ValueError: If any expected columns are missing from the table.
+        ValueError
+            If any expected columns are missing from the table.
         """
         expected_columns = set(reporter.keys())
         query = f"""
@@ -357,17 +388,21 @@ class DataCollector(AbstractDataCollector):
                 f"Missing columns in table {self._schema}.{table_name}: {missing_columns}"
             )
 
-    def _execute_query_with_result(self, conn, query):
+    def _execute_query_with_result(self, conn: connection, query: str) -> list[tuple]:
         """
         Execute a SQL query and return the fetched results.
 
-        Args:
-            conn (psycopg2.connection): Open database connection.
-            query (str): SQL query string.
+        Parameters
+        ----------
+        conn : connection
+            Open database connection.
+        query : str
+            SQL query string.
 
         Returns
         -------
-            list[tuple]: Query result rows.
+        list[tuple]
+            Query result rows.
         """
         with conn.cursor() as cur:
             cur.execute(query)
