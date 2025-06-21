@@ -38,18 +38,22 @@ class DataCollector(AbstractDataCollector):
 
         Parameters
         ----------
-        model (ModelDF): The Mesa model instance to collect data from.
-        model_reporters (dict[str, Callable], optional): Dictionary mapping column names
-            to callables for model-level data collection.
-        agent_reporters (dict[str, str | Callable], optional): Dictionary mapping column names
-            to agent-level attribute names or callables.
-        trigger (Callable[[Any], bool], optional): A function that determines whether
-            to collect data at a given step.
-        reset_memory (bool, optional): If True, clear internal memory on reset.
-        storage (Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"]):
-            Backend for storing collected data.
-        storage_uri (str, optional): URI or path corresponding to the selected storage backend.
-        schema (str, optional): Schema name used for PostgreSQL storage.
+        model : ModelDF
+            The model object from which data is collected.
+        model_reporters : dict[str, Callable] | None
+            Functions to collect data at the model level.
+        agent_reporters : dict[str, str | Callable] | None
+            Attributes or functions to collect data at the agent level.
+        trigger : Callable[[Any], bool] | None
+            A function(model) -> bool that determines whether to collect data.
+        reset_memory : bool
+            Whether to reset in-memory data after flushing. Default is True.
+        storage : Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"        ]
+            Storage backend URI (e.g. 'memory:', 'csv:', 'postgresql:').
+        storage_uri: str | None
+            URI or path corresponding to the selected storage backend.
+        schema: str
+            Schema name used for PostgreSQL storage.
 
         """
         super().__init__(
