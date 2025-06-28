@@ -155,7 +155,7 @@ class DataCollector(AbstractDataCollector):
         """
         self._writers[self._storage](self._storage_uri)
 
-    def write_csv_local(self, uri: str):
+    def _write_csv_local(self, uri: str):
         """
         Write collected data to local CSV files.
 
@@ -167,7 +167,7 @@ class DataCollector(AbstractDataCollector):
         for kind, step, df in self._frames:
             df.collect().write_csv(f"{uri}/{kind}_step{step}.csv")
 
-    def write_parquet_local(self, uri: str):
+    def _write_parquet_local(self, uri: str):
         """
         Write collected data to local Parquet files.
 
@@ -179,7 +179,7 @@ class DataCollector(AbstractDataCollector):
         for kind, step, df in self._frames:
             df.collect().write_parquet(f"{uri}/{kind}_step{step}.parquet")
 
-    def write_csv_s3(self, uri: str):
+    def _write_csv_s3(self, uri: str):
         """
         Write collected data to AWS S3 in CSV format.
 
@@ -190,7 +190,7 @@ class DataCollector(AbstractDataCollector):
         """
         self._write_s3(uri, format_="csv")
 
-    def write_parquet_s3(self, uri: str):
+    def _write_parquet_s3(self, uri: str):
         """
         Write collected data to AWS S3 in Parquet format.
 
@@ -226,7 +226,7 @@ class DataCollector(AbstractDataCollector):
                 key = f"{prefix}/{kind}_step{step}.{format_}"
                 s3.upload_file(tmp.name, bucket, key)
 
-    def write_postgres(self, uri: str):
+    def _write_postgres(self, uri: str):
         """
         Write collected data to a PostgreSQL database.
 
