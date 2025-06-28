@@ -2,6 +2,7 @@ from mesa_frames.concrete.datacollector import DataCollector
 from mesa_frames import ModelDF, AgentSetPolars, AgentsDF
 import pytest
 import polars as pl
+import beartype
 
 def custom_trigger(model):
     return True
@@ -32,9 +33,9 @@ class ExampleModel(ModelDF):
                     len(agentset) for agentset in model.agents._agentsets
                 )
             },
-            # agent_reporters=  {
-            #     "wealth":"wealth"
-            # }
+            agent_reporters= {
+                "wealth" : lambda model:  model._agents._agentsets[0]["wealth"]  
+            }
         )
 
     def step(self):
@@ -69,69 +70,51 @@ class Test_DataCollector:
         with pytest.raises(beartype.roar.BeartypeCallHintParamViolation, match="not instance of .*Callable"):
             model.test_dc = DataCollector(
                 model=model,
-                trigger=custom_trigger,
                 model_reporters={
                     "total_agents": "sum"
                 }
             )
-        with pytest.raises(beartype.roar.BeartypeCallHintParamViolation, match="not instance of .*Callable"):
+        with pytest.raises(ValueError, match="Please define a storage_uri to if to be stored not in memory"):
             model.test_dc = DataCollector(
                 model=model,
-                trigger=custom_trigger,
-                model_reporters={
-                    "total_agents": "sum"
-                }
+                storage="S3-csv"
             )
-        with pytest.raises(beartype.roar.BeartypeCallHintParamViolation, match="not instance of .*Callable"):
-            model.test_dc = DataCollector(
-                model=model,
-                trigger=custom_trigger,
-                model_reporters={
-                    "total_agents": "sum"
-                }
-            )
+        # define a postgres connection
+
     def test_collect(self, fix1_model):
         model = fix1_model
 
         agent_data_dict = {}
         agent_data_dict["wealth"] = model._agents._agentsets[0]["wealth"]
         
-        agent_lazy_frame = pl.LazyFrame(agent_data_dict)
 
         model.dc.collect()
         collected_data = model.dc.data
 
         # test collected_model_data
-        print(collected_data)
         assert collected_data["model"]["step"].to_list() == [0]
         assert collected_data["model"]["total_agents"].to_list() == [4]
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
             collected_data["model"]["max_wealth"]
 
-        # fails agent level due to agentsdf
 
-        # test collected_agent_data
+        assert collected_data["agent"]["step"].to_list() == [0,0,0,0]
+        assert collected_data["agent"]["wealth"].to_list() == [1,2,3,4]
+        with pytest.raises(
+            pl.exceptions.ColumnNotFoundError, match='max_wealth'
+        ):
+             collected_data["agent"]["max_wealth"]
 
-        # assert collected_data["agent"]["step"].to_list() == [0,0,0,0]
-        # assert collected_data["agent"]["wealth"].to_list() == [1,2,3,4]
-        # with pytest.raises(
-        #     pl.exceptions.ColumnNotFoundError, match='max_wealth'
-        # ):
-        #      collected_data["agent"]["max_wealth"]
+    def test_collect_step(self, fix1_model):
+        # base check
+        model = fix1_model
+        model.run_model(5)
 
-    # def test_collect_step(self, fix1_model):
-    #     # base check
-    #     model = fix1_model
-    #     model.run_model(5)
+        model.dc.collect()
+        collected_data = model.dc.data
 
-    #     model.dc.collect()
-    #     collected_data = model.dc.data
-
-    #     # test collected_model_data
-    #     print(collected_data)
-    #     assert collected_data["model"]["step"].to_list() == [5]
-    #     assert collected_data["model"]["total_agents"].to_list() == [4]
-    #     with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
-    #         collected_data["model"]["max_wealth"]
-
-    #     # fails agent level due to agentsdf
+        assert collected_data["model"]["step"].to_list() == [5]
+        assert collected_data["model"]["total_agents"].to_list() == [4]
+        
+        assert collected_data["agent"]["step"].to_list() == [5,5,5,5]
+        assert collected_data["agent"]["wealth"].to_list() == [6,7,8,9]
