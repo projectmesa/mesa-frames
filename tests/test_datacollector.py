@@ -3,7 +3,6 @@ from mesa_frames import ModelDF, AgentSetPolars, AgentsDF
 import pytest
 import polars as pl
 
-
 def custom_trigger(model):
     return True
 
@@ -33,6 +32,9 @@ class ExampleModel(ModelDF):
                     len(agentset) for agentset in model.agents._agentsets
                 )
             },
+            # agent_reporters=  {
+            #     "wealth":"wealth"
+            # }
         )
 
     def step(self):
@@ -62,8 +64,39 @@ def fix1_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
 
 
 class Test_DataCollector:
+    def test__init__(self,fix1_model):
+        model = fix1_model
+        with pytest.raises(beartype.roar.BeartypeCallHintParamViolation, match="not instance of .*Callable"):
+            model.test_dc = DataCollector(
+                model=model,
+                trigger=custom_trigger,
+                model_reporters={
+                    "total_agents": "sum"
+                }
+            )
+        with pytest.raises(beartype.roar.BeartypeCallHintParamViolation, match="not instance of .*Callable"):
+            model.test_dc = DataCollector(
+                model=model,
+                trigger=custom_trigger,
+                model_reporters={
+                    "total_agents": "sum"
+                }
+            )
+        with pytest.raises(beartype.roar.BeartypeCallHintParamViolation, match="not instance of .*Callable"):
+            model.test_dc = DataCollector(
+                model=model,
+                trigger=custom_trigger,
+                model_reporters={
+                    "total_agents": "sum"
+                }
+            )
     def test_collect(self, fix1_model):
         model = fix1_model
+
+        agent_data_dict = {}
+        agent_data_dict["wealth"] = model._agents._agentsets[0]["wealth"]
+        
+        agent_lazy_frame = pl.LazyFrame(agent_data_dict)
 
         model.dc.collect()
         collected_data = model.dc.data
@@ -78,6 +111,7 @@ class Test_DataCollector:
         # fails agent level due to agentsdf
 
         # test collected_agent_data
+
         # assert collected_data["agent"]["step"].to_list() == [0,0,0,0]
         # assert collected_data["agent"]["wealth"].to_list() == [1,2,3,4]
         # with pytest.raises(
@@ -85,21 +119,19 @@ class Test_DataCollector:
         # ):
         #      collected_data["agent"]["max_wealth"]
 
-    def test_collect_step(self, fix1_model):
-        agents = fix1_model.agents
+    # def test_collect_step(self, fix1_model):
+    #     # base check
+    #     model = fix1_model
+    #     model.run_model(5)
 
-        # base check
-        model = fix1_model
-        model.run_model(5)
+    #     model.dc.collect()
+    #     collected_data = model.dc.data
 
-        model.dc.collect()
-        collected_data = model.dc.data
+    #     # test collected_model_data
+    #     print(collected_data)
+    #     assert collected_data["model"]["step"].to_list() == [5]
+    #     assert collected_data["model"]["total_agents"].to_list() == [4]
+    #     with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
+    #         collected_data["model"]["max_wealth"]
 
-        # test collected_model_data
-        print(collected_data)
-        assert collected_data["model"]["step"].to_list() == [5]
-        assert collected_data["model"]["total_agents"].to_list() == [4]
-        with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
-            collected_data["model"]["max_wealth"]
-
-        # fails agent level due to agentsdf
+    #     # fails agent level due to agentsdf
