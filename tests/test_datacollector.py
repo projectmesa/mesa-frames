@@ -231,3 +231,8 @@ class Test_DataCollector:
             agent_df = pl.read_parquet(os.path.join(tmpdir, "agent_step0.parquet"))
             assert agent_df["step"].to_list() == [0,0,0,0]
             assert agent_df["wealth"].to_list() == [1,2,3,4]
+
+    def test_flush_postgress(self,fix1_model):
+        model = fix1_model
+
+        
