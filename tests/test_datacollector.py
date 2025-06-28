@@ -3,6 +3,8 @@ from mesa_frames import ModelDF, AgentSetPolars, AgentsDF
 import pytest
 import polars as pl
 import beartype
+import tempfile
+import os
 
 def custom_trigger(model):
     return model._steps%2==0
@@ -167,5 +169,66 @@ class Test_DataCollector:
         assert collected_data["agent"]["wealth"].to_list() == [3,4,5,6,5,6,7,8]
   
 
-    def test_flush(self,fix1_model):
-        model = fix1_model
+    def test_flush_local_csv(self,fix1_model):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model = fix1_model
+            model.dc = DataCollector(
+                model=model,
+                trigger=custom_trigger,
+                model_reporters={
+                    "total_agents": lambda model: sum(
+                        len(agentset) for agentset in model.agents._agentsets
+                    )
+                },
+                agent_reporters={
+                    "wealth": lambda model: model.agents._agentsets[0]["wealth"]
+                },
+                storage="csv",
+                storage_uri=tmpdir
+            )
+
+            model.dc.collect()
+            model.dc.flush()
+
+            created_files = os.listdir(tmpdir)
+            assert len(created_files) == 2, f"Expected 2 files, found {len(created_files)}: {created_files}"
+
+            model_df = pl.read_csv(os.path.join(tmpdir, "model_step0.csv"),schema_overrides={"seed": pl.Utf8})
+            assert model_df["step"].to_list() == [0]
+            assert model_df["total_agents"].to_list() == [4]
+            
+            agent_df = pl.read_csv(os.path.join(tmpdir, "agent_step0.csv"),schema_overrides={"seed": pl.Utf8})
+            assert agent_df["step"].to_list() == [0,0,0,0]
+            assert agent_df["wealth"].to_list() == [1,2,3,4]
+            
+    def test_flush_local_parquet(self,fix1_model):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model = fix1_model
+            model.dc = DataCollector(
+                model=model,
+                trigger=custom_trigger,
+                model_reporters={
+                    "total_agents": lambda model: sum(
+                        len(agentset) for agentset in model.agents._agentsets
+                    )
+                },
+                agent_reporters={
+                    "wealth": lambda model: model.agents._agentsets[0]["wealth"]
+                },
+                storage="parquet",
+                storage_uri=tmpdir
+            )
+
+            model.dc.collect()
+            model.dc.flush()
+
+            created_files = os.listdir(tmpdir)
+            assert len(created_files) == 2, f"Expected 2 files, found {len(created_files)}: {created_files}"
+
+            model_df = pl.read_parquet(os.path.join(tmpdir, "model_step0.parquet"))
+            assert model_df["step"].to_list() == [0]
+            assert model_df["total_agents"].to_list() == [4]
+            
+            agent_df = pl.read_parquet(os.path.join(tmpdir, "agent_step0.parquet"))
+            assert agent_df["step"].to_list() == [0,0,0,0]
+            assert agent_df["wealth"].to_list() == [1,2,3,4]
