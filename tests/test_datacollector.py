@@ -5,7 +5,7 @@ import polars as pl
 import beartype
 
 def custom_trigger(model):
-    return True
+    return model._steps%2==0
 
 
 class ExampleAgentSetPolars(AgentSetPolars):
@@ -25,18 +25,6 @@ class ExampleModel(ModelDF):
     def __init__(self, agents: AgentsDF):
         super().__init__()
         self.agents = agents
-        self.dc = DataCollector(
-            model=self,
-            trigger=custom_trigger,
-            model_reporters={
-                "total_agents": lambda model: sum(
-                    len(agentset) for agentset in model.agents._agentsets
-                )
-            },
-            agent_reporters= {
-                "wealth" : lambda model:  model._agents._agentsets[0]["wealth"]  
-            }
-        )
 
     def step(self):
         self.agents.do("step")
@@ -44,6 +32,19 @@ class ExampleModel(ModelDF):
     def run_model(self, n):
         for _ in range(n):
             self.step()
+
+    def run_model(self, n):
+        for _ in range(n):
+            self.step()
+
+    def run_model_with_collect(self,n):
+        for _ in range(n):
+            self.step()
+            self.dc.collect()
+    def run_model_with_conditional_collect(self,n):
+        for _ in range(n):
+            self.step()
+            self.dc.conditional_collect()
 
 
 @pytest.fixture
@@ -83,6 +84,17 @@ class Test_DataCollector:
 
     def test_collect(self, fix1_model):
         model = fix1_model
+        model.dc = DataCollector(
+            model=model,
+            model_reporters={
+                "total_agents": lambda model: sum(
+                    len(agentset) for agentset in model.agents._agentsets
+                )
+            },
+            agent_reporters= {
+                "wealth" : lambda model:  model._agents._agentsets[0]["wealth"]  
+            }
+        )
 
         agent_data_dict = {}
         agent_data_dict["wealth"] = model._agents._agentsets[0]["wealth"]
@@ -108,6 +120,17 @@ class Test_DataCollector:
     def test_collect_step(self, fix1_model):
         # base check
         model = fix1_model
+        model.dc = DataCollector(
+            model=model,
+            model_reporters={
+                "total_agents": lambda model: sum(
+                    len(agentset) for agentset in model.agents._agentsets
+                )
+            },
+            agent_reporters= {
+                "wealth" : lambda model:  model._agents._agentsets[0]["wealth"]  
+            }
+        )
         model.run_model(5)
 
         model.dc.collect()
@@ -118,3 +141,31 @@ class Test_DataCollector:
         
         assert collected_data["agent"]["step"].to_list() == [5,5,5,5]
         assert collected_data["agent"]["wealth"].to_list() == [6,7,8,9]
+    
+    def test_conditional_collect(self,fix1_model):
+        model = fix1_model
+        model.dc = DataCollector(
+            model=model,
+            trigger=custom_trigger,
+            model_reporters={
+                "total_agents": lambda model: sum(
+                    len(agentset) for agentset in model.agents._agentsets
+                )
+            },
+            agent_reporters= {
+                "wealth" : lambda model:  model._agents._agentsets[0]["wealth"]  
+            }
+        )
+
+        model.run_model_with_conditional_collect(5)
+        collected_data = model.dc.data 
+
+        assert collected_data["model"]["step"].to_list() == [2,4]
+        assert collected_data["model"]["total_agents"].to_list() == [4,4]
+        
+        assert collected_data["agent"]["step"].to_list() == [2,2,2,2,4,4,4,4]
+        assert collected_data["agent"]["wealth"].to_list() == [3,4,5,6,5,6,7,8]
+  
+
+    def test_flush(self,fix1_model):
+        model = fix1_model

@@ -65,11 +65,11 @@ class DataCollector(AbstractDataCollector):
             storage=storage,  # literal won't work
         )
         self._writers = {
-            "csv": self.write_csv_local,
-            "parquet": self.write_parquet_local,
-            "S3-csv": self.write_csv_s3,
-            "S3-parquet": self.write_parquet_s3,
-            "postgres": self.write_postgres,
+            "csv": self._write_csv_local,
+            "parquet": self._write_parquet_local,
+            "S3-csv": self._write_csv_s3,
+            "S3-parquet": self._write_parquet_s3,
+            "postgres": self._write_postgres,
         }
         self._storage_uri = storage_uri
         self._schema = schema
