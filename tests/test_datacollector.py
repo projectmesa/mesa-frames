@@ -120,7 +120,6 @@ class Test_DataCollector:
              collected_data["agent"]["max_wealth"]
 
     def test_collect_step(self, fix1_model):
-        # base check
         model = fix1_model
         model.dc = DataCollector(
             model=model,
