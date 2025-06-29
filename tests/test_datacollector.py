@@ -166,7 +166,6 @@ class Test_DataCollector:
         
         assert collected_data["agent"]["step"].to_list() == [2,2,2,2,4,4,4,4]
         assert collected_data["agent"]["wealth"].to_list() == [3,4,5,6,5,6,7,8]
-  
 
     def test_flush_local_csv(self,fix1_model):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -186,22 +185,33 @@ class Test_DataCollector:
                 storage_uri=tmpdir
             )
 
-            model.dc.collect()
+            model.run_model_with_conditional_collect(4)
             model.dc.flush()
 
             collected_data = model.dc.data
-            assert collected_data==[]
+            assert collected_data["model"].shape == (0,0)            
+            assert collected_data["agent"].shape == (0,0)
 
             created_files = os.listdir(tmpdir)
-            assert len(created_files) == 2, f"Expected 2 files, found {len(created_files)}: {created_files}"
+            assert len(created_files) == 4, f"Expected 4 files, found {len(created_files)}: {created_files}"
 
-            model_df = pl.read_csv(os.path.join(tmpdir, "model_step0.csv"),schema_overrides={"seed": pl.Utf8})
-            assert model_df["step"].to_list() == [0]
+            model_df = pl.read_csv(os.path.join(tmpdir, "model_step2.csv"),schema_overrides={"seed": pl.Utf8})
+            assert model_df["step"].to_list() == [2]
+            assert model_df["total_agents"].to_list() == [4]
+
+            
+            model_df = pl.read_csv(os.path.join(tmpdir, "model_step4.csv"),schema_overrides={"seed": pl.Utf8})
+            assert model_df["step"].to_list() == [4]
             assert model_df["total_agents"].to_list() == [4]
             
-            agent_df = pl.read_csv(os.path.join(tmpdir, "agent_step0.csv"),schema_overrides={"seed": pl.Utf8})
-            assert agent_df["step"].to_list() == [0,0,0,0]
-            assert agent_df["wealth"].to_list() == [1,2,3,4]
+            agent_df = pl.read_csv(os.path.join(tmpdir, "agent_step2.csv"),schema_overrides={"seed": pl.Utf8})
+            assert agent_df["step"].to_list() == [2,2,2,2]
+            assert agent_df["wealth"].to_list() == [3,4,5,6]
+
+            agent_df = pl.read_csv(os.path.join(tmpdir, "agent_step4.csv"),schema_overrides={"seed": pl.Utf8})
+            assert agent_df["step"].to_list() == [4,4,4,4]
+            assert agent_df["wealth"].to_list() == [5,6,7,8]
+
             
     def test_flush_local_parquet(self,fix1_model):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -235,7 +245,6 @@ class Test_DataCollector:
             assert agent_df["step"].to_list() == [0,0,0,0]
             assert agent_df["wealth"].to_list() == [1,2,3,4]
 
-    def test_flush_postgress(self,fix1_model):
-        model = fix1_model
+
 
         
