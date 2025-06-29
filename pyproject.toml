@@ -36,7 +36,7 @@ dependencies    = [
   "pyarrow>=20.0.0",
   # polars._typing added in 1.0.0
   "polars>=1.30.0",
-  psycopg2-binary==2.9.10,
+  "psycopg2-binary==2.9.10",
   "boto3>=1.35.91"
 ]
 dynamic         = ["version"]
