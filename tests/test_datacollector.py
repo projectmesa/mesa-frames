@@ -189,6 +189,9 @@ class Test_DataCollector:
             model.dc.collect()
             model.dc.flush()
 
+            collected_data = model.dc.data
+            assert collected_data==[]
+
             created_files = os.listdir(tmpdir)
             assert len(created_files) == 2, f"Expected 2 files, found {len(created_files)}: {created_files}"
 
