@@ -6,8 +6,9 @@ import beartype
 import tempfile
 import os
 
+
 def custom_trigger(model):
-    return model._steps%2==0
+    return model._steps % 2 == 0
 
 
 class ExampleAgentSetPolars(AgentSetPolars):
@@ -39,11 +40,12 @@ class ExampleModel(ModelDF):
         for _ in range(n):
             self.step()
 
-    def run_model_with_collect(self,n):
+    def run_model_with_collect(self, n):
         for _ in range(n):
             self.step()
             self.dc.collect()
-    def run_model_with_conditional_collect(self,n):
+
+    def run_model_with_conditional_collect(self, n):
         for _ in range(n):
             self.step()
             self.dc.conditional_collect()
@@ -68,20 +70,20 @@ def fix1_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
 
 
 class Test_DataCollector:
-    def test__init__(self,fix1_model):
+    def test__init__(self, fix1_model):
         model = fix1_model
-        with pytest.raises(beartype.roar.BeartypeCallHintParamViolation, match="not instance of .*Callable"):
+        with pytest.raises(
+            beartype.roar.BeartypeCallHintParamViolation,
+            match="not instance of .*Callable",
+        ):
             model.test_dc = DataCollector(
-                model=model,
-                model_reporters={
-                    "total_agents": "sum"
-                }
+                model=model, model_reporters={"total_agents": "sum"}
             )
-        with pytest.raises(ValueError, match="Please define a storage_uri to if to be stored not in memory"):
-            model.test_dc = DataCollector(
-                model=model,
-                storage="S3-csv"
-            )
+        with pytest.raises(
+            ValueError,
+            match="Please define a storage_uri to if to be stored not in memory",
+        ):
+            model.test_dc = DataCollector(model=model, storage="S3-csv")
         # define a postgres connection
 
     def test_collect(self, fix1_model):
@@ -93,14 +95,13 @@ class Test_DataCollector:
                     len(agentset) for agentset in model.agents._agentsets
                 )
             },
-            agent_reporters= {
-                "wealth" : lambda model:  model._agents._agentsets[0]["wealth"]  
-            }
+            agent_reporters={
+                "wealth": lambda model: model._agents._agentsets[0]["wealth"]
+            },
         )
 
         agent_data_dict = {}
         agent_data_dict["wealth"] = model._agents._agentsets[0]["wealth"]
-        
 
         model.dc.collect()
         collected_data = model.dc.data
@@ -111,13 +112,10 @@ class Test_DataCollector:
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
             collected_data["model"]["max_wealth"]
 
-
-        assert collected_data["agent"]["step"].to_list() == [0,0,0,0]
-        assert collected_data["agent"]["wealth"].to_list() == [1,2,3,4]
-        with pytest.raises(
-            pl.exceptions.ColumnNotFoundError, match='max_wealth'
-        ):
-             collected_data["agent"]["max_wealth"]
+        assert collected_data["agent"]["step"].to_list() == [0, 0, 0, 0]
+        assert collected_data["agent"]["wealth"].to_list() == [1, 2, 3, 4]
+        with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
+            collected_data["agent"]["max_wealth"]
 
     def test_collect_step(self, fix1_model):
         model = fix1_model
@@ -128,9 +126,9 @@ class Test_DataCollector:
                     len(agentset) for agentset in model.agents._agentsets
                 )
             },
-            agent_reporters= {
-                "wealth" : lambda model:  model._agents._agentsets[0]["wealth"]  
-            }
+            agent_reporters={
+                "wealth": lambda model: model._agents._agentsets[0]["wealth"]
+            },
         )
         model.run_model(5)
 
@@ -139,11 +137,11 @@ class Test_DataCollector:
 
         assert collected_data["model"]["step"].to_list() == [5]
         assert collected_data["model"]["total_agents"].to_list() == [4]
-        
-        assert collected_data["agent"]["step"].to_list() == [5,5,5,5]
-        assert collected_data["agent"]["wealth"].to_list() == [6,7,8,9]
-    
-    def test_conditional_collect(self,fix1_model):
+
+        assert collected_data["agent"]["step"].to_list() == [5, 5, 5, 5]
+        assert collected_data["agent"]["wealth"].to_list() == [6, 7, 8, 9]
+
+    def test_conditional_collect(self, fix1_model):
         model = fix1_model
         model.dc = DataCollector(
             model=model,
@@ -153,21 +151,21 @@ class Test_DataCollector:
                     len(agentset) for agentset in model.agents._agentsets
                 )
             },
-            agent_reporters= {
-                "wealth" : lambda model:  model._agents._agentsets[0]["wealth"]  
-            }
+            agent_reporters={
+                "wealth": lambda model: model._agents._agentsets[0]["wealth"]
+            },
         )
 
         model.run_model_with_conditional_collect(5)
-        collected_data = model.dc.data 
+        collected_data = model.dc.data
 
-        assert collected_data["model"]["step"].to_list() == [2,4]
-        assert collected_data["model"]["total_agents"].to_list() == [4,4]
-        
-        assert collected_data["agent"]["step"].to_list() == [2,2,2,2,4,4,4,4]
-        assert collected_data["agent"]["wealth"].to_list() == [3,4,5,6,5,6,7,8]
+        assert collected_data["model"]["step"].to_list() == [2, 4]
+        assert collected_data["model"]["total_agents"].to_list() == [4, 4]
 
-    def test_flush_local_csv(self,fix1_model):
+        assert collected_data["agent"]["step"].to_list() == [2, 2, 2, 2, 4, 4, 4, 4]
+        assert collected_data["agent"]["wealth"].to_list() == [3, 4, 5, 6, 5, 6, 7, 8]
+
+    def test_flush_local_csv(self, fix1_model):
         with tempfile.TemporaryDirectory() as tmpdir:
             model = fix1_model
             model.dc = DataCollector(
@@ -182,38 +180,50 @@ class Test_DataCollector:
                     "wealth": lambda model: model.agents._agentsets[0]["wealth"]
                 },
                 storage="csv",
-                storage_uri=tmpdir
+                storage_uri=tmpdir,
             )
 
             model.run_model_with_conditional_collect(4)
             model.dc.flush()
 
             collected_data = model.dc.data
-            assert collected_data["model"].shape == (0,0)            
-            assert collected_data["agent"].shape == (0,0)
+            assert collected_data["model"].shape == (0, 0)
+            assert collected_data["agent"].shape == (0, 0)
 
             created_files = os.listdir(tmpdir)
-            assert len(created_files) == 4, f"Expected 4 files, found {len(created_files)}: {created_files}"
+            assert len(created_files) == 4, (
+                f"Expected 4 files, found {len(created_files)}: {created_files}"
+            )
 
-            model_df = pl.read_csv(os.path.join(tmpdir, "model_step2.csv"),schema_overrides={"seed": pl.Utf8})
+            model_df = pl.read_csv(
+                os.path.join(tmpdir, "model_step2.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
             assert model_df["step"].to_list() == [2]
             assert model_df["total_agents"].to_list() == [4]
 
-            
-            model_df = pl.read_csv(os.path.join(tmpdir, "model_step4.csv"),schema_overrides={"seed": pl.Utf8})
+            model_df = pl.read_csv(
+                os.path.join(tmpdir, "model_step4.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
             assert model_df["step"].to_list() == [4]
             assert model_df["total_agents"].to_list() == [4]
-            
-            agent_df = pl.read_csv(os.path.join(tmpdir, "agent_step2.csv"),schema_overrides={"seed": pl.Utf8})
-            assert agent_df["step"].to_list() == [2,2,2,2]
-            assert agent_df["wealth"].to_list() == [3,4,5,6]
 
-            agent_df = pl.read_csv(os.path.join(tmpdir, "agent_step4.csv"),schema_overrides={"seed": pl.Utf8})
-            assert agent_df["step"].to_list() == [4,4,4,4]
-            assert agent_df["wealth"].to_list() == [5,6,7,8]
+            agent_df = pl.read_csv(
+                os.path.join(tmpdir, "agent_step2.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
+            assert agent_df["step"].to_list() == [2, 2, 2, 2]
+            assert agent_df["wealth"].to_list() == [3, 4, 5, 6]
 
-            
-    def test_flush_local_parquet(self,fix1_model):
+            agent_df = pl.read_csv(
+                os.path.join(tmpdir, "agent_step4.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
+            assert agent_df["step"].to_list() == [4, 4, 4, 4]
+            assert agent_df["wealth"].to_list() == [5, 6, 7, 8]
+
+    def test_flush_local_parquet(self, fix1_model):
         with tempfile.TemporaryDirectory() as tmpdir:
             model = fix1_model
             model.dc = DataCollector(
@@ -228,23 +238,21 @@ class Test_DataCollector:
                     "wealth": lambda model: model.agents._agentsets[0]["wealth"]
                 },
                 storage="parquet",
-                storage_uri=tmpdir
+                storage_uri=tmpdir,
             )
 
             model.dc.collect()
             model.dc.flush()
 
             created_files = os.listdir(tmpdir)
-            assert len(created_files) == 2, f"Expected 2 files, found {len(created_files)}: {created_files}"
+            assert len(created_files) == 2, (
+                f"Expected 2 files, found {len(created_files)}: {created_files}"
+            )
 
             model_df = pl.read_parquet(os.path.join(tmpdir, "model_step0.parquet"))
             assert model_df["step"].to_list() == [0]
             assert model_df["total_agents"].to_list() == [4]
-            
+
             agent_df = pl.read_parquet(os.path.join(tmpdir, "agent_step0.parquet"))
-            assert agent_df["step"].to_list() == [0,0,0,0]
-            assert agent_df["wealth"].to_list() == [1,2,3,4]
-
-
-
-        
+            assert agent_df["step"].to_list() == [0, 0, 0, 0]
+            assert agent_df["wealth"].to_list() == [1, 2, 3, 4]
