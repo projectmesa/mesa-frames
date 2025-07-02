@@ -89,10 +89,10 @@ def fix3_AgentSetPolars() -> ExampleAgentSet3:
 
 
 @pytest.fixture
-def fix_AgentsDF(fix1_AgentSetPolars: ExampleAgentSet1) -> AgentsDF:
+def fix_AgentsDF(fix1_AgentSetPolars: ExampleAgentSet1,fix2_AgentSetPolars : ExampleAgentSet2, fix3_AgentSetPolars: ExampleAgentSet3) -> AgentsDF:
     model = ModelDF()
     agents = AgentsDF(model)
-    agents.add([fix1_AgentSetPolars])
+    agents.add([fix1_AgentSetPolars,fix2_AgentSetPolars,fix3_AgentSetPolars])
     return agents
 
 
@@ -127,7 +127,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model._agents._agentsets[0]["wealth"]
+                "wealth": lambda agents: agents["wealth"]
             },
         )
 
