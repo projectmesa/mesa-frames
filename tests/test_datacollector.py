@@ -80,11 +80,11 @@ def fix1_AgentSetPolars() -> ExampleAgentSet1:
     return ExampleAgentSet1(ModelDF())
 
 @pytest.fixture
-def fix3_AgentSetPolars() -> ExampleAgentSet2:
+def fix2_AgentSetPolars() -> ExampleAgentSet2:
     return ExampleAgentSet2(ModelDF())
 
 @pytest.fixture
-def fix4_AgentSetPolars() -> ExampleAgentSet3:
+def fix3_AgentSetPolars() -> ExampleAgentSet3:
     return ExampleAgentSet3(ModelDF())
 
 
