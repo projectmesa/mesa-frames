@@ -11,7 +11,7 @@ def custom_trigger(model):
     return model._steps % 2 == 0
 
 
-class ExampleAgentSetPolars(AgentSetPolars):
+class ExampleAgentSet1(AgentSetPolars):
     def __init__(self, model: ModelDF):
         super().__init__(model)
         self["wealth"] = pl.Series("wealth", [1, 2, 3, 4])
@@ -22,6 +22,30 @@ class ExampleAgentSetPolars(AgentSetPolars):
 
     def step(self) -> None:
         self.add_wealth(1)
+
+class ExampleAgentSet2(AgentSetPolars):
+    def __init__(self, model: ModelDF):
+        super().__init__(model)
+        self["wealth"] = pl.Series("wealth", [10, 20, 30, 40])
+        self["age"] = pl.Series("age", [11, 22, 33, 44])
+
+    def add_wealth(self, amount: int) -> None:
+        self["wealth"] += amount
+
+    def step(self) -> None:
+        self.add_wealth(2)
+
+class ExampleAgentSet3(AgentSetPolars):
+    def __init__(self, model: ModelDF):
+        super().__init__(model)
+        self["age"] = pl.Series("age", [1, 2, 3, 4])
+
+    def age_agents(self, amount: int) -> None:
+        self["age"] += amount
+
+    def step(self) -> None:
+        self.age_agents(1)
+
 
 
 class ExampleModel(ModelDF):
@@ -52,12 +76,20 @@ class ExampleModel(ModelDF):
 
 
 @pytest.fixture
-def fix1_AgentSetPolars() -> ExampleAgentSetPolars:
-    return ExampleAgentSetPolars(ModelDF())
+def fix1_AgentSetPolars() -> ExampleAgentSet1:
+    return ExampleAgentSet1(ModelDF())
+
+@pytest.fixture
+def fix3_AgentSetPolars() -> ExampleAgentSet2:
+    return ExampleAgentSet2(ModelDF())
+
+@pytest.fixture
+def fix4_AgentSetPolars() -> ExampleAgentSet3:
+    return ExampleAgentSet3(ModelDF())
 
 
 @pytest.fixture
-def fix_AgentsDF(fix1_AgentSetPolars: ExampleAgentSetPolars) -> AgentsDF:
+def fix_AgentsDF(fix1_AgentSetPolars: ExampleAgentSet1) -> AgentsDF:
     model = ModelDF()
     agents = AgentsDF(model)
     agents.add([fix1_AgentSetPolars])
@@ -69,7 +101,7 @@ def fix1_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
     return ExampleModel(fix_AgentsDF)
 
 
-class Test_DataCollector:
+class TestDataCollector:
     def test__init__(self, fix1_model):
         model = fix1_model
         with pytest.raises(
@@ -84,7 +116,6 @@ class Test_DataCollector:
             match="Please define a storage_uri to if to be stored not in memory",
         ):
             model.test_dc = DataCollector(model=model, storage="S3-csv")
-        # define a postgres connection
 
     def test_collect(self, fix1_model):
         model = fix1_model
