@@ -113,7 +113,7 @@ class DataCollector(AbstractDataCollector):
         """
         agent_data_dict = {}
         for col_name, reporter in self._agent_reporters.items():
-            if type(reporter) == str:
+            if isinstance(reporter,str):
                 agent_data_dict[col_name] = self._model.agents[reporter]
             else:
                 agent_data_dict[col_name] = reporter(self._model.agents)

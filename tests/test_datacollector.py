@@ -39,6 +39,7 @@ class ExampleAgentSet3(AgentSetPolars):
     def __init__(self, model: ModelDF):
         super().__init__(model)
         self["age"] = pl.Series("age", [1, 2, 3, 4])
+        self["wealth"] = pl.Series("wealth", [1, 2, 3, 4])
 
     def age_agents(self, amount: int) -> None:
         self["age"] += amount
@@ -119,6 +120,7 @@ class TestDataCollector:
 
     def test_collect(self, fix1_model):
         model = fix1_model
+    
         model.dc = DataCollector(
             model=model,
             model_reporters={
@@ -127,19 +129,19 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda agents: agents["wealth"]
+                "wealth": lambda agents: agents._agentsets[0]["wealth"]
             },
         )
 
         agent_data_dict = {}
-        agent_data_dict["wealth"] = model._agents._agentsets[0]["wealth"]
+        agent_data_dict["wealth"] = model.agents._agentsets[0]["wealth"]
 
         model.dc.collect()
         collected_data = model.dc.data
 
         # test collected_model_data
         assert collected_data["model"]["step"].to_list() == [0]
-        assert collected_data["model"]["total_agents"].to_list() == [4]
+        assert collected_data["model"]["total_agents"].to_list() == [12]
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
             collected_data["model"]["max_wealth"]
 
@@ -158,7 +160,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model._agents._agentsets[0]["wealth"]
+                "wealth": lambda agents: agents._agentsets[0]["wealth"]
             },
         )
         model.run_model(5)
@@ -167,7 +169,7 @@ class TestDataCollector:
         collected_data = model.dc.data
 
         assert collected_data["model"]["step"].to_list() == [5]
-        assert collected_data["model"]["total_agents"].to_list() == [4]
+        assert collected_data["model"]["total_agents"].to_list() == [12]
 
         assert collected_data["agent"]["step"].to_list() == [5, 5, 5, 5]
         assert collected_data["agent"]["wealth"].to_list() == [6, 7, 8, 9]
@@ -183,7 +185,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model._agents._agentsets[0]["wealth"]
+                "wealth": lambda agents: agents._agentsets[0]["wealth"]
             },
         )
 
@@ -191,7 +193,7 @@ class TestDataCollector:
         collected_data = model.dc.data
 
         assert collected_data["model"]["step"].to_list() == [2, 4]
-        assert collected_data["model"]["total_agents"].to_list() == [4, 4]
+        assert collected_data["model"]["total_agents"].to_list() == [12, 12]
 
         assert collected_data["agent"]["step"].to_list() == [2, 2, 2, 2, 4, 4, 4, 4]
         assert collected_data["agent"]["wealth"].to_list() == [3, 4, 5, 6, 5, 6, 7, 8]
@@ -208,7 +210,7 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda model: model.agents._agentsets[0]["wealth"]
+                    "wealth": lambda agents: agents._agentsets[0]["wealth"]
                 },
                 storage="csv",
                 storage_uri=tmpdir,
@@ -231,14 +233,14 @@ class TestDataCollector:
                 schema_overrides={"seed": pl.Utf8},
             )
             assert model_df["step"].to_list() == [2]
-            assert model_df["total_agents"].to_list() == [4]
+            assert model_df["total_agents"].to_list() == [12]
 
             model_df = pl.read_csv(
                 os.path.join(tmpdir, "model_step4.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
             assert model_df["step"].to_list() == [4]
-            assert model_df["total_agents"].to_list() == [4]
+            assert model_df["total_agents"].to_list() == [12]
 
             agent_df = pl.read_csv(
                 os.path.join(tmpdir, "agent_step2.csv"),
@@ -266,7 +268,7 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda model: model.agents._agentsets[0]["wealth"]
+                    "wealth": lambda agents: agents._agentsets[0]["wealth"]
                 },
                 storage="parquet",
                 storage_uri=tmpdir,
@@ -282,7 +284,7 @@ class TestDataCollector:
 
             model_df = pl.read_parquet(os.path.join(tmpdir, "model_step0.parquet"))
             assert model_df["step"].to_list() == [0]
-            assert model_df["total_agents"].to_list() == [4]
+            assert model_df["total_agents"].to_list() == [12]
 
             agent_df = pl.read_parquet(os.path.join(tmpdir, "agent_step0.parquet"))
             assert agent_df["step"].to_list() == [0, 0, 0, 0]
