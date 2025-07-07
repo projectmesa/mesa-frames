@@ -134,8 +134,6 @@ class TestDataCollector:
             },
         )
 
-        print(model.agents["age"])
-        return
 
         agent_data_dict = {}
         agent_data_dict["wealth"] = model.agents._agentsets[0]["wealth"]
