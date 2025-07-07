@@ -115,7 +115,7 @@ class DataCollector(AbstractDataCollector):
         for col_name, reporter in self._agent_reporters.items():
             if isinstance(reporter,str):
                 for k,v in self._model.agents[reporter].items():
-                    agent_data_dict[col_name+str(k.__class__.__name__)] = v
+                    agent_data_dict[col_name+"_"+str(k.__class__.__name__)] = v
             else:
                 agent_data_dict[col_name] = reporter(self._model.agents)
         agent_lazy_frame = pl.LazyFrame(agent_data_dict)
