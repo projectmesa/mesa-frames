@@ -129,9 +129,13 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda agents: agents._agentsets[0]["wealth"]
+                "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                "age":"age"
             },
         )
+
+        print(model.agents["age"])
+        return
 
         agent_data_dict = {}
         agent_data_dict["wealth"] = model.agents._agentsets[0]["wealth"]
