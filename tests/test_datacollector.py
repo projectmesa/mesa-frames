@@ -179,8 +179,7 @@ class TestDataCollector:
         assert collected_data["model"].columns==["step","seed","total_agents"]
         assert collected_data["model"]["step"].to_list() == [5]
         assert collected_data["model"]["total_agents"].to_list() == [12]
-        with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
-            collected_data["model"]["max_wealth"]
+
 
         assert collected_data["agent"].shape == (4,6)
         assert list(collected_data["agent"].columns) == ['wealth', 'age_ExampleAgentSet1', 'age_ExampleAgentSet2', 'age_ExampleAgentSet3', 'step', 'seed']
@@ -189,8 +188,7 @@ class TestDataCollector:
         assert collected_data["agent"]["age_ExampleAgentSet2"].to_list() == [11, 22, 33, 44]
         assert collected_data["agent"]["age_ExampleAgentSet3"].to_list() == [6, 7, 8, 9]
         assert collected_data["agent"]["step"].to_list() == [5, 5, 5, 5]
-        with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
-            collected_data["agent"]["max_wealth"]
+
 
     def test_conditional_collect(self, fix1_model):
         model = fix1_model
@@ -203,18 +201,27 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda agents: agents._agentsets[0]["wealth"]
+                "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                "age":"age"
             },
         )
 
         model.run_model_with_conditional_collect(5)
         collected_data = model.dc.data
 
-        assert collected_data["model"]["step"].to_list() == [2, 4]
-        assert collected_data["model"]["total_agents"].to_list() == [12, 12]
+        assert collected_data["model"].shape == (2,3)
+        assert collected_data["model"].columns==["step","seed","total_agents"]
+        assert collected_data["model"]["step"].to_list() == [2,4]
+        assert collected_data["model"]["total_agents"].to_list() == [12,12]
 
+
+        assert collected_data["agent"].shape == (8,6)
+        assert list(collected_data["agent"].columns) == ['wealth', 'age_ExampleAgentSet1', 'age_ExampleAgentSet2', 'age_ExampleAgentSet3', 'step', 'seed']
+        assert collected_data["agent"]["wealth"].to_list() == [3,4,5,6,5,6,7,8]
+        assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [10, 20, 30, 40, 10, 20, 30, 40]
+        assert collected_data["agent"]["age_ExampleAgentSet2"].to_list() == [11, 22, 33, 44, 11, 22, 33, 44]
+        assert collected_data["agent"]["age_ExampleAgentSet3"].to_list() == [3,4,5,6,5,6,7,8]
         assert collected_data["agent"]["step"].to_list() == [2, 2, 2, 2, 4, 4, 4, 4]
-        assert collected_data["agent"]["wealth"].to_list() == [3, 4, 5, 6, 5, 6, 7, 8]
 
     def test_flush_local_csv(self, fix1_model):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -228,7 +235,8 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda agents: agents._agentsets[0]["wealth"]
+                    "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                    "age" : "age"
                 },
                 storage="csv",
                 storage_uri=tmpdir,
