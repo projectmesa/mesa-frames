@@ -122,11 +122,12 @@ jobs:
         run: |
           brew install postgresql@15
           echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> $GITHUB_ENV
-          echo 'export PGUSER=postgres' >> $GITHUB_ENV
+          echo 'export PGDATA="/opt/homebrew/var/postgresql@15"' >> $GITHUB_ENV
+
           source $GITHUB_ENV
-          brew services start postgresql@15
+          initdb --username=user --auth=trust --no-password --encoding=UTF8 $PGDATA
+          /opt/homebrew/opt/postgresql@15/bin/pg_ctl -D $PGDATA start
           sleep 5
-          createuser user --createdb
           createdb testdb -U user
         shell: bash
 
