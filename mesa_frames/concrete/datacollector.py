@@ -237,7 +237,7 @@ class DataCollector(AbstractDataCollector):
         Parameters
         ----------
         uri: str
-            PostgreSQL connection URI in the form user:pass@host:port/dbname
+            PostgreSQL connection URI in the form postgresql://testuser:testpass@localhost:5432/testdb
         """
         conn = self._get_db_connection(uri=uri)
         cur = conn.cursor()
@@ -257,21 +257,11 @@ class DataCollector(AbstractDataCollector):
 
     def _get_db_connection(self, uri: str) -> connection:
         """
-        Create a psycopg2 database connection from a URI.
-
-        Parameters
-        ----------
-        uri : str
-            PostgreSQL connection URI in the form user:pass@host:port/dbname
-
-        Returns
-        -------
-        connection
-            A live connection object.
+        uri should be like: postgresql://user:pass@host:port/dbname
         """
-        parsed = urlparse(f"//{uri}")
+        parsed = urlparse(uri)
         conn = psycopg2.connect(
-            dbname=parsed.path[1:],
+            dbname=parsed.path[1:],  # remove leading slash
             user=parsed.username,
             password=parsed.password,
             host=parsed.hostname,

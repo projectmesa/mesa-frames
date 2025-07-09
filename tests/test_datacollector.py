@@ -77,8 +77,7 @@ class ExampleModel(ModelDF):
 
 @pytest.fixture(scope="session")
 def postgres_uri():
-    return "postgresql://user:password@localhost:5432/testdb"
-
+    return os.getenv("POSTGRES_URI", "postgresql://user:password@localhost:5432/testdb")
 
 @pytest.fixture
 def fix1_AgentSetPolars() -> ExampleAgentSet1:

@@ -4,15 +4,15 @@ on:
   push:
     branches:
       - main
-      - 'release**'
+      - "release**"
     paths-ignore:
-      - '**.md'
+      - "**.md"
   pull_request:
     paths-ignore:
-      - '**.md'
+      - "**.md"
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: "0 6 * * 1"
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
@@ -28,15 +28,31 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows, ubuntu, macos]
-        python-version: ['3.13']
+        python-version: ["3.13"]
         include:
           - os: ubuntu
-            python-version: '3.11'
+            python-version: "3.11"
           - os: ubuntu
-            python-version: '3.12'
+            python-version: "3.12"
 
     env:
       MESA_FRAMES_RUNTIME_TYPECHECKING: "true"
+      POSTGRES_URI: postgresql://user:password@localhost:5432/testdb
+
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +73,27 @@ jobs:
           uv pip install --system .
           # 2. Install everything under the "dev" dependency group
           uv pip install --group dev --system
+      - name: Install PostgreSQL (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          choco install postgresql15 --params '/Password:password' -y
+          echo "C:\Program Files\PostgreSQL\15\bin" >> $GITHUB_PATH
+
+      - name: Init and Start PostgreSQL (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          initdb -D pgdata
+          pg_ctl -D pgdata -l logfile start
+          createdb -U postgres testdb
+
+      # Only for macOS
+      - name: Install PostgreSQL (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          brew install postgresql@15
+          brew services start postgresql@15
+          sleep 5
+          createdb testdb
 
       - name: Test with pytest
         run: pytest --durations=10 --cov=mesa_frames tests/ --cov-report=xml
