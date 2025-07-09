@@ -105,25 +105,30 @@ jobs:
           uv pip install --system .
           uv pip install --group dev --system
 
-      - name: Install PostgreSQL (Windows)
+      - name: Install and Start PostgreSQL (Windows)
         if: matrix.os == 'windows'
         run: |
           choco install postgresql15 --params '/Password:password' -y
           echo "C:\Program Files\PostgreSQL\15\bin" >> $GITHUB_PATH
-          initdb -D pgdata
+          initdb -U postgres -A trust -D pgdata
           pg_ctl -D pgdata -l logfile start
-          createdb -U postgres testdb
+          sleep 5
+          createuser user --createdb
+          createdb testdb -U user
         shell: bash
 
-      - name: Install PostgreSQL (macOS)
+      - name: Install and Start PostgreSQL (macOS)
         if: matrix.os == 'macos'
         run: |
           brew install postgresql@15
           echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> $GITHUB_ENV
+          echo 'export PGUSER=postgres' >> $GITHUB_ENV
           source $GITHUB_ENV
           brew services start postgresql@15
           sleep 5
-          createdb testdb
+          createuser user --createdb
+          createdb testdb -U user
+        shell: bash
 
       - name: Test with pytest
         run: pytest --durations=10 --cov=mesa_frames tests/ --cov-report=xml
