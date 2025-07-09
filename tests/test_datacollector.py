@@ -75,6 +75,10 @@ class ExampleModel(ModelDF):
             self.step()
             self.dc.conditional_collect()
 
+@pytest.fixture(scope="session")
+def postgres_uri():
+    return "postgresql://user:password@localhost:5432/testdb"
+
 
 @pytest.fixture
 def fix1_AgentSetPolars() -> ExampleAgentSet1:
@@ -245,6 +249,7 @@ class TestDataCollector:
             model.run_model_with_conditional_collect(4)
             model.dc.flush()
 
+            #check deletion after flush
             collected_data = model.dc.data
             assert collected_data["model"].shape == (0, 0)
             assert collected_data["agent"].shape == (0, 0)
@@ -258,14 +263,8 @@ class TestDataCollector:
                 os.path.join(tmpdir, "model_step2.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
+            assert model_df.columns == ["step","seed","total_agents"]
             assert model_df["step"].to_list() == [2]
-            assert model_df["total_agents"].to_list() == [12]
-
-            model_df = pl.read_csv(
-                os.path.join(tmpdir, "model_step4.csv"),
-                schema_overrides={"seed": pl.Utf8},
-            )
-            assert model_df["step"].to_list() == [4]
             assert model_df["total_agents"].to_list() == [12]
 
             agent_df = pl.read_csv(
@@ -315,3 +314,44 @@ class TestDataCollector:
             agent_df = pl.read_parquet(os.path.join(tmpdir, "agent_step0.parquet"))
             assert agent_df["step"].to_list() == [0, 0, 0, 0]
             assert agent_df["wealth"].to_list() == [1, 2, 3, 4]
+
+    def test_postgress(self,fix1_model,postgres_uri):
+        model = fix1_model
+        model.dc = DataCollector(
+            model=model,
+            trigger=custom_trigger,
+            model_reporters={
+                "total_agents": lambda model: sum(
+                    len(agentset) for agentset in model.agents._agentsets
+                )
+            },
+            agent_reporters={
+                "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                "age": "age"
+            },
+            storage="postgresql",
+            storage_uri=postgres_uri,
+        )
+
+        model.run_model_with_conditional_collect(4)
+        model.dc.flush()
+
+        # Connect directly and validate data
+        import psycopg2
+        conn = psycopg2.connect(postgres_uri)
+        cur = conn.cursor()
+
+        # Check model data
+        cur.execute("SELECT step, total_agents FROM model_data ORDER BY step")
+        model_rows = cur.fetchall()
+        assert model_rows == [(2, 12), (4, 12)]
+
+        # Check agent data
+        cur.execute("SELECT step, wealth FROM agent_data WHERE step=2 ORDER BY wealth")
+        agent_rows = cur.fetchall()
+        assert agent_rows == [(2, 3), (2, 4), (2, 5), (2, 6)]
+
+        cur.close()
+        conn.close()
+
+
