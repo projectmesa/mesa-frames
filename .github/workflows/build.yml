@@ -119,6 +119,8 @@ jobs:
         if: matrix.os == 'macos'
         run: |
           brew install postgresql@15
+          echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> $GITHUB_ENV
+          source $GITHUB_ENV
           brew services start postgresql@15
           sleep 5
           createdb testdb
