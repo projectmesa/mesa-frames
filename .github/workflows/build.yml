@@ -121,15 +121,24 @@ jobs:
         if: matrix.os == 'macos'
         run: |
           brew install postgresql@15
+
           echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> $GITHUB_ENV
           echo 'export PGDATA="/opt/homebrew/var/postgresql@15"' >> $GITHUB_ENV
 
           source $GITHUB_ENV
-          initdb --username=user --auth=trust --no-password --encoding=UTF8 $PGDATA
-          /opt/homebrew/opt/postgresql@15/bin/pg_ctl -D $PGDATA start
+
+          # Manually initialize the database cluster with a known superuser
+          initdb --username=user --auth=trust --encoding=UTF8 $PGDATA
+
+          # Start the PostgreSQL server
+          pg_ctl -D $PGDATA -l logfile start
+
           sleep 5
+
+          # Create the test database
           createdb testdb -U user
         shell: bash
+
 
       - name: Test with pytest
         run: pytest --durations=10 --cov=mesa_frames tests/ --cov-report=xml
