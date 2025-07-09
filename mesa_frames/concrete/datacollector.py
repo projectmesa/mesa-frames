@@ -113,9 +113,9 @@ class DataCollector(AbstractDataCollector):
         """
         agent_data_dict = {}
         for col_name, reporter in self._agent_reporters.items():
-            if isinstance(reporter,str):
-                for k,v in self._model.agents[reporter].items():
-                    agent_data_dict[col_name+"_"+str(k.__class__.__name__)] = v
+            if isinstance(reporter, str):
+                for k, v in self._model.agents[reporter].items():
+                    agent_data_dict[col_name + "_" + str(k.__class__.__name__)] = v
             else:
                 agent_data_dict[col_name] = reporter(self._model.agents)
         agent_lazy_frame = pl.LazyFrame(agent_data_dict)
@@ -257,7 +257,7 @@ class DataCollector(AbstractDataCollector):
 
     def _get_db_connection(self, uri: str) -> connection:
         """
-        uri should be like: postgresql://user:pass@host:port/dbname
+        Uri should be like: postgresql://user:pass@host:port/dbname
         """
         parsed = urlparse(uri)
         conn = psycopg2.connect(
