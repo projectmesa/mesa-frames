@@ -188,6 +188,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         mask: AgentPolarsMask = None,
     ) -> pl.Series | pl.DataFrame:
         masked_df = self._get_masked_df(mask)
+        if attr_names is None:
+            # Return all columns except unique_id
+            return masked_df.select(pl.exclude("unique_id"))
         attr_names = self.agents.select(attr_names).columns.copy()
         if not attr_names:
             return masked_df
