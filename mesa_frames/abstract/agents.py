@@ -1113,7 +1113,6 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """
         self._agents = agents
 
-
     @property
     @abstractmethod
     def active_agents(self) -> DataFrame: ...
