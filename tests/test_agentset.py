@@ -37,7 +37,7 @@ def fix1_AgentSetPolars() -> ExampleAgentSetPolars:
     agents = ExampleAgentSetPolars(model)
     agents["wealth"] = agents.starting_wealth
     agents["age"] = [10, 20, 30, 40]
-    model.df.add(agents)
+    model.agents.add(agents)
     return agents
 
 
@@ -48,7 +48,7 @@ def fix2_AgentSetPolars() -> ExampleAgentSetPolars:
     agents["wealth"] = agents.starting_wealth + 10
     agents["age"] = [100, 200, 300, 400]
 
-    model.df.add(agents)
+    model.agents.add(agents)
     space = GridPolars(model, dimensions=[3, 3], capacity=2)
     model.space = space
     space.place_agents(agents=agents["unique_id"][[0, 1]], pos=[[2, 1], [1, 2]])
@@ -82,7 +82,7 @@ def fix1_AgentSetPolars_no_wealth() -> ExampleAgentSetPolarsNoWealth:
     agents = ExampleAgentSetPolarsNoWealth(model)
     agents["income"] = agents.starting_income
     agents["age"] = [1, 2, 3, 4]
-    model.df.add(agents)
+    model.agents.add(agents)
     return agents
 
 
