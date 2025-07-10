@@ -252,14 +252,8 @@ class Test_AgentsDF:
         )
 
         # Test with a single attribute and a mask
-        mask0 = (
-            fix1_AgentSetPolars._df["wealth"]
-            > fix1_AgentSetPolars._df["wealth"][0]
-        )
-        mask1 = (
-            fix2_AgentSetPolars._df["wealth"]
-            > fix2_AgentSetPolars._df["wealth"][0]
-        )
+        mask0 = fix1_AgentSetPolars._df["wealth"] > fix1_AgentSetPolars._df["wealth"][0]
+        mask1 = fix2_AgentSetPolars._df["wealth"] > fix2_AgentSetPolars._df["wealth"][0]
         mask_dictionary = {fix1_AgentSetPolars: mask0, fix2_AgentSetPolars: mask1}
         result = agents.get("wealth", mask=mask_dictionary)
         assert (
@@ -795,14 +789,8 @@ class Test_AgentsDF:
         )
 
         # Test with a single attribute and a mask
-        mask0 = (
-            fix1_AgentSetPolars._df["wealth"]
-            > fix1_AgentSetPolars._df["wealth"][0]
-        )
-        mask1 = (
-            fix2_AgentSetPolars._df["wealth"]
-            > fix2_AgentSetPolars._df["wealth"][0]
-        )
+        mask0 = fix1_AgentSetPolars._df["wealth"] > fix1_AgentSetPolars._df["wealth"][0]
+        mask1 = fix2_AgentSetPolars._df["wealth"] > fix2_AgentSetPolars._df["wealth"][0]
         mask_dictionary: dict[AgentSetDF, AgentMask] = {
             fix1_AgentSetPolars: mask0,
             fix2_AgentSetPolars: mask1,
@@ -831,9 +819,7 @@ class Test_AgentsDF:
         agents_copy = deepcopy(agents)
         agents_copy += agentset_polars
         assert agents_copy._agentsets[0] is agentset_polars
-        assert (
-            agents_copy._ids.to_list() == agentset_polars._df["unique_id"].to_list()
-        )
+        assert agents_copy._ids.to_list() == agentset_polars._df["unique_id"].to_list()
 
         # Test with a list of AgentSetDFs
         agents_copy = deepcopy(agents)
@@ -986,16 +972,14 @@ class Test_AgentsDF:
         assert all(
             series.all()
             for series in (
-                result[agents1._agentsets[0]]
-                == agents1._agentsets[0]._df.filter(mask0)
+                result[agents1._agentsets[0]] == agents1._agentsets[0]._df.filter(mask0)
             )
         )
 
         assert all(
             series.all()
             for series in (
-                result[agents1._agentsets[1]]
-                == agents1._agentsets[1]._df.filter(mask1)
+                result[agents1._agentsets[1]] == agents1._agentsets[1]._df.filter(mask1)
             )
         )
 
@@ -1008,15 +992,13 @@ class Test_AgentsDF:
         assert all(
             series.all()
             for series in (
-                result[agents1._agentsets[0]]
-                == agents1._agentsets[0]._df.filter(mask0)
+                result[agents1._agentsets[0]] == agents1._agentsets[0]._df.filter(mask0)
             )
         )
         assert all(
             series.all()
             for series in (
-                result[agents1._agentsets[1]]
-                == agents1._agentsets[1]._df.filter(mask1)
+                result[agents1._agentsets[1]] == agents1._agentsets[1]._df.filter(mask1)
             )
         )
 
