@@ -1113,30 +1113,6 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         """
         self._agents = agents
 
-    @property
-    def agents(self) -> DataFrame:
-        warnings.warn(
-            "'agents' is deprecated. Use 'df' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._agents
-
-    @agents.setter
-    def agents(self, agents: DataFrame) -> None:
-        """Set the agents in the AgentSetDF.
-
-        Parameters
-        ----------
-        agents : DataFrame
-            The agents to set.
-        """
-        warnings.warn(
-            "Setting 'agents' is deprecated. Use 'df' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._agents = agents
 
     @property
     @abstractmethod
