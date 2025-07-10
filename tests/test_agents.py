@@ -8,6 +8,8 @@ from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.types_ import AgentMask
 from tests.test_agentset import (
     ExampleAgentSetPolars,
+    ExampleAgentSetPolarsNoWealth,
+    fix1_AgentSetPolars_no_wealth,
     fix1_AgentSetPolars,
     fix2_AgentSetPolars,
     fix3_AgentSetPolars,
@@ -223,6 +225,7 @@ class Test_AgentsDF:
         fix_AgentsDF: AgentsDF,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix1_AgentSetPolars_no_wealth: ExampleAgentSetPolarsNoWealth,
     ):
         agents = fix_AgentsDF
 
@@ -277,6 +280,88 @@ class Test_AgentsDF:
             result[fix2_AgentSetPolars].to_list()
             == fix2_AgentSetPolars._agents["wealth"].to_list()[1:]
         )
+
+        # Test heterogeneous agent sets (different columns)
+        # This tests the fix for the bug where agents_df["column"] would raise
+        # ColumnNotFoundError when some agent sets didn't have that column.
+
+        # Create a new AgentsDF with heterogeneous agent sets
+        model = ModelDF()
+        hetero_agents = AgentsDF(model)
+        hetero_agents.add([fix1_AgentSetPolars, fix1_AgentSetPolars_no_wealth])
+
+        # Test 1: Access column that exists in only one agent set
+        result_wealth = hetero_agents.get("wealth")
+        assert len(result_wealth) == 1, (
+            "Should only return agent sets that have 'wealth'"
+        )
+        assert fix1_AgentSetPolars in result_wealth, (
+            "Should include the agent set with wealth"
+        )
+        assert fix1_AgentSetPolars_no_wealth not in result_wealth, (
+            "Should not include agent set without wealth"
+        )
+        assert result_wealth[fix1_AgentSetPolars].to_list() == [1, 2, 3, 4]
+
+        # Test 2: Access column that exists in all agent sets
+        result_age = hetero_agents.get("age")
+        assert len(result_age) == 2, "Should return both agent sets that have 'age'"
+        assert fix1_AgentSetPolars in result_age
+        assert fix1_AgentSetPolars_no_wealth in result_age
+        assert result_age[fix1_AgentSetPolars].to_list() == [10, 20, 30, 40]
+        assert result_age[fix1_AgentSetPolars_no_wealth].to_list() == [1, 2, 3, 4]
+
+        # Test 3: Access column that exists in no agent sets
+        result_nonexistent = hetero_agents.get("nonexistent_column")
+        assert len(result_nonexistent) == 0, (
+            "Should return empty dict for non-existent column"
+        )
+
+        # Test 4: Access multiple columns (mixed availability)
+        result_multi = hetero_agents.get(["wealth", "age"])
+        assert len(result_multi) == 1, (
+            "Should only include agent sets that have ALL requested columns"
+        )
+        assert fix1_AgentSetPolars in result_multi
+        assert fix1_AgentSetPolars_no_wealth not in result_multi
+        assert result_multi[fix1_AgentSetPolars].columns == ["wealth", "age"]
+
+        # Test 5: Access multiple columns where some exist in different sets
+        result_mixed = hetero_agents.get(["age", "income"])
+        assert len(result_mixed) == 1, (
+            "Should only include agent set that has both 'age' and 'income'"
+        )
+        assert fix1_AgentSetPolars_no_wealth in result_mixed
+        assert fix1_AgentSetPolars not in result_mixed
+
+        # Test 6: Test via __getitem__ syntax (the original bug report case)
+        wealth_via_getitem = hetero_agents["wealth"]
+        assert len(wealth_via_getitem) == 1
+        assert fix1_AgentSetPolars in wealth_via_getitem
+        assert wealth_via_getitem[fix1_AgentSetPolars].to_list() == [1, 2, 3, 4]
+
+        # Test 7: Test get(None) - should return all columns for all agent sets
+        result_none = hetero_agents.get(None)
+        assert len(result_none) == 2, (
+            "Should return both agent sets when attr_names=None"
+        )
+        assert fix1_AgentSetPolars in result_none
+        assert fix1_AgentSetPolars_no_wealth in result_none
+
+        # Verify each agent set returns all its columns (excluding unique_id)
+        wealth_set_result = result_none[fix1_AgentSetPolars]
+        assert isinstance(wealth_set_result, pl.DataFrame), (
+            "Should return DataFrame when attr_names=None"
+        )
+        expected_wealth_cols = {"wealth", "age"}  # unique_id should be excluded
+        assert set(wealth_set_result.columns) == expected_wealth_cols
+
+        no_wealth_set_result = result_none[fix1_AgentSetPolars_no_wealth]
+        assert isinstance(no_wealth_set_result, pl.DataFrame), (
+            "Should return DataFrame when attr_names=None"
+        )
+        expected_no_wealth_cols = {"income", "age"}  # unique_id should be excluded
+        assert set(no_wealth_set_result.columns) == expected_no_wealth_cols
 
     def test_remove(
         self,

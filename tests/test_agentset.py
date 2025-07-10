@@ -19,6 +19,18 @@ class ExampleAgentSetPolars(AgentSetPolars):
         self.add_wealth(1)
 
 
+class ExampleAgentSetPolarsNoWealth(AgentSetPolars):
+    def __init__(self, model: ModelDF):
+        super().__init__(model)
+        self.starting_income = pl.Series("income", [1000, 2000, 3000, 4000])
+
+    def add_income(self, amount: int) -> None:
+        self["income"] += amount
+
+    def step(self) -> None:
+        self.add_income(100)
+
+
 @pytest.fixture
 def fix1_AgentSetPolars() -> ExampleAgentSetPolars:
     model = ModelDF()
@@ -62,6 +74,16 @@ def fix1_AgentSetPolars_with_pos(
         agents=fix1_AgentSetPolars["unique_id"][[0, 1]], pos=[[0, 0], [1, 1]]
     )
     return fix1_AgentSetPolars
+
+
+@pytest.fixture
+def fix1_AgentSetPolars_no_wealth() -> ExampleAgentSetPolarsNoWealth:
+    model = ModelDF()
+    agents = ExampleAgentSetPolarsNoWealth(model)
+    agents["income"] = agents.starting_income
+    agents["age"] = [1, 2, 3, 4]
+    model.agents.add(agents)
+    return agents
 
 
 class Test_AgentSetPolars:
