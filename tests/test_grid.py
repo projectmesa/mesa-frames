@@ -15,7 +15,7 @@ def get_unique_ids(model: ModelDF) -> pl.Series:
     # return model.get_agents_of_type(model.agent_types[0])["unique_id"]
     series_list = [
         agent_set["unique_id"].cast(pl.UInt64)
-        for agent_set in model.agents.agents.values()
+        for agent_set in model.agents.df.values()
     ]
     return pl.concat(series_list)
 
