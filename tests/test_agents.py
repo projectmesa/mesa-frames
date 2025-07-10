@@ -339,21 +339,27 @@ class Test_AgentsDF:
         assert len(wealth_via_getitem) == 1
         assert fix1_AgentSetPolars in wealth_via_getitem
         assert wealth_via_getitem[fix1_AgentSetPolars].to_list() == [1, 2, 3, 4]
-        
+
         # Test 7: Test get(None) - should return all columns for all agent sets
         result_none = hetero_agents.get(None)
-        assert len(result_none) == 2, "Should return both agent sets when attr_names=None"
+        assert len(result_none) == 2, (
+            "Should return both agent sets when attr_names=None"
+        )
         assert fix1_AgentSetPolars in result_none
         assert fix1_AgentSetPolars_no_wealth in result_none
-        
+
         # Verify each agent set returns all its columns (excluding unique_id)
         wealth_set_result = result_none[fix1_AgentSetPolars]
-        assert isinstance(wealth_set_result, pl.DataFrame), "Should return DataFrame when attr_names=None"
+        assert isinstance(wealth_set_result, pl.DataFrame), (
+            "Should return DataFrame when attr_names=None"
+        )
         expected_wealth_cols = {"wealth", "age"}  # unique_id should be excluded
         assert set(wealth_set_result.columns) == expected_wealth_cols
-        
+
         no_wealth_set_result = result_none[fix1_AgentSetPolars_no_wealth]
-        assert isinstance(no_wealth_set_result, pl.DataFrame), "Should return DataFrame when attr_names=None"
+        assert isinstance(no_wealth_set_result, pl.DataFrame), (
+            "Should return DataFrame when attr_names=None"
+        )
         expected_no_wealth_cols = {"income", "age"}  # unique_id should be excluded
         assert set(no_wealth_set_result.columns) == expected_no_wealth_cols
 
