@@ -788,7 +788,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         The model that the agent set belongs to.
     """
 
-    _agents: DataFrame  # The agents in the AgentSetDF
+    _df: DataFrame  # The agents in the AgentSetDF
     _mask: (
         AgentMask  # The underlying mask used for the active agents in the AgentSetDF.
     )
@@ -875,13 +875,13 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     ) -> Self | Any:
         masked_df = self._get_masked_df(mask)
         # If the mask is empty, we can use the object as is
-        if len(masked_df) == len(self._agents):
+        if len(masked_df) == len(self._df):
             obj = self._get_obj(inplace)
             method = getattr(obj, method_name)
             result = method(*args, **kwargs)
         else:  # If the mask is not empty, we need to create a new masked AgentSetDF and concatenate the AgentSetDFs at the end
             obj = self._get_obj(inplace=False)
-            obj._agents = masked_df
+            obj._df = masked_df
             original_masked_index = obj._get_obj_copy(obj.index)
             method = getattr(obj, method_name)
             result = method(*args, **kwargs)
@@ -1058,9 +1058,9 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     @abstractmethod
     def __getattr__(self, name: str) -> Any:
         if __debug__:  # Only execute in non-optimized mode
-            if name == "_agents":
+            if name == "_df":
                 raise AttributeError(
-                    "The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
+                    "The _df attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
                 )
 
     @overload
@@ -1087,20 +1087,20 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         return attr
 
     def __len__(self) -> int:
-        return len(self._agents)
+        return len(self._df)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}\n {str(self._agents)}"
+        return f"{self.__class__.__name__}\n {str(self._df)}"
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}\n {str(self._agents)}"
+        return f"{self.__class__.__name__}\n {str(self._df)}"
 
     def __reversed__(self) -> Iterator:
-        return reversed(self._agents)
+        return reversed(self._df)
 
     @property
     def df(self) -> DataFrame:
-        return self._agents
+        return self._df
 
     @df.setter
     def df(self, agents: DataFrame) -> None:
@@ -1111,7 +1111,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         agents : DataFrame
             The agents to set.
         """
-        self._agents = agents
+        self._df = agents
 
     @property
     @abstractmethod

@@ -532,7 +532,7 @@ class AgentsDF(AgentContainer):
         return super().__isub__(agents)
 
     def __len__(self) -> int:
-        return sum(len(agentset._agents) for agentset in self._agentsets)
+        return sum(len(agentset._df) for agentset in self._agentsets)
 
     def __repr__(self) -> str:
         return "\n".join([repr(agentset) for agentset in self._agentsets])
