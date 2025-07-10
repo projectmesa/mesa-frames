@@ -1,10 +1,10 @@
-name: build
+name: CI Checks
 
 on:
   push:
     branches:
-    - main
-    - release**
+      - main
+      - 'release**'
     paths-ignore:
       - '**.md'
   pull_request:
@@ -14,50 +14,63 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
-# This will cancel previous run if a newer job that obsoletes the said previous
-# run, is started.
-# Based on https://github.com/zulip/zulip/commit/4a11642cee3c8aec976d305d51a86e60e5d70522
 concurrency:
   group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
   cancel-in-progress: true
 
 jobs:
-  build:
+  test_on_matrix:
+    name: build (${{ matrix.os }}, py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}-latest
-    # We need an explicit timeout because sometimes the batch_runner test never
-    # completes.
     timeout-minutes: 6
+
     strategy:
-      fail-fast: False
+      fail-fast: false
       matrix:
         os: [windows, ubuntu, macos]
-        python-version: ["3.12"]
+        python-version: ['3.13']
         include:
           - os: ubuntu
-            python-version: "3.11"
+            python-version: '3.11'
           - os: ubuntu
-            python-version: "3.10"
-          # Disabled for now. See https://github.com/projectmesa/mesa/issues/1253
-          #- os: ubuntu
-          #  python-version: 'pypy-3.8'
+            python-version: '3.12'
+
+    env:
+      MESA_FRAMES_RUNTIME_TYPECHECKING: "true"
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-    - name: Install uv
-      run: pip install uv
-    - name: Install mesa-frames
-      # See https://github.com/astral-sh/uv/issues/1945
-      run: |
-        uv pip install --system .[dev]
-    - name: Test with pytest
-      run: pytest --durations=10 --cov=mesa_frames tests/ --cov-report=xml
-    - if: matrix.os == 'ubuntu'
-      name: Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv via GitHub Action
+        uses: astral-sh/setup-uv@v6
+        with:
+          cache: true
+
+      - name: Install mesa-frames + dev dependencies
+        run: |
+          # 1. Install the project itself
+          uv pip install --system .
+          # 2. Install everything under the "dev" dependency group
+          uv pip install --group dev --system
+
+      - name: Test with pytest
+        run: pytest --durations=10 --cov=mesa_frames tests/ --cov-report=xml
+
+      - if: matrix.os == 'ubuntu'
+        name: Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: [test_on_matrix]
+    steps:
+      - name: All matrix builds and tests passed
+        run: echo "All matrix jobs completed successfully."

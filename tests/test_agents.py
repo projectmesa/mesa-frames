@@ -8,15 +8,12 @@ from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.types_ import AgentMask
 from tests.test_agentset import (
     ExampleAgentSetPolars,
+    ExampleAgentSetPolarsNoWealth,
+    fix1_AgentSetPolars_no_wealth,
     fix1_AgentSetPolars,
     fix2_AgentSetPolars,
     fix3_AgentSetPolars,
 )
-
-
-# This serves otherwise ruff complains about the two fixtures not being used
-def not_called():
-    fix2_AgentSetPolars()
 
 
 @pytest.fixture
@@ -95,10 +92,13 @@ class Test_AgentsDF:
         ]
 
         # Test with single id
-        assert agents.contains(0)
+        assert agents.contains(agentset_polars1["unique_id"][0])
 
         # Test with a list of ids
-        assert agents.contains([0, 10]).to_list() == [True, False]
+        assert agents.contains([agentset_polars1["unique_id"][0], 0]).to_list() == [
+            True,
+            False,
+        ]
 
     def test_copy(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -143,7 +143,7 @@ class Test_AgentsDF:
         agentset_polars2 = agents._agentsets[1]
         result = agents.discard(ids, inplace=False)
         assert (
-            result._agentsets[0].index[0]
+            result._agentsets[0]["unique_id"][0]
             == agentset_polars1._agents.select("unique_id").row(1)[0]
         )
         assert (
@@ -155,8 +155,8 @@ class Test_AgentsDF:
         result = agents.discard(fix2_AgentSetPolars, inplace=False)
 
         # Test if removing an ID not present raises KeyError
-        assert -100 not in agents._ids
-        result = agents.discard(-100, inplace=False)
+        assert 0 not in agents._ids
+        result = agents.discard(0, inplace=False)
 
     def test_do(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -215,6 +215,7 @@ class Test_AgentsDF:
         fix_AgentsDF: AgentsDF,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
         fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix1_AgentSetPolars_no_wealth: ExampleAgentSetPolarsNoWealth,
     ):
         agents = fix_AgentsDF
 
@@ -270,6 +271,88 @@ class Test_AgentsDF:
             == fix2_AgentSetPolars._agents["wealth"].to_list()[1:]
         )
 
+        # Test heterogeneous agent sets (different columns)
+        # This tests the fix for the bug where agents_df["column"] would raise
+        # ColumnNotFoundError when some agent sets didn't have that column.
+
+        # Create a new AgentsDF with heterogeneous agent sets
+        model = ModelDF()
+        hetero_agents = AgentsDF(model)
+        hetero_agents.add([fix1_AgentSetPolars, fix1_AgentSetPolars_no_wealth])
+
+        # Test 1: Access column that exists in only one agent set
+        result_wealth = hetero_agents.get("wealth")
+        assert len(result_wealth) == 1, (
+            "Should only return agent sets that have 'wealth'"
+        )
+        assert fix1_AgentSetPolars in result_wealth, (
+            "Should include the agent set with wealth"
+        )
+        assert fix1_AgentSetPolars_no_wealth not in result_wealth, (
+            "Should not include agent set without wealth"
+        )
+        assert result_wealth[fix1_AgentSetPolars].to_list() == [1, 2, 3, 4]
+
+        # Test 2: Access column that exists in all agent sets
+        result_age = hetero_agents.get("age")
+        assert len(result_age) == 2, "Should return both agent sets that have 'age'"
+        assert fix1_AgentSetPolars in result_age
+        assert fix1_AgentSetPolars_no_wealth in result_age
+        assert result_age[fix1_AgentSetPolars].to_list() == [10, 20, 30, 40]
+        assert result_age[fix1_AgentSetPolars_no_wealth].to_list() == [1, 2, 3, 4]
+
+        # Test 3: Access column that exists in no agent sets
+        result_nonexistent = hetero_agents.get("nonexistent_column")
+        assert len(result_nonexistent) == 0, (
+            "Should return empty dict for non-existent column"
+        )
+
+        # Test 4: Access multiple columns (mixed availability)
+        result_multi = hetero_agents.get(["wealth", "age"])
+        assert len(result_multi) == 1, (
+            "Should only include agent sets that have ALL requested columns"
+        )
+        assert fix1_AgentSetPolars in result_multi
+        assert fix1_AgentSetPolars_no_wealth not in result_multi
+        assert result_multi[fix1_AgentSetPolars].columns == ["wealth", "age"]
+
+        # Test 5: Access multiple columns where some exist in different sets
+        result_mixed = hetero_agents.get(["age", "income"])
+        assert len(result_mixed) == 1, (
+            "Should only include agent set that has both 'age' and 'income'"
+        )
+        assert fix1_AgentSetPolars_no_wealth in result_mixed
+        assert fix1_AgentSetPolars not in result_mixed
+
+        # Test 6: Test via __getitem__ syntax (the original bug report case)
+        wealth_via_getitem = hetero_agents["wealth"]
+        assert len(wealth_via_getitem) == 1
+        assert fix1_AgentSetPolars in wealth_via_getitem
+        assert wealth_via_getitem[fix1_AgentSetPolars].to_list() == [1, 2, 3, 4]
+
+        # Test 7: Test get(None) - should return all columns for all agent sets
+        result_none = hetero_agents.get(None)
+        assert len(result_none) == 2, (
+            "Should return both agent sets when attr_names=None"
+        )
+        assert fix1_AgentSetPolars in result_none
+        assert fix1_AgentSetPolars_no_wealth in result_none
+
+        # Verify each agent set returns all its columns (excluding unique_id)
+        wealth_set_result = result_none[fix1_AgentSetPolars]
+        assert isinstance(wealth_set_result, pl.DataFrame), (
+            "Should return DataFrame when attr_names=None"
+        )
+        expected_wealth_cols = {"wealth", "age"}  # unique_id should be excluded
+        assert set(wealth_set_result.columns) == expected_wealth_cols
+
+        no_wealth_set_result = result_none[fix1_AgentSetPolars_no_wealth]
+        assert isinstance(no_wealth_set_result, pl.DataFrame), (
+            "Should return DataFrame when attr_names=None"
+        )
+        expected_no_wealth_cols = {"income", "age"}  # unique_id should be excluded
+        assert set(no_wealth_set_result.columns) == expected_no_wealth_cols
+
     def test_remove(
         self,
         fix_AgentsDF: AgentsDF,
@@ -296,7 +379,7 @@ class Test_AgentsDF:
         agentset_polars2 = agents._agentsets[1]
         result = agents.remove(ids, inplace=False)
         assert (
-            result._agentsets[0].index[0]
+            result._agentsets[0]["unique_id"][0]
             == agentset_polars1._agents.select("unique_id").row(1)[0]
         )
         assert (
@@ -309,9 +392,9 @@ class Test_AgentsDF:
             result = agents.remove(fix3_AgentSetPolars, inplace=False)
 
         # Test if removing an ID not present raises KeyError
-        assert -100 not in agents._ids
+        assert 0 not in agents._ids
         with pytest.raises(KeyError):
-            result = agents.remove(-100, inplace=False)
+            result = agents.remove(0, inplace=False)
 
     def test_select(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -361,7 +444,7 @@ class Test_AgentsDF:
         # Test with filter_func
 
         def filter_func(agentset: AgentSetDF) -> pl.Series:
-            return agentset.df["wealth"] > agentset.df["wealth"][0]
+            return agentset.df["wealth"] > agentset.df["wealth"].to_list()[0]
 
         selected = agents.select(filter_func=filter_func, inplace=False)
         assert (
@@ -488,15 +571,11 @@ class Test_AgentsDF:
         self,
         fix_AgentsDF: AgentsDF,
         fix1_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSetPolars: ExampleAgentSetPolars,
     ):
-        agents = fix_AgentsDF
-        agents_different_index = deepcopy(fix1_AgentSetPolars)
-        agents_different_index._agents = agents_different_index._agents.with_columns(
-            pl.lit([-100, -200, -300, -400]).alias("unique_id")
-        )
+        agents = fix_AgentsDF.remove(fix2_AgentSetPolars, inplace=False)
+        agents_different_index = deepcopy(fix2_AgentSetPolars)
         result = agents._check_ids_presence([fix1_AgentSetPolars])
-
-        # Assertions using Polars filtering
         assert result.filter(
             pl.col("unique_id").is_in(fix1_AgentSetPolars._agents["unique_id"])
         )["present"].all()
@@ -539,8 +618,14 @@ class Test_AgentsDF:
         assert truth_value
 
         # Test with mask = "active"
-        mask0 = agents._agentsets[0].df["wealth"] > agents._agentsets[0].df["wealth"][0]
-        mask1 = agents._agentsets[1].df["wealth"] > agents._agentsets[1].df["wealth"][0]
+        mask0 = (
+            agents._agentsets[0].df["wealth"]
+            > agents._agentsets[0].df["wealth"].to_list()[0]
+        )
+        mask1 = (
+            agents._agentsets[1].df["wealth"]
+            > agents._agentsets[1].df["wealth"][0]
+        )
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
         agents.select(mask=mask_dictionary)
         result = agents._get_bool_masks(mask="active")
@@ -550,7 +635,7 @@ class Test_AgentsDF:
         # Test with mask = IdsLike
         result = agents._get_bool_masks(
             mask=[
-                agents._agentsets[0].index[0],
+                agents._agentsets[0]["unique_id"][0],
                 agents._agentsets[1].df["unique_id"][0],
             ]
         )
@@ -632,10 +717,10 @@ class Test_AgentsDF:
         assert fix3_AgentSetPolars not in agents
 
         # Test with single id present
-        assert 0 in agents
+        assert agentset_polars1["unique_id"][0] in agents
 
         # Test with single id not present
-        assert 10 not in agents
+        assert 0 not in agents
 
     def test___copy__(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -884,8 +969,14 @@ class Test_AgentsDF:
         agents = fix_AgentsDF
 
         # Test with select
-        mask0 = agents._agentsets[0].df["wealth"] > agents._agentsets[0].df["wealth"][0]
-        mask1 = agents._agentsets[1].df["wealth"] > agents._agentsets[1].df["wealth"][0]
+        mask0 = (
+            agents._agentsets[0].df["wealth"]
+            > agents._agentsets[0].df["wealth"].to_list()[0]
+        )
+        mask1 = (
+            agents._agentsets[1].df["wealth"]
+            > agents._agentsets[1].df["wealth"].to_list()[0]
+        )
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
 
         agents1 = agents.select(mask=mask_dictionary, inplace=False)
@@ -948,8 +1039,14 @@ class Test_AgentsDF:
         agents = fix_AgentsDF
 
         # Test with select
-        mask0 = agents._agentsets[0].df["wealth"] > agents._agentsets[0].df["wealth"][0]
-        mask1 = agents._agentsets[1].df["wealth"] > agents._agentsets[1].df["wealth"][0]
+        mask0 = (
+            agents._agentsets[0].df["wealth"]
+            > agents._agentsets[0].df["wealth"].to_list()[0]
+        )
+        mask1 = (
+            agents._agentsets[1].df["wealth"]
+            > agents._agentsets[1].df["wealth"].to_list()[0]
+        )
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
         agents1 = agents.select(mask=mask_dictionary, inplace=False)
         result = agents1.inactive_agents
