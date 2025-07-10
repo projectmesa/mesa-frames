@@ -220,7 +220,7 @@ class AgentsDF(AgentContainer):
 
         for agentset, mask in agentsets_masks.items():
             # Fast column existence check - no data processing, just property access
-            agentset_columns = agentset.agents.columns
+            agentset_columns = agentset.df.columns
 
             # Check if all required columns exist in this agent set
             if not required_columns or all(
@@ -578,7 +578,7 @@ class AgentsDF(AgentContainer):
 
     @property
     def df(self) -> dict[AgentSetDF, DataFrame]:
-        return {agentset: agentset.agents for agentset in self._agentsets}
+        return {agentset: agentset.df for agentset in self._agentsets}
 
     @df.setter
     def df(self, other: Iterable[AgentSetDF]) -> None:
