@@ -191,7 +191,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         if attr_names is None:
             # Return all columns except unique_id
             return masked_df.select(pl.exclude("unique_id"))
-        attr_names = self.agents.select(attr_names).columns.copy()
+        attr_names = self.df.select(attr_names).columns.copy()
         if not attr_names:
             return masked_df
         masked_df = masked_df.select(attr_names)
@@ -534,7 +534,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     @property
     def active_agents(self) -> pl.DataFrame:
-        return self.agents.filter(self._mask)
+        return self.df.filter(self._mask)
 
     @active_agents.setter
     def active_agents(self, mask: AgentPolarsMask) -> None:
@@ -542,7 +542,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
 
     @property
     def inactive_agents(self) -> pl.DataFrame:
-        return self.agents.filter(~self._mask)
+        return self.df.filter(~self._mask)
 
     @property
     def index(self) -> pl.Series:
