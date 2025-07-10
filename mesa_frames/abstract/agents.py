@@ -705,7 +705,9 @@ class AgentContainer(CopyMixin):
 
     @df.setter
     @abstractmethod
-    def agents(self, agents: DataFrame | list[mesa_frames.concrete.agents.AgentSetDF]) -> None:
+    def agents(
+        self, agents: DataFrame | list[mesa_frames.concrete.agents.AgentSetDF]
+    ) -> None:
         """Set the agents in the AgentContainer.
 
         Parameters

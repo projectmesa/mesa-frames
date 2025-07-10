@@ -622,10 +622,7 @@ class Test_AgentsDF:
             agents._agentsets[0].df["wealth"]
             > agents._agentsets[0].df["wealth"].to_list()[0]
         )
-        mask1 = (
-            agents._agentsets[1].df["wealth"]
-            > agents._agentsets[1].df["wealth"][0]
-        )
+        mask1 = agents._agentsets[1].df["wealth"] > agents._agentsets[1].df["wealth"][0]
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
         agents.select(mask=mask_dictionary)
         result = agents._get_bool_masks(mask="active")

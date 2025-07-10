@@ -64,6 +64,7 @@ from mesa_frames.types_ import (
     Series,
 )
 
+
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
 
