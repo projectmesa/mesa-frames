@@ -208,7 +208,7 @@ class AgentsDF(AgentContainer):
     ) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
         agentsets_masks = self._get_bool_masks(mask)
         result = {}
-        
+
         # Convert attr_names to list for consistent checking
         if attr_names is None:
             # None means get all data - no column filtering needed
@@ -217,15 +217,17 @@ class AgentsDF(AgentContainer):
             required_columns = [attr_names]
         else:
             required_columns = list(attr_names)
-        
+
         for agentset, mask in agentsets_masks.items():
             # Fast column existence check - no data processing, just property access
             agentset_columns = agentset.agents.columns
-            
+
             # Check if all required columns exist in this agent set
-            if not required_columns or all(col in agentset_columns for col in required_columns):
+            if not required_columns or all(
+                col in agentset_columns for col in required_columns
+            ):
                 result[agentset] = agentset.get(attr_names, mask)
-        
+
         return result
 
     def remove(
