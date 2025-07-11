@@ -344,9 +344,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             final_active_index = pl.concat(final_active_indices, how="vertical")
 
         else:
-            final_df = pl.concat(
-                [obj._df for obj in agentsets], how="diagonal_relaxed"
-            )
+            final_df = pl.concat([obj._df for obj in agentsets], how="diagonal_relaxed")
             final_active_index = pl.concat(
                 [obj._df.filter(obj._mask)["unique_id"] for obj in agentsets]
             )
@@ -410,9 +408,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 raise KeyError(
                     "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
                 )
-            return mask.select("unique_id").join(
-                self._df, on="unique_id", how="left"
-            )
+            return mask.select("unique_id").join(self._df, on="unique_id", how="left")
         elif isinstance(mask, pl.Series):
             if not mask.is_in(self._df["unique_id"]).all():
                 raise KeyError(

@@ -937,7 +937,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         agentsdf = self.model.agents.remove(agents, inplace=inplace)
         # TODO: Refactor AgentsDF to return dict[str, AgentSetDF] instead of dict[AgentSetDF, DataFrame]
         # And assign a name to AgentSetDF? This has to be replaced by a nicer API of AgentsDF
-        for agentset in agentsdf.agents.keys():
+        for agentset in agentsdf.df.keys():
             if isinstance(agentset, self.__class__):
                 return agentset
         return self
