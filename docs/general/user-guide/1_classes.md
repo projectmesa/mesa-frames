@@ -24,13 +24,13 @@ class MoneyAgent(AgentSetPolars):
         self["wealth"] = self["wealth"] + self.random.integers(n)
 ```
 
-You can access the underlying DataFrame where agents are stored with `self.agents`. This allows you to use DataFrame methods like `self.agents.sample` or `self.agents.group_by("wealth")` and more.
+You can access the underlying DataFrame where agents are stored with `self.df`. This allows you to use DataFrame methods like `self.df.sample` or `self.df.group_by("wealth")` and more.
 
 ## ModelDF 🏗️
 
 To add your AgentSetDF to your ModelDF, you should also add it to the agents with `+=` or `add`.
 
-NOTE: ModelDF.agents are stored in a class which is entirely similar to AgentSetDF called AgentsDF. The API of the two are the same. If you try accessing AgentsDF.agents, you will get a dictionary of `[AgentSetDF, DataFrame]`.
+NOTE: ModelDF.agents are stored in a class which is entirely similar to AgentSetDF called AgentsDF. The API of the two are the same. If you try accessing AgentsDF.df, you will get a dictionary of `[AgentSetDF, DataFrame]`.
 
 Example:
 
