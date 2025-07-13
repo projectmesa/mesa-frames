@@ -349,8 +349,12 @@ class TestDataCollector:
                 os.path.join(tmpdir, "agent_step2.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
+            assert agent_df.columns == ['wealth', 'age_ExampleAgentSet1', 'age_ExampleAgentSet2', 'age_ExampleAgentSet3', 'step', 'seed']
             assert agent_df["step"].to_list() == [2, 2, 2, 2]
             assert agent_df["wealth"].to_list() == [3, 4, 5, 6]
+            assert agent_df["age_ExampleAgentSet1"].to_list() == [10,20,30,40]
+            assert agent_df["age_ExampleAgentSet2"].to_list() == [11,22,33,44]
+            assert agent_df["age_ExampleAgentSet3"].to_list() == [3,4,5,6,]
 
             agent_df = pl.read_csv(
                 os.path.join(tmpdir, "agent_step4.csv"),
@@ -431,10 +435,6 @@ class TestDataCollector:
                 "total_agents": lambda model: sum(
                     len(agentset) for agentset in model.agents._agentsets
                 )
-            },
-            agent_reporters={
-                "wealth": lambda agents: agents._agentsets[0]["wealth"],
-                "age": "age",
             },
             storage="postgresql",
             schema="public",
