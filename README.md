@@ -110,7 +110,7 @@ class MoneyAgentPolars(AgentSetPolars):
         self.select(self.wealth > 0)
 
         # Receiving agents are sampled (only native expressions currently supported)
-        other_agents = self.agents.sample(
+        other_agents = self.df.sample(
             n=len(self.active_agents), with_replacement=True
         )
 

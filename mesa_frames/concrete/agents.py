@@ -207,10 +207,28 @@ class AgentsDF(AgentContainer):
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
     ) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
         agentsets_masks = self._get_bool_masks(mask)
-        return {
-            agentset: agentset.get(attr_names, mask)
-            for agentset, mask in agentsets_masks.items()
-        }
+        result = {}
+
+        # Convert attr_names to list for consistent checking
+        if attr_names is None:
+            # None means get all data - no column filtering needed
+            required_columns = []
+        elif isinstance(attr_names, str):
+            required_columns = [attr_names]
+        else:
+            required_columns = list(attr_names)
+
+        for agentset, mask in agentsets_masks.items():
+            # Fast column existence check - no data processing, just property access
+            agentset_columns = agentset.df.columns
+
+            # Check if all required columns exist in this agent set
+            if not required_columns or all(
+                col in agentset_columns for col in required_columns
+            ):
+                result[agentset] = agentset.get(attr_names, mask)
+
+        return result
 
     def remove(
         self,
@@ -514,7 +532,7 @@ class AgentsDF(AgentContainer):
         return super().__isub__(agents)
 
     def __len__(self) -> int:
-        return sum(len(agentset._agents) for agentset in self._agentsets)
+        return sum(len(agentset._df) for agentset in self._agentsets)
 
     def __repr__(self) -> str:
         return "\n".join([repr(agentset) for agentset in self._agentsets])
@@ -559,11 +577,11 @@ class AgentsDF(AgentContainer):
         return super().__sub__(agents)
 
     @property
-    def agents(self) -> dict[AgentSetDF, DataFrame]:
-        return {agentset: agentset.agents for agentset in self._agentsets}
+    def df(self) -> dict[AgentSetDF, DataFrame]:
+        return {agentset: agentset.df for agentset in self._agentsets}
 
-    @agents.setter
-    def agents(self, other: Iterable[AgentSetDF]) -> None:
+    @df.setter
+    def df(self, other: Iterable[AgentSetDF]) -> None:
         """Set the agents in the AgentsDF.
 
         Parameters
