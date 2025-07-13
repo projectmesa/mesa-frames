@@ -259,7 +259,7 @@ class DataCollector(AbstractDataCollector):
     def _get_db_connection(self, uri: str) -> connection:
         """
         Uri should be like: postgresql://user:pass@host:port/dbname.
-        
+
         Parameters
         ----------
         uri: str
@@ -270,7 +270,6 @@ class DataCollector(AbstractDataCollector):
         connection
             psycopg2 connection
         """
-
         parsed = urlparse(uri)
         conn = psycopg2.connect(
             dbname=parsed.path[1:],  # remove leading slash
