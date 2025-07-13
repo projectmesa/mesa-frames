@@ -424,7 +424,7 @@ class TestDataCollector:
                 wealth INTEGER
             )
         """)
-        conn.commit() 
+        conn.commit()
         cur.close()
         conn.close()
 
