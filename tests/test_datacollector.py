@@ -414,7 +414,9 @@ class TestDataCollector:
             CREATE TABLE public.agent_data (
                 step INTEGER,
                 seed VARCHAR,
-                age INTEGER,
+                age_ExampleAgentSet1 INTEGER,
+                age_ExampleAgentSet2 INTEGER,
+                age_ExampleAgentSet3 INTEGER,
                 wealth INTEGER
             )
         """)
