@@ -418,7 +418,7 @@ class TestDataCollector:
                 wealth INTEGER
             )
         """)
-        conn.commit()  # ✅ REQUIRED to persist tables
+        conn.commit() 
         cur.close()
         conn.close()
 
