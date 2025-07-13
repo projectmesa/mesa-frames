@@ -107,18 +107,20 @@ jobs:
 
       - name: Install and Start PostgreSQL (Windows)
         if: matrix.os == 'windows'
+        shell: bash
         run: |
-          choco install postgresql15 --params '/Password:password' -y
-          echo "C:\Program Files\PostgreSQL\15\bin" >> $GITHUB_PATH
-          export PGDATA="C:\pgdata"
+          curl -L -o pg.zip https://example.com/postgresql-windows-portable-15.zip
+          unzip pg.zip -d pg
+          echo "$PWD/pg/bin" >> $GITHUB_PATH
 
-          initdb -U user -A trust -D $PGDATA
-          pg_ctl -D $PGDATA -l logfile start
+          export PGDATA="$PWD/pgdata"
+          mkdir -p "$PGDATA"
+
+          initdb -U user -A trust -D "$PGDATA"
+          pg_ctl -D "$PGDATA" -l logfile start
 
           sleep 5
-
           createdb testdb -U user
-        shell: bash
 
       - name: Install and Start PostgreSQL (macOS)
         if: matrix.os == 'macos'

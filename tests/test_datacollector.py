@@ -62,10 +62,6 @@ class ExampleModel(ModelDF):
         for _ in range(n):
             self.step()
 
-    def run_model(self, n):
-        for _ in range(n):
-            self.step()
-
     def run_model_with_collect(self, n):
         for _ in range(n):
             self.step()
