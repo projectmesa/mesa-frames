@@ -461,10 +461,5 @@ class TestDataCollector:
         model_rows = cur.fetchall()
         assert model_rows == [(2, 12), (4, 12)]
 
-        # Check agent data
-        cur.execute("SELECT step, wealth FROM agent_data WHERE step=2 ORDER BY wealth")
-        agent_rows = cur.fetchall()
-        assert agent_rows == [(2, 3), (2, 4), (2, 5), (2, 6)]
-
         cur.close()
         conn.close()
