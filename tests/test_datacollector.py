@@ -115,7 +115,7 @@ def fix1_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
 
 
 class TestDataCollector:
-    def test__init__(self, fix1_model,postgres_uri):
+    def test__init__(self, fix1_model, postgres_uri):
         model = fix1_model
         with pytest.raises(
             beartype.roar.BeartypeCallHintParamViolation,
@@ -135,7 +135,7 @@ class TestDataCollector:
             match="Please define a storage_uri to if to be stored not in memory",
         ):
             model.test_dc = DataCollector(model=model, storage="postgresql")
-        
+
     def test_collect(self, fix1_model):
         model = fix1_model
 
@@ -418,7 +418,7 @@ class TestDataCollector:
                 wealth INTEGER
             )
         """)
-        
+
         model.dc = DataCollector(
             model=model,
             trigger=custom_trigger,

@@ -249,7 +249,8 @@ class DataCollector(AbstractDataCollector):
             placeholders = ", ".join(["%s"] * len(cols))
             columns = ", ".join(cols)
             cur.executemany(
-                f"INSERT INTO {self._schema}.{table} ({columns}) VALUES ({placeholders})", values
+                f"INSERT INTO {self._schema}.{table} ({columns}) VALUES ({placeholders})",
+                values,
             )
         conn.commit()
         cur.close()
@@ -389,24 +390,30 @@ class DataCollector(AbstractDataCollector):
         }
 
         missing_required = {
-            col: col_type for col, col_type in required_columns.items()
+            col: col_type
+            for col, col_type in required_columns.items()
             if col not in existing_columns
         }
 
         if missing_columns or missing_required:
             error_parts = []
-            
+
             if missing_columns:
                 error_parts.append(f"Missing columns: {sorted(missing_columns)}")
-            
-            if missing_required:
-                required_list = [f"`{col}` column of type ({col_type})" for col, col_type in missing_required.items()]
-                error_parts.append("Missing specific columns: " + ", ".join(required_list))
-            
-            raise ValueError(
-                f"Missing columns in table {self._schema}.{table_name}: " + "; ".join(error_parts)
-            )
 
+            if missing_required:
+                required_list = [
+                    f"`{col}` column of type ({col_type})"
+                    for col, col_type in missing_required.items()
+                ]
+                error_parts.append(
+                    "Missing specific columns: " + ", ".join(required_list)
+                )
+
+            raise ValueError(
+                f"Missing columns in table {self._schema}.{table_name}: "
+                + "; ".join(error_parts)
+            )
 
     def _execute_query_with_result(self, conn: connection, query: str) -> list[tuple]:
         """
