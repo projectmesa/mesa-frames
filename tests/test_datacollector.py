@@ -403,7 +403,7 @@ class TestDataCollector:
         cur = conn.cursor()
 
         cur.execute("""
-            CREATE TABLE model_data (
+            CREATE TABLE test.model_data (
                 step INTEGER,
                 seed VARCHAR,
                 total_agents INTEGER
@@ -411,14 +411,14 @@ class TestDataCollector:
         """)
 
         cur.execute("""
-            CREATE TABLE agent_data (
+            CREATE TABLE test.agent_data (
                 step INTEGER,
                 seed VARCHAR,
                 age INTEGER,
                 wealth INTEGER
             )
         """)
-        
+
         model.dc = DataCollector(
             model=model,
             trigger=custom_trigger,
@@ -432,7 +432,7 @@ class TestDataCollector:
                 "age": "age",
             },
             storage="postgresql",
-            schema="public",
+            schema="test",
             storage_uri=postgres_uri,
         )
 
