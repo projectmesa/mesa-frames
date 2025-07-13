@@ -1,10 +1,57 @@
 """
 Concrete class for data collection in mesa-frames.
 
-This module defines a DataCollector implementation that gathers and optionally persists
+This module defines a `DataCollector` implementation that gathers and optionally persists
 model-level and agent-level data during simulations. It supports multiple storage backends,
 including in-memory, CSV, Parquet, S3, and PostgreSQL, using Polars for efficient lazy
 data processing.
+
+Classes:
+    DataCollector:
+        A concrete class defining logic for all data collector implementations.
+        It supports flexible reporting of model and agent attributes, conditional 
+        data collection using a trigger function, and pluggable backends for storage.
+
+Supported Storage Backends:
+    - memory         : In-memory collection (default)
+    - csv            : Local CSV file output
+    - parquet        : Local Parquet file output
+    - S3-csv         : CSV files stored on Amazon S3
+    - S3-parquet     : Parquet files stored on Amazon S3
+    - postgresql     : PostgreSQL database with schema support
+
+Triggers:
+    - A `trigger` parameter can be provided to control conditional collection.
+      This is a callable taking the model as input and returning a boolean.
+      If true, data is collected during `conditional_collect()`.
+
+Usage:
+    The `DataCollector` class is designed to be used within a `ModelDF` instance
+    to collect model-level and/or agent-level data.
+
+    Example:
+    --------
+    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.datacollector import DataCollector
+
+    class ExampleModel(ModelDF):
+        def __init__(self, agents: AgentsDF):
+            super().__init__()
+            self.agents = agents
+            self.dc = DataCollector(
+                model=self,
+                # other required arguments
+            )
+
+        def step(self):
+            # Option 1: collect immediately
+            self.dc.collect()
+
+            # Option 2: collect based on condition
+            self.dc.conditional_collect()
+
+            # Write the collected data to the destination
+            self.dc.flush()
 """
 
 import polars as pl
