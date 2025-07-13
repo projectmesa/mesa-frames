@@ -425,8 +425,6 @@ class TestDataCollector:
             )
         """)
         conn.commit()
-        cur.close()
-        conn.close()
 
         model.dc = DataCollector(
             model=model,
