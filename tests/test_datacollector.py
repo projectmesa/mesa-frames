@@ -433,7 +433,7 @@ class TestDataCollector:
             )
         """)
         conn.commit()
-
+        
         model.dc = DataCollector(
             model=model,
             trigger=custom_trigger,
@@ -461,9 +461,14 @@ class TestDataCollector:
         model_rows = cur.fetchall()
         assert model_rows == [(2, 12), (4, 12)]
 
-        cur.execute("SELECT step, wealth FROM agent_data WHERE step=2 ORDER BY wealth")
+        cur.execute("SELECT step, wealth,age_ExampleAgentSet1, age_ExampleAgentSet2, age_ExampleAgentSet3 FROM agent_data WHERE step=2 ORDER BY wealth")
         agent_rows = cur.fetchall()
-        assert agent_rows == [(2, 3), (2, 4), (2, 5), (2, 6)]
+        assert agent_rows == [
+            (2, 3, 10, 11, 3), 
+            (2, 4, 20, 22, 4),
+            (2, 5, 30, 33, 5),
+            (2, 6, 40, 44, 6),
+            ]
 
         cur.close()
         conn.close()
