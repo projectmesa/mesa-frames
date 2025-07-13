@@ -426,7 +426,14 @@ class DataCollector(AbstractDataCollector):
         ValueError
             If any expected columns are missing from the table.
         """
-        expected_columns = set(reporter.keys())
+        expected_columns = set()
+        for col_name, required_column in reporter.items():
+            if isinstance(required_column, str):
+                for k, v in self._model.agents[required_column].items():
+                    expected_columns.add(col_name + "_" + str(k.__class__.__name__))
+            else:
+                expected_columns.add(col_name)
+
         query = f"""
             SELECT column_name
             FROM information_schema.columns
