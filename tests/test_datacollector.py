@@ -115,7 +115,7 @@ def fix1_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
 
 
 class TestDataCollector:
-    def test__init__(self, fix1_model):
+    def test__init__(self, fix1_model,postgres_uri):
         model = fix1_model
         with pytest.raises(
             beartype.roar.BeartypeCallHintParamViolation,
@@ -130,6 +130,12 @@ class TestDataCollector:
         ):
             model.test_dc = DataCollector(model=model, storage="S3-csv")
 
+        with pytest.raises(
+            ValueError,
+            match="Please define a storage_uri to if to be stored not in memory",
+        ):
+            model.test_dc = DataCollector(model=model, storage="postgresql")
+        
     def test_collect(self, fix1_model):
         model = fix1_model
 
@@ -389,6 +395,30 @@ class TestDataCollector:
 
     def test_postgress(self, fix1_model, postgres_uri):
         model = fix1_model
+
+        # Connect directly and validate data
+        import psycopg2
+
+        conn = psycopg2.connect(postgres_uri)
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE model_data (
+                step INTEGER,
+                seed VARCHAR,
+                total_agents INTEGER
+            )
+        """)
+
+        cur.execute("""
+            CREATE TABLE agent_data (
+                step INTEGER,
+                seed VARCHAR,
+                age INTEGER,
+                wealth INTEGER
+            )
+        """)
+        
         model.dc = DataCollector(
             model=model,
             trigger=custom_trigger,
@@ -402,6 +432,7 @@ class TestDataCollector:
                 "age": "age",
             },
             storage="postgresql",
+            schema="public",
             storage_uri=postgres_uri,
         )
 
@@ -409,10 +440,6 @@ class TestDataCollector:
         model.dc.flush()
 
         # Connect directly and validate data
-        import psycopg2
-
-        conn = psycopg2.connect(postgres_uri)
-        cur = conn.cursor()
 
         # Check model data
         cur.execute("SELECT step, total_agents FROM model_data ORDER BY step")

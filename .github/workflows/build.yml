@@ -110,10 +110,13 @@ jobs:
         run: |
           choco install postgresql15 --params '/Password:password' -y
           echo "C:\Program Files\PostgreSQL\15\bin" >> $GITHUB_PATH
-          initdb -U postgres -A trust -D pgdata
-          pg_ctl -D pgdata -l logfile start
+          export PGDATA="C:\pgdata"
+
+          initdb -U user -A trust -D $PGDATA
+          pg_ctl -D $PGDATA -l logfile start
+
           sleep 5
-          createuser user --createdb
+
           createdb testdb -U user
         shell: bash
 
@@ -122,23 +125,21 @@ jobs:
         run: |
           brew install postgresql@15
 
-          echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> $GITHUB_ENV
-          echo 'export PGDATA="/opt/homebrew/var/postgresql@15"' >> $GITHUB_ENV
+          export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+          export PGDATA="/opt/homebrew/var/postgresql@15"
 
-          source $GITHUB_ENV
+          # Ensure a clean database directory
+          rm -rf $PGDATA
+          mkdir -p $PGDATA
 
-          # Manually initialize the database cluster with a known superuser
           initdb --username=user --auth=trust --encoding=UTF8 $PGDATA
 
-          # Start the PostgreSQL server
           pg_ctl -D $PGDATA -l logfile start
 
           sleep 5
 
-          # Create the test database
           createdb testdb -U user
         shell: bash
-
 
       - name: Test with pytest
         run: pytest --durations=10 --cov=mesa_frames tests/ --cov-report=xml

@@ -69,7 +69,7 @@ class DataCollector(AbstractDataCollector):
             "parquet": self._write_parquet_local,
             "S3-csv": self._write_csv_s3,
             "S3-parquet": self._write_parquet_s3,
-            "postgres": self._write_postgres,
+            "postgresql": self._write_postgres,
         }
         self._storage_uri = storage_uri
         self._schema = schema
@@ -249,7 +249,7 @@ class DataCollector(AbstractDataCollector):
             placeholders = ", ".join(["%s"] * len(cols))
             columns = ", ".join(cols)
             cur.executemany(
-                f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", values
+                f"INSERT INTO {self._schema}.{table} ({columns}) VALUES ({placeholders})", values
             )
         conn.commit()
         cur.close()
@@ -283,9 +283,11 @@ class DataCollector(AbstractDataCollector):
 
         if self._storage == "postgresql":
             conn = self._get_db_connection(self._storage_uri)
-            self._validate_postgress_table_exists(conn)
-            self._validate_postgress_columns_exists(conn)
-            conn.close()
+            try:
+                self._validate_postgress_table_exists(conn)
+                self._validate_postgress_columns_exists(conn)
+            finally:
+                conn.close()
 
     def _validate_postgress_table_exists(self, conn: connection):
         """
@@ -340,9 +342,10 @@ class DataCollector(AbstractDataCollector):
             SELECT FROM information_schema.tables
             WHERE table_schema = '{self._schema}' AND table_name = '{table_name}'
             );"""
-        if not self._execute_query_with_result(conn, query):
+        result = self._execute_query_with_result(conn, query)
+        if result == [(False,)]:
             raise ValueError(
-                f"{self._schema}{table_name} does not exist. To store collected data in DB please create a table with required columns"
+                f"{self._schema}.{table_name} does not exist. To store collected data in DB please create a table with required columns"
             )
 
     def _validate_reporter_table_columns(
@@ -380,11 +383,30 @@ class DataCollector(AbstractDataCollector):
 
         existing_columns = {row[0] for row in result}
         missing_columns = expected_columns - existing_columns
+        required_columns = {
+            "step": "Integer",
+            "seed": "Varchar",
+        }
 
-        if missing_columns:
+        missing_required = {
+            col: col_type for col, col_type in required_columns.items()
+            if col not in existing_columns
+        }
+
+        if missing_columns or missing_required:
+            error_parts = []
+            
+            if missing_columns:
+                error_parts.append(f"Missing columns: {sorted(missing_columns)}")
+            
+            if missing_required:
+                required_list = [f"`{col}` column of type ({col_type})" for col, col_type in missing_required.items()]
+                error_parts.append("Missing specific columns: " + ", ".join(required_list))
+            
             raise ValueError(
-                f"Missing columns in table {self._schema}.{table_name}: {missing_columns}"
+                f"Missing columns in table {self._schema}.{table_name}: " + "; ".join(error_parts)
             )
+
 
     def _execute_query_with_result(self, conn: connection, query: str) -> list[tuple]:
         """
