@@ -9,7 +9,7 @@ data processing.
 Classes:
     DataCollector:
         A concrete class defining logic for all data collector implementations.
-        It supports flexible reporting of model and agent attributes, conditional 
+        It supports flexible reporting of model and agent attributes, conditional
         data collection using a trigger function, and pluggable backends for storage.
 
 Supported Storage Backends:
