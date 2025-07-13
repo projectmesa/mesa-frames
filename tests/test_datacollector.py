@@ -418,6 +418,9 @@ class TestDataCollector:
                 wealth INTEGER
             )
         """)
+        conn.commit()  # ✅ REQUIRED to persist tables
+        cur.close()
+        conn.close()
 
         model.dc = DataCollector(
             model=model,
@@ -438,6 +441,7 @@ class TestDataCollector:
 
         model.run_model_with_conditional_collect(4)
         model.dc.flush()
+        
 
         # Connect directly and validate data
 
