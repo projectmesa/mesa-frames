@@ -430,7 +430,9 @@ class DataCollector(AbstractDataCollector):
         for col_name, required_column in reporter.items():
             if isinstance(required_column, str):
                 for k, v in self._model.agents[required_column].items():
-                    expected_columns.add((col_name + "_" + str(k.__class__.__name__)).lower())
+                    expected_columns.add(
+                        (col_name + "_" + str(k.__class__.__name__)).lower()
+                    )
             else:
                 expected_columns.add(col_name.lower())
 
