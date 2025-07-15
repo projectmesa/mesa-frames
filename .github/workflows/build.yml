@@ -32,6 +32,7 @@ jobs:
     env:
       MESA_FRAMES_RUNTIME_TYPECHECKING: "true"
       POSTGRES_URI: postgresql://user:password@localhost:5432/testdb
+      SKIP_PG_TESTS: "false"
 
     services:
       postgres:
@@ -81,11 +82,16 @@ jobs:
 
     strategy:
       matrix:
-        os: [windows, macos]
+        include:
+          - os: windows
+            skip_pg: true
+          - os: macos
+            skip_pg: false
 
     env:
       MESA_FRAMES_RUNTIME_TYPECHECKING: "true"
       POSTGRES_URI: postgresql://user:password@localhost:5432/testdb
+      SKIP_PG_TESTS: ${{ matrix.skip_pg }}
 
     steps:
       - uses: actions/checkout@v4
@@ -104,21 +110,6 @@ jobs:
         run: |
           uv pip install --system .
           uv pip install --group dev --system
-
-      - name: Install and Start PostgreSQL (Windows)
-        if: matrix.os == 'windows'
-        run: |
-          choco install postgresql15 --params '/Password:password' -y
-          echo "C:\Program Files\PostgreSQL\15\bin" >> $GITHUB_PATH
-          export PGDATA="C:\pgdata"
-
-          initdb -U user -A trust -D $PGDATA
-          pg_ctl -D $PGDATA -l logfile start
-
-          sleep 5
-
-          createdb testdb -U user
-        shell: bash
 
       - name: Install and Start PostgreSQL (macOS)
         if: matrix.os == 'macos'

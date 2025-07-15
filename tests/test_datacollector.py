@@ -405,6 +405,10 @@ class TestDataCollector:
             assert agent_df["step"].to_list() == [0, 0, 0, 0]
             assert agent_df["wealth"].to_list() == [1, 2, 3, 4]
 
+    @pytest.mark.skipif(
+        os.getenv("SKIP_PG_TESTS") == "true",
+        reason="PostgreSQL tests are skipped on Windows runners",
+    )
     def test_postgress(self, fix1_model, postgres_uri):
         model = fix1_model
 
@@ -433,7 +437,7 @@ class TestDataCollector:
             )
         """)
         conn.commit()
-        
+
         model.dc = DataCollector(
             model=model,
             trigger=custom_trigger,
@@ -461,14 +465,16 @@ class TestDataCollector:
         model_rows = cur.fetchall()
         assert model_rows == [(2, 12), (4, 12)]
 
-        cur.execute("SELECT step, wealth,age_ExampleAgentSet1, age_ExampleAgentSet2, age_ExampleAgentSet3 FROM agent_data WHERE step=2 ORDER BY wealth")
+        cur.execute(
+            "SELECT step, wealth,age_ExampleAgentSet1, age_ExampleAgentSet2, age_ExampleAgentSet3 FROM agent_data WHERE step=2 ORDER BY wealth"
+        )
         agent_rows = cur.fetchall()
         assert agent_rows == [
-            (2, 3, 10, 11, 3), 
+            (2, 3, 10, 11, 3),
             (2, 4, 20, 22, 4),
             (2, 5, 30, 33, 5),
             (2, 6, 40, 44, 6),
-            ]
+        ]
 
         cur.close()
         conn.close()
