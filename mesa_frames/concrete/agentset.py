@@ -192,11 +192,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         if attr_names is None:
             # Return all columns except unique_id
             return masked_df.select(pl.exclude("unique_id")).collect()
-        attr_names = (
-            self._df.select(attr_names).columns.copy()
-            if attr_names
-            else []
-        )
+        attr_names = self._df.select(attr_names).columns.copy() if attr_names else []
         if not attr_names:
             return masked_df.collect()
         masked_df = masked_df.select(attr_names).collect()
@@ -258,9 +254,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         unique_id_column = None
         unique_id_column = None
         if "unique_id" not in obj._df:
-            unique_id_column = self._generate_unique_ids(len(masked_df.collect())).alias(
-                "unique_id"
-            )
+            unique_id_column = self._generate_unique_ids(
+                len(masked_df.collect())
+            ).alias("unique_id")
             obj._df = obj._df.with_columns(unique_id_column)
             masked_df = masked_df.with_columns(unique_id_column)
         b_mask = obj._get_bool_mask(mask)
@@ -286,10 +282,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         if n is not None:
             # Need to collect for sampling
             sample_ids = obj._df.filter(mask).collect().sample(n)["unique_id"]
-            mask = (
-                (obj._df.collect()["unique_id"])
-                .is_in(sample_ids)
-            )
+            mask = (obj._df.collect()["unique_id"]).is_in(sample_ids)
         if negate:
             mask = mask.not_()
         obj._mask = mask
@@ -347,12 +340,8 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
                 if len(agentset) == max_length:
                     original_index = agentset._df.collect()["unique_id"]
             final_dfs = [self._df]
-            final_active_indices = [
-                self._df.filter(self._mask).collect()["unique_id"]
-            ]
-            final_indices = (
-                self._df.collect()["unique_id"].clone()
-            )
+            final_active_indices = [self._df.filter(self._mask).collect()["unique_id"]]
+            final_indices = self._df.collect()["unique_id"].clone()
             for obj in iter(agentsets):
                 # Remove agents that are already in the final DataFrame
                 final_dfs.append(
@@ -382,10 +371,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             final_active_index = pl.concat(
                 [obj._df.filter(obj._mask).collect()["unique_id"] for obj in agentsets]
             )
-        final_mask = (
-            final_df.collect()["unique_id"]
-            .is_in(final_active_index)
-        )
+        final_mask = final_df.collect()["unique_id"].is_in(final_active_index)
         self._df = final_df
         self._mask = final_mask
         # If some ids were removed in the do-method, we need to remove them also from final_df
@@ -493,9 +479,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         mask = self._get_bool_mask(ids)
 
         if isinstance(self._mask, pl.Series):
-            original_active_indices = self._df.filter(self._mask).collect()[
-                "unique_id"
-            ]
+            original_active_indices = self._df.filter(self._mask).collect()["unique_id"]
 
         self._df = self._df.filter(mask.not_())
 
