@@ -4,39 +4,50 @@ on:
   push:
     branches:
       - main
-      - 'release**'
+      - "release**"
     paths-ignore:
-      - '**.md'
+      - "**.md"
   pull_request:
     paths-ignore:
-      - '**.md'
+      - "**.md"
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: "0 6 * * 1"
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
   cancel-in-progress: true
 
 jobs:
-  test_on_matrix:
-    name: build (${{ matrix.os }}, py${{ matrix.python-version }})
-    runs-on: ${{ matrix.os }}-latest
+  test_on_ubuntu:
+    name: build (ubuntu, py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
     timeout-minutes: 6
 
     strategy:
       fail-fast: false
       matrix:
-        os: [windows, ubuntu, macos]
-        python-version: ['3.13']
-        include:
-          - os: ubuntu
-            python-version: '3.11'
-          - os: ubuntu
-            python-version: '3.12'
+        python-version: ["3.11", "3.12", "3.13"]
 
     env:
       MESA_FRAMES_RUNTIME_TYPECHECKING: "true"
+      POSTGRES_URI: postgresql://user:password@localhost:5432/testdb
+      SKIP_PG_TESTS: "false"
+
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -53,24 +64,80 @@ jobs:
 
       - name: Install mesa-frames + dev dependencies
         run: |
-          # 1. Install the project itself
           uv pip install --system .
-          # 2. Install everything under the "dev" dependency group
           uv pip install --group dev --system
 
       - name: Test with pytest
         run: pytest --durations=10 --cov=mesa_frames tests/ --cov-report=xml
 
-      - if: matrix.os == 'ubuntu'
-        name: Codecov
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  test_on_mac_windows:
+    name: build (${{ matrix.os }}, py3.13)
+    runs-on: ${{ matrix.os }}-latest
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        include:
+          - os: windows
+            skip_pg: true
+          - os: macos
+            skip_pg: false
+
+    env:
+      MESA_FRAMES_RUNTIME_TYPECHECKING: "true"
+      POSTGRES_URI: postgresql://user:password@localhost:5432/testdb
+      SKIP_PG_TESTS: ${{ matrix.skip_pg }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv via GitHub Action
+        uses: astral-sh/setup-uv@v6
+        with:
+          cache: true
+
+      - name: Install mesa-frames + dev dependencies
+        run: |
+          uv pip install --system .
+          uv pip install --group dev --system
+
+      - name: Install and Start PostgreSQL (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          brew install postgresql@15
+
+          export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+          export PGDATA="/opt/homebrew/var/postgresql@15"
+
+          # Ensure a clean database directory
+          rm -rf $PGDATA
+          mkdir -p $PGDATA
+
+          initdb --username=user --auth=trust --encoding=UTF8 $PGDATA
+
+          pg_ctl -D $PGDATA -l logfile start
+
+          sleep 5
+
+          createdb testdb -U user
+        shell: bash
+
+      - name: Test with pytest
+        run: pytest --durations=10 --cov=mesa_frames tests/ --cov-report=xml
+
   build:
     name: build
     runs-on: ubuntu-latest
-    needs: [test_on_matrix]
+    needs: [test_on_ubuntu, test_on_mac_windows]
     steps:
-      - name: All matrix builds and tests passed
-        run: echo "All matrix jobs completed successfully."
+      - run: echo "All matrix jobs completed successfully."

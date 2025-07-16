@@ -64,7 +64,7 @@ class AbstractDataCollector(ABC):
     _agent_reporters: dict[str, str | Callable] | None
     _trigger: Callable[..., bool]
     _reset_memory = bool
-    _storage_uri: Literal["memory:", "csv:", "postgresql:"]
+    _storage: Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"]
     _frames: list[pl.DataFrame]
 
     def __init__(
@@ -74,7 +74,9 @@ class AbstractDataCollector(ABC):
         agent_reporters: dict[str, str | Callable] | None = None,
         trigger: Callable[[Any], bool] | None = None,
         reset_memory: bool = True,
-        storage: Literal["memory:", "csv:", "postgresql:"] = "memory:",
+        storage: Literal[
+            "memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"
+        ] = "memory",
     ):
         """
         Initialize a Datacollector.
@@ -91,7 +93,7 @@ class AbstractDataCollector(ABC):
             A function(model) -> bool that determines whether to collect data.
         reset_memory : bool
             Whether to reset in-memory data after flushing. Default is True.
-        storage : Literal["memory:", "csv:", "postgresql:"]
+        storage : Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"        ]
             Storage backend URI (e.g. 'memory:', 'csv:', 'postgresql:').
         """
         self._model = model
@@ -99,7 +101,7 @@ class AbstractDataCollector(ABC):
         self._agent_reporters = agent_reporters or {}
         self._trigger = trigger or (lambda model: False)
         self._reset_memory = reset_memory
-        self._storage_uri = storage or "memory:"
+        self._storage = storage or "memory"
         self._frames = []
 
     def collect(self) -> None:
