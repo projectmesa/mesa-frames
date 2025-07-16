@@ -45,9 +45,9 @@ from __future__ import annotations  # PEP 563: postponed evaluation of type anno
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
-from beartype import beartype
+from typing import Any, Literal, Self, overload
+
 from numpy.random import Generator
-from typing import Self, overload, Any, Literal
 
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
@@ -61,7 +61,6 @@ from mesa_frames.types_ import (
 )
 
 
-@beartype
 class AgentContainer(CopyMixin):
     """An abstract class for containing agents. Defines the common interface for AgentSetDF and AgentsDF."""
 
@@ -696,7 +695,7 @@ class AgentContainer(CopyMixin):
 
     @property
     @abstractmethod
-    def agents(self) -> DataFrame | dict[str, DataFrame]:
+    def df(self) -> DataFrame | dict[str, DataFrame]:
         """The agents in the AgentContainer.
 
         Returns
@@ -704,9 +703,9 @@ class AgentContainer(CopyMixin):
         DataFrame | dict[str, DataFrame]
         """
 
-    @agents.setter
+    @df.setter
     @abstractmethod
-    def agents(
+    def df(
         self, agents: DataFrame | list[mesa_frames.concrete.agents.AgentSetDF]
     ) -> None:
         """Set the agents in the AgentContainer.
@@ -780,7 +779,6 @@ class AgentContainer(CopyMixin):
         ...
 
 
-@beartype
 class AgentSetDF(AgentContainer, DataFrameMixin):
     """The AgentSetDF class is a container for agents of the same type.
 
@@ -790,7 +788,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         The model that the agent set belongs to.
     """
 
-    _agents: DataFrame  # The agents in the AgentSetDF
+    _df: DataFrame  # The agents in the AgentSetDF
     _mask: (
         AgentMask  # The underlying mask used for the active agents in the AgentSetDF.
     )
@@ -877,13 +875,13 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     ) -> Self | Any:
         masked_df = self._get_masked_df(mask)
         # If the mask is empty, we can use the object as is
-        if len(masked_df) == len(self._agents):
+        if len(masked_df) == len(self._df):
             obj = self._get_obj(inplace)
             method = getattr(obj, method_name)
             result = method(*args, **kwargs)
         else:  # If the mask is not empty, we need to create a new masked AgentSetDF and concatenate the AgentSetDFs at the end
             obj = self._get_obj(inplace=False)
-            obj._agents = masked_df
+            obj._df = masked_df
             original_masked_index = obj._get_obj_copy(obj.index)
             method = getattr(obj, method_name)
             result = method(*args, **kwargs)
@@ -939,7 +937,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         agentsdf = self.model.agents.remove(agents, inplace=inplace)
         # TODO: Refactor AgentsDF to return dict[str, AgentSetDF] instead of dict[AgentSetDF, DataFrame]
         # And assign a name to AgentSetDF? This has to be replaced by a nicer API of AgentsDF
-        for agentset in agentsdf.agents.keys():
+        for agentset in agentsdf.df.keys():
             if isinstance(agentset, self.__class__):
                 return agentset
         return self
@@ -1059,10 +1057,11 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any:
-        if name == "_agents":
-            raise RuntimeError(
-                "The _agents attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
-            )
+        if __debug__:  # Only execute in non-optimized mode
+            if name == "_df":
+                raise AttributeError(
+                    "The _df attribute is not set. You probably forgot to call super().__init__ in the __init__ method."
+                )
 
     @overload
     def __getitem__(self, key: str | tuple[AgentMask, str]) -> Series | DataFrame: ...
@@ -1088,23 +1087,23 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         return attr
 
     def __len__(self) -> int:
-        return len(self._agents)
+        return len(self._df)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}\n {str(self._agents)}"
+        return f"{self.__class__.__name__}\n {str(self._df)}"
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}\n {str(self._agents)}"
+        return f"{self.__class__.__name__}\n {str(self._df)}"
 
     def __reversed__(self) -> Iterator:
-        return reversed(self._agents)
+        return reversed(self._df)
 
     @property
-    def agents(self) -> DataFrame:
-        return self._agents
+    def df(self) -> DataFrame:
+        return self._df
 
-    @agents.setter
-    def agents(self, agents: DataFrame) -> None:
+    @df.setter
+    def df(self, agents: DataFrame) -> None:
         """Set the agents in the AgentSetDF.
 
         Parameters
@@ -1112,7 +1111,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         agents : DataFrame
             The agents to set.
         """
-        self._agents = agents
+        self._df = agents
 
     @property
     @abstractmethod

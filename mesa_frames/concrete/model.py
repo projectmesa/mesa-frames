@@ -45,14 +45,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
-from beartype import beartype
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.abstract.space import SpaceDF
 from mesa_frames.concrete.agents import AgentsDF
 
 
-@beartype
 class ModelDF:
     """Base class for models in the mesa-frames library.
 
@@ -176,14 +174,17 @@ class ModelDF:
         try:
             return self._agents
         except AttributeError:
-            raise ValueError(
-                "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
-            )
+            if __debug__:  # Only execute in non-optimized mode
+                raise RuntimeError(
+                    "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
+                )
 
     @agents.setter
     def agents(self, agents: AgentsDF) -> None:
-        if not isinstance(agents, AgentsDF):
-            raise TypeError("agents must be an instance of AgentsDF")
+        if __debug__:  # Only execute in non-optimized mode
+            if not isinstance(agents, AgentsDF):
+                raise TypeError("agents must be an instance of AgentsDF")
+
         self._agents = agents
 
     @property

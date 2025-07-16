@@ -47,22 +47,18 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Hashable, Iterator, Sequence
 from copy import copy, deepcopy
-from typing import Literal
-
-from beartype import beartype
-from typing import Any, Self, overload
+from typing import Any, Literal, Self, overload
 
 from mesa_frames.types_ import (
     BoolSeries,
     DataFrame,
+    DataFrameInput,
     Index,
     Mask,
     Series,
-    DataFrameInput,
 )
 
 
-@beartype
 class CopyMixin(ABC):
     """A mixin class that provides a fast copy method for the class that inherits it."""
 
@@ -184,7 +180,6 @@ class CopyMixin(ABC):
         return self.copy(deep=True, memo=memo)
 
 
-@beartype
 class DataFrameMixin(ABC):
     """A mixin class which defines an interface for DataFrame operations. Most methods are abstract and should be implemented by the concrete backend."""
 

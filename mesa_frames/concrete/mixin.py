@@ -46,20 +46,23 @@ the class docstring.
 from __future__ import annotations
 
 from collections.abc import Callable, Collection, Hashable, Iterator, Sequence
+from typing import Any, Literal, overload
+
 import polars as pl
-from beartype import beartype
-from typing import Any, overload, Literal
 
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import PolarsMask, PolarsDataFrameInput, PolarsIndex
+from mesa_frames.types_ import PolarsDataFrameInput, PolarsIndex, PolarsMask
 
 
-@beartype
 class PolarsMixin(DataFrameMixin):
     """Polars-specific implementation of DataFrame operations using LazyFrames."""
 
     # TODO: complete with other dtypes
-    _dtypes_mapping: dict[str, Any] = {"int64": pl.Int64, "bool": pl.Boolean}
+    _dtypes_mapping: dict[str, Any] = {
+        "int64": pl.Int64,
+        "bool": pl.Boolean,
+        "uint64": pl.UInt64,
+    }
 
     def _df_add(
         self,
@@ -195,13 +198,8 @@ class PolarsMixin(DataFrameMixin):
         if dtypes is not None:
             dtypes = {k: self._dtypes_mapping.get(v, v) for k, v in dtypes.items()}
 
-        # Convert pandas DataFrame to Polars
-        if isinstance(data, pd.DataFrame):
-            data = data.reset_index()
-            df = pl.from_pandas(data).lazy()
-        else:
-            # Create LazyFrame directly
-            df = pl.LazyFrame(data=data, schema=columns, schema_overrides=dtypes)
+        # Create LazyFrame directly
+        df = pl.LazyFrame(data=data, schema=columns, schema_overrides=dtypes)
 
         if index is not None:
             if index_cols is not None:
@@ -640,7 +638,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         if dtype is not None:
             dtype = self._dtypes_mapping[dtype]
-        return pl.Series(name=name, values=data, dtype=dtype)
+        return pl.Series(name=name, values=list(data), dtype=dtype)
 
     def _srs_contains(
         self,
@@ -649,7 +647,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Expr:
         if not isinstance(values, Collection):
             values = [values]
-        return pl.lit(values).is_in(srs)
+        return pl.Series(values).is_in(pl.Series(srs))
 
     def _srs_range(
         self,

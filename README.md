@@ -14,7 +14,7 @@ The following is a performance graph showing execution time using mesa and mesa-
 
 ![Performance Graph without Mesa](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
 
-(The script used to generate the graph can be found [here](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
+([You can check the script used to generate the graph here](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
 
 ## Installation
 
@@ -84,7 +84,7 @@ pip install -e .
 
 **Note:** mesa-frames is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
 
-You can find the API documentation [here](https://projectmesa.github.io/mesa-frames/api).
+[You can find the API documentation here](https://projectmesa.github.io/mesa-frames/api).
 
 ### Creation of an Agent
 
@@ -110,7 +110,7 @@ class MoneyAgentPolars(AgentSetPolars):
         self.select(self.wealth > 0)
 
         # Receiving agents are sampled (only native expressions currently supported)
-        other_agents = self.agents.sample(
+        other_agents = self.df.sample(
             n=len(self.active_agents), with_replacement=True
         )
 
@@ -156,9 +156,18 @@ class MoneyModelDF(ModelDF):
 
 ## License
 
-mesa-frames is made available under the MIT License. This license allows you to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, subject to the following conditions:
+Copyright 2024 Adam Amer, Project Mesa team and contributors
 
-- The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-- The software is provided "as is", without warranty of any kind.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 For the full license text, see the [LICENSE](https://github.com/projectmesa/mesa-frames/blob/main/LICENSE) file in the GitHub repository.

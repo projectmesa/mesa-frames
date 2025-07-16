@@ -45,7 +45,7 @@ class AntPolarsBase(AgentSetPolars):
 
     def step(self):
         self.shuffle().do("move").do("eat")
-        self.discard(self.agents.filter(pl.col("sugar") <= 0))
+        self.discard(self.df.filter(pl.col("sugar") <= 0))
 
     def move(self):
         neighborhood = self._get_neighborhood()
@@ -175,7 +175,7 @@ class AntPolarsLoopDF(AntPolarsBase):
         best_moves = pl.DataFrame()
 
         # While there are agents that do not have a best move, keep looking for one
-        while len(best_moves) < len(self.agents):
+        while len(best_moves) < len(self.df):
             # Check if there are previous agents that might make the same move (priority for the given move is > 1)
             neighborhood = neighborhood.with_columns(
                 priority=pl.col("agent_order").cum_count().over(["dim_0", "dim_1"])
@@ -232,7 +232,7 @@ class AntPolarsLoop(AntPolarsBase):
         occupied_cells, free_cells, target_cells = self._prepare_cells(neighborhood)
         best_moves_func = self._get_best_moves()
 
-        processed_agents = np.zeros(len(self.agents), dtype=np.bool_)
+        processed_agents = np.zeros(len(self.df), dtype=np.bool_)
 
         if self.numba_target is None:
             # Non-vectorized case: we need to create and pass the best_moves array
@@ -243,7 +243,7 @@ class AntPolarsLoop(AntPolarsBase):
                 df.struct.field("agent_order"),
                 df.struct.field("blocking_agent_order"),
                 processed_agents,
-                best_moves=np.full(len(self.agents), -1, dtype=np.int32),
+                best_moves=np.full(len(self.df), -1, dtype=np.int32),
             )
         else:
             # Vectorized case: Polars will create the output array (best_moves) automatically

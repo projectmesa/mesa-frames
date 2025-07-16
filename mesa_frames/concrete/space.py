@@ -42,13 +42,12 @@ For more detailed information on the GridPolars class and its methods,
 refer to the class docstring.
 """
 
-from math import inf
 from collections.abc import Callable, Sequence
+from math import inf
 from typing import Literal
 
 import numpy as np
 import polars as pl
-from beartype import beartype
 
 from mesa_frames.abstract.space import GridDF
 from mesa_frames.concrete.mixin import PolarsMixin
@@ -56,7 +55,6 @@ from mesa_frames.types_ import Infinity
 from mesa_frames.utils import copydoc
 
 
-@beartype
 @copydoc(GridDF)
 class GridPolars(GridDF, PolarsMixin):
     """Polars-based implementation of GridDF."""

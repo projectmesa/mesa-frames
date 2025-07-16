@@ -48,10 +48,10 @@ from __future__ import annotations  # For forward references
 
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import Any, Literal, cast, Self, overload
+from typing import Any, Literal, Self, cast, overload
 
+import numpy as np
 import polars as pl
-from beartype import beartype
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
 from mesa_frames.types_ import (
@@ -65,7 +65,6 @@ from mesa_frames.types_ import (
 )
 
 
-@beartype
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
 
@@ -82,7 +81,7 @@ class AgentsDF(AgentContainer):
         """
         self._model = model
         self._agentsets = []
-        self._ids = pl.Series(name="unique_id", dtype=pl.Int64)
+        self._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
 
     def add(
         self, agents: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True
@@ -141,7 +140,7 @@ class AgentsDF(AgentContainer):
             else:  # IdsLike
                 agents = cast(IdsLike, agents)
 
-                return pl.Series(agents).is_in(self._ids)
+                return pl.Series(agents, dtype=pl.UInt64).is_in(self._ids)
 
     @overload
     def do(
@@ -208,10 +207,28 @@ class AgentsDF(AgentContainer):
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
     ) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
         agentsets_masks = self._get_bool_masks(mask)
-        return {
-            agentset: agentset.get(attr_names, mask)
-            for agentset, mask in agentsets_masks.items()
-        }
+        result = {}
+
+        # Convert attr_names to list for consistent checking
+        if attr_names is None:
+            # None means get all data - no column filtering needed
+            required_columns = []
+        elif isinstance(attr_names, str):
+            required_columns = [attr_names]
+        else:
+            required_columns = list(attr_names)
+
+        for agentset, mask in agentsets_masks.items():
+            # Fast column existence check - no data processing, just property access
+            agentset_columns = agentset.df.columns
+
+            # Check if all required columns exist in this agent set
+            if not required_columns or all(
+                col in agentset_columns for col in required_columns
+            ):
+                result[agentset] = agentset.get(attr_names, mask)
+
+        return result
 
     def remove(
         self,
@@ -227,19 +244,22 @@ class AgentsDF(AgentContainer):
             # We have to get the index of the original AgentSetDF because the copy made AgentSetDFs with different hash
             ids = [self._agentsets.index(agentset) for agentset in iter(agents)]
             ids.sort(reverse=True)
-            removed_ids = pl.Series(dtype=pl.Int64)
+            removed_ids = pl.Series(dtype=pl.UInt64)
             for id in ids:
                 removed_ids = pl.concat(
-                    [removed_ids, pl.Series(obj._agentsets[id].index)]
+                    [
+                        removed_ids,
+                        pl.Series(obj._agentsets[id]["unique_id"], dtype=pl.UInt64),
+                    ]
                 )
                 obj._agentsets.pop(id)
 
         else:  # IDsLike
-            if isinstance(agents, int):
+            if isinstance(agents, (int, np.uint64)):
                 agents = [agents]
             elif isinstance(agents, DataFrame):
                 agents = agents["unique_id"]
-            removed_ids = pl.Series(agents)
+            removed_ids = pl.Series(agents, dtype=pl.UInt64)
             deleted = 0
 
             for agentset in obj._agentsets:
@@ -357,10 +377,10 @@ class AgentsDF(AgentContainer):
         """
         presence_df = pl.DataFrame(
             data={"unique_id": self._ids, "present": True},
-            schema={"unique_id": pl.Int64, "present": pl.Boolean},
+            schema={"unique_id": pl.UInt64, "present": pl.Boolean},
         )
         for agentset in other:
-            new_ids = pl.Series(agentset.index)
+            new_ids = pl.Series(agentset.index, dtype=pl.UInt64)
             presence_df = pl.concat(
                 [
                     presence_df,
@@ -441,10 +461,12 @@ class AgentsDF(AgentContainer):
         return super().__add__(other)
 
     def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
-        if name.startswith("_"):  # Avoids infinite recursion of private attributes
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
+        # Avoids infinite recursion of private attributes
+        if __debug__:  # Only execute in non-optimized mode
+            if name.startswith("_"):
+                raise AttributeError(
+                    f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                )
         return {agentset: getattr(agentset, name) for agentset in self._agentsets}
 
     @overload
@@ -510,7 +532,7 @@ class AgentsDF(AgentContainer):
         return super().__isub__(agents)
 
     def __len__(self) -> int:
-        return sum(len(agentset._agents) for agentset in self._agentsets)
+        return sum(len(agentset._df) for agentset in self._agentsets)
 
     def __repr__(self) -> str:
         return "\n".join([repr(agentset) for agentset in self._agentsets])
@@ -555,11 +577,11 @@ class AgentsDF(AgentContainer):
         return super().__sub__(agents)
 
     @property
-    def agents(self) -> dict[AgentSetDF, DataFrame]:
-        return {agentset: agentset.agents for agentset in self._agentsets}
+    def df(self) -> dict[AgentSetDF, DataFrame]:
+        return {agentset: agentset.df for agentset in self._agentsets}
 
-    @agents.setter
-    def agents(self, other: Iterable[AgentSetDF]) -> None:
+    @df.setter
+    def df(self, other: Iterable[AgentSetDF]) -> None:
         """Set the agents in the AgentsDF.
 
         Parameters
@@ -592,7 +614,7 @@ class AgentsDF(AgentContainer):
         def copy_without_agentsets() -> Self:
             return self.copy(deep=False, skip=["_agentsets"])
 
-        dictionary: dict[type[AgentSetDF], Self] = defaultdict(copy_without_agentsets)
+        dictionary = defaultdict(copy_without_agentsets)
 
         for agentset in self._agentsets:
             agents_df = dictionary[agentset.__class__]
