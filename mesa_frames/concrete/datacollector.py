@@ -60,7 +60,7 @@ from urllib.parse import urlparse
 import tempfile
 import psycopg2
 from mesa_frames.abstract.datacollector import AbstractDataCollector
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 from collections.abc import Callable
 from mesa_frames import ModelDF
 from psycopg2.extensions import connection
@@ -70,9 +70,9 @@ class DataCollector(AbstractDataCollector):
     def __init__(
         self,
         model: ModelDF,
-        model_reporters: dict[str, Callable] | None = None,
-        agent_reporters: dict[str, str | Callable] | None = None,
-        trigger: Callable[[Any], bool] | None = None,
+        model_reporters: Optional[dict[str, Callable]] = None,
+        agent_reporters: Optional[dict[str, str | Callable]]= None,
+        trigger: Optional[Callable[[Any], bool]]= None,
         reset_memory: bool = True,
         storage: Literal[
             "memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"
@@ -164,7 +164,7 @@ class DataCollector(AbstractDataCollector):
                 for k, v in self._model.agents[reporter].items():
                     agent_data_dict[col_name + "_" + str(k.__class__.__name__)] = v
             else:
-                agent_data_dict[col_name] = reporter(self._model.agents)
+                agent_data_dict[col_name] = reporter(self._model)
         agent_lazy_frame = pl.LazyFrame(agent_data_dict)
         agent_lazy_frame = agent_lazy_frame.with_columns(
             [
