@@ -471,9 +471,10 @@ class TestDataCollector:
         model.dc.flush()
 
         # Connect directly and validate data
-        for _ in range(20):  # wait up to ~2 seconds
-            created_files = os.listdir(tmpdir)
-            if len(created_files) >= 4:
+        for _ in range(20):
+            cur.execute("SELECT COUNT(*) FROM model_data")
+            (count,) = cur.fetchone()
+            if count >= 2:  # expecting 2 rows
                 break
             time.sleep(0.1)
 
