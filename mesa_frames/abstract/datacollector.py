@@ -63,9 +63,9 @@ class AbstractDataCollector(ABC):
     """
 
     _model: ModelDF
-    _model_reporters: dict[str, Callable] | None
-    _agent_reporters: dict[str, str | Callable] | None
-    _trigger: Callable[..., bool]
+    _model_reporters: Optional[dict[str, Callable]]
+    _agent_reporters: Optional[dict[str, str | Callable]]
+    _trigger: Optional[Callable[..., bool]]
     _reset_memory = bool
     _storage: Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"]
     _frames: list[pl.DataFrame]
@@ -73,9 +73,9 @@ class AbstractDataCollector(ABC):
     def __init__(
         self,
         model: ModelDF,
-        model_reporters: dict[str, Callable] | None = None,
-        agent_reporters: dict[str, str | Callable] | None = None,
-        trigger: Callable[[Any], bool] | None = None,
+        model_reporters: Optional[dict[str, Callable]] = None,
+        agent_reporters: Optional[dict[str, str | Callable]] = None,
+        trigger: Optional[Callable[[Any], bool]] = None,
         reset_memory: bool = True,
         storage: Literal[
             "memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"
