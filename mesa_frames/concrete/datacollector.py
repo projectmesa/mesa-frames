@@ -201,7 +201,7 @@ class DataCollector(AbstractDataCollector):
 
         Uses the appropriate writer function based on the specified storage option.
         """
-        self._writers[self._storage](self._storage_uri, frames_to_flush)
+        self._writers[self._storage](uri=self._storage_uri, frames_to_flush=frames_to_flush)
 
     def _write_csv_local(self, uri: str, frames_to_flush: list):
         """
@@ -242,7 +242,7 @@ class DataCollector(AbstractDataCollector):
         frames_to_flush : list
             the collected data in the current thread.
         """
-        self._write_s3(uri, frames_to_flush, format_="csv")
+        self._write_s3(uri=uri, frames_to_flush=frames_to_flush, format_="csv")
 
     def _write_parquet_s3(self, uri: str, frames_to_flush: list):
         """
@@ -255,7 +255,7 @@ class DataCollector(AbstractDataCollector):
         frames_to_flush : list
             the collected data in the current thread.
         """
-        self._write_s3(uri, frames_to_flush, format_="parquet")
+        self._write_s3(uri=uri, frames_to_flush=frames_to_flush, format_="parquet")
 
     def _write_s3(self, uri: str, frames_to_flush: list, format_: str):
         """
