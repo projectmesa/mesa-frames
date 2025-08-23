@@ -470,6 +470,11 @@ class TestDataCollector:
         model.dc.flush()
 
         # Connect directly and validate data
+        for _ in range(20):  # wait up to ~2 seconds
+            created_files = os.listdir(tmpdir)
+            if len(created_files) >= 4:
+                break
+            time.sleep(0.1)
 
         # Check model data
         cur.execute("SELECT step, total_agents FROM model_data ORDER BY step")
