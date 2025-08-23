@@ -203,7 +203,7 @@ class DataCollector(AbstractDataCollector):
         """
         self._writers[self._storage](self._storage_uri, frames_to_flush)
 
-    def _write_csv_local(self, uri: str, frames_to_flush):
+    def _write_csv_local(self, uri: str, frames_to_flush: list):
         """
         Write collected data to local CSV files.
 
@@ -211,6 +211,8 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri : str
             Local directory path to write files into.
+        frames_to_flush : list
+            the collected data in the current thread.
         """
         for kind, step, df in frames_to_flush:
             df.collect().write_csv(f"{uri}/{kind}_step{step}.csv")
@@ -223,6 +225,8 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             Local directory path to write files into.
+        frames_to_flush : list
+            the collected data in the current thread.
         """
         for kind, step, df in frames_to_flush:
             df.collect().write_parquet(f"{uri}/{kind}_step{step}.parquet")
@@ -235,6 +239,8 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             S3 URI (e.g., s3://bucket/path) to upload files to.
+        frames_to_flush : list
+            the collected data in the current thread.
         """
         self._write_s3(uri, frames_to_flush, format_="csv")
 
@@ -246,6 +252,8 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             S3 URI (e.g., s3://bucket/path) to upload files to.
+        frames_to_flush : list
+            the collected data in the current thread.
         """
         self._write_s3(uri, frames_to_flush, format_="parquet")
 
@@ -257,6 +265,8 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             S3 URI to upload to.
+        frames_to_flush : list
+            the collected data in the current thread.
         format_: str
             Format of the output files ("csv" or "parquet").
         """
@@ -285,6 +295,8 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             PostgreSQL connection URI in the form postgresql://testuser:testpass@localhost:5432/testdb
+        frames_to_flush : list
+            the collected data in the current thread.
         """
         conn = self._get_db_connection(uri=uri)
         cur = conn.cursor()
