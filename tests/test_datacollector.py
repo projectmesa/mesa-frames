@@ -7,6 +7,7 @@ import tempfile
 import os
 import time
 
+
 def custom_trigger(model):
     return model._steps % 2 == 0
 
@@ -396,7 +397,7 @@ class TestDataCollector:
 
             model.dc.collect()
             model.dc.flush()
-            
+
             for _ in range(20):  # wait up to ~2 seconds
                 created_files = os.listdir(tmpdir)
                 if len(created_files) >= 4:

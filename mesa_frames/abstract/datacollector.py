@@ -51,8 +51,9 @@ from mesa_frames import ModelDF
 import polars as pl
 import threading
 
+
 # Need to make the collector thread safe
-# 
+#
 class AbstractDataCollector(ABC):
     """
     Abstract Base Class for Mesa-Frames DataCollector.
@@ -180,7 +181,6 @@ class AbstractDataCollector(ABC):
         >>> datacollector.flush()
         >>> # Data is saved externally and in-memory buffers are cleared if configured
         """
-
         with self._lock:
             frames_to_flush = self._frames
             if self._reset_memory:
@@ -188,7 +188,7 @@ class AbstractDataCollector(ABC):
         threading.Thread(
             target=self._flush,
             args=(frames_to_flush,),
-            daemon=True  # won't block process exit
+            daemon=True,  # won't block process exit
         ).start()
 
     def _reset(self):
