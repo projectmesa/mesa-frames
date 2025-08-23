@@ -231,7 +231,7 @@ class DataCollector(AbstractDataCollector):
         for kind, step, df in frames_to_flush:
             df.collect().write_parquet(f"{uri}/{kind}_step{step}.parquet")
 
-    def _write_csv_s3(self, uri: str, frames_to_flush):
+    def _write_csv_s3(self, uri: str, frames_to_flush: list):
         """
         Write collected data to AWS S3 in CSV format.
 
