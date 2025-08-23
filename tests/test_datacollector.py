@@ -5,7 +5,7 @@ import polars as pl
 import beartype
 import tempfile
 import os
-
+import time
 
 def custom_trigger(model):
     return model._steps % 2 == 0
@@ -322,6 +322,11 @@ class TestDataCollector:
 
             model.run_model_with_conditional_collect(4)
             model.dc.flush()
+            for _ in range(20):  # wait up to ~2 seconds
+                created_files = os.listdir(tmpdir)
+                if len(created_files) >= 4:
+                    break
+                time.sleep(0.1)
 
             # check deletion after flush
             collected_data = model.dc.data
@@ -391,6 +396,12 @@ class TestDataCollector:
 
             model.dc.collect()
             model.dc.flush()
+            
+            for _ in range(20):  # wait up to ~2 seconds
+                created_files = os.listdir(tmpdir)
+                if len(created_files) >= 4:
+                    break
+                time.sleep(0.1)
 
             created_files = os.listdir(tmpdir)
             assert len(created_files) == 2, (

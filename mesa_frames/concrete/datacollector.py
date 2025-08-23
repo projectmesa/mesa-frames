@@ -65,7 +65,6 @@ from collections.abc import Callable
 from mesa_frames import ModelDF
 from psycopg2.extensions import connection
 
-
 class DataCollector(AbstractDataCollector):
     def __init__(
         self,
@@ -195,7 +194,7 @@ class DataCollector(AbstractDataCollector):
             "agent": pl.concat(agent_frames) if agent_frames else pl.DataFrame(),
         }
 
-    def _flush(self,frames_to_flush):
+    def _flush(self,frames_to_flush: list):
         """
         Flush the collected data to the configured external storage backend.
 
@@ -215,7 +214,7 @@ class DataCollector(AbstractDataCollector):
         for kind, step, df in frames_to_flush:
             df.collect().write_csv(f"{uri}/{kind}_step{step}.csv")
 
-    def _write_parquet_local(self, uri: str,frames_to_flush):
+    def _write_parquet_local(self, uri: str, frames_to_flush: list):
         """
         Write collected data to local Parquet files.
 
@@ -238,7 +237,7 @@ class DataCollector(AbstractDataCollector):
         """
         self._write_s3(uri,frames_to_flush, format_="csv")
 
-    def _write_parquet_s3(self, uri: str,frames_to_flush):
+    def _write_parquet_s3(self, uri: str,frames_to_flush: list):
         """
         Write collected data to AWS S3 in Parquet format.
 
@@ -249,7 +248,7 @@ class DataCollector(AbstractDataCollector):
         """
         self._write_s3(uri,frames_to_flush, format_="parquet")
 
-    def _write_s3(self, uri: str,frames_to_flush, format_: str):
+    def _write_s3(self, uri: str,frames_to_flush: list, format_: str):
         """
         Upload collected data to S3 in a specified format.
 
@@ -274,7 +273,7 @@ class DataCollector(AbstractDataCollector):
                 key = f"{prefix}/{kind}_step{step}.{format_}"
                 s3.upload_file(tmp.name, bucket, key)
 
-    def _write_postgres(self, uri: str,frames_to_flush):
+    def _write_postgres(self, uri: str,frames_to_flush: list):
         """
         Write collected data to a PostgreSQL database.
 
