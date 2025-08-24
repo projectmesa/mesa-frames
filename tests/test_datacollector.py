@@ -340,7 +340,7 @@ class TestDataCollector:
             )
 
             model_df = pl.read_csv(
-                os.path.join(tmpdir, "model_step2.csv"),
+                os.path.join(tmpdir, "model_step2_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
             assert model_df.columns == ["step", "seed", "total_agents"]
@@ -348,7 +348,7 @@ class TestDataCollector:
             assert model_df["total_agents"].to_list() == [12]
 
             agent_df = pl.read_csv(
-                os.path.join(tmpdir, "agent_step2.csv"),
+                os.path.join(tmpdir, "agent_step2_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
             assert agent_df.columns == [
@@ -371,7 +371,7 @@ class TestDataCollector:
             ]
 
             agent_df = pl.read_csv(
-                os.path.join(tmpdir, "agent_step4.csv"),
+                os.path.join(tmpdir, "agent_step4_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
             assert agent_df["step"].to_list() == [4, 4, 4, 4]
@@ -409,11 +409,11 @@ class TestDataCollector:
                 f"Expected 2 files, found {len(created_files)}: {created_files}"
             )
 
-            model_df = pl.read_parquet(os.path.join(tmpdir, "model_step0.parquet"))
+            model_df = pl.read_parquet(os.path.join(tmpdir, "model_step0_batch0.parquet"))
             assert model_df["step"].to_list() == [0]
             assert model_df["total_agents"].to_list() == [12]
 
-            agent_df = pl.read_parquet(os.path.join(tmpdir, "agent_step0.parquet"))
+            agent_df = pl.read_parquet(os.path.join(tmpdir, "agent_step0_batch0.parquet"))
             assert agent_df["step"].to_list() == [0, 0, 0, 0]
             assert agent_df["wealth"].to_list() == [1, 2, 3, 4]
 
@@ -434,6 +434,7 @@ class TestDataCollector:
             CREATE TABLE public.model_data (
                 step INTEGER,
                 seed VARCHAR,
+                batch INTEGER,
                 total_agents INTEGER
             )
         """)
@@ -442,6 +443,7 @@ class TestDataCollector:
             CREATE TABLE public.agent_data (
                 step INTEGER,
                 seed VARCHAR,
+                batch INTEGER,
                 age_ExampleAgentSet1 INTEGER,
                 age_ExampleAgentSet2 INTEGER,
                 age_ExampleAgentSet3 INTEGER,
