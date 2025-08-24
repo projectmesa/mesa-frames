@@ -50,6 +50,7 @@ from collections.abc import Callable
 from mesa_frames import ModelDF
 import polars as pl
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 
 class AbstractDataCollector(ABC):
@@ -78,6 +79,7 @@ class AbstractDataCollector(ABC):
         storage: Literal[
             "memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"
         ] = "memory",
+        max_workers: int = 4
     ):
         """
         Initialize a Datacollector.
@@ -105,6 +107,8 @@ class AbstractDataCollector(ABC):
         self._storage = storage or "memory"
         self._frames = []
         self._lock = threading.Lock()
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
+
 
     def collect(self) -> None:
         """
@@ -183,11 +187,8 @@ class AbstractDataCollector(ABC):
             frames_to_flush = self._frames
             if self._reset_memory:
                 self._reset()
-        threading.Thread(
-            target=self._flush,
-            args=(frames_to_flush,),
-            daemon=True,  # won't block process exit
-        ).start()
+        
+        self._executor.submit(self._flush, frames_to_flush)
 
     def _reset(self):
         """
