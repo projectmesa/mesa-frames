@@ -79,6 +79,7 @@ class DataCollector(AbstractDataCollector):
         ] = "memory",
         storage_uri: str | None = None,
         schema: str = "public",
+        max_worker: int = 4
     ):
         """
         Initialize the DataCollector with configuration options.
@@ -109,7 +110,8 @@ class DataCollector(AbstractDataCollector):
             agent_reporters=agent_reporters,
             trigger=trigger,
             reset_memory=reset_memory,
-            storage=storage,  # literal won't work
+            storage=storage, 
+            max_workers= max_worker
         )
         self._writers = {
             "csv": self._write_csv_local,

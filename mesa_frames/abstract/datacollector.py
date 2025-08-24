@@ -72,14 +72,14 @@ class AbstractDataCollector(ABC):
     def __init__(
         self,
         model: ModelDF,
-        model_reporters: dict[str, Callable] | None = None,
-        agent_reporters: dict[str, str | Callable] | None = None,
-        trigger: Callable[[Any], bool] | None = None,
-        reset_memory: bool = True,
+        model_reporters: dict[str, Callable] | None,
+        agent_reporters: dict[str, str | Callable] | None,
+        trigger: Callable[[Any], bool] | None,
+        reset_memory: bool,
         storage: Literal[
             "memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"
-        ] = "memory",
-        max_workers: int = 4
+        ],
+        max_workers: int
     ):
         """
         Initialize a Datacollector.
