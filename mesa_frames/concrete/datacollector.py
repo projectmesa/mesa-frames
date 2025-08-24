@@ -60,7 +60,7 @@ from urllib.parse import urlparse
 import tempfile
 import psycopg2
 from mesa_frames.abstract.datacollector import AbstractDataCollector
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from collections.abc import Callable
 from mesa_frames import ModelDF
 from psycopg2.extensions import connection

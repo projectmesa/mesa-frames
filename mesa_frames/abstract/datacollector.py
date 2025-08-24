@@ -45,15 +45,13 @@ For more detailed information on each class, refer to their individual docstring
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union, Any, Literal, List
+from typing import  Any, Literal
 from collections.abc import Callable
 from mesa_frames import ModelDF
 import polars as pl
 import threading
 
 
-# Need to make the collector thread safe
-#
 class AbstractDataCollector(ABC):
     """
     Abstract Base Class for Mesa-Frames DataCollector.
