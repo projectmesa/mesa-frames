@@ -521,7 +521,7 @@ class TestDataCollector:
         cur.close()
         conn.close()
 
-    def test_batch(self,fix2_model):
+    def test_batch_memory(self,fix2_model):
         model = fix2_model
         model.dc = DataCollector(
             model=model,
@@ -555,25 +555,36 @@ class TestDataCollector:
             "seed",
             "batch"
         ])
+        print("len",)
+        assert collected_data["agent"]["step"].to_list() == [
+            2,2,2,2,2,2,2,2,
+            4,4,4,4,4,4,4,4
+            ]
         assert collected_data["agent"]["wealth"].to_list() == [
             2,3,4,5,
             3,4,5,6,
             4,5,6,7,
             5,6,7,8
             ]
+        print(collected_data["agent"]["age_ExampleAgentSet1"].to_list())
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
-            10,
-            20,
-            30,
-            40,
+            10,20,30,40,
+            10,20,30,40,
+            10,20,30,40,
+            10,20,30,40,
         ]
         assert collected_data["agent"]["age_ExampleAgentSet2"].to_list() == [
-            11,
-            22,
-            33,
-            44,
+            11,22,33,44,
+            11,22,33,44,
+            11,22,33,44,
+            11,22,33,44,
         ]
-        assert collected_data["agent"]["age_ExampleAgentSet3"].to_list() == [1, 2, 3, 4]
-        assert collected_data["agent"]["step"].to_list() == [0, 0, 0, 0]
+        assert collected_data["agent"]["age_ExampleAgentSet3"].to_list() == [
+            2, 3, 4, 5,
+            3, 4, 5, 6,
+            4, 5, 6, 7,
+            5, 6, 7, 8
+        ]
+        
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
             collected_data["agent"]["max_wealth"]
