@@ -74,6 +74,8 @@ class ExampleModel(ModelDF):
             self.dc.conditional_collect()
 
 
+
+
 class ExampleModelWithMultipleCollects(ModelDF):
     def __init__(self, agents: AgentsDF):
         super().__init__()
@@ -175,10 +177,7 @@ class TestDataCollector:
         # test collected_model_data
         assert collected_data["model"].shape == (1, 4)
         assert set(collected_data["model"].columns) == {
-            "step",
-            "seed",
-            "batch",
-            "total_agents",
+            "step", "seed", "batch", "total_agents"
         }
         assert collected_data["model"]["step"].to_list() == [0]
         assert collected_data["model"]["total_agents"].to_list() == [12]
@@ -187,13 +186,13 @@ class TestDataCollector:
 
         assert collected_data["agent"].shape == (4, 7)
         assert set(collected_data["agent"].columns) == {
-            "wealth",
-            "age_ExampleAgentSet1",
-            "age_ExampleAgentSet2",
-            "age_ExampleAgentSet3",
-            "step",
-            "seed",
-            "batch",
+                "wealth",
+                "age_ExampleAgentSet1",
+                "age_ExampleAgentSet2",
+                "age_ExampleAgentSet3",
+                "step",
+                "seed",
+                "batch",
         }
         assert collected_data["agent"]["wealth"].to_list() == [1, 2, 3, 4]
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
@@ -234,23 +233,20 @@ class TestDataCollector:
 
         assert collected_data["model"].shape == (1, 4)
         assert set(collected_data["model"].columns) == {
-            "step",
-            "seed",
-            "batch",
-            "total_agents",
+            "step", "seed", "batch", "total_agents"
         }
         assert collected_data["model"]["step"].to_list() == [5]
         assert collected_data["model"]["total_agents"].to_list() == [12]
 
         assert collected_data["agent"].shape == (4, 7)
         assert set(collected_data["agent"].columns) == {
-            "wealth",
-            "age_ExampleAgentSet1",
-            "age_ExampleAgentSet2",
-            "age_ExampleAgentSet3",
-            "step",
-            "seed",
-            "batch",
+                "wealth",
+                "age_ExampleAgentSet1",
+                "age_ExampleAgentSet2",
+                "age_ExampleAgentSet3",
+                "step",
+                "seed",
+                "batch",
         }
         assert collected_data["agent"]["wealth"].to_list() == [6, 7, 8, 9]
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
@@ -289,15 +285,21 @@ class TestDataCollector:
 
         assert collected_data["model"].shape == (2, 4)
         assert set(collected_data["model"].columns) == {
-            "step",
-            "seed",
-            "batch",
-            "total_agents",
+            "step", "seed", "batch", "total_agents"
         }
         assert collected_data["model"]["step"].to_list() == [2, 4]
         assert collected_data["model"]["total_agents"].to_list() == [12, 12]
 
         assert collected_data["agent"].shape == (8, 7)
+        assert set(collected_data["agent"].columns) == {
+                "wealth",
+                "age_ExampleAgentSet1",
+                "age_ExampleAgentSet2",
+                "age_ExampleAgentSet3",
+                "step",
+                "seed",
+                "batch",
+        }
         assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
@@ -381,7 +383,9 @@ class TestDataCollector:
                 os.path.join(tmpdir, "model_step2_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
-            assert set(model_df.columns) == {"step", "seed", "batch", "total_agents"}
+            assert set(model_df.columns) == {
+                "step", "seed", "batch", "total_agents"
+            }
             assert model_df["step"].to_list() == [2]
             assert model_df["total_agents"].to_list() == [12]
 
@@ -390,13 +394,13 @@ class TestDataCollector:
                 schema_overrides={"seed": pl.Utf8},
             )
             assert set(agent_df.columns) == {
-                "wealth",
-                "age_ExampleAgentSet1",
-                "age_ExampleAgentSet2",
-                "age_ExampleAgentSet3",
-                "step",
-                "seed",
-                "batch",
+                    "wealth",
+                    "age_ExampleAgentSet1",
+                    "age_ExampleAgentSet2",
+                    "age_ExampleAgentSet3",
+                    "step",
+                    "seed",
+                    "batch",
             }
             assert agent_df["step"].to_list() == [2, 2, 2, 2]
             assert agent_df["wealth"].to_list() == [3, 4, 5, 6]
@@ -562,16 +566,25 @@ class TestDataCollector:
         collected_data = model.dc.data
         assert collected_data["model"].shape == (4, 4)
         assert set(collected_data["model"].columns) == {
-            "step",
-            "seed",
-            "batch",
-            "total_agents",
+            "step", "seed", "batch", "total_agents"
         }
         assert collected_data["model"]["step"].to_list() == [2, 2, 4, 4]
         assert collected_data["model"]["batch"].to_list() == [0, 1, 0, 1]
         assert collected_data["model"]["total_agents"].to_list() == [12, 12, 12, 12]
 
         assert collected_data["agent"].shape == (16, 7)
+        assert set(collected_data["agent"].columns) == {
+                "wealth",
+                "age_ExampleAgentSet1",
+                "age_ExampleAgentSet2",
+                "age_ExampleAgentSet3",
+                "step",
+                "seed",
+                "batch",
+        }
+        print(
+            "len",
+        )
         assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
