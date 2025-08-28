@@ -45,7 +45,7 @@ For more detailed information on each class, refer to their individual docstring
 """
 
 from abc import ABC, abstractmethod
-from typing import  Any, Literal
+from typing import Any, Literal
 from collections.abc import Callable
 from mesa_frames import ModelDF
 import polars as pl
@@ -79,7 +79,7 @@ class AbstractDataCollector(ABC):
         storage: Literal[
             "memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"
         ],
-        max_workers: int
+        max_workers: int,
     ):
         """
         Initialize a Datacollector.
@@ -98,6 +98,8 @@ class AbstractDataCollector(ABC):
             Whether to reset in-memory data after flushing. Default is True.
         storage : Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"        ]
             Storage backend URI (e.g. 'memory:', 'csv:', 'postgresql:').
+        max_workers : int
+            Maximum number of worker threads used for flushing collected data asynchronously
         """
         self._model = model
         self._model_reporters = model_reporters or {}
@@ -108,7 +110,6 @@ class AbstractDataCollector(ABC):
         self._frames = []
         self._lock = threading.Lock()
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
-
 
     def collect(self) -> None:
         """
@@ -187,7 +188,7 @@ class AbstractDataCollector(ABC):
             frames_to_flush = self._frames
             if self._reset_memory:
                 self._reset()
-        
+
         self._executor.submit(self._flush, frames_to_flush)
 
     def _reset(self):

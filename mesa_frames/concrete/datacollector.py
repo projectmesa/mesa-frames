@@ -79,7 +79,7 @@ class DataCollector(AbstractDataCollector):
         ] = "memory",
         storage_uri: str | None = None,
         schema: str = "public",
-        max_worker: int = 4
+        max_worker: int = 4,
     ):
         """
         Initialize the DataCollector with configuration options.
@@ -102,7 +102,8 @@ class DataCollector(AbstractDataCollector):
             URI or path corresponding to the selected storage backend.
         schema: str
             Schema name used for PostgreSQL storage.
-
+        max_worker : int
+            Maximum number of worker threads used for flushing collected data asynchronously
         """
         super().__init__(
             model=model,
@@ -110,8 +111,8 @@ class DataCollector(AbstractDataCollector):
             agent_reporters=agent_reporters,
             trigger=trigger,
             reset_memory=reset_memory,
-            storage=storage, 
-            max_workers= max_worker
+            storage=storage,
+            max_workers=max_worker,
         )
         self._writers = {
             "csv": self._write_csv_local,
@@ -134,19 +135,26 @@ class DataCollector(AbstractDataCollector):
         This method checks for the presence of model and agent reporters
         and calls the appropriate collection routines for each.
         """
-        if self._current_model_step is None or self._current_model_step!= self._model._steps:
+        if (
+            self._current_model_step is None
+            or self._current_model_step != self._model._steps
+        ):
             self._current_model_step = self._model._steps
             self._batch_id = 0
 
         if self._model_reporters:
-            self._collect_model_reporters( current_model_step = self._current_model_step, batch_id=self._batch_id)
+            self._collect_model_reporters(
+                current_model_step=self._current_model_step, batch_id=self._batch_id
+            )
 
         if self._agent_reporters:
-            self._collect_agent_reporters( current_model_step = self._current_model_step, batch_id=self._batch_id)
+            self._collect_agent_reporters(
+                current_model_step=self._current_model_step, batch_id=self._batch_id
+            )
 
-        self._batch_id+=1
+        self._batch_id += 1
 
-    def _collect_model_reporters(self,current_model_step: int, batch_id: int):
+    def _collect_model_reporters(self, current_model_step: int, batch_id: int):
         """
         Collect model-level data using the model_reporters.
 
@@ -162,7 +170,7 @@ class DataCollector(AbstractDataCollector):
         model_lazy_frame = pl.LazyFrame([model_data_dict])
         self._frames.append(("model", current_model_step, batch_id, model_lazy_frame))
 
-    def _collect_agent_reporters(self,current_model_step: int, batch_id: int):
+    def _collect_agent_reporters(self, current_model_step: int, batch_id: int):
         """
         Collect agent-level data using the agent_reporters.
 
