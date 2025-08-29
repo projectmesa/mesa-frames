@@ -1099,6 +1099,44 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         return reversed(self._df)
 
     @property
+    @abstractmethod
+    def name(self) -> str | None:
+        """Human-friendly name of this agent set.
+
+        Returns
+        -------
+        str | None
+            The explicit name if set; otherwise None. Names are owned by the
+            agent set itself and are not mutated by `AgentsDF`.
+
+        Notes
+        -----
+        - Names are optional. When not set, accessors like `agents.sets` may
+          display fallback keys derived from the class name for convenience.
+        - Use :meth:`rename` to change the name; direct assignment is not
+          supported.
+        """
+        ...
+
+    @abstractmethod
+    def rename(self, new_name: str) -> None:
+        """Rename this agent set.
+
+        Parameters
+        ----------
+        new_name : str
+            Desired new name. Implementations should ensure uniqueness within
+            the owning model's agents, typically by applying a numeric suffix
+            when a collision occurs (e.g., ``Sheep`` -> ``Sheep_1``).
+
+        Notes
+        -----
+        - Implementations must not mutate other agent sets' names.
+        - This method replaces direct name assignment for clarity and safety.
+        """
+        ...
+
+    @property
     def df(self) -> DataFrame:
         return self._df
 
