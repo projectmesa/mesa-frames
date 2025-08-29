@@ -32,11 +32,17 @@ class Test_AgentsDF:
         model = ModelDF()
         agents = AgentsDF(model)
         assert agents.model == model
-        assert isinstance(agents._agentsets, list)
-        assert len(agents._agentsets) == 0
-        assert isinstance(agents._ids, pl.Series)
-        assert agents._ids.is_empty()
-        assert agents._ids.name == "unique_id"
+        assert isinstance(list(agents.df.keys()), list)
+        assert len(list(agents.df.keys())) == 0
+        # Get IDs from the first agentset if it exists, otherwise create empty series
+        if agents.df:
+            first_agentset = next(iter(agents.df.keys()))
+            ids_series = first_agentset.df["unique_id"]
+        else:
+            ids_series = pl.Series("unique_id", dtype=pl.UInt64)
+        assert isinstance(ids_series, pl.Series)
+        assert ids_series.is_empty()
+        assert ids_series.name == "unique_id"
 
     def test_add(
         self,
@@ -50,18 +56,22 @@ class Test_AgentsDF:
 
         # Test with a single AgentSetPolars
         result = agents.add(agentset_polars1, inplace=False)
-        assert result._agentsets[0] is agentset_polars1
-        assert result._ids.to_list() == agentset_polars1._df["unique_id"].to_list()
+        assert list(result.df.keys())[0] is agentset_polars1
+        # Get IDs from the first agentset
+        first_agentset = next(iter(result.df.keys()))
+        assert first_agentset.df["unique_id"].to_list() == agentset_polars1.df["unique_id"].to_list()
 
         # Test with a list of AgentSetDFs
         result = agents.add([agentset_polars1, agentset_polars2], inplace=True)
-        assert result._agentsets[0] is agentset_polars1
-        assert result._agentsets[1] is agentset_polars2
-        assert (
-            result._ids.to_list()
-            == agentset_polars1._df["unique_id"].to_list()
-            + agentset_polars2._df["unique_id"].to_list()
-        )
+        agentsets_list = list(result.df.keys())
+        assert agentsets_list[0] is agentset_polars1
+        assert agentsets_list[1] is agentset_polars2
+        # Get combined IDs from all agentsets
+        combined_ids = []
+        for agentset in agentsets_list:
+            combined_ids.extend(agentset.df["unique_id"].to_list())
+        expected_ids = agentset_polars1.df["unique_id"].to_list() + agentset_polars2.df["unique_id"].to_list()
+        assert combined_ids == expected_ids
 
         # Test if adding the same AgentSetDF raises ValueError
         with pytest.raises(ValueError):
@@ -75,7 +85,7 @@ class Test_AgentsDF:
         fix_AgentsDF: AgentsDF,
     ):
         agents = fix_AgentsDF
-        agentset_polars1 = agents._agentsets[0]
+        agentset_polars1 = list(agents.df.keys())[0]
 
         # Test with an AgentSetDF
         assert agents.contains(agentset_polars1)
@@ -92,10 +102,10 @@ class Test_AgentsDF:
         ]
 
         # Test with single id
-        assert agents.contains(agentset_polars1["unique_id"][0])
+        assert agents.contains(agentset_polars1.df["unique_id"][0])
 
         # Test with a list of ids
-        assert agents.contains([agentset_polars1["unique_id"][0], 0]).to_list() == [
+        assert agents.contains([agentset_polars1.df["unique_id"][0], 0]).to_list() == [
             True,
             False,
         ]
@@ -109,105 +119,130 @@ class Test_AgentsDF:
         agents2.test_list[0].append(4)
         assert agents.test_list[0][-1] == agents2.test_list[0][-1]
         assert agents.model == agents2.model
-        assert agents._agentsets[0] == agents2._agentsets[0]
-        assert (agents._ids == agents2._ids).all()
+        agentsets_list1 = list(agents.df.keys())
+        agentsets_list2 = list(agents2.df.keys())
+        assert agentsets_list1[0] == agentsets_list2[0]
+        # Compare IDs from all agentsets
+        ids1 = []
+        ids2 = []
+        for agentset in agentsets_list1:
+            ids1.extend(agentset.df["unique_id"].to_list())
+        for agentset in agentsets_list2:
+            ids2.extend(agentset.df["unique_id"].to_list())
+        assert ids1 == ids2
 
         # Test with deep=True
         agents2 = fix_AgentsDF.copy(deep=True)
         agents2.test_list[0].append(4)
         assert agents.test_list[-1] != agents2.test_list[-1]
         assert agents.model == agents2.model
-        assert agents._agentsets[0] != agents2._agentsets[0]
-        assert (agents._ids == agents2._ids).all()
+        agentsets_list1 = list(agents.df.keys())
+        agentsets_list2 = list(agents2.df.keys())
+        assert agentsets_list1[0] != agentsets_list2[0]
+        # Compare IDs from all agentsets
+        ids1 = []
+        ids2 = []
+        for agentset in agentsets_list1:
+            ids1.extend(agentset.df["unique_id"].to_list())
+        for agentset in agentsets_list2:
+            ids2.extend(agentset.df["unique_id"].to_list())
+        assert ids1 == ids2
 
     def test_discard(
         self, fix_AgentsDF: AgentsDF, fix2_AgentSetPolars: ExampleAgentSetPolars
     ):
         agents = fix_AgentsDF
         # Test with a single AgentSetDF
-        agentset_polars2 = agents._agentsets[1]
-        result = agents.discard(agents._agentsets[0], inplace=False)
-        assert isinstance(result._agentsets[0], ExampleAgentSetPolars)
-        assert len(result._agentsets) == 1
+        agentsets_list = list(agents.df.keys())
+        agentset_polars2 = agentsets_list[1]
+        result = agents.discard(agentsets_list[0], inplace=False)
+        result_agentsets_list = list(result.df.keys())
+        assert isinstance(result_agentsets_list[0], ExampleAgentSetPolars)
+        assert len(result_agentsets_list) == 1
 
         # Test with a list of AgentSetDFs
-        result = agents.discard(agents._agentsets.copy(), inplace=False)
-        assert len(result._agentsets) == 0
+        result = agents.discard(list(agents.df.keys()).copy(), inplace=False)
+        assert len(list(result.df.keys())) == 0
 
         # Test with IDs
+        agentsets_list = list(agents.df.keys())
         ids = [
-            agents._agentsets[0]._df["unique_id"][0],
-            agents._agentsets[1]._df["unique_id"][0],
+            agentsets_list[0].df["unique_id"][0],
+            agentsets_list[1].df["unique_id"][0],
         ]
-        agentset_polars1 = agents._agentsets[0]
-        agentset_polars2 = agents._agentsets[1]
+        agentset_polars1 = agentsets_list[0]
+        agentset_polars2 = agentsets_list[1]
         result = agents.discard(ids, inplace=False)
+        result_agentsets_list = list(result.df.keys())
         assert (
-            result._agentsets[0]["unique_id"][0]
-            == agentset_polars1._df.select("unique_id").row(1)[0]
+            result_agentsets_list[0].df["unique_id"][0]
+            == agentset_polars1.df.select("unique_id").row(1)[0]
         )
         assert (
-            result._agentsets[1].df["unique_id"][0]
-            == agentset_polars2._df["unique_id"][1]
+            result_agentsets_list[1].df["unique_id"][0]
+            == agentset_polars2.df["unique_id"][1]
         )
 
         # Test if removing an AgentSetDF not present raises ValueError
         result = agents.discard(fix2_AgentSetPolars, inplace=False)
 
         # Test if removing an ID not present raises KeyError
-        assert 0 not in agents._ids
+        # Check if 0 is not in any of the agentsets
+        has_zero = any(0 in agentset.df["unique_id"].to_list() for agentset in agents.df.keys())
+        assert not has_zero
         result = agents.discard(0, inplace=False)
 
     def test_do(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
 
-        expected_result_0 = agents._agentsets[0].df["wealth"]
+        agentsets_list = list(agents.df.keys())
+        expected_result_0 = agentsets_list[0].df["wealth"]
         expected_result_0 += 1
 
-        expected_result_1 = agents._agentsets[1].df["wealth"]
+        expected_result_1 = agentsets_list[1].df["wealth"]
         expected_result_1 += 1
 
         # Test with no return_results, no mask, inplace
         agents.do("add_wealth", 1)
         assert (
-            agents._agentsets[0].df["wealth"].to_list() == expected_result_0.to_list()
+            agentsets_list[0].df["wealth"].to_list() == expected_result_0.to_list()
         )
         assert (
-            agents._agentsets[1].df["wealth"].to_list() == expected_result_1.to_list()
+            agentsets_list[1].df["wealth"].to_list() == expected_result_1.to_list()
         )
 
         # Test with return_results=True, no mask, inplace
-        expected_result_0 = agents._agentsets[0].df["wealth"]
+        expected_result_0 = agentsets_list[0].df["wealth"]
         expected_result_0 += 1
 
-        expected_result_1 = agents._agentsets[1].df["wealth"]
+        expected_result_1 = agentsets_list[1].df["wealth"]
         expected_result_1 += 1
         assert agents.do("add_wealth", 1, return_results=True) == {
-            agents._agentsets[0]: None,
-            agents._agentsets[1]: None,
+            agentsets_list[0]: None,
+            agentsets_list[1]: None,
         }
         assert (
-            agents._agentsets[0].df["wealth"].to_list() == expected_result_0.to_list()
+            agentsets_list[0].df["wealth"].to_list() == expected_result_0.to_list()
         )
         assert (
-            agents._agentsets[1].df["wealth"].to_list() == expected_result_1.to_list()
+            agentsets_list[1].df["wealth"].to_list() == expected_result_1.to_list()
         )
 
         # Test with a mask, inplace
-        mask0 = agents._agentsets[0].df["wealth"] > 10  # No agent should be selected
-        mask1 = agents._agentsets[1].df["wealth"] > 10  # All agents should be selected
-        mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
+        mask0 = agentsets_list[0].df["wealth"] > 10  # No agent should be selected
+        mask1 = agentsets_list[1].df["wealth"] > 10  # All agents should be selected
+        mask_dictionary = {agentsets_list[0]: mask0, agentsets_list[1]: mask1}
 
-        expected_result_0 = agents._agentsets[0].df["wealth"]
-        expected_result_1 = agents._agentsets[1].df["wealth"]
+        expected_result_0 = agentsets_list[0].df["wealth"]
+        expected_result_1 = agentsets_list[1].df["wealth"]
         expected_result_1 += 1
 
         agents.do("add_wealth", 1, mask=mask_dictionary)
         assert (
-            agents._agentsets[0].df["wealth"].to_list() == expected_result_0.to_list()
+            agentsets_list[0].df["wealth"].to_list() == expected_result_0.to_list()
         )
         assert (
-            agents._agentsets[1].df["wealth"].to_list() == expected_result_1.to_list()
+            agentsets_list[1].df["wealth"].to_list() == expected_result_1.to_list()
         )
 
     def test_get(
@@ -222,47 +257,47 @@ class Test_AgentsDF:
         # Test with a single attribute
         assert (
             agents.get("wealth")[fix1_AgentSetPolars].to_list()
-            == fix1_AgentSetPolars._df["wealth"].to_list()
+            == fix1_AgentSetPolars.df["wealth"].to_list()
         )
         assert (
             agents.get("wealth")[fix2_AgentSetPolars].to_list()
-            == fix2_AgentSetPolars._df["wealth"].to_list()
+            == fix2_AgentSetPolars.df["wealth"].to_list()
         )
 
         # Test with a list of attributes
         result = agents.get(["wealth", "age"])
-        assert result[fix1_AgentSetPolars].columns == ["wealth", "age"]
+        assert list(result[fix1_AgentSetPolars].columns) == ["wealth", "age"]
         assert (
             result[fix1_AgentSetPolars]["wealth"].to_list()
-            == fix1_AgentSetPolars._df["wealth"].to_list()
+            == fix1_AgentSetPolars.df["wealth"].to_list()
         )
         assert (
             result[fix1_AgentSetPolars]["age"].to_list()
-            == fix1_AgentSetPolars._df["age"].to_list()
+            == fix1_AgentSetPolars.df["age"].to_list()
         )
 
-        assert result[fix2_AgentSetPolars].columns == ["wealth", "age"]
+        assert list(result[fix2_AgentSetPolars].columns) == ["wealth", "age"]
         assert (
             result[fix2_AgentSetPolars]["wealth"].to_list()
-            == fix2_AgentSetPolars._df["wealth"].to_list()
+            == fix2_AgentSetPolars.df["wealth"].to_list()
         )
         assert (
             result[fix2_AgentSetPolars]["age"].to_list()
-            == fix2_AgentSetPolars._df["age"].to_list()
+            == fix2_AgentSetPolars.df["age"].to_list()
         )
 
         # Test with a single attribute and a mask
-        mask0 = fix1_AgentSetPolars._df["wealth"] > fix1_AgentSetPolars._df["wealth"][0]
-        mask1 = fix2_AgentSetPolars._df["wealth"] > fix2_AgentSetPolars._df["wealth"][0]
+        mask0 = fix1_AgentSetPolars.df["wealth"] > fix1_AgentSetPolars.df["wealth"][0]
+        mask1 = fix2_AgentSetPolars.df["wealth"] > fix2_AgentSetPolars.df["wealth"][0]
         mask_dictionary = {fix1_AgentSetPolars: mask0, fix2_AgentSetPolars: mask1}
         result = agents.get("wealth", mask=mask_dictionary)
         assert (
             result[fix1_AgentSetPolars].to_list()
-            == fix1_AgentSetPolars._df["wealth"].to_list()[1:]
+            == fix1_AgentSetPolars.df["wealth"].to_list()[1:]
         )
         assert (
             result[fix2_AgentSetPolars].to_list()
-            == fix2_AgentSetPolars._df["wealth"].to_list()[1:]
+            == fix2_AgentSetPolars.df["wealth"].to_list()[1:]
         )
 
         # Test heterogeneous agent sets (different columns)
@@ -308,7 +343,7 @@ class Test_AgentsDF:
         )
         assert fix1_AgentSetPolars in result_multi
         assert fix1_AgentSetPolars_no_wealth not in result_multi
-        assert result_multi[fix1_AgentSetPolars].columns == ["wealth", "age"]
+        assert list(result_multi[fix1_AgentSetPolars].columns) == ["wealth", "age"]
 
         # Test 5: Access multiple columns where some exist in different sets
         result_mixed = hetero_agents.get(["age", "income"])
@@ -355,30 +390,34 @@ class Test_AgentsDF:
         agents = fix_AgentsDF
 
         # Test with a single AgentSetDF
-        agentset_polars = agents._agentsets[1]
-        result = agents.remove(agents._agentsets[0], inplace=False)
-        assert isinstance(result._agentsets[0], ExampleAgentSetPolars)
-        assert len(result._agentsets) == 1
+        agentsets_list = list(agents.df.keys())
+        agentset_polars = agentsets_list[1]
+        result = agents.remove(agentsets_list[0], inplace=False)
+        result_agentsets_list = list(result.df.keys())
+        assert isinstance(result_agentsets_list[0], ExampleAgentSetPolars)
+        assert len(result_agentsets_list) == 1
 
         # Test with a list of AgentSetDFs
-        result = agents.remove(agents._agentsets.copy(), inplace=False)
-        assert len(result._agentsets) == 0
+        result = agents.remove(list(agents.df.keys()).copy(), inplace=False)
+        assert len(list(result.df.keys())) == 0
 
         # Test with IDs
+        agentsets_list = list(agents.df.keys())
         ids = [
-            agents._agentsets[0]._df["unique_id"][0],
-            agents._agentsets[1]._df["unique_id"][0],
+            agentsets_list[0].df["unique_id"][0],
+            agentsets_list[1].df["unique_id"][0],
         ]
-        agentset_polars1 = agents._agentsets[0]
-        agentset_polars2 = agents._agentsets[1]
+        agentset_polars1 = agentsets_list[0]
+        agentset_polars2 = agentsets_list[1]
         result = agents.remove(ids, inplace=False)
+        result_agentsets_list = list(result.df.keys())
         assert (
-            result._agentsets[0]["unique_id"][0]
-            == agentset_polars1._df.select("unique_id").row(1)[0]
+            result_agentsets_list[0].df["unique_id"][0]
+            == agentset_polars1.df.select("unique_id").row(1)[0]
         )
         assert (
-            result._agentsets[1].df["unique_id"][0]
-            == agentset_polars2._df["unique_id"][1]
+            result_agentsets_list[1].df["unique_id"][0]
+            == agentset_polars2.df["unique_id"][1]
         )
 
         # Test if removing an AgentSetDF not present raises ValueError
@@ -386,7 +425,9 @@ class Test_AgentsDF:
             result = agents.remove(fix3_AgentSetPolars, inplace=False)
 
         # Test if removing an ID not present raises KeyError
-        assert 0 not in agents._ids
+        # Check if 0 is not in any of the agentsets
+        has_zero = any(0 in agentset.df["unique_id"].to_list() for agentset in agents.df.keys())
+        assert not has_zero
         with pytest.raises(KeyError):
             result = agents.remove(0, inplace=False)
 
@@ -419,20 +460,20 @@ class Test_AgentsDF:
         selected = agents.select(mask_dictionary, inplace=False)
         assert (
             selected.active_agents[selected._agentsets[0]]["wealth"].to_list()[0]
-            == agents._agentsets[0]["wealth"].to_list()[0]
+            == list(agents.df[list(agents.df.keys())[0]]["wealth"])[0]
         )
         assert (
             selected.active_agents[selected._agentsets[0]]["wealth"].to_list()[-1]
-            == agents._agentsets[0]["wealth"].to_list()[-1]
+            == list(agents.df[list(agents.df.keys())[0]]["wealth"])[-1]
         )
 
         assert (
             selected.active_agents[selected._agentsets[1]]["wealth"].to_list()[0]
-            == agents._agentsets[1]["wealth"].to_list()[0]
+            == list(agents.df[list(agents.df.keys())[1]]["wealth"])[0]
         )
         assert (
             selected.active_agents[selected._agentsets[1]]["wealth"].to_list()[-1]
-            == agents._agentsets[1]["wealth"].to_list()[-1]
+            == list(agents.df[list(agents.df.keys())[1]]["wealth"])[-1]
         )
 
         # Test with filter_func
@@ -443,11 +484,11 @@ class Test_AgentsDF:
         selected = agents.select(filter_func=filter_func, inplace=False)
         assert (
             selected.active_agents[selected._agentsets[0]]["wealth"].to_list()
-            == agents._agentsets[0]["wealth"].to_list()[1:]
+            == list(agents.df[list(agents.df.keys())[0]]["wealth"])[1:]
         )
         assert (
             selected.active_agents[selected._agentsets[1]]["wealth"].to_list()
-            == agents._agentsets[1]["wealth"].to_list()[1:]
+            == list(agents.df[list(agents.df.keys())[1]]["wealth"])[1:]
         )
 
         # Test with n
@@ -477,20 +518,22 @@ class Test_AgentsDF:
 
         # Test with a single attribute
         result = agents.set("wealth", 0, inplace=False)
-        assert result._agentsets[0].df["wealth"].to_list() == [0] * len(
-            agents._agentsets[0]
+        agentset_keys = list(result.df.keys())
+        assert agentset_keys[0].df["wealth"].to_list() == [0] * len(
+            agentset_keys[0]
         )
-        assert result._agentsets[1].df["wealth"].to_list() == [0] * len(
-            agents._agentsets[1]
+        assert agentset_keys[1].df["wealth"].to_list() == [0] * len(
+            agentset_keys[1]
         )
 
         # Test with a list of attributes
         agents.set(["wealth", "age"], 1, inplace=True)
-        assert agents._agentsets[0].df["wealth"].to_list() == [1] * len(
-            agents._agentsets[0]
+        agentset_keys = list(agents.df.keys())
+        assert agentset_keys[0].df["wealth"].to_list() == [1] * len(
+            agentset_keys[0]
         )
-        assert agents._agentsets[0].df["age"].to_list() == [1] * len(
-            agents._agentsets[0]
+        assert agentset_keys[0].df["age"].to_list() == [1] * len(
+            agentset_keys[0]
         )
 
         # Test with a single attribute and a mask
@@ -502,34 +545,37 @@ class Test_AgentsDF:
         )
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
         result = agents.set("wealth", 0, mask=mask_dictionary, inplace=False)
-        assert result._agentsets[0].df["wealth"].to_list() == [0] + [1] * (
-            len(agents._agentsets[0]) - 1
+        agentset_keys = list(result.df.keys())
+        assert agentset_keys[0].df["wealth"].to_list() == [0] + [1] * (
+            len(agentset_keys[0]) - 1
         )
-        assert result._agentsets[1].df["wealth"].to_list() == [0] + [1] * (
-            len(agents._agentsets[1]) - 1
+        assert agentset_keys[1].df["wealth"].to_list() == [0] + [1] * (
+            len(agentset_keys[1]) - 1
         )
 
         # Test with a dictionary
+        agentset_keys = list(agents.df.keys())
         agents.set(
-            {agents._agentsets[0]: {"wealth": 0}, agents._agentsets[1]: {"wealth": 1}},
+            {agentset_keys[0]: {"wealth": 0}, agentset_keys[1]: {"wealth": 1}},
             inplace=True,
         )
-        assert agents._agentsets[0].df["wealth"].to_list() == [0] * len(
-            agents._agentsets[0]
+        assert agentset_keys[0].df["wealth"].to_list() == [0] * len(
+            agentset_keys[0]
         )
-        assert agents._agentsets[1].df["wealth"].to_list() == [1] * len(
-            agents._agentsets[1]
+        assert agentset_keys[1].df["wealth"].to_list() == [1] * len(
+            agentset_keys[1]
         )
 
     def test_shuffle(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
         for _ in range(100):
-            original_order_0 = agents._agentsets[0].df["unique_id"].to_list()
-            original_order_1 = agents._agentsets[1].df["unique_id"].to_list()
+            agentset_keys = list(agents.df.keys())
+            original_order_0 = agentset_keys[0].df["unique_id"].to_list()
+            original_order_1 = agentset_keys[1].df["unique_id"].to_list()
             agents.shuffle(inplace=True)
             if (
-                original_order_0 != agents._agentsets[0].df["unique_id"].to_list()
-                and original_order_1 != agents._agentsets[1].df["unique_id"].to_list()
+                original_order_0 != agentset_keys[0].df["unique_id"].to_list()
+                and original_order_1 != agentset_keys[1].df["unique_id"].to_list()
             ):
                 return
         assert False
@@ -537,8 +583,9 @@ class Test_AgentsDF:
     def test_sort(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
         agents.sort("wealth", ascending=False, inplace=True)
-        assert pl.Series(agents._agentsets[0].df["wealth"]).is_sorted(descending=True)
-        assert pl.Series(agents._agentsets[1].df["wealth"]).is_sorted(descending=True)
+        agentset_keys = list(agents.df.keys())
+        assert pl.Series(agentset_keys[0].df["wealth"]).is_sorted(descending=True)
+        assert pl.Series(agentset_keys[1].df["wealth"]).is_sorted(descending=True)
 
     def test_step(
         self,
@@ -546,18 +593,19 @@ class Test_AgentsDF:
         fix2_AgentSetPolars: ExampleAgentSetPolars,
         fix_AgentsDF: AgentsDF,
     ):
-        previous_wealth_0 = fix1_AgentSetPolars._df["wealth"].clone()
-        previous_wealth_1 = fix2_AgentSetPolars._df["wealth"].clone()
+        previous_wealth_0 = fix1_AgentSetPolars.df["wealth"].clone()
+        previous_wealth_1 = fix2_AgentSetPolars.df["wealth"].clone()
 
         agents = fix_AgentsDF
         agents.step()
 
+        agentsets_list = list(agents.df.keys())
         assert (
-            agents._agentsets[0].df["wealth"].to_list()
+            agentsets_list[0].df["wealth"].to_list()
             == (previous_wealth_0 + 1).to_list()
         )
         assert (
-            agents._agentsets[1].df["wealth"].to_list()
+            agentsets_list[1].df["wealth"].to_list()
             == (previous_wealth_1 + 1).to_list()
         )
 
@@ -569,13 +617,13 @@ class Test_AgentsDF:
     ):
         agents = fix_AgentsDF.remove(fix2_AgentSetPolars, inplace=False)
         agents_different_index = deepcopy(fix2_AgentSetPolars)
-        result = agents._check_ids_presence([fix1_AgentSetPolars])
+        result = agents._check_ids_presence([list(agents.df.keys())[0]])
         assert result.filter(
-            pl.col("unique_id").is_in(fix1_AgentSetPolars._df["unique_id"])
+            pl.col("unique_id").is_in(fix1_AgentSetPolars.df["unique_id"])
         )["present"].all()
 
         assert not result.filter(
-            pl.col("unique_id").is_in(agents_different_index._df["unique_id"])
+            pl.col("unique_id").is_in(agents_different_index.df["unique_id"])
         )["present"].any()
 
     def test__check_agentsets_presence(
@@ -620,27 +668,28 @@ class Test_AgentsDF:
         mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
         agents.select(mask=mask_dictionary)
         result = agents._get_bool_masks(mask="active")
-        assert result[agents._agentsets[0]].to_list() == mask0.to_list()
-        assert result[agents._agentsets[1]].to_list() == mask1.to_list()
+        agentset_keys = list(agents.df.keys())
+        assert result[agentset_keys[0]].to_list() == mask0.to_list()
+        assert result[agentset_keys[1]].to_list() == mask1.to_list()
 
         # Test with mask = IdsLike
         result = agents._get_bool_masks(
             mask=[
-                agents._agentsets[0]["unique_id"][0],
+                list(agents.df.keys())[0]["unique_id"][0],
                 agents._agentsets[1].df["unique_id"][0],
             ]
         )
-        assert result[agents._agentsets[0]].to_list() == [True] + [False] * (
+        assert result[list(agents.df.keys())[0]].to_list() == [True] + [False] * (
             len(agents._agentsets[0]) - 1
         )
-        assert result[agents._agentsets[1]].to_list() == [True] + [False] * (
+        assert result[list(agents.df.keys())[1]].to_list() == [True] + [False] * (
             len(agents._agentsets[1]) - 1
         )
 
         # Test with mask = dict[AgentSetDF, AgentMask]
         result = agents._get_bool_masks(mask=mask_dictionary)
-        assert result[agents._agentsets[0]].to_list() == mask0.to_list()
-        assert result[agents._agentsets[1]].to_list() == mask1.to_list()
+        assert result[list(agents.df.keys())[0]].to_list() == mask0.to_list()
+        assert result[list(agents.df.keys())[1]].to_list() == mask1.to_list()
 
     def test__get_obj(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -700,15 +749,15 @@ class Test_AgentsDF:
     ):
         # Test with a single value
         agents = fix_AgentsDF
-        agentset_polars1 = agents._agentsets[0]
+        agentset_polars1 = list(agents.df.keys())[0]
 
         # Test with an AgentSetDF
-        assert agentset_polars1 in agents
+        assert list(agents.df.keys())[0] in agents
         # Test with an AgentSetDF not present
         assert fix3_AgentSetPolars not in agents
 
         # Test with single id present
-        assert agentset_polars1["unique_id"][0] in agents
+        assert list(agents.df.keys())[0]["unique_id"][0] in agents
 
         # Test with single id not present
         assert 0 not in agents
@@ -722,7 +771,9 @@ class Test_AgentsDF:
         agents2.test_list[0].append(4)
         assert agents.test_list[0][-1] == agents2.test_list[0][-1]
         assert agents.model == agents2.model
-        assert agents._agentsets[0] == agents2._agentsets[0]
+        agentset_keys1 = list(agents.df.keys())
+        agentset_keys2 = list(agents2.df.keys())
+        assert agentset_keys1[0] == agentset_keys2[0]
         assert (agents._ids == agents2._ids).all()
 
     def test___deepcopy__(self, fix_AgentsDF: AgentsDF):
@@ -733,20 +784,23 @@ class Test_AgentsDF:
         agents2.test_list[0].append(4)
         assert agents.test_list[-1] != agents2.test_list[-1]
         assert agents.model == agents2.model
-        assert agents._agentsets[0] != agents2._agentsets[0]
+        agentset_keys1 = list(agents.df.keys())
+        agentset_keys2 = list(agents2.df.keys())
+        assert agentset_keys1[0] != agentset_keys2[0]
         assert (agents._ids == agents2._ids).all()
 
     def test___getattr__(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
         assert isinstance(agents.model, ModelDF)
         result = agents.wealth
+        agentset_keys = list(agents.df.keys())
         assert (
-            result[agents._agentsets[0]].to_list()
-            == agents._agentsets[0].df["wealth"].to_list()
+            result[agentset_keys[0]].to_list()
+            == agentset_keys[0].df["wealth"].to_list()
         )
         assert (
-            result[agents._agentsets[1]].to_list()
-            == agents._agentsets[1].df["wealth"].to_list()
+            result[agentset_keys[1]].to_list()
+            == agentset_keys[1].df["wealth"].to_list()
         )
 
     def test___getitem__(
@@ -760,11 +814,11 @@ class Test_AgentsDF:
         # Test with a single attribute
         assert (
             agents["wealth"][fix1_AgentSetPolars].to_list()
-            == fix1_AgentSetPolars._df["wealth"].to_list()
+            == fix1_AgentSetPolars.df["wealth"].to_list()
         )
         assert (
             agents["wealth"][fix2_AgentSetPolars].to_list()
-            == fix2_AgentSetPolars._df["wealth"].to_list()
+            == fix2_AgentSetPolars.df["wealth"].to_list()
         )
 
         # Test with a list of attributes
@@ -818,18 +872,20 @@ class Test_AgentsDF:
         # Test with a single AgentSetPolars
         agents_copy = deepcopy(agents)
         agents_copy += agentset_polars
-        assert agents_copy._agentsets[0] is agentset_polars
-        assert agents_copy._ids.to_list() == agentset_polars._df["unique_id"].to_list()
+        agentset_keys = list(agents_copy.df.keys())
+        assert agentset_keys[0] is agentset_polars
+        assert agents_copy._ids.to_list() == agentset_polars.df["unique_id"].to_list()
 
         # Test with a list of AgentSetDFs
         agents_copy = deepcopy(agents)
         agents_copy += [agentset_polars1, agentset_polars]
-        assert agents_copy._agentsets[0] is agentset_polars1
-        assert agents_copy._agentsets[1] is agentset_polars
+        agentset_keys = list(agents_copy.df.keys())
+        assert agentset_keys[0] is agentset_polars1
+        assert agentset_keys[1] is agentset_polars
         assert (
             agents_copy._ids.to_list()
-            == agentset_polars1._df["unique_id"].to_list()
-            + agentset_polars._df["unique_id"].to_list()
+            == agentset_polars1.df["unique_id"].to_list()
+            + agentset_polars.df["unique_id"].to_list()
         )
 
         # Test if adding the same AgentSetDF raises ValueError
@@ -838,16 +894,17 @@ class Test_AgentsDF:
 
     def test___iter__(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
-        len_agentset0 = len(agents._agentsets[0])
-        len_agentset1 = len(agents._agentsets[1])
+        agentset_keys = list(agents.df.keys())
+        len_agentset0 = len(agentset_keys[0])
+        len_agentset1 = len(agentset_keys[1])
         for i, agent in enumerate(agents):
             assert isinstance(agent, dict)
             if i < len_agentset0:
-                assert agent["unique_id"] == agents._agentsets[0].df["unique_id"][i]
+                assert agent["unique_id"] == agentset_keys[0].df["unique_id"][i]
             else:
                 assert (
                     agent["unique_id"]
-                    == agents._agentsets[1].df["unique_id"][i - len_agentset0]
+                    == agentset_keys[1].df["unique_id"][i - len_agentset0]
                 )
         assert i == len_agentset0 + len_agentset1 - 1
 
@@ -860,8 +917,9 @@ class Test_AgentsDF:
         # Test with an AgentSetPolars and a DataFrame
         agents = fix_AgentsDF
         agents -= fix1_AgentSetPolars
-        assert agents._agentsets[0] == fix2_AgentSetPolars
-        assert len(agents._agentsets) == 1
+        agentset_keys = list(agents.df.keys())
+        assert agentset_keys[0] == fix2_AgentSetPolars
+        assert len(agentset_keys) == 1
 
     def test___len__(
         self,
@@ -886,36 +944,38 @@ class Test_AgentsDF:
 
         # Test with a single attribute
         agents["wealth"] = 0
-        assert agents._agentsets[0].df["wealth"].to_list() == [0] * len(
-            agents._agentsets[0]
+        agentset_keys = list(agents.df.keys())
+        assert agentset_keys[0].df["wealth"].to_list() == [0] * len(
+            agentset_keys[0]
         )
-        assert agents._agentsets[1].df["wealth"].to_list() == [0] * len(
-            agents._agentsets[1]
+        assert agentset_keys[1].df["wealth"].to_list() == [0] * len(
+            agentset_keys[1]
         )
 
         # Test with a list of attributes
         agents[["wealth", "age"]] = 1
-        assert agents._agentsets[0].df["wealth"].to_list() == [1] * len(
-            agents._agentsets[0]
+        assert agentset_keys[0].df["wealth"].to_list() == [1] * len(
+            agentset_keys[0]
         )
-        assert agents._agentsets[0].df["age"].to_list() == [1] * len(
-            agents._agentsets[0]
+        assert agentset_keys[0].df["age"].to_list() == [1] * len(
+            agentset_keys[0]
         )
 
         # Test with a single attribute and a mask
+        agentset_keys = list(agents.df.keys())
         mask0 = pl.Series(
-            "mask", [True] + [False] * (len(agents._agentsets[0]) - 1), dtype=pl.Boolean
+            "mask", [True] + [False] * (len(agentset_keys[0]) - 1), dtype=pl.Boolean
         )
         mask1 = pl.Series(
-            "mask", [True] + [False] * (len(agents._agentsets[1]) - 1), dtype=pl.Boolean
+            "mask", [True] + [False] * (len(agentset_keys[1]) - 1), dtype=pl.Boolean
         )
-        mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
+        mask_dictionary = {agentset_keys[0]: mask0, agentset_keys[1]: mask1}
         agents[mask_dictionary, "wealth"] = 0
-        assert agents._agentsets[0].df["wealth"].to_list() == [0] + [1] * (
-            len(agents._agentsets[0]) - 1
+        assert agentset_keys[0].df["wealth"].to_list() == [0] + [1] * (
+            len(agentset_keys[0]) - 1
         )
-        assert agents._agentsets[1].df["wealth"].to_list() == [0] + [1] * (
-            len(agents._agentsets[1]) - 1
+        assert agentset_keys[1].df["wealth"].to_list() == [0] + [1] * (
+            len(agentset_keys[1]) - 1
         )
 
     def test___str__(self, fix_AgentsDF: AgentsDF):
@@ -929,8 +989,9 @@ class Test_AgentsDF:
     ):
         # Test with an AgentSetPolars and a DataFrame
         result = fix_AgentsDF - fix1_AgentSetPolars
-        assert isinstance(result._agentsets[0], ExampleAgentSetPolars)
-        assert len(result._agentsets) == 1
+        agentset_keys = list(result.df.keys())
+        assert isinstance(agentset_keys[0], ExampleAgentSetPolars)
+        assert len(agentset_keys) == 1
 
     def test_agents(
         self,
@@ -940,46 +1001,49 @@ class Test_AgentsDF:
     ):
         assert isinstance(fix_AgentsDF.df, dict)
         assert len(fix_AgentsDF.df) == 2
-        assert fix_AgentsDF.df[fix1_AgentSetPolars] is fix1_AgentSetPolars._df
-        assert fix_AgentsDF.df[fix2_AgentSetPolars] is fix2_AgentSetPolars._df
+        assert fix_AgentsDF.df[fix1_AgentSetPolars] is fix1_AgentSetPolars.df
+        assert fix_AgentsDF.df[fix2_AgentSetPolars] is fix2_AgentSetPolars.df
 
         # Test agents.setter
         fix_AgentsDF.df = [fix1_AgentSetPolars, fix2_AgentSetPolars]
-        assert fix_AgentsDF._agentsets[0] == fix1_AgentSetPolars
-        assert fix_AgentsDF._agentsets[1] == fix2_AgentSetPolars
+        agentset_keys = list(fix_AgentsDF.df.keys())
+        assert agentset_keys[0] == fix1_AgentSetPolars
+        assert agentset_keys[1] == fix2_AgentSetPolars
 
     def test_active_agents(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
 
         # Test with select
+        agentset_keys = list(agents.df.keys())
         mask0 = (
-            agents._agentsets[0].df["wealth"]
-            > agents._agentsets[0].df["wealth"].to_list()[0]
+            agentset_keys[0].df["wealth"]
+            > agentset_keys[0].df["wealth"].to_list()[0]
         )
         mask1 = (
-            agents._agentsets[1].df["wealth"]
-            > agents._agentsets[1].df["wealth"].to_list()[0]
+            agentset_keys[1].df["wealth"]
+            > agentset_keys[1].df["wealth"].to_list()[0]
         )
-        mask_dictionary = {agents._agentsets[0]: mask0, agents._agentsets[1]: mask1}
+        mask_dictionary = {agentset_keys[0]: mask0, agentset_keys[1]: mask1}
 
         agents1 = agents.select(mask=mask_dictionary, inplace=False)
 
         result = agents1.active_agents
         assert isinstance(result, dict)
-        assert isinstance(result[agents1._agentsets[0]], pl.DataFrame)
-        assert isinstance(result[agents1._agentsets[1]], pl.DataFrame)
+        agentset_keys = list(agents1.df.keys())
+        assert isinstance(result[agentset_keys[0]], pl.DataFrame)
+        assert isinstance(result[agentset_keys[1]], pl.DataFrame)
 
         assert all(
             series.all()
             for series in (
-                result[agents1._agentsets[0]] == agents1._agentsets[0]._df.filter(mask0)
+                result[agentset_keys[0]] == agentset_keys[0].df.filter(mask0)
             )
         )
 
         assert all(
             series.all()
             for series in (
-                result[agents1._agentsets[1]] == agents1._agentsets[1]._df.filter(mask1)
+                result[agentset_keys[1]] == agentset_keys[1].df.filter(mask1)
             )
         )
 
@@ -987,18 +1051,19 @@ class Test_AgentsDF:
         agents1.active_agents = mask_dictionary
         result = agents1.active_agents
         assert isinstance(result, dict)
-        assert isinstance(result[agents1._agentsets[0]], pl.DataFrame)
-        assert isinstance(result[agents1._agentsets[1]], pl.DataFrame)
+        agentset_keys = list(agents1.df.keys())
+        assert isinstance(result[agentset_keys[0]], pl.DataFrame)
+        assert isinstance(result[agentset_keys[1]], pl.DataFrame)
         assert all(
             series.all()
             for series in (
-                result[agents1._agentsets[0]] == agents1._agentsets[0]._df.filter(mask0)
+                result[agentset_keys[0]] == agentset_keys[0].df.filter(mask0)
             )
         )
         assert all(
             series.all()
             for series in (
-                result[agents1._agentsets[1]] == agents1._agentsets[1]._df.filter(mask1)
+                result[agentset_keys[1]] == agentset_keys[1].df.filter(mask1)
             )
         )
 
