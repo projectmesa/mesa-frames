@@ -27,7 +27,6 @@ class AntPolarsBase(AgentSetPolars):
 
         agents = pl.DataFrame(
             {
-                "unique_id": pl.arange(n_agents, eager=True),
                 "sugar": initial_sugar,
                 "metabolism": metabolism,
                 "vision": vision,
@@ -257,7 +256,11 @@ class AntPolarsLoop(AntPolarsBase):
             )
 
         best_moves = (
-            neighborhood.fill_null(-1)
+            # Only fill nulls for the column we need as an int sentinel;
+            # avoid touching UInt columns like 'blocking_agent_id'.
+            neighborhood.with_columns(
+                pl.col("blocking_agent_order").fill_null(-1)
+            )
             .cast({"agent_order": pl.Int32, "blocking_agent_order": pl.Int32})
             .select(
                 pl.struct(["agent_order", "blocking_agent_order"]).map_batches(
