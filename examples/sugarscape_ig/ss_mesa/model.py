@@ -60,10 +60,7 @@ class SugarscapeMesa(mesa.Model):
             else:
                 x = self.random.randrange(self.width)
                 y = self.random.randrange(self.height)
-            ssa = AntMesa(
-                agent_id, self, False, initial_sugar[i], metabolism[i], vision[i]
-            )
-            agent_id += 1
+            ssa = AntMesa(self, False, initial_sugar[i], metabolism[i], vision[i])
             self.agents.add(ssa)
             self.space.place_agent(ssa, (x, y))
 
