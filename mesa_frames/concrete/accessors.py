@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from types import MappingProxyType
 from typing import Any, cast
 
-from types_ import KeyBy
-
+from mesa_frames.types_ import KeyBy
 from mesa_frames.abstract.agents import AgentSetDF
-from mesa_frames.concrete.agents import AgentsDF
+from mesa_frames.abstract.accessors import AgentSetsAccessorBase
 
 
 class AgentSetsAccessor(AgentSetsAccessorBase):
@@ -16,22 +17,22 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
     def __getitem__(
         self, key: int | str | type[AgentSetDF]
     ) -> AgentSetDF | list[AgentSetDF]:
-        p = self._parent
+        sets = self._parent._agentsets
         if isinstance(key, int):
             try:
-                return p._agentsets[key]
+                return sets[key]
             except IndexError as e:
                 raise IndexError(
-                    f"Index {key} out of range for {len(p._agentsets)} agent sets"
+                    f"Index {key} out of range for {len(sets)} agent sets"
                 ) from e
         if isinstance(key, str):
-            for s in p._agentsets:
+            for s in sets:
                 if s.name == key:
                     return s
-            available = [getattr(s, "name", None) for s in p._agentsets]
+            available = [getattr(s, "name", None) for s in sets]
             raise KeyError(f"No agent set named '{key}'. Available: {available}")
         if isinstance(key, type):
-            return [s for s in p._agentsets if isinstance(s, key)]
+            return [s for s in sets if isinstance(s, key)]
         raise TypeError("Key must be int | str | type[AgentSetDF]")
 
     def get(
@@ -103,10 +104,11 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
 
     # ---------- membership & iteration ----------
     def __contains__(self, x: str | AgentSetDF) -> bool:
+        sets = self._parent._agentsets
         if isinstance(x, str):
-            return any(s.name == x for s in self._parent._agentsets)
+            return any(s.name == x for s in sets)
         if isinstance(x, AgentSetDF):
-            return any(s is x for s in self._parent._agentsets)
+            return any(s is x for s in sets)
         return False
 
     def __len__(self) -> int:

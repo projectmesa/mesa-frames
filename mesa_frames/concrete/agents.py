@@ -46,7 +46,6 @@ the class docstring.
 
 from __future__ import annotations  # For forward references
 
-from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import Any, Literal, Self, cast, overload
 
@@ -54,6 +53,7 @@ import numpy as np
 import polars as pl
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
+from mesa_frames.concrete.accessors import AgentSetsAccessor
 from mesa_frames.types_ import (
     AgentMask,
     AgnosticAgentMask,
@@ -61,6 +61,7 @@ from mesa_frames.types_ import (
     DataFrame,
     IdsLike,
     Index,
+    KeyBy,
     Series,
 )
 
@@ -68,6 +69,9 @@ from mesa_frames.types_ import (
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
 
+    # Do not copy the accessor; it holds a reference to this instance and is
+    # cheaply re-created on demand via the `sets` property.
+    _skip_copy: list[str] = ["_sets_accessor"]
     _agentsets: list[AgentSetDF]
     _ids: pl.Series
 
@@ -80,11 +84,29 @@ class AgentsDF(AgentContainer):
             The model associated with the AgentsDF.
         """
         self._model = model
-        self._agentsets = []
+        self._agentsets = []  # internal storage; used by AgentSetsAccessor
         self._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
+        # Accessor is created lazily in the property to survive copy/deepcopy
+        self._sets_accessor = AgentSetsAccessor(self)
+
+    @property
+    def sets(self) -> AgentSetsAccessor:
+        """Accessor for agentset lookup by index/name/type.
+
+        Does not conflict with AgentsDF's existing __getitem__ column API.
+        """
+        # Ensure accessor always points to this instance (robust to copy/deepcopy)
+        acc = getattr(self, "_sets_accessor", None)
+        if acc is None or getattr(acc, "_parent", None) is not self:
+            acc = AgentSetsAccessor(self)
+            self._sets_accessor = acc
+        return acc
+
 
     def add(
-        self, agents: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True
+        self,
+        agents: AgentSetDF | Iterable[AgentSetDF],
+        inplace: bool = True,
     ) -> Self:
         """Add an AgentSetDF to the AgentsDF.
 
@@ -205,9 +227,16 @@ class AgentsDF(AgentContainer):
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
-    ) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
+        key_by: KeyBy = "object",
+    ) -> (
+        dict[AgentSetDF, Series]
+        | dict[AgentSetDF, DataFrame]
+        | dict[str, Any]
+        | dict[int, Any]
+        | dict[type, Any]
+    ):
         agentsets_masks = self._get_bool_masks(mask)
-        result = {}
+        result: dict[AgentSetDF, Any] = {}
 
         # Convert attr_names to list for consistent checking
         if attr_names is None:
@@ -228,7 +257,17 @@ class AgentsDF(AgentContainer):
             ):
                 result[agentset] = agentset.get(attr_names, mask)
 
-        return result
+        if key_by == "object":
+            return result
+        elif key_by == "name":
+            return {cast(AgentSetDF, a).name: v for a, v in result.items()}  # type: ignore[return-value]
+        elif key_by == "index":
+            index_map = {agentset: i for i, agentset in enumerate(self._agentsets)}
+            return {index_map[a]: v for a, v in result.items()}  # type: ignore[return-value]
+        elif key_by == "type":
+            return {type(a): v for a, v in result.items()}  # type: ignore[return-value]
+        else:
+            raise ValueError("key_by must be one of 'object', 'name', 'index', or 'type'")
 
     def remove(
         self,
@@ -600,28 +639,6 @@ class AgentsDF(AgentContainer):
         self, agents: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask]
     ) -> None:
         self.select(agents, inplace=True)
-
-    @property
-    def agentsets_by_type(self) -> dict[type[AgentSetDF], Self]:
-        """Get the agent sets in the AgentsDF grouped by type.
-
-        Returns
-        -------
-        dict[type[AgentSetDF], Self]
-            A dictionary mapping agent set types to the corresponding AgentsDF.
-        """
-
-        def copy_without_agentsets() -> Self:
-            return self.copy(deep=False, skip=["_agentsets"])
-
-        dictionary = defaultdict(copy_without_agentsets)
-
-        for agentset in self._agentsets:
-            agents_df = dictionary[agentset.__class__]
-            agents_df._agentsets = []
-            agents_df._agentsets = agents_df._agentsets + [agentset]
-            dictionary[agentset.__class__] = agents_df
-        return dictionary
 
     @property
     def inactive_agents(self) -> dict[AgentSetDF, DataFrame]:
