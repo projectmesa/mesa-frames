@@ -37,7 +37,7 @@ dependencies    = [
   # polars._typing added in 1.0.0
   "polars>=1.30.0",
   "psycopg2-binary==2.9.10",
-  "boto3>=1.35.91"
+  "boto3>=1.35.91",
 ]
 dynamic         = ["version"]
 
@@ -78,10 +78,10 @@ docs = [
 dev = [
   { include-group = "test" },
   { include-group = "docs" },
-  "mesa~=2.3.4",
   "numba>=0.60.0",
   "ruff>=0.11.12",
   "pre-commit>=4.2.0",
+  "mesa>=3.2.0",
 ]
 
 
