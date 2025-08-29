@@ -98,7 +98,7 @@ class MoneyAgentPolars(AgentSetPolars):
         super().__init__(model)
         # Adding the agents to the agent set
         self += pl.DataFrame(
-            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
+            {"wealth": pl.ones(n, eager=True)}
         )
 
     def step(self) -> None:

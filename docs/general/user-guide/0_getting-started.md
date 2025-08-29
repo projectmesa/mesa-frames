@@ -88,7 +88,6 @@ If you're familiar with mesa, this guide will help you understand the key differ
         def __init__(self, n, model):
             super().__init__(model)
             self += pl.DataFrame({
-                "unique_id": pl.arange(n),
                 "wealth": pl.ones(n)
                 })
         def step(self):

@@ -4,7 +4,7 @@
 
 To create your own AgentSetDF class, you need to subclass the AgentSetPolars class and make sure to call `super().__init__(model)`.
 
-Typically, the next step would be to populate the class with your agents. To do that, you need to add a DataFrame to the AgentSetDF. You can do `self += agents` or `self.add(agents)`, where `agents` is a DataFrame or something that could be passed to a DataFrame constructor, like a dictionary or lists of lists. You need to make sure your DataFrame has a 'unique_id' column and that the ids are unique across the model, otherwise you will get an error raised. In the DataFrame, you should also put any attribute of the agent you are using.
+Typically, the next step would be to populate the class with your agents. To do that, you need to add a DataFrame to the AgentSetDF. You can do `self += agents` or `self.add(agents)`, where `agents` is a DataFrame or something that could be passed to a DataFrame constructor, like a dictionary or lists of lists. You need to make sure your DataFrame doesn't have a 'unique_id' column because IDs are generated automatically, otherwise you will get an error raised. In the DataFrame, you should also put any attribute of the agent you are using.
 
 How can you choose which agents should be in the same AgentSet? The idea is that you should minimize the missing values in the DataFrame (so they should have similar/same attributes) and mostly everybody should do the same actions.
 
@@ -16,7 +16,6 @@ class MoneyAgent(AgentSetPolars):
         super().__init__(model)
         self.initial_wealth = pl.ones(n)
         self += pl.DataFrame({
-            "unique_id": pl.arange(n),
             "wealth": self.initial_wealth
         })
 

@@ -1,11 +1,11 @@
+import importlib.metadata
+
 import matplotlib.pyplot as plt
 import mesa
 import numpy as np
-
 import perfplot
 import polars as pl
 import seaborn as sns
-import importlib.metadata
 from packaging import version
 
 from mesa_frames import AgentSetPolars, ModelDF
@@ -20,9 +20,9 @@ def mesa_implementation(n_agents: int) -> None:
 class MoneyAgent(mesa.Agent):
     """An agent with fixed initial wealth."""
 
-    def __init__(self, unique_id, model):
+    def __init__(self, model):
         # Pass the parameters to the parent class.
-        super().__init__(unique_id, model)
+        super().__init__(model)
 
         # Create the agent's variable and set the initial values.
         self.wealth = 1
@@ -42,13 +42,12 @@ class MoneyModel(mesa.Model):
     def __init__(self, N):
         super().__init__()
         self.num_agents = N
-        self.agents = [MoneyAgent(i, self) for i in range(self.num_agents)]
+        for _ in range(self.num_agents):
+            self.agents.add(MoneyAgent(self))
 
     def step(self):
         """Advance the model by one step."""
-        self.random.shuffle(self.agents)
-        for agent in self.agents:
-            agent.step()
+        self.agents.shuffle_do("step")
 
     def run_model(self, n_steps) -> None:
         for _ in range(n_steps):
@@ -72,21 +71,18 @@ class MoneyAgentPolarsConcise(AgentSetPolars):
         ## Adding the agents to the agent set
         # 1. Changing the agents attribute directly (not recommended, if other agents were added before, they will be lost)
         """self.agents = pl.DataFrame(
-            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
+            "wealth": pl.ones(n, eager=True)}
         )"""
         # 2. Adding the dataframe with add
         """self.add(
             pl.DataFrame(
                 {
-                    "unique_id": pl.arange(n, eager=True),
                     "wealth": pl.ones(n, eager=True),
                 }
             )
         )"""
         # 3. Adding the dataframe with __iadd__
-        self += pl.DataFrame(
-            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
-        )
+        self += pl.DataFrame({"wealth": pl.ones(n, eager=True)})
 
     def step(self) -> None:
         # The give_money method is called
@@ -127,9 +123,7 @@ class MoneyAgentPolarsConcise(AgentSetPolars):
 class MoneyAgentPolarsNative(AgentSetPolars):
     def __init__(self, n: int, model: ModelDF):
         super().__init__(model)
-        self += pl.DataFrame(
-            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
-        )
+        self += pl.DataFrame({"wealth": pl.ones(n, eager=True)})
 
     def step(self) -> None:
         self.do("give_money")
@@ -142,7 +136,9 @@ class MoneyAgentPolarsNative(AgentSetPolars):
 
         # Wealth of wealthy is decreased by 1
         self.df = self.df.with_columns(
-            wealth=pl.when(pl.col("unique_id").is_in(self.active_agents["unique_id"]))
+            wealth=pl.when(
+                pl.col("unique_id").is_in(self.active_agents["unique_id"].implode())
+            )
             .then(pl.col("wealth") - 1)
             .otherwise(pl.col("wealth"))
         )
