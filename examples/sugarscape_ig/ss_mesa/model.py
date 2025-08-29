@@ -44,13 +44,11 @@ class SugarscapeMesa(mesa.Model):
         self.n_agents = n_agents
         self.space = mesa.space.MultiGrid(self.width, self.height, torus=False)
 
-        agent_id = 0
         self.sugars = []
 
         for _, (x, y) in self.space.coord_iter():
             max_sugar = sugar_grid[x, y]
-            sugar = Sugar(agent_id, self, max_sugar)
-            agent_id += 1
+            sugar = Sugar(self, max_sugar)
             self.space.place_agent(sugar, (x, y))
             self.sugars.append(sugar)
 
@@ -72,12 +70,11 @@ class SugarscapeMesa(mesa.Model):
         self.running = True
 
     def step(self):
-        self.random.shuffle(self.agents)
-        [agent.step() for agent in self.agents]
+        self.agents.shuffle_do("step")
         [sugar.step() for sugar in self.sugars]
 
     def run_model(self, step_count=200):
-        for i in range(step_count):
+        for _ in range(step_count):
             if len(self.agents) == 0:
                 return
             self.step()
