@@ -42,7 +42,7 @@ class MoneyModel(mesa.Model):
     def __init__(self, N):
         super().__init__()
         self.num_agents = N
-        for i in range(self.num_agents):
+        for _ in range(self.num_agents):
             self.agents.add(MoneyAgent(self))
 
     def step(self):
@@ -136,7 +136,9 @@ class MoneyAgentPolarsNative(AgentSetPolars):
 
         # Wealth of wealthy is decreased by 1
         self.df = self.df.with_columns(
-            wealth=pl.when(pl.col("unique_id").is_in(self.active_agents["unique_id"]))
+            wealth=pl.when(
+                pl.col("unique_id").is_in(self.active_agents["unique_id"].implode())
+            )
             .then(pl.col("wealth") - 1)
             .otherwise(pl.col("wealth"))
         )
