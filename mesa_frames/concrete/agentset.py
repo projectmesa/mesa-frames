@@ -65,7 +65,7 @@ from typing import Any, Literal, Self, overload
 import numpy as np
 import polars as pl
 
-from mesa_frames.concrete.agents import AgentSetDF
+from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
@@ -83,7 +83,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
+    def __init__(
+        self, model: mesa_frames.concrete.model.ModelDF, name: str | None = None
+    ) -> None:
         """Initialize a new AgentSetPolars.
 
         Parameters
@@ -91,10 +93,80 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         model : "mesa_frames.concrete.model.ModelDF"
             The model that the agent set belongs to.
         """
+        # Model reference
         self._model = model
+        # Assign unique, human-friendly name (consider only explicitly named sets)
+        base = name if name is not None else self.__class__.__name__
+        existing = {s.name for s in self.model.agents.sets if getattr(s, "name", None)}
+        unique = self._make_unique_name(base, existing)
+        if unique != base and name is not None:
+            import warnings
+
+            warnings.warn(
+                f"AgentSetPolars with name '{base}' already exists; renamed to '{unique}'.",
+                UserWarning,
+                stacklevel=2,
+            )
+        self._name = unique
+
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
+
+    @property
+    def name(self) -> str | None:
+        return getattr(self, "_name", None)
+
+    def rename(self, new_name: str) -> None:
+        """Rename this agent set with collision-safe behavior.
+
+        Parameters
+        ----------
+        new_name : str
+            Desired new name. If it collides with an existing explicit name,
+            a numeric suffix is added (e.g., 'Sheep' -> 'Sheep_1').
+        """
+        if not isinstance(new_name, str):
+            raise TypeError("rename() expects a string name")
+        # Consider only explicitly named sets and exclude self's current name
+        existing = {s.name for s in self.model.agents.sets if getattr(s, "name", None)}
+        if self.name in existing:
+            existing.discard(self.name)
+        base = new_name
+        unique = self._make_unique_name(base, existing)
+        if unique != base:
+            import warnings
+
+            warnings.warn(
+                f"AgentSetPolars with name '{base}' already exists; renamed to '{unique}'.",
+                UserWarning,
+                stacklevel=2,
+            )
+        self._name = unique
+
+    @staticmethod
+    def _make_unique_name(base: str, existing: set[str]) -> str:
+        if base not in existing:
+            return base
+        # If ends with _<int>, increment; else append _1
+        import re
+
+        m = re.match(r"^(.*?)(?:_(\d+))$", base)
+        if m:
+            prefix, num = m.group(1), int(m.group(2))
+            nxt = num + 1
+            candidate = f"{prefix}_{nxt}"
+            while candidate in existing:
+                nxt += 1
+                candidate = f"{prefix}_{nxt}"
+            return candidate
+        else:
+            candidate = f"{base}_1"
+            i = 1
+            while candidate in existing:
+                i += 1
+                candidate = f"{base}_{i}"
+            return candidate
 
     def add(
         self,
