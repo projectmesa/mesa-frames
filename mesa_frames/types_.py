@@ -83,6 +83,9 @@ IdsLike = AgnosticIds | PolarsIdsLike
 ArrayLike = ndarray | Series | Sequence
 Infinity = Annotated[float, IsEqual[math.inf]]  # Only accepts math.inf
 
+# Common option types
+KeyBy = Literal["name", "index", "object", "type"]
+
 ###----- Time ------###
 TimeT = float | int
 
