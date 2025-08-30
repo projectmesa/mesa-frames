@@ -76,11 +76,11 @@ Example:
 class ExampleModel(ModelDF):
     def __init__(self):
         super().__init__()
-        self.agents = ExampleAgentSet1(self)
+        self.agents = MoneyAgent(self)
         self.datacollector = DataCollector(
             model=self,
             model_reporters={"total_wealth": lambda m: m.agents["wealth"].sum()},
-            agent_reporters={"wealth": "wealth", "age": "age"},
+            agent_reporters={"wealth": "wealth"},
             storage="csv",
             storage_uri="./data",
             trigger=lambda m: m.schedule.steps % 2 == 0
