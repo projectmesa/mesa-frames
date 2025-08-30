@@ -130,40 +130,7 @@ class AgentSetsAccessor(AbstractAgentSetsAccessor):
         on_conflict: Literal["canonicalize", "raise"] = "canonicalize",
         mode: Literal["atomic", "best_effort"] = "atomic",
     ) -> str | dict[AgentSetDF, str]:
-        """
-        Rename agent sets. Supports single and batch renaming with deterministic conflict handling.
-
-        Parameters
-        ----------
-        target : AgentSetDF | str | dict[AgentSetDF | str, str] | list[tuple[AgentSetDF | str, str]]
-            Either:
-            - Single: AgentSet or name string (must provide new_name)
-            - Batch: {target: new_name} dict or [(target, new_name), ...] list
-        new_name : str | None, optional
-            New name (only used for single renames)
-        on_conflict : "Literal['canonicalize', 'raise']"
-            Conflict resolution: "canonicalize" (default) appends suffixes, "raise" raises ValueError
-        mode : "Literal['atomic', 'best_effort']"
-            Rename mode: "atomic" applies all or none (default), "best_effort" skips failed renames
-
-        Returns
-        -------
-        str | dict[AgentSetDF, str]
-            Single rename: final name string
-            Batch: {agentset: final_name} mapping
-
-        Examples
-        --------
-        Single rename:
-        >>> agents.sets.rename("old_name", "new_name")
-
-        Batch rename (dict):
-        >>> agents.sets.rename({"set1": "new_name", "set2": "another_name"})
-
-        Batch rename (list):
-        >>> agents.sets.rename([("set1", "new_name"), ("set2", "another_name")])
-        """
-        return self._parent._rename_set(
+        return self._parent._rename_sets(
             target, new_name, on_conflict=on_conflict, mode=mode
         )
 
