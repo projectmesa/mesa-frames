@@ -125,8 +125,9 @@ class AgentsDF(AgentContainer):
         # Convert CamelCase to snake_case
         def _camel_to_snake(name: str) -> str:
             import re
-            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-            return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+            s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+            return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
         base = _camel_to_snake(base)
 
@@ -781,12 +782,12 @@ class AgentsDF(AgentContainer):
                 raise AttributeError(
                     f"'{self.__class__.__name__}' object has no attribute '{name}'"
                 )
-        return {agentset: getattr(agentset, name) for agentset in self._agentsets}
+        return {agentset.name: getattr(agentset, name) for agentset in self._agentsets}
 
     @overload
     def __getitem__(
         self, key: str | tuple[dict[AgentSetDF, AgentMask], str]
-    ) -> dict[AgentSetDF, Series | pl.Expr]: ...
+    ) -> dict[str, Series | pl.Expr]: ...
 
     @overload
     def __getitem__(
@@ -797,7 +798,7 @@ class AgentsDF(AgentContainer):
             | IdsLike
             | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
         ),
-    ) -> dict[AgentSetDF, DataFrame]: ...
+    ) -> dict[str, DataFrame]: ...
 
     def __getitem__(
         self,
@@ -809,7 +810,7 @@ class AgentsDF(AgentContainer):
             | tuple[dict[AgentSetDF, AgentMask], str]
             | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
         ),
-    ) -> dict[AgentSetDF, Series | pl.Expr] | dict[AgentSetDF, DataFrame]:
+    ) -> dict[str, Series | pl.Expr] | dict[str, DataFrame]:
         return super().__getitem__(key)
 
     def __iadd__(self, agents: AgentSetDF | Iterable[AgentSetDF]) -> Self:
