@@ -77,7 +77,9 @@ class AgentContainer(CopyMixin):
         agents: IdsLike
         | AgentMask
         | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        | str
+        | Collection[str],
         inplace: bool = True,
     ) -> Self:
         """Remove agents from the AgentContainer. Does not raise an error if the agent is not found.
@@ -130,12 +132,20 @@ class AgentContainer(CopyMixin):
     @overload
     @abstractmethod
     def contains(
-        self, agents: mesa_frames.concrete.agents.AgentSetDF | IdsLike
+        self,
+        agents: mesa_frames.concrete.agents.AgentSetDF
+        | IdsLike
+        | str
+        | Collection[str],
     ) -> BoolSeries: ...
 
     @abstractmethod
     def contains(
-        self, agents: mesa_frames.concrete.agents.AgentSetDF | IdsLike
+        self,
+        agents: mesa_frames.concrete.agents.AgentSetDF
+        | IdsLike
+        | str
+        | Collection[str],
     ) -> bool | BoolSeries:
         """Check if agents with the specified IDs are in the AgentContainer.
 
@@ -172,7 +182,7 @@ class AgentContainer(CopyMixin):
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs: Any,
-    ) -> Any | dict[mesa_frames.concrete.agents.AgentSetDF, Any]: ...
+    ) -> Any | dict[str, Any]: ...
 
     @abstractmethod
     def do(
@@ -183,7 +193,7 @@ class AgentContainer(CopyMixin):
         return_results: bool = False,
         inplace: bool = True,
         **kwargs: Any,
-    ) -> Self | Any | dict[mesa_frames.concrete.agents.AgentSetDF, Any]:
+    ) -> Self | Any | dict[str, Any]:
         """Invoke a method on the AgentContainer.
 
         Parameters
@@ -248,6 +258,8 @@ class AgentContainer(CopyMixin):
             | AgentMask
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | str
+            | Collection[str]
         ),
         inplace: bool = True,
     ) -> Self:
@@ -413,12 +425,12 @@ class AgentContainer(CopyMixin):
         """
         return self.add(agents=other, inplace=False)
 
-    def __contains__(self, agents: int | AgentSetDF) -> bool:
+    def __contains__(self, agents: int | AgentSetDF | str) -> bool:
         """Check if an agent is in the AgentContainer.
 
         Parameters
         ----------
-        agents : int | AgentSetDF
+        agents : int | AgentSetDF | str
             The ID(s) or AgentSetDF to check for.
 
         Returns
@@ -431,13 +443,13 @@ class AgentContainer(CopyMixin):
     @overload
     def __getitem__(
         self, key: str | tuple[AgentMask, str]
-    ) -> Series | dict[AgentSetDF, Series]: ...
+    ) -> Series | dict[str, Series]: ...
 
     @overload
     def __getitem__(
         self,
         key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
-    ) -> DataFrame | dict[AgentSetDF, DataFrame]: ...
+    ) -> DataFrame | dict[str, DataFrame]: ...
 
     def __getitem__(
         self,
@@ -447,10 +459,10 @@ class AgentContainer(CopyMixin):
             | AgentMask
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
-            | tuple[dict[AgentSetDF, AgentMask], str]
-            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+            | tuple[dict[AgentSetDF | str, AgentMask], str]
+            | tuple[dict[AgentSetDF | str, AgentMask], Collection[str]]
         ),
-    ) -> Series | DataFrame | dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
+    ) -> Series | DataFrame | dict[str, Series] | dict[str, DataFrame]:
         """Implement the [] operator for the AgentContainer.
 
         The key can be:
@@ -488,6 +500,8 @@ class AgentContainer(CopyMixin):
             | DataFrameInput
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | str
+            | Collection[str]
         ),
     ) -> Self:
         """Add agents to the AgentContainer through the += operator.
@@ -511,6 +525,8 @@ class AgentContainer(CopyMixin):
             | AgentMask
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | str
+            | Collection[str]
         ),
     ) -> Self:
         """Remove agents from the AgentContainer through the -= operator.
@@ -534,6 +550,8 @@ class AgentContainer(CopyMixin):
             | AgentMask
             | mesa_frames.concrete.agents.AgentSetDF
             | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | str
+            | Collection[str]
         ),
     ) -> Self:
         """Remove agents from a new AgentContainer through the - operator.
@@ -557,8 +575,8 @@ class AgentContainer(CopyMixin):
             | Collection[str]
             | AgentMask
             | tuple[AgentMask, str | Collection[str]]
-            | tuple[dict[AgentSetDF, AgentMask], str]
-            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+            | tuple[dict[AgentSetDF | str, AgentMask], str]
+            | tuple[dict[AgentSetDF | str, AgentMask], Collection[str]]
         ),
         values: Any,
     ) -> None:
@@ -744,24 +762,24 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def inactive_agents(
         self,
-    ) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
+    ) -> DataFrame | dict[str, DataFrame]:
         """The inactive agents in the AgentContainer.
 
         Returns
         -------
-        DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]
+        DataFrame | dict[str, DataFrame]
         """
 
     @property
     @abstractmethod
     def index(
         self,
-    ) -> Index | dict[mesa_frames.concrete.agents.AgentSetDF, Index]:
+    ) -> Index | dict[str, Index]:
         """The ids in the AgentContainer.
 
         Returns
         -------
-        Index | dict[mesa_frames.concrete.agents.AgentSetDF, Index]
+        Index | dict[str, Index]
         """
         ...
 
@@ -769,12 +787,12 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def pos(
         self,
-    ) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
+    ) -> DataFrame | dict[str, DataFrame]:
         """The position of the agents in the AgentContainer.
 
         Returns
         -------
-        DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]
+        DataFrame | dict[str, DataFrame]
         """
         ...
 
