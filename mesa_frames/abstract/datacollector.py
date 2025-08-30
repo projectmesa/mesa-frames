@@ -120,7 +120,7 @@ class AbstractDataCollector(ABC):
         """
         Trigger data collection if condition is met.
 
-        This method caslls _collect() to perform actual data collection
+        This method calls _collect() to perform actual data collection only if trigger returns True
 
         Example
         -------
