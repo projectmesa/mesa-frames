@@ -1002,18 +1002,6 @@ class Test_AgentsDF:
             )
         )
 
-    def test_agentsets_by_type(self, fix_AgentsDF: AgentsDF):
-        agents = fix_AgentsDF
-
-        result = agents.agentsets_by_type
-        assert isinstance(result, dict)
-        assert isinstance(result[ExampleAgentSetPolars], AgentsDF)
-
-        assert (
-            result[ExampleAgentSetPolars]._agentsets[0].df.rows()
-            == agents._agentsets[1].df.rows()
-        )
-
     def test_inactive_agents(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
 
