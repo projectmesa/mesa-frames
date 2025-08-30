@@ -154,7 +154,7 @@ class AgentsDF(AgentContainer):
         on_conflict: Literal["error", "skip", "overwrite"] = "error",
         mode: Literal["atomic"] = "atomic",
     ) -> str:
-        """Internal rename method for handling delegations from accessor.
+        """Handle agent set renaming delegations from accessor.
 
         Parameters
         ----------
@@ -162,9 +162,9 @@ class AgentsDF(AgentContainer):
             The agent set to rename
         new_name : str
             The new name for the agent set
-        on_conflict : {'error', 'skip', 'overwrite'}, optional
+        on_conflict : Literal["error", "skip", "overwrite"], optional
             How to handle naming conflicts, by default 'error'
-        mode : {'atomic'}, optional
+        mode : Literal["atomic"], optional
             Rename mode, by default 'atomic'
 
         Returns
