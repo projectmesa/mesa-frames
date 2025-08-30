@@ -103,12 +103,103 @@ class AgentsDF(AgentContainer):
         return acc
 
 
+    @staticmethod
+    def _make_unique_name(base: str, existing: set[str]) -> str:
+        """Generate a unique name by appending numeric suffix if needed."""
+        if base not in existing:
+            return base
+        # If ends with _<int>, increment; else append _1
+        import re
+
+        m = re.match(r"^(.*?)(?:_(\d+))$", base)
+        if m:
+            prefix, num = m.group(1), int(m.group(2))
+            nxt = num + 1
+            candidate = f"{prefix}_{nxt}"
+            while candidate in existing:
+                nxt += 1
+                candidate = f"{prefix}_{nxt}"
+            return candidate
+        else:
+            candidate = f"{base}_1"
+            i = 1
+            while candidate in existing:
+                i += 1
+                candidate = f"{base}_{i}"
+            return candidate
+
+    def _canonicalize_names(self, new_agentsets: list[AgentSetDF]) -> None:
+        """Canonicalize names across existing + new agent sets, ensuring uniqueness."""
+        existing_names = {s.name for s in self._agentsets}
+
+        # Process each new agent set in batch to handle potential conflicts
+        for aset in new_agentsets:
+            # Use the static method to generate unique name
+            unique_name = self._make_unique_name(aset.name, existing_names)
+            if unique_name != aset.name:
+                # Directly set the name instead of calling rename
+                import warnings
+                warnings.warn(
+                    f"AgentSet with name '{aset.name}' already exists; renamed to '{unique_name}'.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            aset._name = unique_name
+            existing_names.add(unique_name)
+
+    def _rename_set(self, target: AgentSetDF, new_name: str,
+                    on_conflict: Literal['error', 'skip', 'overwrite'] = 'error',
+                    mode: Literal['atomic'] = 'atomic') -> str:
+        """Internal rename method for handling delegations from accessor.
+
+        Parameters
+        ----------
+        target : AgentSetDF
+            The agent set to rename
+        new_name : str
+            The new name for the agent set
+        on_conflict : {'error', 'skip', 'overwrite'}, optional
+            How to handle naming conflicts, by default 'error'
+        mode : {'atomic'}, optional
+            Rename mode, by default 'atomic'
+
+        Returns
+        -------
+        str
+            The final name assigned to the agent set
+
+        Raises
+        ------
+        ValueError
+            If target is not in this container or other validation errors
+        KeyError
+            If on_conflict='error' and new_name conflicts with existing set
+        """
+        # Validate target is in this container
+        if target not in self._agentsets:
+            raise ValueError(f"AgentSet {target} is not in this container")
+
+        # Check for conflicts with existing names (excluding current target)
+        existing_names = {s.name for s in self._agentsets if s is not target}
+        if new_name in existing_names:
+            if on_conflict == 'error':
+                raise KeyError(f"AgentSet name '{new_name}' already exists")
+            elif on_conflict == 'skip':
+                # Return existing name without changes
+                return target._name
+            # on_conflict == 'overwrite' - proceed with rename
+
+        # Apply name canonicalization if needed
+        final_name = self._make_unique_name(new_name, existing_names)
+        target._name = final_name
+        return final_name
+
     def add(
         self,
         agents: AgentSetDF | Iterable[AgentSetDF],
         inplace: bool = True,
     ) -> Self:
-        """Add an AgentSetDF to the AgentsDF.
+        """Add an AgentSetDF to the AgentsDF (only gate for name validation).
 
         Parameters
         ----------
@@ -131,13 +222,23 @@ class AgentsDF(AgentContainer):
         other_list = obj._return_agentsets_list(agents)
         if obj._check_agentsets_presence(other_list).any():
             raise ValueError("Some agentsets are already present in the AgentsDF.")
-        new_ids = pl.concat(
-            [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
-        )
+
+        # Validate and canonicalize names across existing + batch before mutating
+        obj._canonicalize_names(other_list)
+
+        # Collect unique_ids from agent sets that have them (may be empty at this point)
+        new_ids_list = [obj._ids]
+        for agentset in other_list:
+            if len(agentset) > 0:  # Only include if there are agents in the set
+                new_ids_list.append(agentset["unique_id"])
+
+        new_ids = pl.concat(new_ids_list)
         if new_ids.is_duplicated().any():
             raise ValueError("Some of the agent IDs are not unique.")
+
         obj._agentsets.extend(other_list)
         obj._ids = new_ids
+
         return obj
 
     @overload
