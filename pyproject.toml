@@ -37,7 +37,7 @@ dependencies    = [
   # polars._typing added in 1.0.0
   "polars>=1.30.0",
   "psycopg2-binary==2.9.10",
-  "boto3>=1.35.91"
+  "boto3>=1.35.91",
 ]
 dynamic         = ["version"]
 
@@ -51,13 +51,19 @@ Repository    = "https://github.com/projectmesa/mesa-frames.git"
 # ──────────────────────────────────────────────────────────────────────────────
 [dependency-groups]
 
-test = [
-  "pytest>=8.3.5",
-  "pytest-cov>=6.1.1",
+typechecking = [
   "beartype>=0.21.0",
 ]
 
+test = [
+  { include-group = "typechecking" },
+  "pytest>=8.3.5",
+  "pytest-cov>=6.1.1",
+
+]
+
 docs = [
+  { include-group = "typechecking" },
   "mkdocs-material>=9.6.14",
   "mkdocs-jupyter>=0.25.1",
   "mkdocs-git-revision-date-localized-plugin>=1.4.7",
@@ -72,13 +78,14 @@ docs = [
   "autodocsumm>=0.2.14",
   "perfplot>=0.10.2",
   "seaborn>=0.13.2",
+  "sphinx-autobuild>=2025.8.25",
+  "mesa>=3.2.0",
 ]
 
 # dev = test ∪ docs ∪ extra tooling
 dev = [
   { include-group = "test" },
   { include-group = "docs" },
-  "mesa~=2.3.4",
   "numba>=0.60.0",
   "ruff>=0.11.12",
   "pre-commit>=4.2.0",

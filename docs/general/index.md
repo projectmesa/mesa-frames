@@ -48,7 +48,7 @@ class MoneyAgentPolars(AgentSetPolars):
     def __init__(self, n: int, model: ModelDF):
         super().__init__(model)
         self += pl.DataFrame(
-            {"unique_id": pl.arange(n, eager=True), "wealth": pl.ones(n, eager=True)}
+            {"wealth": pl.ones(n, eager=True)}
         )
 
     def step(self) -> None:
