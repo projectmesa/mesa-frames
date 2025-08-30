@@ -177,7 +177,9 @@ class AgentsDF(AgentContainer):
         """
         # Validate target is in this container
         if target not in self._agentsets:
-            raise ValueError(f"AgentSet {target} is not in this container")
+            available_names = [s.name for s in self._agentsets]
+            raise ValueError(f"AgentSet {target} is not in this container. "
+                           f"Available agent sets: {available_names}")
 
         # Check for conflicts with existing names (excluding current target)
         existing_names = {s.name for s in self._agentsets if s is not target}
