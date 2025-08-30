@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Mapping
-from typing import Any
+from typing import Any, Literal, overload, TypeVar
 
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.types_ import KeyBy
+
+TSet = TypeVar("TSet", bound=AgentSetDF)
 
 
 class AbstractAgentSetsAccessor(ABC):
@@ -47,22 +49,33 @@ class AbstractAgentSetsAccessor(ABC):
     1 Wolf
     """
 
+    # __getitem__ — exact shapes per key kind
+    @overload
     @abstractmethod
-    def __getitem__(
-        self, key: int | str | type[AgentSetDF]
-    ) -> AgentSetDF | list[AgentSetDF]:
+    def __getitem__(self, key: int) -> AgentSetDF: ...
+
+    @overload
+    @abstractmethod
+    def __getitem__(self, key: str) -> AgentSetDF: ...
+
+    @overload
+    @abstractmethod
+    def __getitem__(self, key: type[TSet]) -> list[TSet]: ...
+
+    @abstractmethod
+    def __getitem__(self, key: int | str | type[TSet]) -> AgentSetDF | list[TSet]:
         """Retrieve agent set(s) by index, name, or type.
 
         Parameters
         ----------
-        key : int | str | type[AgentSetDF]
+        key : int | str | type[TSet]
             - ``int``: positional index (supports negative indices).
             - ``str``: agent set name.
             - ``type``: class or subclass of :class:`AgentSetDF`.
 
         Returns
         -------
-        AgentSetDF | list[AgentSetDF]
+        AgentSetDF | list[TSet]
             A single agent set for ``int``/``str`` keys; a list of matching
             agent sets for ``type`` keys (possibly empty).
 
@@ -76,23 +89,55 @@ class AbstractAgentSetsAccessor(ABC):
             If the key type is unsupported.
         """
 
+    # get — mirrors dict.get, but preserves list shape for type keys
+    @overload
     @abstractmethod
-    def get(self, key: int | str | type[AgentSetDF], default: Any | None = None) -> Any:
-        """Safe lookup variant that returns a default on miss.
+    def get(self, key: int, default: None = ...) -> AgentSetDF | None: ...
+
+    @overload
+    @abstractmethod
+    def get(self, key: str, default: None = ...) -> AgentSetDF | None: ...
+
+    @overload
+    @abstractmethod
+    def get(self, key: type[TSet], default: None = ...) -> list[TSet]: ...
+
+    @overload
+    @abstractmethod
+    def get(self, key: int, default: AgentSetDF) -> AgentSetDF: ...
+
+    @overload
+    @abstractmethod
+    def get(self, key: str, default: AgentSetDF) -> AgentSetDF: ...
+
+    @overload
+    @abstractmethod
+    def get(self, key: type[TSet], default: list[TSet]) -> list[TSet]: ...
+
+    @abstractmethod
+    def get(
+        self,
+        key: int | str | type[TSet],
+        default: AgentSetDF | list[TSet] | None = None,
+    ) -> AgentSetDF | list[TSet] | None:
+        """
+        Safe lookup variant that returns a default on miss.
 
         Parameters
         ----------
-        key : int | str | type[AgentSetDF]
+        key : int | str | type[TSet]
             Lookup key; see :meth:`__getitem__`.
-        default : Any | None, optional
-            Value to return when the lookup fails. If ``key`` is a type and no
-            matches are found, implementers may prefer returning ``[]`` when
-            ``default`` is ``None`` to keep list shape stable.
+        default : AgentSetDF | list[TSet] | None, optional
+            Value to return when the lookup fails. For type keys, if no matches
+            are found and default is None, implementers should return [] to keep
+            list shape stable.
 
         Returns
         -------
-        Any
-            The resolved value or ``default``.
+        AgentSetDF | list[TSet] | None
+            - int/str keys: return the set or default/None if missing
+            - type keys: return list of matching sets; if none and default is None,
+              return [] (stable list shape)
         """
 
     @abstractmethod
@@ -165,13 +210,31 @@ class AbstractAgentSetsAccessor(ABC):
         True
         """
 
+    @overload
     @abstractmethod
-    def keys(self, *, key_by: KeyBy = "name") -> Iterable[Any]:
+    def keys(self, *, key_by: Literal["name"]) -> Iterable[str]: ...
+
+    @overload
+    @abstractmethod
+    def keys(self, *, key_by: Literal["index"]) -> Iterable[int]: ...
+
+    @overload
+    @abstractmethod
+    def keys(self, *, key_by: Literal["object"]) -> Iterable[AgentSetDF]: ...
+
+    @overload
+    @abstractmethod
+    def keys(self, *, key_by: Literal["type"]) -> Iterable[type[AgentSetDF]]: ...
+
+    @abstractmethod
+    def keys(
+        self, *, key_by: KeyBy = "name"
+    ) -> Iterable[str | int | AgentSetDF | type[AgentSetDF]]:
         """Iterate keys under a chosen key domain.
 
         Parameters
         ----------
-        key_by : KeyBy 
+        key_by : KeyBy
             - ``"name"`` → agent set names. (Default)
             - ``"index"`` → positional indices.
             - ``"object"`` → the :class:`AgentSetDF` objects.
@@ -179,12 +242,36 @@ class AbstractAgentSetsAccessor(ABC):
 
         Returns
         -------
-        Iterable[Any]
+        Iterable[str | int | AgentSetDF | type[AgentSetDF]]
             An iterable of keys corresponding to the selected domain.
         """
 
+    @overload
     @abstractmethod
-    def items(self, *, key_by: KeyBy = "name") -> Iterable[tuple[Any, AgentSetDF]]:
+    def items(self, *, key_by: Literal["name"]) -> Iterable[tuple[str, AgentSetDF]]: ...
+
+    @overload
+    @abstractmethod
+    def items(
+        self, *, key_by: Literal["index"]
+    ) -> Iterable[tuple[int, AgentSetDF]]: ...
+
+    @overload
+    @abstractmethod
+    def items(
+        self, *, key_by: Literal["object"]
+    ) -> Iterable[tuple[AgentSetDF, AgentSetDF]]: ...
+
+    @overload
+    @abstractmethod
+    def items(
+        self, *, key_by: Literal["type"]
+    ) -> Iterable[tuple[type[AgentSetDF], AgentSetDF]]: ...
+
+    @abstractmethod
+    def items(
+        self, *, key_by: KeyBy = "name"
+    ) -> Iterable[tuple[str | int | AgentSetDF | type[AgentSetDF], AgentSetDF]]:
         """Iterate ``(key, AgentSetDF)`` pairs under a chosen key domain.
 
         See :meth:`keys` for the meaning of ``key_by``.
@@ -198,8 +285,28 @@ class AbstractAgentSetsAccessor(ABC):
     def iter(self, *, key_by: KeyBy = "name") -> Iterable[tuple[Any, AgentSetDF]]:
         """Alias for :meth:`items` for convenience."""
 
+    @overload
     @abstractmethod
-    def mapping(self, *, key_by: KeyBy = "name") -> dict[Any, AgentSetDF]:
+    def mapping(self, *, key_by: Literal["name"]) -> dict[str, AgentSetDF]: ...
+
+    @overload
+    @abstractmethod
+    def mapping(self, *, key_by: Literal["index"]) -> dict[int, AgentSetDF]: ...
+
+    @overload
+    @abstractmethod
+    def mapping(self, *, key_by: Literal["object"]) -> dict[AgentSetDF, AgentSetDF]: ...
+
+    @overload
+    @abstractmethod
+    def mapping(
+        self, *, key_by: Literal["type"]
+    ) -> dict[type[AgentSetDF], AgentSetDF]: ...
+
+    @abstractmethod
+    def mapping(
+        self, *, key_by: KeyBy = "name"
+    ) -> dict[str | int | AgentSetDF | type[AgentSetDF], AgentSetDF]:
         """Return a dictionary view keyed by the chosen domain.
 
         Notes
