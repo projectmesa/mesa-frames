@@ -91,6 +91,9 @@ class Test_AgentsDF:
             False,
         ]
 
+        # Test with empty iterable - returns True
+        assert agents.contains([])
+
         # Test with single id
         assert agents.contains(agentset_polars1["unique_id"][0])
 
@@ -389,6 +392,16 @@ class Test_AgentsDF:
         assert 0 not in agents._ids
         with pytest.raises(KeyError):
             result = agents.remove(0, inplace=False)
+
+        # Test with None (should return same agents)
+        result = agents.remove(None, inplace=False)
+        assert result is not agents  # new object
+        assert len(result._agentsets) == len(agents._agentsets)
+
+        # Test with empty list
+        result = agents.remove([], inplace=False)
+        assert result is not agents
+        assert len(result._agentsets) == len(agents._agentsets)
 
     def test_select(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
