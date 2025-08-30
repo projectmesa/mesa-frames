@@ -733,12 +733,17 @@ class TestDataCollector:
                 f"Expected 4 files, found {len(created_files)}: {created_files}"
             )
 
-            #test model batch reset
+            # test model batch reset
             model_df_step2_batch0 = pl.read_csv(
                 os.path.join(tmpdir, "model_step2_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
-            assert set(model_df_step2_batch0.columns) == {"step", "seed", "batch", "total_agents"}
+            assert set(model_df_step2_batch0.columns) == {
+                "step",
+                "seed",
+                "batch",
+                "total_agents",
+            }
             assert model_df_step2_batch0["step"].to_list() == [2]
             assert model_df_step2_batch0["total_agents"].to_list() == [12]
 
@@ -746,7 +751,12 @@ class TestDataCollector:
                 os.path.join(tmpdir, "model_step2_batch1.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
-            assert set(model_df_step2_batch0.columns) == {"step", "seed", "batch", "total_agents"}
+            assert set(model_df_step2_batch0.columns) == {
+                "step",
+                "seed",
+                "batch",
+                "total_agents",
+            }
             assert model_df_step2_batch0["step"].to_list() == [2]
             assert model_df_step2_batch0["total_agents"].to_list() == [12]
 
@@ -754,11 +764,16 @@ class TestDataCollector:
                 os.path.join(tmpdir, "model_step4_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
-            assert set(model_df_step4_batch0.columns) == {"step", "seed", "batch", "total_agents"}
+            assert set(model_df_step4_batch0.columns) == {
+                "step",
+                "seed",
+                "batch",
+                "total_agents",
+            }
             assert model_df_step4_batch0["step"].to_list() == [4]
             assert model_df_step4_batch0["total_agents"].to_list() == [12]
-            
-            #test agent batch reset
+
+            # test agent batch reset
             agent_df_step2_batch0 = pl.read_csv(
                 os.path.join(tmpdir, "agent_step2_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
@@ -774,8 +789,18 @@ class TestDataCollector:
             }
             assert agent_df_step2_batch0["step"].to_list() == [2, 2, 2, 2]
             assert agent_df_step2_batch0["wealth"].to_list() == [2, 3, 4, 5]
-            assert agent_df_step2_batch0["age_ExampleAgentSet1"].to_list() == [10, 20, 30, 40]
-            assert agent_df_step2_batch0["age_ExampleAgentSet2"].to_list() == [11, 22, 33, 44]
+            assert agent_df_step2_batch0["age_ExampleAgentSet1"].to_list() == [
+                10,
+                20,
+                30,
+                40,
+            ]
+            assert agent_df_step2_batch0["age_ExampleAgentSet2"].to_list() == [
+                11,
+                22,
+                33,
+                44,
+            ]
             assert agent_df_step2_batch0["age_ExampleAgentSet3"].to_list() == [
                 2,
                 3,
@@ -798,8 +823,18 @@ class TestDataCollector:
             }
             assert agent_df_step2_batch1["step"].to_list() == [2, 2, 2, 2]
             assert agent_df_step2_batch1["wealth"].to_list() == [3, 4, 5, 6]
-            assert agent_df_step2_batch1["age_ExampleAgentSet1"].to_list() == [10, 20, 30, 40]
-            assert agent_df_step2_batch1["age_ExampleAgentSet2"].to_list() == [11, 22, 33, 44]
+            assert agent_df_step2_batch1["age_ExampleAgentSet1"].to_list() == [
+                10,
+                20,
+                30,
+                40,
+            ]
+            assert agent_df_step2_batch1["age_ExampleAgentSet2"].to_list() == [
+                11,
+                22,
+                33,
+                44,
+            ]
             assert agent_df_step2_batch1["age_ExampleAgentSet3"].to_list() == [
                 3,
                 4,
@@ -822,8 +857,18 @@ class TestDataCollector:
             }
             assert agent_df_step4_batch0["step"].to_list() == [4, 4, 4, 4]
             assert agent_df_step4_batch0["wealth"].to_list() == [4, 5, 6, 7]
-            assert agent_df_step4_batch0["age_ExampleAgentSet1"].to_list() == [10, 20, 30, 40]
-            assert agent_df_step4_batch0["age_ExampleAgentSet2"].to_list() == [11, 22, 33, 44]
+            assert agent_df_step4_batch0["age_ExampleAgentSet1"].to_list() == [
+                10,
+                20,
+                30,
+                40,
+            ]
+            assert agent_df_step4_batch0["age_ExampleAgentSet2"].to_list() == [
+                11,
+                22,
+                33,
+                44,
+            ]
             assert agent_df_step4_batch0["age_ExampleAgentSet3"].to_list() == [
                 4,
                 5,
