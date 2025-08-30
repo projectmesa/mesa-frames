@@ -235,7 +235,7 @@ class AbstractAgentSetsAccessor(ABC):
 
         Returns
         -------
-        Iterable[str | int | AgentSetDF | type[AgentSetDF]]
+        Iterable[str | int | type[AgentSetDF]]
             An iterable of keys corresponding to the selected domain.
         """
 
