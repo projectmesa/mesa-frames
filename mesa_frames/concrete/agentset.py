@@ -131,7 +131,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         # Check if we have a model and can find the AgentsDF that contains this set
         if self in self.model.agents.sets:
             return self.model.agents.sets.rename(self._name, new_name)
-        
+
         # Set name locally if no container found
         self._name = new_name
         return new_name
