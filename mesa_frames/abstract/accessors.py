@@ -220,16 +220,12 @@ class AbstractAgentSetsAccessor(ABC):
 
     @overload
     @abstractmethod
-    def keys(self, *, key_by: Literal["object"]) -> Iterable[AgentSetDF]: ...
-
-    @overload
-    @abstractmethod
     def keys(self, *, key_by: Literal["type"]) -> Iterable[type[AgentSetDF]]: ...
 
     @abstractmethod
     def keys(
         self, *, key_by: KeyBy = "name"
-    ) -> Iterable[str | int | AgentSetDF | type[AgentSetDF]]:
+    ) -> Iterable[str | int | type[AgentSetDF]]:
         """Iterate keys under a chosen key domain.
 
         Parameters
@@ -237,7 +233,6 @@ class AbstractAgentSetsAccessor(ABC):
         key_by : KeyBy
             - ``"name"`` → agent set names. (Default)
             - ``"index"`` → positional indices.
-            - ``"object"`` → the :class:`AgentSetDF` objects.
             - ``"type"`` → the concrete classes of each set.
 
         Returns
@@ -259,19 +254,13 @@ class AbstractAgentSetsAccessor(ABC):
     @overload
     @abstractmethod
     def items(
-        self, *, key_by: Literal["object"]
-    ) -> Iterable[tuple[AgentSetDF, AgentSetDF]]: ...
-
-    @overload
-    @abstractmethod
-    def items(
         self, *, key_by: Literal["type"]
     ) -> Iterable[tuple[type[AgentSetDF], AgentSetDF]]: ...
 
     @abstractmethod
     def items(
         self, *, key_by: KeyBy = "name"
-    ) -> Iterable[tuple[str | int | AgentSetDF | type[AgentSetDF], AgentSetDF]]:
+    ) -> Iterable[tuple[str | int | type[AgentSetDF], AgentSetDF]]:
         """Iterate ``(key, AgentSetDF)`` pairs under a chosen key domain.
 
         See :meth:`keys` for the meaning of ``key_by``.
@@ -295,10 +284,6 @@ class AbstractAgentSetsAccessor(ABC):
 
     @overload
     @abstractmethod
-    def dict(self, *, key_by: Literal["object"]) -> dict[AgentSetDF, AgentSetDF]: ...
-
-    @overload
-    @abstractmethod
     def dict(
         self, *, key_by: Literal["type"]
     ) -> dict[type[AgentSetDF], AgentSetDF]: ...
@@ -306,7 +291,7 @@ class AbstractAgentSetsAccessor(ABC):
     @abstractmethod
     def dict(
         self, *, key_by: KeyBy = "name"
-    ) -> dict[str | int | AgentSetDF | type[AgentSetDF], AgentSetDF]:
+    ) -> dict[str | int | type[AgentSetDF], AgentSetDF]:
         """Return a dictionary view keyed by the chosen domain.
 
         Notes

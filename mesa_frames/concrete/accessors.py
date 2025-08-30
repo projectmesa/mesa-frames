@@ -83,11 +83,9 @@ class AgentSetsAccessor(AbstractAgentSetsAccessor):
             return aset.name
         if mode == "index":
             return idx
-        if mode == "object":
-            return aset
         if mode == "type":
             return type(aset)
-        raise ValueError("key_by must be 'name'|'index'|'object'|'type'")
+        raise ValueError("key_by must be 'name'|'index'|'type'")
 
     def keys(self, *, key_by: KeyBy = "name") -> Iterable[Any]:
         for i, s in enumerate(self._parent._agentsets):

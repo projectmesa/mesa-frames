@@ -467,7 +467,7 @@ class AgentsDF(AgentContainer):
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
-        key_by: KeyBy = "object",
+        key_by: KeyBy = "name",
     ) -> (
         dict[AgentSetDF, Series]
         | dict[AgentSetDF, DataFrame]
@@ -497,9 +497,7 @@ class AgentsDF(AgentContainer):
             ):
                 result[agentset] = agentset.get(attr_names, mask)
 
-        if key_by == "object":
-            return result
-        elif key_by == "name":
+        if key_by == "name":
             return {cast(AgentSetDF, a).name: v for a, v in result.items()}  # type: ignore[return-value]
         elif key_by == "index":
             index_map = {agentset: i for i, agentset in enumerate(self._agentsets)}
@@ -508,7 +506,7 @@ class AgentsDF(AgentContainer):
             return {type(a): v for a, v in result.items()}  # type: ignore[return-value]
         else:
             raise ValueError(
-                "key_by must be one of 'object', 'name', 'index', or 'type'"
+                "key_by must be one of 'name', 'index', or 'type'"
             )
 
     def remove(
