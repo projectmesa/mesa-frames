@@ -141,17 +141,17 @@ class AbstractAgentSetsAccessor(ABC):
         """
 
     @abstractmethod
-    def first(self, t: type[AgentSetDF]) -> AgentSetDF:
+    def first(self, t: type[TSet]) -> TSet:
         """Return the first agent set matching a type.
 
         Parameters
         ----------
-        t : type[AgentSetDF]
+        t : type[TSet]
             The concrete class (or base class) to match.
 
         Returns
         -------
-        AgentSetDF
+        TSet
             The first matching agent set in iteration order.
 
         Raises
@@ -166,17 +166,17 @@ class AbstractAgentSetsAccessor(ABC):
         """
 
     @abstractmethod
-    def all(self, t: type[AgentSetDF]) -> list[AgentSetDF]:
+    def all(self, t: type[TSet]) -> list[TSet]:
         """Return all agent sets matching a type.
 
         Parameters
         ----------
-        t : type[AgentSetDF]
+        t : type[TSet]
             The concrete class (or base class) to match.
 
         Returns
         -------
-        list[AgentSetDF]
+        list[TSet]
             A list of all matching agent sets (possibly empty).
 
         Examples
@@ -287,24 +287,24 @@ class AbstractAgentSetsAccessor(ABC):
 
     @overload
     @abstractmethod
-    def mapping(self, *, key_by: Literal["name"]) -> dict[str, AgentSetDF]: ...
+    def dict(self, *, key_by: Literal["name"]) -> dict[str, AgentSetDF]: ...
 
     @overload
     @abstractmethod
-    def mapping(self, *, key_by: Literal["index"]) -> dict[int, AgentSetDF]: ...
+    def dict(self, *, key_by: Literal["index"]) -> dict[int, AgentSetDF]: ...
 
     @overload
     @abstractmethod
-    def mapping(self, *, key_by: Literal["object"]) -> dict[AgentSetDF, AgentSetDF]: ...
+    def dict(self, *, key_by: Literal["object"]) -> dict[AgentSetDF, AgentSetDF]: ...
 
     @overload
     @abstractmethod
-    def mapping(
+    def dict(
         self, *, key_by: Literal["type"]
     ) -> dict[type[AgentSetDF], AgentSetDF]: ...
 
     @abstractmethod
-    def mapping(
+    def dict(
         self, *, key_by: KeyBy = "name"
     ) -> dict[str | int | AgentSetDF | type[AgentSetDF], AgentSetDF]:
         """Return a dictionary view keyed by the chosen domain.
