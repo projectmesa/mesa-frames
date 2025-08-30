@@ -147,14 +147,144 @@ class AgentsDF(AgentContainer):
             aset._name = unique_name
             existing_names.add(unique_name)
 
-    def _rename_set(
+    def _rename_sets(
+        self,
+        target: AgentSetDF
+        | str
+        | dict[AgentSetDF | str, str]
+        | list[tuple[AgentSetDF | str, str]],
+        new_name: str | None = None,
+        *,
+        on_conflict: Literal["canonicalize", "raise"] = "canonicalize",
+        mode: Literal["atomic", "best_effort"] = "atomic",
+    ) -> str | dict[AgentSetDF, str]:
+        """Handle agent set renaming delegations from accessor.
+
+        Parameters
+        ----------
+        target : AgentSetDF | str | dict[AgentSetDF | str, str] | list[tuple[AgentSetDF | str, str]]
+            Either:
+            - Single: AgentSet or name string (must provide new_name)
+            - Batch: {target: new_name} dict or [(target, new_name), ...] list
+        new_name : str | None, optional
+            New name (only used for single renames)
+        on_conflict : Literal["canonicalize", "raise"]
+            Conflict resolution: "canonicalize" (default) appends suffixes, "raise" raises ValueError
+        mode : Literal["atomic", "best_effort"]
+            Rename mode: "atomic" applies all or none (default), "best_effort" skips failed renames
+
+        Returns
+        -------
+        str | dict[AgentSetDF, str]
+            Single rename: final name string
+            Batch: {agentset: final_name} mapping
+
+        Raises
+        ------
+        ValueError
+            If target format is invalid or single rename missing new_name
+        KeyError
+            If agent set name not found or naming conflicts with raise mode
+        """
+        # Parse different target formats and build rename operations
+        rename_ops = self._parse_rename_target(target, new_name)
+
+        # Map on_conflict values to _rename_single_set expected values
+        mapped_on_conflict = "error" if on_conflict == "raise" else "overwrite"
+
+        # Determine if this is single or batch based on the input format
+        if isinstance(target, (str, AgentSetDF)):
+            # Single rename - return the final name
+            target_set, new_name = rename_ops[0]
+            return self._rename_single_set(
+                target_set, new_name, on_conflict=mapped_on_conflict, mode="atomic"
+            )
+        else:
+            # Batch rename (dict or list) - return mapping of original sets to final names
+            result = {}
+            for target_set, new_name in rename_ops:
+                final_name = self._rename_single_set(
+                    target_set, new_name, on_conflict=mapped_on_conflict, mode="atomic"
+                )
+                result[target_set] = final_name
+            return result
+
+    def _parse_rename_target(
+        self,
+        target: AgentSetDF
+        | str
+        | dict[AgentSetDF | str, str]
+        | list[tuple[AgentSetDF | str, str]],
+        new_name: str | None = None,
+    ) -> list[tuple[AgentSetDF, str]]:
+        """Parse the target parameter into a list of (agentset, new_name) pairs."""
+        rename_ops = []
+        # Get available names for error messages
+        available_names = [getattr(s, "name", None) for s in self._agentsets]
+
+        if isinstance(target, dict):
+            # target is a dict mapping agent sets/names to new names
+            for k, v in target.items():
+                if isinstance(k, str):
+                    # k is a name, find the agent set
+                    target_set = None
+                    for aset in self._agentsets:
+                        if aset.name == k:
+                            target_set = aset
+                            break
+                    if target_set is None:
+                        raise KeyError(f"No agent set named '{k}'. Available: {available_names}")
+                else:
+                    # k is an AgentSetDF
+                    target_set = k
+                rename_ops.append((target_set, v))
+
+        elif isinstance(target, list):
+            # target is a list of (agent_set/name, new_name) tuples
+            for k, v in target:
+                if isinstance(k, str):
+                    # k is a name, find the agent set
+                    target_set = None
+                    for aset in self._agentsets:
+                        if aset.name == k:
+                            target_set = aset
+                            break
+                    if target_set is None:
+                        raise KeyError(f"No agent set named '{k}'. Available: {available_names}")
+                else:
+                    # k is an AgentSetDF
+                    target_set = k
+                rename_ops.append((target_set, v))
+
+        else:
+            # target is single AgentSetDF or name, new_name must be provided
+            if isinstance(target, str):
+                # target is a name, find the agent set
+                target_set = None
+                for aset in self._agentsets:
+                    if aset.name == target:
+                        target_set = aset
+                        break
+                if target_set is None:
+                    raise KeyError(f"No agent set named '{target}'. Available: {available_names}")
+            else:
+                # target is an AgentSetDF
+                target_set = target
+
+            if new_name is None:
+                raise ValueError("new_name must be provided for single rename")
+            rename_ops.append((target_set, new_name))
+
+        return rename_ops
+
+    def _rename_single_set(
         self,
         target: AgentSetDF,
         new_name: str,
         on_conflict: Literal["error", "skip", "overwrite"] = "error",
         mode: Literal["atomic"] = "atomic",
     ) -> str:
-        """Handle agent set renaming delegations from accessor.
+        """Handle single agent set renaming.
 
         Parameters
         ----------
@@ -191,7 +321,8 @@ class AgentsDF(AgentContainer):
         existing_names = {s.name for s in self._agentsets if s is not target}
         if new_name in existing_names:
             if on_conflict == "error":
-                raise KeyError(f"AgentSet name '{new_name}' already exists")
+                available_names = [s.name for s in self._agentsets if s.name != target.name]
+                raise KeyError(f"AgentSet name '{new_name}' already exists. Available names: {available_names}")
             elif on_conflict == "skip":
                 # Return existing name without changes
                 return target._name
