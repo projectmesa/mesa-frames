@@ -3,7 +3,11 @@ from copy import copy, deepcopy
 import pytest
 
 from mesa_frames import AgentsDF, ModelDF
-from tests.test_agentset import ExampleAgentSetPolars, fix1_AgentSetPolars, fix2_AgentSetPolars
+from tests.test_agentset import (
+    ExampleAgentSetPolars,
+    fix1_AgentSetPolars,
+    fix2_AgentSetPolars,
+)
 from tests.test_agents import fix_AgentsDF
 
 
@@ -42,16 +46,23 @@ class TestAgentSetsAccessor:
     def test_first(self, fix_AgentsDF):
         agents = fix_AgentsDF
         assert agents.sets.first(ExampleAgentSetPolars) is agents.sets[0]
+
         class Temp(ExampleAgentSetPolars):
             pass
+
         with pytest.raises(KeyError):
             agents.sets.first(Temp)
 
     def test_all(self, fix_AgentsDF):
         agents = fix_AgentsDF
-        assert agents.sets.all(ExampleAgentSetPolars) == [agents.sets[0], agents.sets[1]]
+        assert agents.sets.all(ExampleAgentSetPolars) == [
+            agents.sets[0],
+            agents.sets[1],
+        ]
+
         class Temp(ExampleAgentSetPolars):
             pass
+
         assert agents.sets.all(Temp) == []
 
     def test_at(self, fix_AgentsDF):

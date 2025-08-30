@@ -102,7 +102,6 @@ class AgentsDF(AgentContainer):
             self._sets_accessor = acc
         return acc
 
-
     @staticmethod
     def _make_unique_name(base: str, existing: set[str]) -> str:
         """Generate a unique name by appending numeric suffix if needed."""
@@ -139,6 +138,7 @@ class AgentsDF(AgentContainer):
             if unique_name != aset.name:
                 # Directly set the name instead of calling rename
                 import warnings
+
                 warnings.warn(
                     f"AgentSet with name '{aset.name}' already exists; renamed to '{unique_name}'.",
                     UserWarning,
@@ -147,9 +147,13 @@ class AgentsDF(AgentContainer):
             aset._name = unique_name
             existing_names.add(unique_name)
 
-    def _rename_set(self, target: AgentSetDF, new_name: str,
-                    on_conflict: Literal['error', 'skip', 'overwrite'] = 'error',
-                    mode: Literal['atomic'] = 'atomic') -> str:
+    def _rename_set(
+        self,
+        target: AgentSetDF,
+        new_name: str,
+        on_conflict: Literal["error", "skip", "overwrite"] = "error",
+        mode: Literal["atomic"] = "atomic",
+    ) -> str:
         """Internal rename method for handling delegations from accessor.
 
         Parameters
@@ -178,15 +182,17 @@ class AgentsDF(AgentContainer):
         # Validate target is in this container
         if target not in self._agentsets:
             available_names = [s.name for s in self._agentsets]
-            raise ValueError(f"AgentSet {target} is not in this container. "
-                           f"Available agent sets: {available_names}")
+            raise ValueError(
+                f"AgentSet {target} is not in this container. "
+                f"Available agent sets: {available_names}"
+            )
 
         # Check for conflicts with existing names (excluding current target)
         existing_names = {s.name for s in self._agentsets if s is not target}
         if new_name in existing_names:
-            if on_conflict == 'error':
+            if on_conflict == "error":
                 raise KeyError(f"AgentSet name '{new_name}' already exists")
-            elif on_conflict == 'skip':
+            elif on_conflict == "skip":
                 # Return existing name without changes
                 return target._name
             # on_conflict == 'overwrite' - proceed with rename
@@ -370,7 +376,9 @@ class AgentsDF(AgentContainer):
         elif key_by == "type":
             return {type(a): v for a, v in result.items()}  # type: ignore[return-value]
         else:
-            raise ValueError("key_by must be one of 'object', 'name', 'index', or 'type'")
+            raise ValueError(
+                "key_by must be one of 'object', 'name', 'index', or 'type'"
+            )
 
     def remove(
         self,
@@ -602,7 +610,7 @@ class AgentsDF(AgentContainer):
         """
         return super().__add__(other)
 
-    def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
+    def __getattr__(self, name: str) -> dict[str, Any]:
         # Avoids infinite recursion of private attributes
         if __debug__:  # Only execute in non-optimized mode
             if name.startswith("_"):
