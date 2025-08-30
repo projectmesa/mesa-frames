@@ -11,7 +11,7 @@ from mesa_frames.abstract.accessors import AgentSetsAccessorBase
 
 
 class AgentSetsAccessor(AgentSetsAccessorBase):
-    def __init__(self, parent: "AgentsDF") -> None:
+    def __init__(self, parent: mesa_frames.concrete.agents.AgentsDF) -> None:
         self._parent = parent
 
     def __getitem__(
@@ -40,11 +40,13 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
     ) -> AgentSetDF | list[AgentSetDF] | Any | None:
         try:
             val = self[key]
-            if isinstance(key, type) and val == [] and default is None:
-                return []
+            # For type keys: if no matches and a default was provided, return the default;
+            # if no default, preserve list shape and return [].
+            if isinstance(key, type) and isinstance(val, list) and len(val) == 0:
+                return [] if default is None else default
             return val
         except (KeyError, IndexError, TypeError):
-            # For type keys, preserve list shape by default
+            # For type keys, preserve list shape by default when default is None
             if isinstance(key, type) and default is None:
                 return []
             return default
