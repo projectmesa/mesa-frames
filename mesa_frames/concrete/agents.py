@@ -104,7 +104,32 @@ class AgentsDF(AgentContainer):
 
     @staticmethod
     def _make_unique_name(base: str, existing: set[str]) -> str:
-        """Generate a unique name by appending numeric suffix if needed."""
+        """Generate a unique name by appending numeric suffix if needed.
+
+        AgentSetPolars constructor ensures names are never None:
+        `self._name = name if name is not None else self.__class__.__name__`
+
+        Parameters
+        ----------
+        base : str
+            The base name to make unique. Always a valid string.
+        existing : set[str]
+            Set of existing names to avoid conflicts. All items are strings.
+
+        Returns
+        -------
+        str
+            A unique name in snake_case format.
+        """
+
+        # Convert CamelCase to snake_case
+        def _camel_to_snake(name: str) -> str:
+            import re
+            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+            return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+        base = _camel_to_snake(base)
+
         if base not in existing:
             return base
         # If ends with _<int>, increment; else append _1
@@ -129,18 +154,20 @@ class AgentsDF(AgentContainer):
 
     def _canonicalize_names(self, new_agentsets: list[AgentSetDF]) -> None:
         """Canonicalize names across existing + new agent sets, ensuring uniqueness."""
-        existing_names = {s.name for s in self._agentsets}
+        existing_names = {str(s.name) for s in self._agentsets}
 
         # Process each new agent set in batch to handle potential conflicts
         for aset in new_agentsets:
+            # AgentSetPolars guarantees name is always a string
+            name_str = str(aset.name)
             # Use the static method to generate unique name
-            unique_name = self._make_unique_name(aset.name, existing_names)
-            if unique_name != aset.name:
+            unique_name = self._make_unique_name(name_str, existing_names)
+            if unique_name != name_str:
                 # Directly set the name instead of calling rename
                 import warnings
 
                 warnings.warn(
-                    f"AgentSet with name '{aset.name}' already exists; renamed to '{unique_name}'.",
+                    f"AgentSet with name '{name_str}' already exists; renamed to '{unique_name}'.",
                     UserWarning,
                     stacklevel=2,
                 )
