@@ -32,7 +32,20 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
             available = [getattr(s, "name", None) for s in sets]
             raise KeyError(f"No agent set named '{key}'. Available: {available}")
         if isinstance(key, type):
-            return [s for s in sets if isinstance(s, key)]
+            matches = [s for s in sets if isinstance(s, key)]
+            if len(matches) == 0:
+                # No matches - list available agent set types
+                available_types = list(set(type(s).__name__ for s in sets))
+                raise KeyError(f"No agent set of type {getattr(key, '__name__', key)} found. "
+                             f"Available agent set types: {available_types}")
+            elif len(matches) == 1:
+                # Single match - return it directly
+                return matches[0]
+            else:
+                # Multiple matches - list all matching agent sets
+                match_names = [s.name for s in matches]
+                raise ValueError(f"Multiple agent sets ({len(matches)}) of type {getattr(key, '__name__', key)} found. "
+                               f"Matching agent sets: {matches}")
         raise TypeError("Key must be int | str | type[AgentSetDF]")
 
     def get(
