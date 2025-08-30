@@ -8,7 +8,7 @@ from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.types_ import KeyBy
 
 
-class AgentSetsAccessorBase(ABC):
+class AbstractAgentSetsAccessor(ABC):
     """Abstract accessor for collections of agent sets.
 
     This interface defines a flexible, user-friendly API to access agent sets
@@ -42,7 +42,9 @@ class AgentSetsAccessorBase(ABC):
     """
 
     @abstractmethod
-    def __getitem__(self, key: int | str | type[AgentSetDF]) -> AgentSetDF | list[AgentSetDF]:
+    def __getitem__(
+        self, key: int | str | type[AgentSetDF]
+    ) -> AgentSetDF | list[AgentSetDF]:
         """Retrieve agent set(s) by index, name, or type.
 
         Parameters
