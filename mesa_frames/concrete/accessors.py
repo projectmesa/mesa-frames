@@ -5,12 +5,12 @@ from collections.abc import Iterable, Iterator, Mapping
 from types import MappingProxyType
 from typing import Any, Literal, cast
 
-from mesa_frames.types_ import KeyBy
+from mesa_frames.abstract.accessors import AbstractAgentSetsAccessor
 from mesa_frames.abstract.agents import AgentSetDF
-from mesa_frames.abstract.accessors import AgentSetsAccessorBase
+from mesa_frames.types_ import KeyBy
 
 
-class AgentSetsAccessor(AgentSetsAccessorBase):
+class AgentSetsAccessor(AbstractAgentSetsAccessor):
     def __init__(self, parent: mesa_frames.concrete.agents.AgentsDF) -> None:
         self._parent = parent
 
@@ -36,8 +36,10 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
             if len(matches) == 0:
                 # No matches - list available agent set types
                 available_types = list(set(type(s).__name__ for s in sets))
-                raise KeyError(f"No agent set of type {getattr(key, '__name__', key)} found. "
-                              f"Available agent set types: {available_types}")
+                raise KeyError(
+                    f"No agent set of type {getattr(key, '__name__', key)} found. "
+                    f"Available agent set types: {available_types}"
+                )
             elif len(matches) == 1:
                 # Single match - return it directly
                 return matches[0]
@@ -118,7 +120,10 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
     # ---------- membership & iteration ----------
     def rename(
         self,
-        target: AgentSetDF | str | dict[AgentSetDF | str, str] | list[tuple[AgentSetDF | str, str]],
+        target: AgentSetDF
+        | str
+        | dict[AgentSetDF | str, str]
+        | list[tuple[AgentSetDF | str, str]],
         new_name: str | None = None,
         *,
         on_conflict: Literal["canonicalize", "raise"] = "canonicalize",
@@ -157,7 +162,9 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
         Batch rename (list):
         >>> agents.sets.rename([("set1", "new_name"), ("set2", "another_name")])
         """
-        return self._parent._rename_set(target, new_name, on_conflict=on_conflict, mode=mode)
+        return self._parent._rename_set(
+            target, new_name, on_conflict=on_conflict, mode=mode
+        )
 
     def __contains__(self, x: str | AgentSetDF) -> bool:
         sets = self._parent._agentsets
