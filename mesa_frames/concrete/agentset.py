@@ -99,7 +99,11 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         # Model reference
         self._model = model
         # Set proposed name (no uniqueness guarantees here)
-        self._name = name if name is not None else camel_case_to_snake_case(self.__class__.__name__)
+        self._name = (
+            name
+            if name is not None
+            else camel_case_to_snake_case(self.__class__.__name__)
+        )
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
