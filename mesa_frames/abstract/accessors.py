@@ -1,3 +1,9 @@
+"""Abstract accessors for agent sets collections.
+
+This module provides abstract base classes for accessors that enable
+flexible querying and manipulation of collections of agent sets.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -78,7 +84,7 @@ class AbstractAgentSetsAccessor(ABC):
         ----------
         key : int | str | type[AgentSetDF]
             Lookup key; see :meth:`__getitem__`.
-        default : Any, optional
+        default : Any | None, optional
             Value to return when the lookup fails. If ``key`` is a type and no
             matches are found, implementers may prefer returning ``[]`` when
             ``default`` is ``None`` to keep list shape stable.
@@ -165,7 +171,7 @@ class AbstractAgentSetsAccessor(ABC):
 
         Parameters
         ----------
-        key_by : {"name", "index", "object", "type"}, default "name"
+        key_by : KeyBy, default "name"
             - ``"name"`` → agent set names.
             - ``"index"`` → positional indices.
             - ``"object"`` → the :class:`AgentSetDF` objects.
