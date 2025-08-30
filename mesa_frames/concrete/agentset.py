@@ -69,7 +69,7 @@ from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
-from mesa_frames.utils import copydoc
+from mesa_frames.utils import camel_case_to_snake_case, copydoc
 
 
 @copydoc(AgentSetDF)
@@ -93,14 +93,13 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         model : "mesa_frames.concrete.model.ModelDF"
             The model that the agent set belongs to.
         name : str | None, optional
-            Proposed name for this agent set. Uniqueness is not guaranteed here
-            and will be validated only when added to AgentsDF.
+            Name for this agent set. If None, class name is used.
+            Will be converted to snake_case if in camelCase.
         """
         # Model reference
         self._model = model
         # Set proposed name (no uniqueness guarantees here)
-        self._name = name if name is not None else self.__class__.__name__
-
+        self._name = name if name is not None else camel_case_to_snake_case(self.__class__.__name__)
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
