@@ -1,3 +1,11 @@
+"""Concrete implementations of agent set accessors.
+
+This module contains the concrete implementation of the AgentSetsAccessor,
+which provides a user-friendly interface for accessing and manipulating
+collections of agent sets within the mesa-frames library.
+"""
+
+from __future__ import annotations
 from __future__ import annotations
 
 from collections import defaultdict
@@ -140,9 +148,9 @@ class AgentSetsAccessor(AbstractAgentSetsAccessor):
             - Batch: {target: new_name} dict or [(target, new_name), ...] list
         new_name : str | None, optional
             New name (only used for single renames)
-        on_conflict : "canonicalize" | "raise", default "canonicalize"
+        on_conflict : "Literal['canonicalize', 'raise']", default "canonicalize"
             Conflict resolution: "canonicalize" appends suffixes, "raise" raises ValueError
-        mode : "atomic" | "best_effort", default "atomic"
+        mode : "Literal['atomic', 'best_effort']", default "atomic"
             Rename mode: "atomic" applies all or none, "best_effort" skips failed renames
 
         Returns
