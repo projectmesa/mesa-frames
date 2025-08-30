@@ -223,9 +223,7 @@ class AbstractAgentSetsAccessor(ABC):
     def keys(self, *, key_by: Literal["type"]) -> Iterable[type[AgentSetDF]]: ...
 
     @abstractmethod
-    def keys(
-        self, *, key_by: KeyBy = "name"
-    ) -> Iterable[str | int | type[AgentSetDF]]:
+    def keys(self, *, key_by: KeyBy = "name") -> Iterable[str | int | type[AgentSetDF]]:
         """Iterate keys under a chosen key domain.
 
         Parameters

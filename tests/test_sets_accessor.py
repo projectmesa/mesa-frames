@@ -98,7 +98,6 @@ class TestAgentSetsAccessor:
         s2 = agents.sets[1]
         assert list(agents.sets.items(key_by="index")) == [(0, s1), (1, s2)]
 
-
     def test_values(self, fix_AgentsDF):
         agents = fix_AgentsDF
         s1 = agents.sets[0]

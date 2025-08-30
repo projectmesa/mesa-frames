@@ -233,7 +233,9 @@ class AgentsDF(AgentContainer):
                             target_set = aset
                             break
                     if target_set is None:
-                        raise KeyError(f"No agent set named '{k}'. Available: {available_names}")
+                        raise KeyError(
+                            f"No agent set named '{k}'. Available: {available_names}"
+                        )
                 else:
                     # k is an AgentSetDF
                     target_set = k
@@ -250,7 +252,9 @@ class AgentsDF(AgentContainer):
                             target_set = aset
                             break
                     if target_set is None:
-                        raise KeyError(f"No agent set named '{k}'. Available: {available_names}")
+                        raise KeyError(
+                            f"No agent set named '{k}'. Available: {available_names}"
+                        )
                 else:
                     # k is an AgentSetDF
                     target_set = k
@@ -266,7 +270,9 @@ class AgentsDF(AgentContainer):
                         target_set = aset
                         break
                 if target_set is None:
-                    raise KeyError(f"No agent set named '{target}'. Available: {available_names}")
+                    raise KeyError(
+                        f"No agent set named '{target}'. Available: {available_names}"
+                    )
             else:
                 # target is an AgentSetDF
                 target_set = target
@@ -321,8 +327,12 @@ class AgentsDF(AgentContainer):
         existing_names = {s.name for s in self._agentsets if s is not target}
         if new_name in existing_names:
             if on_conflict == "error":
-                available_names = [s.name for s in self._agentsets if s.name != target.name]
-                raise KeyError(f"AgentSet name '{new_name}' already exists. Available names: {available_names}")
+                available_names = [
+                    s.name for s in self._agentsets if s.name != target.name
+                ]
+                raise KeyError(
+                    f"AgentSet name '{new_name}' already exists. Available names: {available_names}"
+                )
             elif on_conflict == "skip":
                 # Return existing name without changes
                 return target._name
@@ -505,9 +515,7 @@ class AgentsDF(AgentContainer):
         elif key_by == "type":
             return {type(a): v for a, v in result.items()}  # type: ignore[return-value]
         else:
-            raise ValueError(
-                "key_by must be one of 'name', 'index', or 'type'"
-            )
+            raise ValueError("key_by must be one of 'name', 'index', or 'type'")
 
     def remove(
         self,
