@@ -98,11 +98,11 @@ class TestAgentSetsAccessor:
         s2 = agents.sets[1]
         assert list(agents.sets.iter(key_by="name")) == [(s1.name, s1), (s2.name, s2)]
 
-    def test_mapping(self, fix_AgentsDF):
+    def test_dict(self, fix_AgentsDF):
         agents = fix_AgentsDF
         s1 = agents.sets[0]
         s2 = agents.sets[1]
-        by_type_map = agents.sets.mapping(key_by="type")
+        by_type_map = agents.sets.dict(key_by="type")
         assert list(by_type_map.keys()) == [type(s1)]
         assert by_type_map[type(s1)] is s2
 

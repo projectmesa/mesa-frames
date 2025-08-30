@@ -6,16 +6,17 @@ collections of agent sets within the mesa-frames library.
 """
 
 from __future__ import annotations
-from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from types import MappingProxyType
-from typing import Any, Literal, cast
+from typing import Any, Literal, TypeVar, cast
 
 from mesa_frames.abstract.accessors import AbstractAgentSetsAccessor
 from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.types_ import KeyBy
+
+TSet = TypeVar("TSet", bound=AgentSetDF)
 
 
 class AgentSetsAccessor(AbstractAgentSetsAccessor):
@@ -41,45 +42,37 @@ class AgentSetsAccessor(AbstractAgentSetsAccessor):
             raise KeyError(f"No agent set named '{key}'. Available: {available}")
         if isinstance(key, type):
             matches = [s for s in sets if isinstance(s, key)]
-            if len(matches) == 0:
-                # No matches - list available agent set types
-                available_types = list({type(s).__name__ for s in sets})
-                raise KeyError(
-                    f"No agent set of type {getattr(key, '__name__', key)} found. "
-                    f"Available agent set types: {available_types}"
-                )
-            elif len(matches) == 1:
-                # Single match - return it directly
-                return matches[0]
-            else:
-                # Multiple matches - return all matching agent sets as list
-                return matches
+            # Always return list for type keys to maintain consistent shape
+            return matches  # type: ignore[return-value]
         raise TypeError("Key must be int | str | type[AgentSetDF]")
 
     def get(
-        self, key: int | str | type[AgentSetDF], default: Any | None = None
-    ) -> AgentSetDF | list[AgentSetDF] | Any | None:
+        self,
+        key: int | str | type[TSet],
+        default: AgentSetDF | list[TSet] | None = None,
+    ) -> AgentSetDF | list[TSet] | None:
         try:
-            val = self[key]
-            # For type keys: if no matches and a default was provided, return the default;
-            # if no default, preserve list shape and return [].
-            if isinstance(key, type) and isinstance(val, list) and len(val) == 0:
-                return [] if default is None else default
+            val = self[key]  # type: ignore[return-value]
+            # For type keys, if no matches and a default was provided, return default
+            if (
+                isinstance(key, type)
+                and isinstance(val, list)
+                and len(val) == 0
+                and default is not None
+            ):
+                return default
             return val
         except (KeyError, IndexError, TypeError):
-            # For type keys, preserve list shape by default when default is None
-            if isinstance(key, type) and default is None:
-                return []
             return default
 
-    def first(self, t: type[AgentSetDF]) -> AgentSetDF:
-        matches = [s for s in self._parent._agentsets if isinstance(s, t)]
-        if not matches:
+    def first(self, t: type[TSet]) -> TSet:
+        match = next((s for s in self._parent._agentsets if isinstance(s, t)), None)
+        if not match:
             raise KeyError(f"No agent set of type {getattr(t, '__name__', t)} found.")
-        return matches[0]
+        return match
 
-    def all(self, t: type[AgentSetDF]) -> list[AgentSetDF]:
-        return [s for s in self._parent._agentsets if isinstance(s, t)]
+    def all(self, t: type[TSet]) -> list[TSet]:
+        return [s for s in self._parent._agentsets if isinstance(s, t)]  # type: ignore[return-value]
 
     def at(self, index: int) -> AgentSetDF:
         return self[index]  # type: ignore[return-value]
@@ -110,7 +103,7 @@ class AgentSetsAccessor(AbstractAgentSetsAccessor):
     def iter(self, *, key_by: KeyBy = "name") -> Iterable[tuple[Any, AgentSetDF]]:
         return self.items(key_by=key_by)
 
-    def mapping(self, *, key_by: KeyBy = "name") -> dict[Any, AgentSetDF]:
+    def dict(self, *, key_by: KeyBy = "name") -> dict[Any, AgentSetDF]:
         return {k: v for k, v in self.items(key_by=key_by)}
 
     # ---------- read-only snapshots ----------
