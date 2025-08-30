@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping
 from types import MappingProxyType
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from mesa_frames.types_ import KeyBy
 from mesa_frames.abstract.agents import AgentSetDF
@@ -105,6 +105,49 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
         return MappingProxyType(dict(d))
 
     # ---------- membership & iteration ----------
+    def rename(
+        self,
+        target: AgentSetDF | str | dict[AgentSetDF | str, str] | list[tuple[AgentSetDF | str, str]],
+        new_name: str | None = None,
+        *,
+        on_conflict: Literal["canonicalize", "raise"] = "canonicalize",
+        mode: Literal["atomic", "best_effort"] = "atomic",
+    ) -> str | dict[AgentSetDF, str]:
+        """
+        Rename agent sets. Supports single and batch renaming with deterministic conflict handling.
+
+        Parameters
+        ----------
+        target : AgentSetDF | str | dict[AgentSetDF | str, str] | list[tuple[AgentSetDF | str, str]]
+            Either:
+            - Single: AgentSet or name string (must provide new_name)
+            - Batch: {target: new_name} dict or [(target, new_name), ...] list
+        new_name : str | None, optional
+            New name (only used for single renames)
+        on_conflict : "canonicalize" | "raise", default "canonicalize"
+            Conflict resolution: "canonicalize" appends suffixes, "raise" raises ValueError
+        mode : "atomic" | "best_effort", default "atomic"
+            Rename mode: "atomic" applies all or none, "best_effort" skips failed renames
+
+        Returns
+        -------
+        str | dict[AgentSetDF, str]
+            Single rename: final name string
+            Batch: {agentset: final_name} mapping
+
+        Examples
+        --------
+        Single rename:
+        >>> agents.sets.rename("old_name", "new_name")
+
+        Batch rename (dict):
+        >>> agents.sets.rename({"set1": "new_name", "set2": "another_name"})
+
+        Batch rename (list):
+        >>> agents.sets.rename([("set1", "new_name"), ("set2", "another_name")])
+        """
+        return self._parent._rename_set(target, new_name, on_conflict=on_conflict, mode=mode)
+
     def __contains__(self, x: str | AgentSetDF) -> bool:
         sets = self._parent._agentsets
         if isinstance(x, str):
