@@ -37,15 +37,13 @@ class AgentSetsAccessor(AgentSetsAccessorBase):
                 # No matches - list available agent set types
                 available_types = list(set(type(s).__name__ for s in sets))
                 raise KeyError(f"No agent set of type {getattr(key, '__name__', key)} found. "
-                             f"Available agent set types: {available_types}")
+                              f"Available agent set types: {available_types}")
             elif len(matches) == 1:
                 # Single match - return it directly
                 return matches[0]
             else:
-                # Multiple matches - list all matching agent sets
-                match_names = [s.name for s in matches]
-                raise ValueError(f"Multiple agent sets ({len(matches)}) of type {getattr(key, '__name__', key)} found. "
-                               f"Matching agent sets: {matches}")
+                # Multiple matches - return all matching agent sets as list
+                return matches
         raise TypeError("Key must be int | str | type[AgentSetDF]")
 
     def get(
