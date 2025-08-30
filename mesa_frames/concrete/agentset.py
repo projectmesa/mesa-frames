@@ -92,22 +92,14 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         ----------
         model : "mesa_frames.concrete.model.ModelDF"
             The model that the agent set belongs to.
+        name : str | None, optional
+            Proposed name for this agent set. Uniqueness is not guaranteed here
+            and will be validated only when added to AgentsDF.
         """
         # Model reference
         self._model = model
-        # Assign unique, human-friendly name (consider only explicitly named sets)
-        base = name if name is not None else self.__class__.__name__
-        existing = {s.name for s in self.model.agents.sets if getattr(s, "name", None)}
-        unique = self._make_unique_name(base, existing)
-        if unique != base and name is not None:
-            import warnings
-
-            warnings.warn(
-                f"AgentSetPolars with name '{base}' already exists; renamed to '{unique}'.",
-                UserWarning,
-                stacklevel=2,
-            )
-        self._name = unique
+        # Set proposed name (no uniqueness guarantees here)
+        self._name = name if name is not None else self.__class__.__name__
 
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
@@ -117,56 +109,32 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     def name(self) -> str | None:
         return getattr(self, "_name", None)
 
-    def rename(self, new_name: str) -> None:
-        """Rename this agent set with collision-safe behavior.
+    def rename(self, new_name: str) -> str:
+        """Rename this agent set. If attached to AgentsDF, delegate for uniqueness enforcement.
 
         Parameters
         ----------
         new_name : str
-            Desired new name. If it collides with an existing explicit name,
-            a numeric suffix is added (e.g., 'Sheep' -> 'Sheep_1').
+            Desired new name.
+
+        Returns
+        -------
+        str
+            The final name used (may be canonicalized if duplicates exist).
+
+        Raises
+        ------
+        ValueError
+            If name conflicts occur and delegate encounters errors.
         """
-        if not isinstance(new_name, str):
-            raise TypeError("rename() expects a string name")
-        # Consider only explicitly named sets and exclude self's current name
-        existing = {s.name for s in self.model.agents.sets if getattr(s, "name", None)}
-        if self.name in existing:
-            existing.discard(self.name)
-        base = new_name
-        unique = self._make_unique_name(base, existing)
-        if unique != base:
-            import warnings
-
-            warnings.warn(
-                f"AgentSetPolars with name '{base}' already exists; renamed to '{unique}'.",
-                UserWarning,
-                stacklevel=2,
-            )
-        self._name = unique
-
-    @staticmethod
-    def _make_unique_name(base: str, existing: set[str]) -> str:
-        if base not in existing:
-            return base
-        # If ends with _<int>, increment; else append _1
-        import re
-
-        m = re.match(r"^(.*?)(?:_(\d+))$", base)
-        if m:
-            prefix, num = m.group(1), int(m.group(2))
-            nxt = num + 1
-            candidate = f"{prefix}_{nxt}"
-            while candidate in existing:
-                nxt += 1
-                candidate = f"{prefix}_{nxt}"
-            return candidate
-        else:
-            candidate = f"{base}_1"
-            i = 1
-            while candidate in existing:
-                i += 1
-                candidate = f"{base}_{i}"
-            return candidate
+        # Always delegate to the container's accessor if available through the model's agents
+        # Check if we have a model and can find the AgentsDF that contains this set
+        if self in self.model.agents.sets:
+            return self.model.agents.sets.rename(self._name, new_name)
+        
+        # Set name locally if no container found
+        self._name = new_name
+        return new_name
 
     def add(
         self,
