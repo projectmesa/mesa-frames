@@ -171,8 +171,8 @@ class AbstractAgentSetsAccessor(ABC):
 
         Parameters
         ----------
-        key_by : KeyBy, default "name"
-            - ``"name"`` → agent set names.
+        key_by : KeyBy 
+            - ``"name"`` → agent set names. (Default)
             - ``"index"`` → positional indices.
             - ``"object"`` → the :class:`AgentSetDF` objects.
             - ``"type"`` → the concrete classes of each set.

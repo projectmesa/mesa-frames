@@ -148,10 +148,10 @@ class AgentSetsAccessor(AbstractAgentSetsAccessor):
             - Batch: {target: new_name} dict or [(target, new_name), ...] list
         new_name : str | None, optional
             New name (only used for single renames)
-        on_conflict : "Literal['canonicalize', 'raise']", default "canonicalize"
-            Conflict resolution: "canonicalize" appends suffixes, "raise" raises ValueError
-        mode : "Literal['atomic', 'best_effort']", default "atomic"
-            Rename mode: "atomic" applies all or none, "best_effort" skips failed renames
+        on_conflict : "Literal['canonicalize', 'raise']"
+            Conflict resolution: "canonicalize" (default) appends suffixes, "raise" raises ValueError
+        mode : "Literal['atomic', 'best_effort']"
+            Rename mode: "atomic" applies all or none (default), "best_effort" skips failed renames
 
         Returns
         -------
