@@ -46,7 +46,6 @@ the class docstring.
 
 from __future__ import annotations  # For forward references
 
-from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from typing import Any, Literal, Self, cast, overload
 
@@ -54,6 +53,7 @@ import numpy as np
 import polars as pl
 
 from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
+from mesa_frames.concrete.accessors import AgentSetsAccessor
 from mesa_frames.types_ import (
     AgentMask,
     AgnosticAgentMask,
@@ -61,6 +61,7 @@ from mesa_frames.types_ import (
     DataFrame,
     IdsLike,
     Index,
+    KeyBy,
     Series,
 )
 
@@ -68,6 +69,9 @@ from mesa_frames.types_ import (
 class AgentsDF(AgentContainer):
     """A collection of AgentSetDFs. All agents of the model are stored here."""
 
+    # Do not copy the accessor; it holds a reference to this instance and is
+    # cheaply re-created on demand via the `sets` property.
+    _skip_copy: list[str] = ["_sets_accessor"]
     _agentsets: list[AgentSetDF]
     _ids: pl.Series
 
@@ -80,13 +84,271 @@ class AgentsDF(AgentContainer):
             The model associated with the AgentsDF.
         """
         self._model = model
-        self._agentsets = []
+        self._agentsets = []  # internal storage; used by AgentSetsAccessor
         self._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
+        # Accessor is created lazily in the property to survive copy/deepcopy
+        self._sets_accessor = AgentSetsAccessor(self)
+
+    @property
+    def sets(self) -> AgentSetsAccessor:
+        """Accessor for agentset lookup by index/name/type.
+
+        Does not conflict with AgentsDF's existing __getitem__ column API.
+        """
+        # Ensure accessor always points to this instance (robust to copy/deepcopy)
+        acc = getattr(self, "_sets_accessor", None)
+        if acc is None or getattr(acc, "_parent", None) is not self:
+            acc = AgentSetsAccessor(self)
+            self._sets_accessor = acc
+        return acc
+
+    @staticmethod
+    def _make_unique_name(base: str, existing: set[str]) -> str:
+        """Generate a unique name by appending numeric suffix if needed."""
+        if base not in existing:
+            return base
+        # If ends with _<int>, increment; else append _1
+        import re
+
+        m = re.match(r"^(.*?)(?:_(\d+))$", base)
+        if m:
+            prefix, num = m.group(1), int(m.group(2))
+            nxt = num + 1
+            candidate = f"{prefix}_{nxt}"
+            while candidate in existing:
+                nxt += 1
+                candidate = f"{prefix}_{nxt}"
+            return candidate
+        else:
+            candidate = f"{base}_1"
+            i = 1
+            while candidate in existing:
+                i += 1
+                candidate = f"{base}_{i}"
+            return candidate
+
+    def _canonicalize_names(self, new_agentsets: list[AgentSetDF]) -> None:
+        """Canonicalize names across existing + new agent sets, ensuring uniqueness."""
+        existing_names = {s.name for s in self._agentsets}
+
+        # Process each new agent set in batch to handle potential conflicts
+        for aset in new_agentsets:
+            # Use the static method to generate unique name
+            unique_name = self._make_unique_name(aset.name, existing_names)
+            if unique_name != aset.name:
+                # Directly set the name instead of calling rename
+                import warnings
+
+                warnings.warn(
+                    f"AgentSet with name '{aset.name}' already exists; renamed to '{unique_name}'.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            aset._name = unique_name
+            existing_names.add(unique_name)
+
+    def _rename_sets(
+        self,
+        target: AgentSetDF
+        | str
+        | dict[AgentSetDF | str, str]
+        | list[tuple[AgentSetDF | str, str]],
+        new_name: str | None = None,
+        *,
+        on_conflict: Literal["canonicalize", "raise"] = "canonicalize",
+        mode: Literal["atomic", "best_effort"] = "atomic",
+    ) -> str | dict[AgentSetDF, str]:
+        """Handle agent set renaming delegations from accessor.
+
+        Parameters
+        ----------
+        target : AgentSetDF | str | dict[AgentSetDF | str, str] | list[tuple[AgentSetDF | str, str]]
+            Either:
+            - Single: AgentSet or name string (must provide new_name)
+            - Batch: {target: new_name} dict or [(target, new_name), ...] list
+        new_name : str | None, optional
+            New name (only used for single renames)
+        on_conflict : Literal["canonicalize", "raise"]
+            Conflict resolution: "canonicalize" (default) appends suffixes, "raise" raises ValueError
+        mode : Literal["atomic", "best_effort"]
+            Rename mode: "atomic" applies all or none (default), "best_effort" skips failed renames
+
+        Returns
+        -------
+        str | dict[AgentSetDF, str]
+            Single rename: final name string
+            Batch: {agentset: final_name} mapping
+
+        Raises
+        ------
+        ValueError
+            If target format is invalid or single rename missing new_name
+        KeyError
+            If agent set name not found or naming conflicts with raise mode
+        """
+        # Parse different target formats and build rename operations
+        rename_ops = self._parse_rename_target(target, new_name)
+
+        # Map on_conflict values to _rename_single_set expected values
+        mapped_on_conflict = "error" if on_conflict == "raise" else "overwrite"
+
+        # Determine if this is single or batch based on the input format
+        if isinstance(target, (str, AgentSetDF)):
+            # Single rename - return the final name
+            target_set, new_name = rename_ops[0]
+            return self._rename_single_set(
+                target_set, new_name, on_conflict=mapped_on_conflict, mode="atomic"
+            )
+        else:
+            # Batch rename (dict or list) - return mapping of original sets to final names
+            result = {}
+            for target_set, new_name in rename_ops:
+                final_name = self._rename_single_set(
+                    target_set, new_name, on_conflict=mapped_on_conflict, mode="atomic"
+                )
+                result[target_set] = final_name
+            return result
+
+    def _parse_rename_target(
+        self,
+        target: AgentSetDF
+        | str
+        | dict[AgentSetDF | str, str]
+        | list[tuple[AgentSetDF | str, str]],
+        new_name: str | None = None,
+    ) -> list[tuple[AgentSetDF, str]]:
+        """Parse the target parameter into a list of (agentset, new_name) pairs."""
+        rename_ops = []
+        # Get available names for error messages
+        available_names = [getattr(s, "name", None) for s in self._agentsets]
+
+        if isinstance(target, dict):
+            # target is a dict mapping agent sets/names to new names
+            for k, v in target.items():
+                if isinstance(k, str):
+                    # k is a name, find the agent set
+                    target_set = None
+                    for aset in self._agentsets:
+                        if aset.name == k:
+                            target_set = aset
+                            break
+                    if target_set is None:
+                        raise KeyError(
+                            f"No agent set named '{k}'. Available: {available_names}"
+                        )
+                else:
+                    # k is an AgentSetDF
+                    target_set = k
+                rename_ops.append((target_set, v))
+
+        elif isinstance(target, list):
+            # target is a list of (agent_set/name, new_name) tuples
+            for k, v in target:
+                if isinstance(k, str):
+                    # k is a name, find the agent set
+                    target_set = None
+                    for aset in self._agentsets:
+                        if aset.name == k:
+                            target_set = aset
+                            break
+                    if target_set is None:
+                        raise KeyError(
+                            f"No agent set named '{k}'. Available: {available_names}"
+                        )
+                else:
+                    # k is an AgentSetDF
+                    target_set = k
+                rename_ops.append((target_set, v))
+
+        else:
+            # target is single AgentSetDF or name, new_name must be provided
+            if isinstance(target, str):
+                # target is a name, find the agent set
+                target_set = None
+                for aset in self._agentsets:
+                    if aset.name == target:
+                        target_set = aset
+                        break
+                if target_set is None:
+                    raise KeyError(
+                        f"No agent set named '{target}'. Available: {available_names}"
+                    )
+            else:
+                # target is an AgentSetDF
+                target_set = target
+
+            if new_name is None:
+                raise ValueError("new_name must be provided for single rename")
+            rename_ops.append((target_set, new_name))
+
+        return rename_ops
+
+    def _rename_single_set(
+        self,
+        target: AgentSetDF,
+        new_name: str,
+        on_conflict: Literal["error", "skip", "overwrite"] = "error",
+        mode: Literal["atomic"] = "atomic",
+    ) -> str:
+        """Handle single agent set renaming.
+
+        Parameters
+        ----------
+        target : AgentSetDF
+            The agent set to rename
+        new_name : str
+            The new name for the agent set
+        on_conflict : Literal["error", "skip", "overwrite"], optional
+            How to handle naming conflicts, by default 'error'
+        mode : Literal["atomic"], optional
+            Rename mode, by default 'atomic'
+
+        Returns
+        -------
+        str
+            The final name assigned to the agent set
+
+        Raises
+        ------
+        ValueError
+            If target is not in this container or other validation errors
+        KeyError
+            If on_conflict='error' and new_name conflicts with existing set
+        """
+        # Validate target is in this container
+        if target not in self._agentsets:
+            available_names = [s.name for s in self._agentsets]
+            raise ValueError(
+                f"AgentSet {target} is not in this container. "
+                f"Available agent sets: {available_names}"
+            )
+
+        # Check for conflicts with existing names (excluding current target)
+        existing_names = {s.name for s in self._agentsets if s is not target}
+        if new_name in existing_names:
+            if on_conflict == "error":
+                available_names = [
+                    s.name for s in self._agentsets if s.name != target.name
+                ]
+                raise KeyError(
+                    f"AgentSet name '{new_name}' already exists. Available names: {available_names}"
+                )
+            elif on_conflict == "skip":
+                # Return existing name without changes
+                return target._name
+            # on_conflict == 'overwrite' - proceed with rename
+
+        # Apply name canonicalization if needed
+        final_name = self._make_unique_name(new_name, existing_names)
+        target._name = final_name
+        return final_name
 
     def add(
-        self, agents: AgentSetDF | Iterable[AgentSetDF], inplace: bool = True
+        self,
+        agents: AgentSetDF | Iterable[AgentSetDF],
+        inplace: bool = True,
     ) -> Self:
-        """Add an AgentSetDF to the AgentsDF.
+        """Add an AgentSetDF to the AgentsDF (only gate for name validation).
 
         Parameters
         ----------
@@ -109,13 +371,23 @@ class AgentsDF(AgentContainer):
         other_list = obj._return_agentsets_list(agents)
         if obj._check_agentsets_presence(other_list).any():
             raise ValueError("Some agentsets are already present in the AgentsDF.")
-        new_ids = pl.concat(
-            [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
-        )
+
+        # Validate and canonicalize names across existing + batch before mutating
+        obj._canonicalize_names(other_list)
+
+        # Collect unique_ids from agent sets that have them (may be empty at this point)
+        new_ids_list = [obj._ids]
+        for agentset in other_list:
+            if len(agentset) > 0:  # Only include if there are agents in the set
+                new_ids_list.append(agentset["unique_id"])
+
+        new_ids = pl.concat(new_ids_list)
         if new_ids.is_duplicated().any():
             raise ValueError("Some of the agent IDs are not unique.")
+
         obj._agentsets.extend(other_list)
         obj._ids = new_ids
+
         return obj
 
     @overload
@@ -205,9 +477,16 @@ class AgentsDF(AgentContainer):
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask] = None,
-    ) -> dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
+        key_by: KeyBy = "name",
+    ) -> (
+        dict[AgentSetDF, Series]
+        | dict[AgentSetDF, DataFrame]
+        | dict[str, Any]
+        | dict[int, Any]
+        | dict[type, Any]
+    ):
         agentsets_masks = self._get_bool_masks(mask)
-        result = {}
+        result: dict[AgentSetDF, Any] = {}
 
         # Convert attr_names to list for consistent checking
         if attr_names is None:
@@ -228,7 +507,15 @@ class AgentsDF(AgentContainer):
             ):
                 result[agentset] = agentset.get(attr_names, mask)
 
-        return result
+        if key_by == "name":
+            return {cast(AgentSetDF, a).name: v for a, v in result.items()}  # type: ignore[return-value]
+        elif key_by == "index":
+            index_map = {agentset: i for i, agentset in enumerate(self._agentsets)}
+            return {index_map[a]: v for a, v in result.items()}  # type: ignore[return-value]
+        elif key_by == "type":
+            return {type(a): v for a, v in result.items()}  # type: ignore[return-value]
+        else:
+            raise ValueError("key_by must be one of 'name', 'index', or 'type'")
 
     def remove(
         self,
@@ -460,7 +747,7 @@ class AgentsDF(AgentContainer):
         """
         return super().__add__(other)
 
-    def __getattr__(self, name: str) -> dict[AgentSetDF, Any]:
+    def __getattr__(self, name: str) -> dict[str, Any]:
         # Avoids infinite recursion of private attributes
         if __debug__:  # Only execute in non-optimized mode
             if name.startswith("_"):
@@ -600,28 +887,6 @@ class AgentsDF(AgentContainer):
         self, agents: AgnosticAgentMask | IdsLike | dict[AgentSetDF, AgentMask]
     ) -> None:
         self.select(agents, inplace=True)
-
-    @property
-    def agentsets_by_type(self) -> dict[type[AgentSetDF], Self]:
-        """Get the agent sets in the AgentsDF grouped by type.
-
-        Returns
-        -------
-        dict[type[AgentSetDF], Self]
-            A dictionary mapping agent set types to the corresponding AgentsDF.
-        """
-
-        def copy_without_agentsets() -> Self:
-            return self.copy(deep=False, skip=["_agentsets"])
-
-        dictionary = defaultdict(copy_without_agentsets)
-
-        for agentset in self._agentsets:
-            agents_df = dictionary[agentset.__class__]
-            agents_df._agentsets = []
-            agents_df._agentsets = agents_df._agentsets + [agentset]
-            dictionary[agentset.__class__] = agents_df
-        return dictionary
 
     @property
     def inactive_agents(self) -> dict[AgentSetDF, DataFrame]:

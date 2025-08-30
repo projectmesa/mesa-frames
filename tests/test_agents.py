@@ -91,6 +91,9 @@ class Test_AgentsDF:
             False,
         ]
 
+        # Test with empty iterable - returns True
+        assert agents.contains([])
+
         # Test with single id
         assert agents.contains(agentset_polars1["unique_id"][0])
 
@@ -389,6 +392,16 @@ class Test_AgentsDF:
         assert 0 not in agents._ids
         with pytest.raises(KeyError):
             result = agents.remove(0, inplace=False)
+
+        # Test with None (should return same agents)
+        result = agents.remove(None, inplace=False)
+        assert result is not agents  # new object
+        assert len(result._agentsets) == len(agents._agentsets)
+
+        # Test with empty list
+        result = agents.remove([], inplace=False)
+        assert result is not agents
+        assert len(result._agentsets) == len(agents._agentsets)
 
     def test_select(self, fix_AgentsDF: AgentsDF):
         agents = fix_AgentsDF
@@ -1000,18 +1013,6 @@ class Test_AgentsDF:
             for series in (
                 result[agents1._agentsets[1]] == agents1._agentsets[1]._df.filter(mask1)
             )
-        )
-
-    def test_agentsets_by_type(self, fix_AgentsDF: AgentsDF):
-        agents = fix_AgentsDF
-
-        result = agents.agentsets_by_type
-        assert isinstance(result, dict)
-        assert isinstance(result[ExampleAgentSetPolars], AgentsDF)
-
-        assert (
-            result[ExampleAgentSetPolars]._agentsets[0].df.rows()
-            == agents._agentsets[1].df.rows()
         )
 
     def test_inactive_agents(self, fix_AgentsDF: AgentsDF):

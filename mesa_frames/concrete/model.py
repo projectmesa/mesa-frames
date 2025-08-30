@@ -112,10 +112,12 @@ class ModelDF:
         AgentSetDF
             The AgentSetDF of the specified type.
         """
-        for agentset in self._agents._agentsets:
-            if isinstance(agentset, agent_type):
-                return agentset
-        raise ValueError(f"No agents of type {agent_type} found in the model.")
+        try:
+            return self.agents.sets[agent_type]
+        except KeyError as e:
+            raise ValueError(
+                f"No agents of type {agent_type} found in the model."
+            ) from e
 
     def reset_randomizer(self, seed: int | Sequence[int] | None) -> None:
         """Reset the model random number generator.
@@ -196,7 +198,7 @@ class ModelDF:
         list[type]
             A list of the different agent types present in the model.
         """
-        return [agent.__class__ for agent in self._agents._agentsets]
+        return [agent.__class__ for agent in self.agents.sets]
 
     @property
     def space(self) -> SpaceDF:

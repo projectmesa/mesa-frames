@@ -65,7 +65,7 @@ from typing import Any, Literal, Self, overload
 import numpy as np
 import polars as pl
 
-from mesa_frames.concrete.agents import AgentSetDF
+from mesa_frames.abstract.agents import AgentSetDF
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import ModelDF
 from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
@@ -83,18 +83,58 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
+    def __init__(
+        self, model: mesa_frames.concrete.model.ModelDF, name: str | None = None
+    ) -> None:
         """Initialize a new AgentSetPolars.
 
         Parameters
         ----------
         model : "mesa_frames.concrete.model.ModelDF"
             The model that the agent set belongs to.
+        name : str | None, optional
+            Proposed name for this agent set. Uniqueness is not guaranteed here
+            and will be validated only when added to AgentsDF.
         """
+        # Model reference
         self._model = model
+        # Set proposed name (no uniqueness guarantees here)
+        self._name = name if name is not None else self.__class__.__name__
+
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
+
+    @property
+    def name(self) -> str | None:
+        return getattr(self, "_name", None)
+
+    def rename(self, new_name: str) -> str:
+        """Rename this agent set. If attached to AgentsDF, delegate for uniqueness enforcement.
+
+        Parameters
+        ----------
+        new_name : str
+            Desired new name.
+
+        Returns
+        -------
+        str
+            The final name used (may be canonicalized if duplicates exist).
+
+        Raises
+        ------
+        ValueError
+            If name conflicts occur and delegate encounters errors.
+        """
+        # Always delegate to the container's accessor if available through the model's agents
+        # Check if we have a model and can find the AgentsDF that contains this set
+        if self in self.model.agents.sets:
+            return self.model.agents.sets.rename(self._name, new_name)
+
+        # Set name locally if no container found
+        self._name = new_name
+        return new_name
 
     def add(
         self,
