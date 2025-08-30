@@ -358,7 +358,10 @@ class AbstractAgentSetsAccessor(ABC):
     @abstractmethod
     def rename(
         self,
-        target: AgentSetDF | str | dict[AgentSetDF | str, str] | list[tuple[AgentSetDF | str, str]],
+        target: AgentSetDF
+        | str
+        | dict[AgentSetDF | str, str]
+        | list[tuple[AgentSetDF | str, str]],
         new_name: str | None = None,
         *,
         on_conflict: Literal["canonicalize", "raise"] = "canonicalize",
