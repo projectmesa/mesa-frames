@@ -35,7 +35,7 @@ class AgentSetsAccessor(AbstractAgentSetsAccessor):
             matches = [s for s in sets if isinstance(s, key)]
             if len(matches) == 0:
                 # No matches - list available agent set types
-                available_types = list(set(type(s).__name__ for s in sets))
+                available_types = list({type(s).__name__ for s in sets})
                 raise KeyError(
                     f"No agent set of type {getattr(key, '__name__', key)} found. "
                     f"Available agent set types: {available_types}"
