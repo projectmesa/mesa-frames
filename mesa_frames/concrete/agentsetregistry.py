@@ -53,9 +53,9 @@ from typing import Any, Literal, Self, cast, overload
 import numpy as np
 import polars as pl
 
+from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.abstract.agentsetregistry import (
     AbstractAgentSetRegistry,
-    AbstractAgentSet,
 )
 from mesa_frames.types_ import (
     AgentMask,
