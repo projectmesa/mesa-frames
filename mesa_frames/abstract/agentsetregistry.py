@@ -49,7 +49,6 @@ from typing import Any, Literal, Self, overload
 
 from numpy.random import Generator
 
-from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.abstract.mixin import CopyMixin
 from mesa_frames.types_ import (
     AgentMask,
@@ -414,7 +413,7 @@ class AbstractAgentSetRegistry(CopyMixin):
         """
         return self.add(agents=other, inplace=False)
 
-    def __contains__(self, agents: int | AbstractAgentSet) -> bool:
+    def __contains__(self, agents: int | mesa_frames.abstract.agentset.AbstractAgentSet) -> bool:
         """Check if an agent is in the AbstractAgentSetRegistry.
 
         Parameters
@@ -432,13 +431,13 @@ class AbstractAgentSetRegistry(CopyMixin):
     @overload
     def __getitem__(
         self, key: str | tuple[AgentMask, str]
-    ) -> Series | dict[AbstractAgentSet, Series]: ...
+    ) -> Series | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Series]: ...
 
     @overload
     def __getitem__(
         self,
         key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
-    ) -> DataFrame | dict[AbstractAgentSet, DataFrame]: ...
+    ) -> DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]: ...
 
     def __getitem__(
         self,
@@ -448,14 +447,14 @@ class AbstractAgentSetRegistry(CopyMixin):
             | AgentMask
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
-            | tuple[dict[AbstractAgentSet, AgentMask], str]
-            | tuple[dict[AbstractAgentSet, AgentMask], Collection[str]]
+            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str]
+            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
         ),
     ) -> (
         Series
         | DataFrame
-        | dict[AbstractAgentSet, Series]
-        | dict[AbstractAgentSet, DataFrame]
+        | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Series]
+        | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
     ):
         """Implement the [] operator for the AbstractAgentSetRegistry.
 
@@ -563,8 +562,8 @@ class AbstractAgentSetRegistry(CopyMixin):
             | Collection[str]
             | AgentMask
             | tuple[AgentMask, str | Collection[str]]
-            | tuple[dict[AbstractAgentSet, AgentMask], str]
-            | tuple[dict[AbstractAgentSet, AgentMask], Collection[str]]
+            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str]
+            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
         ),
         values: Any,
     ) -> None:
