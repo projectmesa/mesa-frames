@@ -64,12 +64,8 @@ from mesa_frames.concrete.agents import AgentsDF
 from mesa_frames.concrete.agentset import AgentSetPolars
 from mesa_frames.concrete.model import ModelDF
 from mesa_frames.concrete.space import GridPolars
+from mesa_frames.concrete.datacollector import DataCollector
 
-__all__ = [
-    "AgentsDF",
-    "AgentSetPolars",
-    "ModelDF",
-    "GridPolars",
-]
+__all__ = ["AgentsDF", "AgentSetPolars", "ModelDF", "GridPolars", "DataCollector"]
 
 __version__ = "0.1.1.dev0"

@@ -64,3 +64,30 @@ class GridWorld(ModelDF):
 ```
 
 A continuous GeoSpace, NetworkSpace, and a collection to have multiple spaces in the models are in the works! 🚧
+
+## DataCollector 🗂️
+
+`DataCollector` records model- and agent-level data during simulation.
+You configure what to collect, how to store it, and when to trigger collection.
+
+Example:
+
+```python
+class ExampleModel(ModelDF):
+    def __init__(self):
+        super().__init__()
+        self.agents = MoneyAgent(self)
+        self.datacollector = DataCollector(
+            model=self,
+            model_reporters={"total_wealth": lambda m: m.agents["wealth"].sum()},
+            agent_reporters={"wealth": "wealth"},
+            storage="csv",
+            storage_uri="./data",
+            trigger=lambda m: m.schedule.steps % 2 == 0
+        )
+
+    def step(self):
+        self.agents.step()
+        self.datacollector.conditional_collect()
+        self.datacollector.flush()
+```

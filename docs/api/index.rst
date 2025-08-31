@@ -25,3 +25,10 @@ This page provides a high-level overview of all public mesa-frames objects, func
             :maxdepth: 2
 
             reference/space/index
+
+    .. grid-item-card::
+
+        .. toctree::
+            :maxdepth: 2
+
+            reference/datacollector
