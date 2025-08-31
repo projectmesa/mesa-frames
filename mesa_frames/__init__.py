@@ -14,19 +14,19 @@ Key Features:
 - Includes GridDF for efficient grid-based spatial modeling
 
 Main Components:
-- AgentSetPolars: Agent set implementation using Polars backend
-- ModelDF: Base model class for mesa-frames
+- AgentSet: Agent set implementation using Polars backend
+- Model: Base model class for mesa-frames
 - GridDF: Grid space implementation for spatial modeling
 
 Usage:
 To use mesa-frames, import the necessary components and subclass them as needed:
 
-    from mesa_frames import AgentSetPolars, ModelDF, GridDF
+    from mesa_frames import AgentSet, Model, GridDF
 
-    class MyAgent(AgentSetPolars):
+    class MyAgent(AgentSet):
         # Define your agent logic here
 
-    class MyModel(ModelDF):
+    class MyModel(Model):
         def __init__(self, width, height):
             super().__init__()
             self.grid = GridDF(width, height, self)
@@ -60,12 +60,12 @@ if os.getenv("MESA_FRAMES_RUNTIME_TYPECHECKING", "").lower() in ("1", "true", "y
             stacklevel=2,
         )
 
-from mesa_frames.concrete.agents import AgentsDF
-from mesa_frames.concrete.agentset import AgentSetPolars
-from mesa_frames.concrete.model import ModelDF
+from mesa_frames.concrete.agents import AgentSetRegistry
+from mesa_frames.concrete.agentset import AgentSet
+from mesa_frames.concrete.model import Model
 from mesa_frames.concrete.space import GridPolars
 from mesa_frames.concrete.datacollector import DataCollector
 
-__all__ = ["AgentsDF", "AgentSetPolars", "ModelDF", "GridPolars", "DataCollector"]
+__all__ = ["AgentSetRegistry", "AgentSet", "Model", "GridPolars", "DataCollector"]
 
 __version__ = "0.1.1.dev0"

@@ -36,7 +36,7 @@ Always run tools via uv: `uv run <command>`.
 ## Commit & Pull Request Guidelines
 
 - Commits: Imperative mood, concise subject, meaningful body when needed.
-  Example: `Fix AgentsDF.sets copy binding and tests`.
+  Example: `Fix AgentSetRegistry.sets copy binding and tests`.
 - PRs: Link issues, summarize changes, note API impacts, add/adjust tests and docs.
 - CI hygiene: Run `ruff`, `pytest`, and `pre-commit` locally before pushing.
 

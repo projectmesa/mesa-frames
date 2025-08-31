@@ -8,7 +8,7 @@ import polars as pl
 import seaborn as sns
 from packaging import version
 
-from mesa_frames import AgentSetPolars, ModelDF
+from mesa_frames import AgentSet, Model
 
 
 ### ---------- Mesa implementation ---------- ###
@@ -30,7 +30,7 @@ class MoneyAgent(mesa.Agent):
     def step(self):
         # Verify agent has some wealth
         if self.wealth > 0:
-            other_agent = self.random.choice(self.model.agents)
+            other_agent = self.random.choice(self.model.sets)
             if other_agent is not None:
                 other_agent.wealth += 1
                 self.wealth -= 1
@@ -43,11 +43,11 @@ class MoneyModel(mesa.Model):
         super().__init__()
         self.num_agents = N
         for _ in range(self.num_agents):
-            self.agents.add(MoneyAgent(self))
+            self.sets.add(MoneyAgent(self))
 
     def step(self):
         """Advance the model by one step."""
-        self.agents.shuffle_do("step")
+        self.sets.shuffle_do("step")
 
     def run_model(self, n_steps) -> None:
         for _ in range(n_steps):
@@ -55,7 +55,7 @@ class MoneyModel(mesa.Model):
 
 
 """def compute_gini(model):
-    agent_wealths = model.agents.get("wealth")
+    agent_wealths = model.sets.get("wealth")
     x = sorted(agent_wealths)
     N = model.num_agents
     B = sum(xi * (N - i) for i, xi in enumerate(x)) / (N * sum(x))
@@ -65,12 +65,12 @@ class MoneyModel(mesa.Model):
 ### ---------- Mesa-frames implementation ---------- ###
 
 
-class MoneyAgentPolarsConcise(AgentSetPolars):
-    def __init__(self, n: int, model: ModelDF):
+class MoneyAgentDFConcise(AgentSet):
+    def __init__(self, n: int, model: Model):
         super().__init__(model)
         ## Adding the agents to the agent set
         # 1. Changing the agents attribute directly (not recommended, if other agents were added before, they will be lost)
-        """self.agents = pl.DataFrame(
+        """self.sets = pl.DataFrame(
             "wealth": pl.ones(n, eager=True)}
         )"""
         # 2. Adding the dataframe with add
@@ -120,8 +120,8 @@ class MoneyAgentPolarsConcise(AgentSetPolars):
         self[new_wealth, "wealth"] += new_wealth["len"]
 
 
-class MoneyAgentPolarsNative(AgentSetPolars):
-    def __init__(self, n: int, model: ModelDF):
+class MoneyAgentDFNative(AgentSet):
+    def __init__(self, n: int, model: Model):
         super().__init__(model)
         self += pl.DataFrame({"wealth": pl.ones(n, eager=True)})
 
@@ -154,15 +154,15 @@ class MoneyAgentPolarsNative(AgentSetPolars):
         )
 
 
-class MoneyModelDF(ModelDF):
+class MoneyModelDF(Model):
     def __init__(self, N: int, agents_cls):
         super().__init__()
         self.n_agents = N
-        self.agents += agents_cls(N, self)
+        self.sets += agents_cls(N, self)
 
     def step(self):
-        # Executes the step method for every agentset in self.agents
-        self.agents.do("step")
+        # Executes the step method for every agentset in self.sets
+        self.sets.do("step")
 
     def run_model(self, n):
         for _ in range(n):
@@ -170,12 +170,12 @@ class MoneyModelDF(ModelDF):
 
 
 def mesa_frames_polars_concise(n_agents: int) -> None:
-    model = MoneyModelDF(n_agents, MoneyAgentPolarsConcise)
+    model = MoneyModelDF(n_agents, MoneyAgentDFConcise)
     model.run_model(100)
 
 
 def mesa_frames_polars_native(n_agents: int) -> None:
-    model = MoneyModelDF(n_agents, MoneyAgentPolarsNative)
+    model = MoneyModelDF(n_agents, MoneyAgentDFNative)
     model.run_model(100)
 
 

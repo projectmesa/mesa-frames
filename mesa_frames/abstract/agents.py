@@ -6,14 +6,14 @@ extension. It provides the foundation for implementing agent storage and
 manipulation using DataFrame-based approaches.
 
 Classes:
-    AgentContainer(CopyMixin):
+    AbstractAgentSetRegistry(CopyMixin):
         An abstract base class that defines the common interface for all agent
         containers in mesa-frames. It inherits from CopyMixin to provide fast
         copying functionality.
 
-    AgentSetDF(AgentContainer, DataFrameMixin):
+    AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         An abstract base class for agent sets that use DataFrames as the underlying
-        storage mechanism. It inherits from both AgentContainer and DataFrameMixin
+        storage mechanism. It inherits from both AbstractAgentSetRegistry and DataFrameMixin
         to combine agent container functionality with DataFrame operations.
 
 These abstract classes are designed to be subclassed by concrete implementations
@@ -23,12 +23,12 @@ Usage:
     These classes should not be instantiated directly. Instead, they should be
     subclassed to create concrete implementations:
 
-    from mesa_frames.abstract.agents import AgentSetDF
+    from mesa_frames.abstract.agents import AbstractAgentSet
 
-    class AgentSetPolars(AgentSetDF):
+    class AgentSet(AbstractAgentSet):
         def __init__(self, model):
             super().__init__(model)
-            # Implementation using polars DataFrame
+            # Implementation using a DataFrame backend
             ...
 
         # Implement other abstract methods
@@ -61,13 +61,13 @@ from mesa_frames.types_ import (
 )
 
 
-class AgentContainer(CopyMixin):
-    """An abstract class for containing agents. Defines the common interface for AgentSetDF and AgentsDF."""
+class AbstractAgentSetRegistry(CopyMixin):
+    """An abstract class for containing agents. Defines the common interface for AbstractAgentSet and AgentSetRegistry."""
 
     _copy_only_reference: list[str] = [
         "_model",
     ]
-    _model: mesa_frames.concrete.model.ModelDF
+    _model: mesa_frames.concrete.model.Model
 
     @abstractmethod
     def __init__(self) -> None: ...
@@ -76,15 +76,15 @@ class AgentContainer(CopyMixin):
         self,
         agents: IdsLike
         | AgentMask
-        | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        | mesa_frames.concrete.agents.AbstractAgentSet
+        | Collection[mesa_frames.concrete.agents.AbstractAgentSet],
         inplace: bool = True,
     ) -> Self:
-        """Remove agents from the AgentContainer. Does not raise an error if the agent is not found.
+        """Remove agents from the AbstractAgentSetRegistry. Does not raise an error if the agent is not found.
 
         Parameters
         ----------
-        agents : IdsLike | AgentMask | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        agents : IdsLike | AgentMask | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
             The agents to remove
         inplace : bool
             Whether to remove the agent in place. Defaults to True.
@@ -92,7 +92,7 @@ class AgentContainer(CopyMixin):
         Returns
         -------
         Self
-            The updated AgentContainer.
+            The updated AbstractAgentSetRegistry.
         """
         with suppress(KeyError, ValueError):
             return self.remove(agents, inplace=inplace)
@@ -103,15 +103,15 @@ class AgentContainer(CopyMixin):
         self,
         agents: DataFrame
         | DataFrameInput
-        | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        | mesa_frames.concrete.agents.AbstractAgentSet
+        | Collection[mesa_frames.concrete.agents.AbstractAgentSet],
         inplace: bool = True,
     ) -> Self:
-        """Add agents to the AgentContainer.
+        """Add agents to the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        agents : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
             The agents to add.
         inplace : bool
             Whether to add the agents in place. Defaults to True.
@@ -119,7 +119,7 @@ class AgentContainer(CopyMixin):
         Returns
         -------
         Self
-            The updated AgentContainer.
+            The updated AbstractAgentSetRegistry.
         """
         ...
 
@@ -130,24 +130,24 @@ class AgentContainer(CopyMixin):
     @overload
     @abstractmethod
     def contains(
-        self, agents: mesa_frames.concrete.agents.AgentSetDF | IdsLike
+        self, agents: mesa_frames.concrete.agents.AbstractAgentSet | IdsLike
     ) -> BoolSeries: ...
 
     @abstractmethod
     def contains(
-        self, agents: mesa_frames.concrete.agents.AgentSetDF | IdsLike
+        self, agents: mesa_frames.concrete.agents.AbstractAgentSet | IdsLike
     ) -> bool | BoolSeries:
-        """Check if agents with the specified IDs are in the AgentContainer.
+        """Check if agents with the specified IDs are in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : mesa_frames.concrete.agents.AgentSetDF | IdsLike
+        agents : mesa_frames.concrete.agents.AbstractAgentSet | IdsLike
             The ID(s) to check for.
 
         Returns
         -------
         bool | BoolSeries
-            True if the agent is in the AgentContainer, False otherwise.
+            True if the agent is in the AbstractAgentSetRegistry, False otherwise.
         """
 
     @overload
@@ -172,7 +172,7 @@ class AgentContainer(CopyMixin):
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs: Any,
-    ) -> Any | dict[mesa_frames.concrete.agents.AgentSetDF, Any]: ...
+    ) -> Any | dict[mesa_frames.concrete.agents.AbstractAgentSet, Any]: ...
 
     @abstractmethod
     def do(
@@ -183,8 +183,8 @@ class AgentContainer(CopyMixin):
         return_results: bool = False,
         inplace: bool = True,
         **kwargs: Any,
-    ) -> Self | Any | dict[mesa_frames.concrete.agents.AgentSetDF, Any]:
-        """Invoke a method on the AgentContainer.
+    ) -> Self | Any | dict[mesa_frames.concrete.agents.AbstractAgentSet, Any]:
+        """Invoke a method on the AbstractAgentSetRegistry.
 
         Parameters
         ----------
@@ -203,8 +203,8 @@ class AgentContainer(CopyMixin):
 
         Returns
         -------
-        Self | Any | dict[mesa_frames.concrete.agents.AgentSetDF, Any]
-            The updated AgentContainer or the result of the method.
+        Self | Any | dict[mesa_frames.concrete.agents.AbstractAgentSet, Any]
+            The updated AbstractAgentSetRegistry or the result of the method.
         """
         ...
 
@@ -224,7 +224,7 @@ class AgentContainer(CopyMixin):
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
     ) -> Series | dict[str, Series] | DataFrame | dict[str, DataFrame]:
-        """Retrieve the value of a specified attribute for each agent in the AgentContainer.
+        """Retrieve the value of a specified attribute for each agent in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
@@ -246,16 +246,16 @@ class AgentContainer(CopyMixin):
         agents: (
             IdsLike
             | AgentMask
-            | mesa_frames.concrete.agents.AgentSetDF
-            | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | mesa_frames.concrete.agents.AbstractAgentSet
+            | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
         ),
         inplace: bool = True,
     ) -> Self:
-        """Remove the agents from the AgentContainer.
+        """Remove the agents from the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : IdsLike | AgentMask | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        agents : IdsLike | AgentMask | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
             The agents to remove.
         inplace : bool, optional
             Whether to remove the agent in place.
@@ -263,7 +263,7 @@ class AgentContainer(CopyMixin):
         Returns
         -------
         Self
-            The updated AgentContainer.
+            The updated AbstractAgentSetRegistry.
         """
         ...
 
@@ -276,14 +276,14 @@ class AgentContainer(CopyMixin):
         negate: bool = False,
         inplace: bool = True,
     ) -> Self:
-        """Select agents in the AgentContainer based on the given criteria.
+        """Select agents in the AbstractAgentSetRegistry based on the given criteria.
 
         Parameters
         ----------
         mask : AgentMask | None, optional
             The AgentMask of agents to be selected, by default None
         filter_func : Callable[[Self], AgentMask] | None, optional
-            A function which takes as input the AgentContainer and returns a AgentMask, by default None
+            A function which takes as input the AbstractAgentSetRegistry and returns a AgentMask, by default None
         n : int | None, optional
             The maximum number of agents to be selected, by default None
         negate : bool, optional
@@ -294,7 +294,7 @@ class AgentContainer(CopyMixin):
         Returns
         -------
         Self
-            A new or updated AgentContainer.
+            A new or updated AbstractAgentSetRegistry.
         """
         ...
 
@@ -326,14 +326,14 @@ class AgentContainer(CopyMixin):
         mask: AgentMask | None = None,
         inplace: bool = True,
     ) -> Self:
-        """Set the value of a specified attribute or attributes for each agent in the mask in AgentContainer.
+        """Set the value of a specified attribute or attributes for each agent in the mask in AbstractAgentSetRegistry.
 
         Parameters
         ----------
         attr_names : DataFrameInput | str | Collection[str]
             The key can be:
-            - A string: sets the specified column of the agents in the AgentContainer.
-            - A collection of strings: sets the specified columns of the agents in the AgentContainer.
+            - A string: sets the specified column of the agents in the AbstractAgentSetRegistry.
+            - A collection of strings: sets the specified columns of the agents in the AbstractAgentSetRegistry.
             - A dictionary: keys should be attributes and values should be the values to set. Value should be None.
         values : Any | None
             The value to set the attribute to. If None, attr_names must be a dictionary.
@@ -351,7 +351,7 @@ class AgentContainer(CopyMixin):
 
     @abstractmethod
     def shuffle(self, inplace: bool = False) -> Self:
-        """Shuffles the order of agents in the AgentContainer.
+        """Shuffles the order of agents in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
@@ -361,7 +361,7 @@ class AgentContainer(CopyMixin):
         Returns
         -------
         Self
-            A new or updated AgentContainer.
+            A new or updated AbstractAgentSetRegistry.
         """
 
     @abstractmethod
@@ -389,55 +389,55 @@ class AgentContainer(CopyMixin):
         Returns
         -------
         Self
-            A new or updated AgentContainer.
+            A new or updated AbstractAgentSetRegistry.
         """
 
     def __add__(
         self,
         other: DataFrame
         | DataFrameInput
-        | mesa_frames.concrete.agents.AgentSetDF
-        | Collection[mesa_frames.concrete.agents.AgentSetDF],
+        | mesa_frames.concrete.agents.AbstractAgentSet
+        | Collection[mesa_frames.concrete.agents.AbstractAgentSet],
     ) -> Self:
-        """Add agents to a new AgentContainer through the + operator.
+        """Add agents to a new AbstractAgentSetRegistry through the + operator.
 
         Parameters
         ----------
-        other : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        other : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
             The agents to add.
 
         Returns
         -------
         Self
-            A new AgentContainer with the added agents.
+            A new AbstractAgentSetRegistry with the added agents.
         """
         return self.add(agents=other, inplace=False)
 
-    def __contains__(self, agents: int | AgentSetDF) -> bool:
-        """Check if an agent is in the AgentContainer.
+    def __contains__(self, agents: int | AbstractAgentSet) -> bool:
+        """Check if an agent is in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : int | AgentSetDF
-            The ID(s) or AgentSetDF to check for.
+        agents : int | AbstractAgentSet
+            The ID(s) or AbstractAgentSet to check for.
 
         Returns
         -------
         bool
-            True if the agent is in the AgentContainer, False otherwise.
+            True if the agent is in the AbstractAgentSetRegistry, False otherwise.
         """
         return self.contains(agents=agents)
 
     @overload
     def __getitem__(
         self, key: str | tuple[AgentMask, str]
-    ) -> Series | dict[AgentSetDF, Series]: ...
+    ) -> Series | dict[AbstractAgentSet, Series]: ...
 
     @overload
     def __getitem__(
         self,
         key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
-    ) -> DataFrame | dict[AgentSetDF, DataFrame]: ...
+    ) -> DataFrame | dict[AbstractAgentSet, DataFrame]: ...
 
     def __getitem__(
         self,
@@ -447,27 +447,32 @@ class AgentContainer(CopyMixin):
             | AgentMask
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
-            | tuple[dict[AgentSetDF, AgentMask], str]
-            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+            | tuple[dict[AbstractAgentSet, AgentMask], str]
+            | tuple[dict[AbstractAgentSet, AgentMask], Collection[str]]
         ),
-    ) -> Series | DataFrame | dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]:
-        """Implement the [] operator for the AgentContainer.
+    ) -> (
+        Series
+        | DataFrame
+        | dict[AbstractAgentSet, Series]
+        | dict[AbstractAgentSet, DataFrame]
+    ):
+        """Implement the [] operator for the AbstractAgentSetRegistry.
 
         The key can be:
-        - An attribute or collection of attributes (eg. AgentContainer["str"], AgentContainer[["str1", "str2"]]): returns the specified column(s) of the agents in the AgentContainer.
-        - An AgentMask (eg. AgentContainer[AgentMask]): returns the agents in the AgentContainer that satisfy the AgentMask.
-        - A tuple (eg. AgentContainer[AgentMask, "str"]): returns the specified column of the agents in the AgentContainer that satisfy the AgentMask.
-        - A tuple with a dictionary (eg. AgentContainer[{AgentSetDF: AgentMask}, "str"]): returns the specified column of the agents in the AgentContainer that satisfy the AgentMask from the dictionary.
-        - A tuple with a dictionary (eg. AgentContainer[{AgentSetDF: AgentMask}, Collection[str]]): returns the specified columns of the agents in the AgentContainer that satisfy the AgentMask from the dictionary.
+        - An attribute or collection of attributes (eg. AbstractAgentSetRegistry["str"], AbstractAgentSetRegistry[["str1", "str2"]]): returns the specified column(s) of the agents in the AbstractAgentSetRegistry.
+        - An AgentMask (eg. AbstractAgentSetRegistry[AgentMask]): returns the agents in the AbstractAgentSetRegistry that satisfy the AgentMask.
+        - A tuple (eg. AbstractAgentSetRegistry[AgentMask, "str"]): returns the specified column of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask.
+        - A tuple with a dictionary (eg. AbstractAgentSetRegistry[{AbstractAgentSet: AgentMask}, "str"]): returns the specified column of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask from the dictionary.
+        - A tuple with a dictionary (eg. AbstractAgentSetRegistry[{AbstractAgentSet: AgentMask}, Collection[str]]): returns the specified columns of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask from the dictionary.
 
         Parameters
         ----------
-        key : str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]] | tuple[dict[AgentSetDF, AgentMask], str] | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+        key : str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]] | tuple[dict[AbstractAgentSet, AgentMask], str] | tuple[dict[AbstractAgentSet, AgentMask], Collection[str]]
             The key to retrieve.
 
         Returns
         -------
-        Series | DataFrame | dict[AgentSetDF, Series] | dict[AgentSetDF, DataFrame]
+        Series | DataFrame | dict[AbstractAgentSet, Series] | dict[AbstractAgentSet, DataFrame]
             The attribute values.
         """
         # TODO: fix types
@@ -486,21 +491,21 @@ class AgentContainer(CopyMixin):
         other: (
             DataFrame
             | DataFrameInput
-            | mesa_frames.concrete.agents.AgentSetDF
-            | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | mesa_frames.concrete.agents.AbstractAgentSet
+            | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
         ),
     ) -> Self:
-        """Add agents to the AgentContainer through the += operator.
+        """Add agents to the AbstractAgentSetRegistry through the += operator.
 
         Parameters
         ----------
-        other : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        other : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
             The agents to add.
 
         Returns
         -------
         Self
-            The updated AgentContainer.
+            The updated AbstractAgentSetRegistry.
         """
         return self.add(agents=other, inplace=True)
 
@@ -509,21 +514,21 @@ class AgentContainer(CopyMixin):
         other: (
             IdsLike
             | AgentMask
-            | mesa_frames.concrete.agents.AgentSetDF
-            | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | mesa_frames.concrete.agents.AbstractAgentSet
+            | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
         ),
     ) -> Self:
-        """Remove agents from the AgentContainer through the -= operator.
+        """Remove agents from the AbstractAgentSetRegistry through the -= operator.
 
         Parameters
         ----------
-        other : IdsLike | AgentMask | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        other : IdsLike | AgentMask | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
             The agents to remove.
 
         Returns
         -------
         Self
-            The updated AgentContainer.
+            The updated AbstractAgentSetRegistry.
         """
         return self.discard(other, inplace=True)
 
@@ -532,21 +537,21 @@ class AgentContainer(CopyMixin):
         other: (
             IdsLike
             | AgentMask
-            | mesa_frames.concrete.agents.AgentSetDF
-            | Collection[mesa_frames.concrete.agents.AgentSetDF]
+            | mesa_frames.concrete.agents.AbstractAgentSet
+            | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
         ),
     ) -> Self:
-        """Remove agents from a new AgentContainer through the - operator.
+        """Remove agents from a new AbstractAgentSetRegistry through the - operator.
 
         Parameters
         ----------
-        other : IdsLike | AgentMask | mesa_frames.concrete.agents.AgentSetDF | Collection[mesa_frames.concrete.agents.AgentSetDF]
+        other : IdsLike | AgentMask | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
             The agents to remove.
 
         Returns
         -------
         Self
-            A new AgentContainer with the removed agents.
+            A new AbstractAgentSetRegistry with the removed agents.
         """
         return self.discard(other, inplace=False)
 
@@ -557,24 +562,24 @@ class AgentContainer(CopyMixin):
             | Collection[str]
             | AgentMask
             | tuple[AgentMask, str | Collection[str]]
-            | tuple[dict[AgentSetDF, AgentMask], str]
-            | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+            | tuple[dict[AbstractAgentSet, AgentMask], str]
+            | tuple[dict[AbstractAgentSet, AgentMask], Collection[str]]
         ),
         values: Any,
     ) -> None:
-        """Implement the [] operator for setting values in the AgentContainer.
+        """Implement the [] operator for setting values in the AbstractAgentSetRegistry.
 
         The key can be:
-        - A string (eg. AgentContainer["str"]): sets the specified column of the agents in the AgentContainer.
-        - A list of strings(eg. AgentContainer[["str1", "str2"]]): sets the specified columns of the agents in the AgentContainer.
-        - A tuple (eg. AgentContainer[AgentMask, "str"]): sets the specified column of the agents in the AgentContainer that satisfy the AgentMask.
-        - A AgentMask (eg. AgentContainer[AgentMask]): sets the attributes of the agents in the AgentContainer that satisfy the AgentMask.
-        - A tuple with a dictionary (eg. AgentContainer[{AgentSetDF: AgentMask}, "str"]): sets the specified column of the agents in the AgentContainer that satisfy the AgentMask from the dictionary.
-        - A tuple with a dictionary (eg. AgentContainer[{AgentSetDF: AgentMask}, Collection[str]]): sets the specified columns of the agents in the AgentContainer that satisfy the AgentMask from the dictionary.
+        - A string (eg. AbstractAgentSetRegistry["str"]): sets the specified column of the agents in the AbstractAgentSetRegistry.
+        - A list of strings(eg. AbstractAgentSetRegistry[["str1", "str2"]]): sets the specified columns of the agents in the AbstractAgentSetRegistry.
+        - A tuple (eg. AbstractAgentSetRegistry[AgentMask, "str"]): sets the specified column of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask.
+        - A AgentMask (eg. AbstractAgentSetRegistry[AgentMask]): sets the attributes of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask.
+        - A tuple with a dictionary (eg. AbstractAgentSetRegistry[{AbstractAgentSet: AgentMask}, "str"]): sets the specified column of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask from the dictionary.
+        - A tuple with a dictionary (eg. AbstractAgentSetRegistry[{AbstractAgentSet: AgentMask}, Collection[str]]): sets the specified columns of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask from the dictionary.
 
         Parameters
         ----------
-        key : str | Collection[str] | AgentMask | tuple[AgentMask, str | Collection[str]] | tuple[dict[AgentSetDF, AgentMask], str] | tuple[dict[AgentSetDF, AgentMask], Collection[str]]
+        key : str | Collection[str] | AgentMask | tuple[AgentMask, str | Collection[str]] | tuple[dict[AbstractAgentSet, AgentMask], str] | tuple[dict[AbstractAgentSet, AgentMask], Collection[str]]
             The key to set.
         values : Any
             The values to set for the specified key.
@@ -595,7 +600,7 @@ class AgentContainer(CopyMixin):
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any | dict[str, Any]:
-        """Fallback for retrieving attributes of the AgentContainer. Retrieve an attribute of the underlying DataFrame(s).
+        """Fallback for retrieving attributes of the AbstractAgentSetRegistry. Retrieve an attribute of the underlying DataFrame(s).
 
         Parameters
         ----------
@@ -610,7 +615,7 @@ class AgentContainer(CopyMixin):
 
     @abstractmethod
     def __iter__(self) -> Iterator[dict[str, Any]]:
-        """Iterate over the agents in the AgentContainer.
+        """Iterate over the agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
@@ -621,29 +626,29 @@ class AgentContainer(CopyMixin):
 
     @abstractmethod
     def __len__(self) -> int:
-        """Get the number of agents in the AgentContainer.
+        """Get the number of agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
         int
-            The number of agents in the AgentContainer.
+            The number of agents in the AbstractAgentSetRegistry.
         """
         ...
 
     @abstractmethod
     def __repr__(self) -> str:
-        """Get a string representation of the DataFrame in the AgentContainer.
+        """Get a string representation of the DataFrame in the AbstractAgentSetRegistry.
 
         Returns
         -------
         str
-            A string representation of the DataFrame in the AgentContainer.
+            A string representation of the DataFrame in the AbstractAgentSetRegistry.
         """
         pass
 
     @abstractmethod
     def __reversed__(self) -> Iterator:
-        """Iterate over the agents in the AgentContainer in reverse order.
+        """Iterate over the agents in the AbstractAgentSetRegistry in reverse order.
 
         Returns
         -------
@@ -654,22 +659,22 @@ class AgentContainer(CopyMixin):
 
     @abstractmethod
     def __str__(self) -> str:
-        """Get a string representation of the agents in the AgentContainer.
+        """Get a string representation of the agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
         str
-            A string representation of the agents in the AgentContainer.
+            A string representation of the agents in the AbstractAgentSetRegistry.
         """
         ...
 
     @property
-    def model(self) -> mesa_frames.concrete.model.ModelDF:
-        """The model that the AgentContainer belongs to.
+    def model(self) -> mesa_frames.concrete.model.Model:
+        """The model that the AbstractAgentSetRegistry belongs to.
 
         Returns
         -------
-        mesa_frames.concrete.model.ModelDF
+        mesa_frames.concrete.model.Model
         """
         return self._model
 
@@ -696,7 +701,7 @@ class AgentContainer(CopyMixin):
     @property
     @abstractmethod
     def df(self) -> DataFrame | dict[str, DataFrame]:
-        """The agents in the AgentContainer.
+        """The agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
@@ -706,19 +711,19 @@ class AgentContainer(CopyMixin):
     @df.setter
     @abstractmethod
     def df(
-        self, agents: DataFrame | list[mesa_frames.concrete.agents.AgentSetDF]
+        self, agents: DataFrame | list[mesa_frames.concrete.agents.AbstractAgentSet]
     ) -> None:
-        """Set the agents in the AgentContainer.
+        """Set the agents in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : DataFrame | list[mesa_frames.concrete.agents.AgentSetDF]
+        agents : DataFrame | list[mesa_frames.concrete.agents.AbstractAgentSet]
         """
 
     @property
     @abstractmethod
     def active_agents(self) -> DataFrame | dict[str, DataFrame]:
-        """The active agents in the AgentContainer.
+        """The active agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
@@ -731,7 +736,7 @@ class AgentContainer(CopyMixin):
         self,
         mask: AgentMask,
     ) -> None:
-        """Set the active agents in the AgentContainer.
+        """Set the active agents in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
@@ -744,24 +749,24 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def inactive_agents(
         self,
-    ) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
-        """The inactive agents in the AgentContainer.
+    ) -> DataFrame | dict[mesa_frames.concrete.agents.AbstractAgentSet, DataFrame]:
+        """The inactive agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
-        DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]
+        DataFrame | dict[mesa_frames.concrete.agents.AbstractAgentSet, DataFrame]
         """
 
     @property
     @abstractmethod
     def index(
         self,
-    ) -> Index | dict[mesa_frames.concrete.agents.AgentSetDF, Index]:
-        """The ids in the AgentContainer.
+    ) -> Index | dict[mesa_frames.concrete.agents.AbstractAgentSet, Index]:
+        """The ids in the AbstractAgentSetRegistry.
 
         Returns
         -------
-        Index | dict[mesa_frames.concrete.agents.AgentSetDF, Index]
+        Index | dict[mesa_frames.concrete.agents.AbstractAgentSet, Index]
         """
         ...
 
@@ -769,35 +774,33 @@ class AgentContainer(CopyMixin):
     @abstractmethod
     def pos(
         self,
-    ) -> DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]:
-        """The position of the agents in the AgentContainer.
+    ) -> DataFrame | dict[mesa_frames.concrete.agents.AbstractAgentSet, DataFrame]:
+        """The position of the agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
-        DataFrame | dict[mesa_frames.concrete.agents.AgentSetDF, DataFrame]
+        DataFrame | dict[mesa_frames.concrete.agents.AbstractAgentSet, DataFrame]
         """
         ...
 
 
-class AgentSetDF(AgentContainer, DataFrameMixin):
-    """The AgentSetDF class is a container for agents of the same type.
+class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
+    """The AbstractAgentSet class is a container for agents of the same type.
 
     Parameters
     ----------
-    model : mesa_frames.concrete.model.ModelDF
+    model : mesa_frames.concrete.model.Model
         The model that the agent set belongs to.
     """
 
-    _df: DataFrame  # The agents in the AgentSetDF
-    _mask: (
-        AgentMask  # The underlying mask used for the active agents in the AgentSetDF.
-    )
+    _df: DataFrame  # The agents in the AbstractAgentSet
+    _mask: AgentMask  # The underlying mask used for the active agents in the AbstractAgentSet.
     _model: (
-        mesa_frames.concrete.model.ModelDF
-    )  # The model that the AgentSetDF belongs to.
+        mesa_frames.concrete.model.Model
+    )  # The model that the AbstractAgentSet belongs to.
 
     @abstractmethod
-    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None: ...
+    def __init__(self, model: mesa_frames.concrete.model.Model) -> None: ...
 
     @abstractmethod
     def add(
@@ -805,7 +808,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         agents: DataFrame | DataFrameInput,
         inplace: bool = True,
     ) -> Self:
-        """Add agents to the AgentSetDF.
+        """Add agents to the AbstractAgentSet.
 
         Agents can be the input to the DataFrame constructor. So, the input can be:
         - A DataFrame: adds the agents from the DataFrame.
@@ -821,12 +824,12 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         Returns
         -------
         Self
-            A new AgentContainer with the added agents.
+            A new AbstractAgentSetRegistry with the added agents.
         """
         ...
 
     def discard(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
-        """Remove an agent from the AgentSetDF. Does not raise an error if the agent is not found.
+        """Remove an agent from the AbstractAgentSet. Does not raise an error if the agent is not found.
 
         Parameters
         ----------
@@ -838,7 +841,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         Returns
         -------
         Self
-            The updated AgentSetDF.
+            The updated AbstractAgentSet.
         """
         return super().discard(agents, inplace)
 
@@ -879,7 +882,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
             obj = self._get_obj(inplace)
             method = getattr(obj, method_name)
             result = method(*args, **kwargs)
-        else:  # If the mask is not empty, we need to create a new masked AgentSetDF and concatenate the AgentSetDFs at the end
+        else:  # If the mask is not empty, we need to create a new masked AbstractAgentSet and concatenate the AbstractAgentSets at the end
             obj = self._get_obj(inplace=False)
             obj._df = masked_df
             original_masked_index = obj._get_obj_copy(obj.index)
@@ -925,7 +928,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def step(self) -> None:
-        """Run a single step of the AgentSetDF. This method should be overridden by subclasses."""
+        """Run a single step of the AbstractAgentSet. This method should be overridden by subclasses."""
         ...
 
     def remove(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
@@ -934,10 +937,10 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
             return self._get_obj(inplace)
         agents = self._df_index(self._get_masked_df(agents), "unique_id")
-        agentsdf = self.model.agents.remove(agents, inplace=inplace)
-        # TODO: Refactor AgentsDF to return dict[str, AgentSetDF] instead of dict[AgentSetDF, DataFrame]
-        # And assign a name to AgentSetDF? This has to be replaced by a nicer API of AgentsDF
-        for agentset in agentsdf.df.keys():
+        sets = self.model.sets.remove(agents, inplace=inplace)
+        # TODO: Refactor AgentSetRegistry to return dict[str, AbstractAgentSet] instead of dict[AbstractAgentSet, DataFrame]
+        # And assign a name to AbstractAgentSet? This has to be replaced by a nicer API of AgentSetRegistry
+        for agentset in sets.df.keys():
             if isinstance(agentset, self.__class__):
                 return agentset
         return self
@@ -997,7 +1000,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @abstractmethod
     def _discard(self, ids: IdsLike) -> Self:
-        """Remove an agent from the DataFrame of the AgentSetDF. Gets called by self.model.agents.remove and self.model.agents.discard.
+        """Remove an agent from the DataFrame of the AbstractAgentSet. Gets called by self.model.sets.remove and self.model.sets.discard.
 
         Parameters
         ----------
@@ -1017,7 +1020,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
     ) -> None: ...
 
     def __add__(self, other: DataFrame | DataFrameInput) -> Self:
-        """Add agents to a new AgentSetDF through the + operator.
+        """Add agents to a new AbstractAgentSet through the + operator.
 
         Other can be:
         - A DataFrame: adds the agents from the DataFrame.
@@ -1031,13 +1034,13 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         Returns
         -------
         Self
-            A new AgentContainer with the added agents.
+            A new AbstractAgentSetRegistry with the added agents.
         """
         return super().__add__(other)
 
     def __iadd__(self, other: DataFrame | DataFrameInput) -> Self:
         """
-        Add agents to the AgentSetDF through the += operator.
+        Add agents to the AbstractAgentSet through the += operator.
 
         Other can be:
         - A DataFrame: adds the agents from the DataFrame.
@@ -1051,7 +1054,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
         Returns
         -------
         Self
-            The updated AgentContainer.
+            The updated AbstractAgentSetRegistry.
         """
         return super().__iadd__(other)
 
@@ -1104,7 +1107,7 @@ class AgentSetDF(AgentContainer, DataFrameMixin):
 
     @df.setter
     def df(self, agents: DataFrame) -> None:
-        """Set the agents in the AgentSetDF.
+        """Set the agents in the AbstractAgentSet.
 
         Parameters
         ----------

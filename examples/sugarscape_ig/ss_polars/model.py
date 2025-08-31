@@ -1,12 +1,12 @@
 import numpy as np
 import polars as pl
 
-from mesa_frames import GridPolars, ModelDF
+from mesa_frames import GridPolars, Model
 
 from .agents import AntPolarsBase
 
 
-class SugarscapePolars(ModelDF):
+class SugarscapePolars(Model):
     def __init__(
         self,
         agent_type: type[AntPolarsBase],
@@ -33,15 +33,15 @@ class SugarscapePolars(ModelDF):
             sugar=sugar_grid.flatten(), max_sugar=sugar_grid.flatten()
         )
         self.space.set_cells(sugar_grid)
-        self.agents += agent_type(self, n_agents, initial_sugar, metabolism, vision)
+        self.sets += agent_type(self, n_agents, initial_sugar, metabolism, vision)
         if initial_positions is not None:
-            self.space.place_agents(self.agents, initial_positions)
+            self.space.place_agents(self.sets, initial_positions)
         else:
-            self.space.place_to_empty(self.agents)
+            self.space.place_to_empty(self.sets)
 
     def run_model(self, steps: int) -> list[int]:
         for _ in range(steps):
-            if len(self.agents) == 0:
+            if len(self.sets) == 0:
                 return
             empty_cells = self.space.empty_cells
             full_cells = self.space.full_cells

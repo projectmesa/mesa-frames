@@ -47,7 +47,7 @@ For more detailed information on each class, refer to their individual docstring
 from abc import ABC, abstractmethod
 from typing import Any, Literal
 from collections.abc import Callable
-from mesa_frames import ModelDF
+from mesa_frames import Model
 import polars as pl
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -61,7 +61,7 @@ class AbstractDataCollector(ABC):
     Sub classes must implement logic for the methods
     """
 
-    _model: ModelDF
+    _model: Model
     _model_reporters: dict[str, Callable] | None
     _agent_reporters: dict[str, str | Callable] | None
     _trigger: Callable[..., bool] | None
@@ -71,7 +71,7 @@ class AbstractDataCollector(ABC):
 
     def __init__(
         self,
-        model: ModelDF,
+        model: Model,
         model_reporters: dict[str, Callable] | None,
         agent_reporters: dict[str, str | Callable] | None,
         trigger: Callable[[Any], bool] | None,
@@ -86,7 +86,7 @@ class AbstractDataCollector(ABC):
 
         Parameters
         ----------
-        model : ModelDF
+        model : Model
             The model object from which data is collected.
         model_reporters : dict[str, Callable] | None
             Functions to collect data at the model level.
