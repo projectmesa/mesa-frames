@@ -5,6 +5,7 @@ import polars as pl
 import beartype
 import tempfile
 import os
+import time
 
 
 def custom_trigger(model):
@@ -73,6 +74,21 @@ class ExampleModel(ModelDF):
             self.dc.conditional_collect()
 
 
+class ExampleModelWithMultipleCollects(ModelDF):
+    def __init__(self, agents: AgentsDF):
+        super().__init__()
+        self.agents = agents
+
+    def step(self):
+        self.dc.conditional_collect()
+        self.agents.do("step")
+        self.dc.conditional_collect()
+
+    def run_model_with_conditional_collect_multiple_batch(self, n):
+        for _ in range(n):
+            self.step()
+
+
 @pytest.fixture(scope="session")
 def postgres_uri():
     return os.getenv("POSTGRES_URI", "postgresql://user:password@localhost:5432/testdb")
@@ -110,6 +126,11 @@ def fix1_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
     return ExampleModel(fix_AgentsDF)
 
 
+@pytest.fixture
+def fix2_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
+    return ExampleModelWithMultipleCollects(fix_AgentsDF)
+
+
 class TestDataCollector:
     def test__init__(self, fix1_model, postgres_uri):
         model = fix1_model
@@ -143,7 +164,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -152,22 +173,28 @@ class TestDataCollector:
         collected_data = model.dc.data
 
         # test collected_model_data
-        assert collected_data["model"].shape == (1, 3)
-        assert collected_data["model"].columns == ["step", "seed", "total_agents"]
+        assert collected_data["model"].shape == (1, 4)
+        assert set(collected_data["model"].columns) == {
+            "step",
+            "seed",
+            "batch",
+            "total_agents",
+        }
         assert collected_data["model"]["step"].to_list() == [0]
         assert collected_data["model"]["total_agents"].to_list() == [12]
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
             collected_data["model"]["max_wealth"]
 
-        assert collected_data["agent"].shape == (4, 6)
-        assert list(collected_data["agent"].columns) == [
+        assert collected_data["agent"].shape == (4, 7)
+        assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
             "age_ExampleAgentSet3",
             "step",
             "seed",
-        ]
+            "batch",
+        }
         assert collected_data["agent"]["wealth"].to_list() == [1, 2, 3, 4]
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
             10,
@@ -196,7 +223,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -205,20 +232,26 @@ class TestDataCollector:
         model.dc.collect()
         collected_data = model.dc.data
 
-        assert collected_data["model"].shape == (1, 3)
-        assert collected_data["model"].columns == ["step", "seed", "total_agents"]
+        assert collected_data["model"].shape == (1, 4)
+        assert set(collected_data["model"].columns) == {
+            "step",
+            "seed",
+            "batch",
+            "total_agents",
+        }
         assert collected_data["model"]["step"].to_list() == [5]
         assert collected_data["model"]["total_agents"].to_list() == [12]
 
-        assert collected_data["agent"].shape == (4, 6)
-        assert list(collected_data["agent"].columns) == [
+        assert collected_data["agent"].shape == (4, 7)
+        assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
             "age_ExampleAgentSet3",
             "step",
             "seed",
-        ]
+            "batch",
+        }
         assert collected_data["agent"]["wealth"].to_list() == [6, 7, 8, 9]
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
             10,
@@ -246,7 +279,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -254,20 +287,35 @@ class TestDataCollector:
         model.run_model_with_conditional_collect(5)
         collected_data = model.dc.data
 
-        assert collected_data["model"].shape == (2, 3)
-        assert collected_data["model"].columns == ["step", "seed", "total_agents"]
+        assert collected_data["model"].shape == (2, 4)
+        assert set(collected_data["model"].columns) == {
+            "step",
+            "seed",
+            "batch",
+            "total_agents",
+        }
         assert collected_data["model"]["step"].to_list() == [2, 4]
         assert collected_data["model"]["total_agents"].to_list() == [12, 12]
 
-        assert collected_data["agent"].shape == (8, 6)
-        assert list(collected_data["agent"].columns) == [
+        assert collected_data["agent"].shape == (8, 7)
+        assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
             "age_ExampleAgentSet3",
             "step",
             "seed",
-        ]
+            "batch",
+        }
+        assert set(collected_data["agent"].columns) == {
+            "wealth",
+            "age_ExampleAgentSet1",
+            "age_ExampleAgentSet2",
+            "age_ExampleAgentSet3",
+            "step",
+            "seed",
+            "batch",
+        }
         assert collected_data["agent"]["wealth"].to_list() == [3, 4, 5, 6, 5, 6, 7, 8]
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
             10,
@@ -313,7 +361,7 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                    "wealth": lambda model: model.agents._agentsets[0]["wealth"],
                     "age": "age",
                 },
                 storage="csv",
@@ -322,6 +370,11 @@ class TestDataCollector:
 
             model.run_model_with_conditional_collect(4)
             model.dc.flush()
+            for _ in range(20):  # wait up to ~2 seconds
+                created_files = os.listdir(tmpdir)
+                if len(created_files) >= 4:
+                    break
+                time.sleep(0.1)
 
             # check deletion after flush
             collected_data = model.dc.data
@@ -334,25 +387,26 @@ class TestDataCollector:
             )
 
             model_df = pl.read_csv(
-                os.path.join(tmpdir, "model_step2.csv"),
+                os.path.join(tmpdir, "model_step2_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
-            assert model_df.columns == ["step", "seed", "total_agents"]
+            assert set(model_df.columns) == {"step", "seed", "batch", "total_agents"}
             assert model_df["step"].to_list() == [2]
             assert model_df["total_agents"].to_list() == [12]
 
             agent_df = pl.read_csv(
-                os.path.join(tmpdir, "agent_step2.csv"),
+                os.path.join(tmpdir, "agent_step2_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
-            assert agent_df.columns == [
+            assert set(agent_df.columns) == {
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
                 "age_ExampleAgentSet3",
                 "step",
                 "seed",
-            ]
+                "batch",
+            }
             assert agent_df["step"].to_list() == [2, 2, 2, 2]
             assert agent_df["wealth"].to_list() == [3, 4, 5, 6]
             assert agent_df["age_ExampleAgentSet1"].to_list() == [10, 20, 30, 40]
@@ -365,7 +419,7 @@ class TestDataCollector:
             ]
 
             agent_df = pl.read_csv(
-                os.path.join(tmpdir, "agent_step4.csv"),
+                os.path.join(tmpdir, "agent_step4_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
             assert agent_df["step"].to_list() == [4, 4, 4, 4]
@@ -383,7 +437,7 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda agents: agents._agentsets[0]["wealth"]
+                    "wealth": lambda model: model.agents._agentsets[0]["wealth"],
                 },
                 storage="parquet",
                 storage_uri=tmpdir,
@@ -392,16 +446,26 @@ class TestDataCollector:
             model.dc.collect()
             model.dc.flush()
 
+            for _ in range(20):  # wait up to ~2 seconds
+                created_files = os.listdir(tmpdir)
+                if len(created_files) >= 4:
+                    break
+                time.sleep(0.1)
+
             created_files = os.listdir(tmpdir)
             assert len(created_files) == 2, (
                 f"Expected 2 files, found {len(created_files)}: {created_files}"
             )
 
-            model_df = pl.read_parquet(os.path.join(tmpdir, "model_step0.parquet"))
+            model_df = pl.read_parquet(
+                os.path.join(tmpdir, "model_step0_batch0.parquet")
+            )
             assert model_df["step"].to_list() == [0]
             assert model_df["total_agents"].to_list() == [12]
 
-            agent_df = pl.read_parquet(os.path.join(tmpdir, "agent_step0.parquet"))
+            agent_df = pl.read_parquet(
+                os.path.join(tmpdir, "agent_step0_batch0.parquet")
+            )
             assert agent_df["step"].to_list() == [0, 0, 0, 0]
             assert agent_df["wealth"].to_list() == [1, 2, 3, 4]
 
@@ -422,6 +486,7 @@ class TestDataCollector:
             CREATE TABLE public.model_data (
                 step INTEGER,
                 seed VARCHAR,
+                batch INTEGER,
                 total_agents INTEGER
             )
         """)
@@ -430,6 +495,7 @@ class TestDataCollector:
             CREATE TABLE public.agent_data (
                 step INTEGER,
                 seed VARCHAR,
+                batch INTEGER,
                 age_ExampleAgentSet1 INTEGER,
                 age_ExampleAgentSet2 INTEGER,
                 age_ExampleAgentSet3 INTEGER,
@@ -447,7 +513,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda agents: agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
                 "age": "age",
             },
             storage="postgresql",
@@ -459,6 +525,12 @@ class TestDataCollector:
         model.dc.flush()
 
         # Connect directly and validate data
+        for _ in range(20):
+            cur.execute("SELECT COUNT(*) FROM model_data")
+            (count,) = cur.fetchone()
+            if count >= 2:  # expecting 2 rows
+                break
+            time.sleep(0.1)
 
         # Check model data
         cur.execute("SELECT step, total_agents FROM model_data ORDER BY step")
@@ -466,15 +538,340 @@ class TestDataCollector:
         assert model_rows == [(2, 12), (4, 12)]
 
         cur.execute(
-            "SELECT step, wealth,age_ExampleAgentSet1, age_ExampleAgentSet2, age_ExampleAgentSet3 FROM agent_data WHERE step=2 ORDER BY wealth"
+            "SELECT step, batch, wealth,age_ExampleAgentSet1, age_ExampleAgentSet2, age_ExampleAgentSet3 FROM agent_data WHERE step=2 ORDER BY wealth"
         )
         agent_rows = cur.fetchall()
         assert agent_rows == [
-            (2, 3, 10, 11, 3),
-            (2, 4, 20, 22, 4),
-            (2, 5, 30, 33, 5),
-            (2, 6, 40, 44, 6),
+            (2, 0, 3, 10, 11, 3),
+            (2, 0, 4, 20, 22, 4),
+            (2, 0, 5, 30, 33, 5),
+            (2, 0, 6, 40, 44, 6),
         ]
 
         cur.close()
         conn.close()
+
+    def test_batch_memory(self, fix2_model):
+        model = fix2_model
+        model.dc = DataCollector(
+            model=model,
+            trigger=custom_trigger,
+            model_reporters={
+                "total_agents": lambda model: sum(
+                    len(agentset) for agentset in model.agents._agentsets
+                )
+            },
+            agent_reporters={
+                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                "age": "age",
+            },
+        )
+
+        model.run_model_with_conditional_collect_multiple_batch(5)
+        collected_data = model.dc.data
+        assert collected_data["model"].shape == (4, 4)
+        assert set(collected_data["model"].columns) == {
+            "step",
+            "seed",
+            "batch",
+            "total_agents",
+        }
+        assert collected_data["model"]["step"].to_list() == [2, 2, 4, 4]
+        assert collected_data["model"]["batch"].to_list() == [0, 1, 0, 1]
+        assert collected_data["model"]["total_agents"].to_list() == [12, 12, 12, 12]
+
+        assert collected_data["agent"].shape == (16, 7)
+        assert set(collected_data["agent"].columns) == {
+            "wealth",
+            "age_ExampleAgentSet1",
+            "age_ExampleAgentSet2",
+            "age_ExampleAgentSet3",
+            "step",
+            "seed",
+            "batch",
+        }
+
+        assert set(collected_data["agent"].columns) == {
+            "wealth",
+            "age_ExampleAgentSet1",
+            "age_ExampleAgentSet2",
+            "age_ExampleAgentSet3",
+            "step",
+            "seed",
+            "batch",
+        }
+
+        assert collected_data["agent"]["step"].to_list() == [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+        ]
+        assert collected_data["agent"]["wealth"].to_list() == [
+            2,
+            3,
+            4,
+            5,
+            3,
+            4,
+            5,
+            6,
+            4,
+            5,
+            6,
+            7,
+            5,
+            6,
+            7,
+            8,
+        ]
+        assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
+            10,
+            20,
+            30,
+            40,
+            10,
+            20,
+            30,
+            40,
+            10,
+            20,
+            30,
+            40,
+            10,
+            20,
+            30,
+            40,
+        ]
+        assert collected_data["agent"]["age_ExampleAgentSet2"].to_list() == [
+            11,
+            22,
+            33,
+            44,
+            11,
+            22,
+            33,
+            44,
+            11,
+            22,
+            33,
+            44,
+            11,
+            22,
+            33,
+            44,
+        ]
+        assert collected_data["agent"]["age_ExampleAgentSet3"].to_list() == [
+            2,
+            3,
+            4,
+            5,
+            3,
+            4,
+            5,
+            6,
+            4,
+            5,
+            6,
+            7,
+            5,
+            6,
+            7,
+            8,
+        ]
+
+        with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
+            collected_data["agent"]["max_wealth"]
+
+    def test_batch_save(self, fix2_model):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model = fix2_model
+            model.dc = DataCollector(
+                model=model,
+                trigger=custom_trigger,
+                model_reporters={
+                    "total_agents": lambda model: sum(
+                        len(agentset) for agentset in model.agents._agentsets
+                    )
+                },
+                agent_reporters={
+                    "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                    "age": "age",
+                },
+                storage="csv",
+                storage_uri=tmpdir,
+            )
+
+            model.run_model_with_conditional_collect_multiple_batch(5)
+            model.dc.flush()
+            for _ in range(20):  # wait up to ~2 seconds
+                created_files = os.listdir(tmpdir)
+                if len(created_files) >= 4:
+                    break
+                time.sleep(0.1)
+
+            # check deletion after flush
+            collected_data = model.dc.data
+            assert collected_data["model"].shape == (0, 0)
+            assert collected_data["agent"].shape == (0, 0)
+
+            created_files = os.listdir(tmpdir)
+            print(created_files)
+            assert len(created_files) == 8, (
+                f"Expected 4 files, found {len(created_files)}: {created_files}"
+            )
+
+            # test model batch reset
+            model_df_step2_batch0 = pl.read_csv(
+                os.path.join(tmpdir, "model_step2_batch0.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
+            assert set(model_df_step2_batch0.columns) == {
+                "step",
+                "seed",
+                "batch",
+                "total_agents",
+            }
+            assert model_df_step2_batch0["step"].to_list() == [2]
+            assert model_df_step2_batch0["total_agents"].to_list() == [12]
+
+            model_df_step2_batch0 = pl.read_csv(
+                os.path.join(tmpdir, "model_step2_batch1.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
+            assert set(model_df_step2_batch0.columns) == {
+                "step",
+                "seed",
+                "batch",
+                "total_agents",
+            }
+            assert model_df_step2_batch0["step"].to_list() == [2]
+            assert model_df_step2_batch0["total_agents"].to_list() == [12]
+
+            model_df_step4_batch0 = pl.read_csv(
+                os.path.join(tmpdir, "model_step4_batch0.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
+            assert set(model_df_step4_batch0.columns) == {
+                "step",
+                "seed",
+                "batch",
+                "total_agents",
+            }
+            assert model_df_step4_batch0["step"].to_list() == [4]
+            assert model_df_step4_batch0["total_agents"].to_list() == [12]
+
+            # test agent batch reset
+            agent_df_step2_batch0 = pl.read_csv(
+                os.path.join(tmpdir, "agent_step2_batch0.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
+            assert set(agent_df_step2_batch0.columns) == {
+                "wealth",
+                "age_ExampleAgentSet1",
+                "age_ExampleAgentSet2",
+                "age_ExampleAgentSet3",
+                "step",
+                "seed",
+                "batch",
+            }
+            assert agent_df_step2_batch0["step"].to_list() == [2, 2, 2, 2]
+            assert agent_df_step2_batch0["wealth"].to_list() == [2, 3, 4, 5]
+            assert agent_df_step2_batch0["age_ExampleAgentSet1"].to_list() == [
+                10,
+                20,
+                30,
+                40,
+            ]
+            assert agent_df_step2_batch0["age_ExampleAgentSet2"].to_list() == [
+                11,
+                22,
+                33,
+                44,
+            ]
+            assert agent_df_step2_batch0["age_ExampleAgentSet3"].to_list() == [
+                2,
+                3,
+                4,
+                5,
+            ]
+
+            agent_df_step2_batch1 = pl.read_csv(
+                os.path.join(tmpdir, "agent_step2_batch1.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
+            assert set(agent_df_step2_batch1.columns) == {
+                "wealth",
+                "age_ExampleAgentSet1",
+                "age_ExampleAgentSet2",
+                "age_ExampleAgentSet3",
+                "step",
+                "seed",
+                "batch",
+            }
+            assert agent_df_step2_batch1["step"].to_list() == [2, 2, 2, 2]
+            assert agent_df_step2_batch1["wealth"].to_list() == [3, 4, 5, 6]
+            assert agent_df_step2_batch1["age_ExampleAgentSet1"].to_list() == [
+                10,
+                20,
+                30,
+                40,
+            ]
+            assert agent_df_step2_batch1["age_ExampleAgentSet2"].to_list() == [
+                11,
+                22,
+                33,
+                44,
+            ]
+            assert agent_df_step2_batch1["age_ExampleAgentSet3"].to_list() == [
+                3,
+                4,
+                5,
+                6,
+            ]
+
+            agent_df_step4_batch0 = pl.read_csv(
+                os.path.join(tmpdir, "agent_step4_batch0.csv"),
+                schema_overrides={"seed": pl.Utf8},
+            )
+            assert set(agent_df_step4_batch0.columns) == {
+                "wealth",
+                "age_ExampleAgentSet1",
+                "age_ExampleAgentSet2",
+                "age_ExampleAgentSet3",
+                "step",
+                "seed",
+                "batch",
+            }
+            assert agent_df_step4_batch0["step"].to_list() == [4, 4, 4, 4]
+            assert agent_df_step4_batch0["wealth"].to_list() == [4, 5, 6, 7]
+            assert agent_df_step4_batch0["age_ExampleAgentSet1"].to_list() == [
+                10,
+                20,
+                30,
+                40,
+            ]
+            assert agent_df_step4_batch0["age_ExampleAgentSet2"].to_list() == [
+                11,
+                22,
+                33,
+                44,
+            ]
+            assert agent_df_step4_batch0["age_ExampleAgentSet3"].to_list() == [
+                4,
+                5,
+                6,
+                7,
+            ]

@@ -79,6 +79,7 @@ class DataCollector(AbstractDataCollector):
         ] = "memory",
         storage_uri: str | None = None,
         schema: str = "public",
+        max_worker: int = 4,
     ):
         """
         Initialize the DataCollector with configuration options.
@@ -101,7 +102,8 @@ class DataCollector(AbstractDataCollector):
             URI or path corresponding to the selected storage backend.
         schema: str
             Schema name used for PostgreSQL storage.
-
+        max_worker : int
+            Maximum number of worker threads used for flushing collected data asynchronously
         """
         super().__init__(
             model=model,
@@ -109,7 +111,8 @@ class DataCollector(AbstractDataCollector):
             agent_reporters=agent_reporters,
             trigger=trigger,
             reset_memory=reset_memory,
-            storage=storage,  # literal won't work
+            storage=storage,
+            max_workers=max_worker,
         )
         self._writers = {
             "csv": self._write_csv_local,
@@ -120,6 +123,8 @@ class DataCollector(AbstractDataCollector):
         }
         self._storage_uri = storage_uri
         self._schema = schema
+        self._current_model_step = None
+        self._batch_id = None
 
         self._validate_inputs()
 
@@ -130,13 +135,26 @@ class DataCollector(AbstractDataCollector):
         This method checks for the presence of model and agent reporters
         and calls the appropriate collection routines for each.
         """
+        if (
+            self._current_model_step is None
+            or self._current_model_step != self._model.steps
+        ):
+            self._current_model_step = self._model.steps
+            self._batch_id = 0
+
         if self._model_reporters:
-            self._collect_model_reporters()
+            self._collect_model_reporters(
+                current_model_step=self._current_model_step, batch_id=self._batch_id
+            )
 
         if self._agent_reporters:
-            self._collect_agent_reporters()
+            self._collect_agent_reporters(
+                current_model_step=self._current_model_step, batch_id=self._batch_id
+            )
 
-    def _collect_model_reporters(self):
+        self._batch_id += 1
+
+    def _collect_model_reporters(self, current_model_step: int, batch_id: int):
         """
         Collect model-level data using the model_reporters.
 
@@ -144,14 +162,15 @@ class DataCollector(AbstractDataCollector):
         returned by each model reporter. Appends the LazyFrame to internal storage.
         """
         model_data_dict = {}
-        model_data_dict["step"] = self._model._steps
+        model_data_dict["step"] = current_model_step
         model_data_dict["seed"] = str(self.seed)
+        model_data_dict["batch"] = batch_id
         for column_name, reporter in self._model_reporters.items():
             model_data_dict[column_name] = reporter(self._model)
         model_lazy_frame = pl.LazyFrame([model_data_dict])
-        self._frames.append(("model", str(self._model._steps), model_lazy_frame))
+        self._frames.append(("model", current_model_step, batch_id, model_lazy_frame))
 
-    def _collect_agent_reporters(self):
+    def _collect_agent_reporters(self, current_model_step: int, batch_id: int):
         """
         Collect agent-level data using the agent_reporters.
 
@@ -164,15 +183,16 @@ class DataCollector(AbstractDataCollector):
                 for k, v in self._model.agents[reporter].items():
                     agent_data_dict[col_name + "_" + str(k.__class__.__name__)] = v
             else:
-                agent_data_dict[col_name] = reporter(self._model.agents)
+                agent_data_dict[col_name] = reporter(self._model)
         agent_lazy_frame = pl.LazyFrame(agent_data_dict)
         agent_lazy_frame = agent_lazy_frame.with_columns(
             [
-                pl.lit(self._model._steps).alias("step"),
+                pl.lit(current_model_step).alias("step"),
                 pl.lit(str(self.seed)).alias("seed"),
+                pl.lit(batch_id).alias("batch"),
             ]
         )
-        self._frames.append(("agent", str(self._model._steps), agent_lazy_frame))
+        self._frames.append(("agent", current_model_step, batch_id, agent_lazy_frame))
 
     @property
     def data(self) -> dict[str, pl.DataFrame]:
@@ -185,25 +205,27 @@ class DataCollector(AbstractDataCollector):
             A dictionary with keys "model" and "agent" mapping to concatenated DataFrames of collected data.
         """
         model_frames = [
-            lf.collect() for kind, step, lf in self._frames if kind == "model"
+            lf.collect() for kind, step, batch_id, lf in self._frames if kind == "model"
         ]
         agent_frames = [
-            lf.collect() for kind, step, lf in self._frames if kind == "agent"
+            lf.collect() for kind, step, batch_id, lf in self._frames if kind == "agent"
         ]
         return {
             "model": pl.concat(model_frames) if model_frames else pl.DataFrame(),
             "agent": pl.concat(agent_frames) if agent_frames else pl.DataFrame(),
         }
 
-    def _flush(self):
+    def _flush(self, frames_to_flush: list):
         """
         Flush the collected data to the configured external storage backend.
 
         Uses the appropriate writer function based on the specified storage option.
         """
-        self._writers[self._storage](self._storage_uri)
+        self._writers[self._storage](
+            uri=self._storage_uri, frames_to_flush=frames_to_flush
+        )
 
-    def _write_csv_local(self, uri: str):
+    def _write_csv_local(self, uri: str, frames_to_flush: list):
         """
         Write collected data to local CSV files.
 
@@ -211,11 +233,13 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri : str
             Local directory path to write files into.
+        frames_to_flush : list
+            the collected data in the current thread.
         """
-        for kind, step, df in self._frames:
-            df.collect().write_csv(f"{uri}/{kind}_step{step}.csv")
+        for kind, step, batch, df in frames_to_flush:
+            df.collect().write_csv(f"{uri}/{kind}_step{step}_batch{batch}.csv")
 
-    def _write_parquet_local(self, uri: str):
+    def _write_parquet_local(self, uri: str, frames_to_flush: list):
         """
         Write collected data to local Parquet files.
 
@@ -223,11 +247,13 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             Local directory path to write files into.
+        frames_to_flush : list
+            the collected data in the current thread.
         """
-        for kind, step, df in self._frames:
-            df.collect().write_parquet(f"{uri}/{kind}_step{step}.parquet")
+        for kind, step, batch, df in frames_to_flush:
+            df.collect().write_parquet(f"{uri}/{kind}_step{step}_batch{batch}.parquet")
 
-    def _write_csv_s3(self, uri: str):
+    def _write_csv_s3(self, uri: str, frames_to_flush: list):
         """
         Write collected data to AWS S3 in CSV format.
 
@@ -235,10 +261,12 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             S3 URI (e.g., s3://bucket/path) to upload files to.
+        frames_to_flush : list
+            the collected data in the current thread.
         """
-        self._write_s3(uri, format_="csv")
+        self._write_s3(uri=uri, frames_to_flush=frames_to_flush, format_="csv")
 
-    def _write_parquet_s3(self, uri: str):
+    def _write_parquet_s3(self, uri: str, frames_to_flush: list):
         """
         Write collected data to AWS S3 in Parquet format.
 
@@ -246,10 +274,12 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             S3 URI (e.g., s3://bucket/path) to upload files to.
+        frames_to_flush : list
+            the collected data in the current thread.
         """
-        self._write_s3(uri, format_="parquet")
+        self._write_s3(uri=uri, frames_to_flush=frames_to_flush, format_="parquet")
 
-    def _write_s3(self, uri: str, format_: str):
+    def _write_s3(self, uri: str, frames_to_flush: list, format_: str):
         """
         Upload collected data to S3 in a specified format.
 
@@ -257,6 +287,8 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             S3 URI to upload to.
+        frames_to_flush : list
+            the collected data in the current thread.
         format_: str
             Format of the output files ("csv" or "parquet").
         """
@@ -264,17 +296,17 @@ class DataCollector(AbstractDataCollector):
         parsed = urlparse(uri)
         bucket = parsed.netloc
         prefix = parsed.path.lstrip("/")
-        for kind, step, lf in self._frames:
+        for kind, step, batch, lf in frames_to_flush:
             df = lf.collect()
             with tempfile.NamedTemporaryFile(suffix=f".{format_}") as tmp:
                 if format_ == "csv":
                     df.write_csv(tmp.name)
                 elif format_ == "parquet":
                     df.write_parquet(tmp.name)
-                key = f"{prefix}/{kind}_step{step}.{format_}"
+                key = f"{prefix}/{kind}_step{step}_batch{batch}.{format_}"
                 s3.upload_file(tmp.name, bucket, key)
 
-    def _write_postgres(self, uri: str):
+    def _write_postgres(self, uri: str, frames_to_flush: list):
         """
         Write collected data to a PostgreSQL database.
 
@@ -285,10 +317,12 @@ class DataCollector(AbstractDataCollector):
         ----------
         uri: str
             PostgreSQL connection URI in the form postgresql://testuser:testpass@localhost:5432/testdb
+        frames_to_flush : list
+            the collected data in the current thread.
         """
         conn = self._get_db_connection(uri=uri)
         cur = conn.cursor()
-        for kind, step, lf in self._frames:
+        for kind, step, batch, lf in frames_to_flush:
             df = lf.collect()
             table = f"{kind}_data"
             cols = df.columns
