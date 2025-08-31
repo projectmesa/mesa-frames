@@ -137,9 +137,9 @@ class DataCollector(AbstractDataCollector):
         """
         if (
             self._current_model_step is None
-            or self._current_model_step != self._model._steps
+            or self._current_model_step != self._model.steps
         ):
-            self._current_model_step = self._model._steps
+            self._current_model_step = self._model.steps
             self._batch_id = 0
 
         if self._model_reporters:
