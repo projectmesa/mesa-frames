@@ -13,7 +13,7 @@
 
 - Install (dev stack): `uv sync` (always use uv)
 - Lint & format: `uv run ruff check . --fix && uv run ruff format .`
-- Tests (quiet + coverage): `export MESA_FRAMES_RUNTIME_TYPECHECKING = 1 && uv run pytest -q --cov=mesa_frames --cov-report=term-missing`
+- Tests (quiet + coverage): `export MESA_FRAMES_RUNTIME_TYPECHECKING=1 && uv run pytest -q --cov=mesa_frames --cov-report=term-missing`
 - Pre-commit (all files): `uv run pre-commit run -a`
 - Docs preview: `uv run mkdocs serve`
 
