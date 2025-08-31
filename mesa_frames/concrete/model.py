@@ -46,9 +46,9 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from mesa_frames.abstract.agents import AbstractAgentSet
+from mesa_frames.abstract.agentsetregistry import AbstractAgentSet
 from mesa_frames.abstract.space import SpaceDF
-from mesa_frames.concrete.agents import AgentSetRegistry
+from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 
 
 class Model:

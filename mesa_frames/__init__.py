@@ -60,7 +60,7 @@ if os.getenv("MESA_FRAMES_RUNTIME_TYPECHECKING", "").lower() in ("1", "true", "y
             stacklevel=2,
         )
 
-from mesa_frames.concrete.agents import AgentSetRegistry
+from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 from mesa_frames.concrete.agentset import AgentSet
 from mesa_frames.concrete.model import Model
 from mesa_frames.concrete.space import GridPolars

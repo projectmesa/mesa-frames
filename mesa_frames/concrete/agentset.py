@@ -65,7 +65,7 @@ from typing import Any, Literal, Self, overload
 import numpy as np
 import polars as pl
 
-from mesa_frames.concrete.agents import AbstractAgentSet
+from mesa_frames.concrete.agentsetregistry import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import Model
 from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike

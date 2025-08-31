@@ -59,9 +59,9 @@ import numpy as np
 import polars as pl
 from numpy.random import Generator
 
-from mesa_frames.abstract.agents import AbstractAgentSetRegistry, AbstractAgentSet
+from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry, AbstractAgentSet
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
-from mesa_frames.concrete.agents import AgentSetRegistry
+from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 from mesa_frames.types_ import (
     ArrayLike,
     BoolSeries,
