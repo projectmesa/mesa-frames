@@ -76,15 +76,15 @@ class AbstractAgentSetRegistry(CopyMixin):
         self,
         agents: IdsLike
         | AgentMask
-        | mesa_frames.concrete.agents.AbstractAgentSet
-        | Collection[mesa_frames.concrete.agents.AbstractAgentSet],
+        | mesa_frames.abstract.agents.AbstractAgentSet
+        | Collection[mesa_frames.abstract.agents.AbstractAgentSet],
         inplace: bool = True,
     ) -> Self:
         """Remove agents from the AbstractAgentSetRegistry. Does not raise an error if the agent is not found.
 
         Parameters
         ----------
-        agents : IdsLike | AgentMask | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+        agents : IdsLike | AgentMask | mesa_frames.abstract.agents.AbstractAgentSet | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
             The agents to remove
         inplace : bool
             Whether to remove the agent in place. Defaults to True.
@@ -103,15 +103,15 @@ class AbstractAgentSetRegistry(CopyMixin):
         self,
         agents: DataFrame
         | DataFrameInput
-        | mesa_frames.concrete.agents.AbstractAgentSet
-        | Collection[mesa_frames.concrete.agents.AbstractAgentSet],
+        | mesa_frames.abstract.agents.AbstractAgentSet
+        | Collection[mesa_frames.abstract.agents.AbstractAgentSet],
         inplace: bool = True,
     ) -> Self:
         """Add agents to the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+        agents : DataFrame | DataFrameInput | mesa_frames.abstract.agents.AbstractAgentSet | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
             The agents to add.
         inplace : bool
             Whether to add the agents in place. Defaults to True.
@@ -130,18 +130,18 @@ class AbstractAgentSetRegistry(CopyMixin):
     @overload
     @abstractmethod
     def contains(
-        self, agents: mesa_frames.concrete.agents.AbstractAgentSet | IdsLike
+        self, agents: mesa_frames.abstract.agents.AbstractAgentSet | IdsLike
     ) -> BoolSeries: ...
 
     @abstractmethod
     def contains(
-        self, agents: mesa_frames.concrete.agents.AbstractAgentSet | IdsLike
+        self, agents: mesa_frames.abstract.agents.AbstractAgentSet | IdsLike
     ) -> bool | BoolSeries:
         """Check if agents with the specified IDs are in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : mesa_frames.concrete.agents.AbstractAgentSet | IdsLike
+        agents : mesa_frames.abstract.agents.AbstractAgentSet | IdsLike
             The ID(s) to check for.
 
         Returns
@@ -172,7 +172,7 @@ class AbstractAgentSetRegistry(CopyMixin):
         return_results: Literal[True],
         inplace: bool = True,
         **kwargs: Any,
-    ) -> Any | dict[mesa_frames.concrete.agents.AbstractAgentSet, Any]: ...
+    ) -> Any | dict[mesa_frames.abstract.agents.AbstractAgentSet, Any]: ...
 
     @abstractmethod
     def do(
@@ -183,7 +183,7 @@ class AbstractAgentSetRegistry(CopyMixin):
         return_results: bool = False,
         inplace: bool = True,
         **kwargs: Any,
-    ) -> Self | Any | dict[mesa_frames.concrete.agents.AbstractAgentSet, Any]:
+    ) -> Self | Any | dict[mesa_frames.abstract.agents.AbstractAgentSet, Any]:
         """Invoke a method on the AbstractAgentSetRegistry.
 
         Parameters
@@ -203,7 +203,7 @@ class AbstractAgentSetRegistry(CopyMixin):
 
         Returns
         -------
-        Self | Any | dict[mesa_frames.concrete.agents.AbstractAgentSet, Any]
+        Self | Any | dict[mesa_frames.abstract.agents.AbstractAgentSet, Any]
             The updated AbstractAgentSetRegistry or the result of the method.
         """
         ...
@@ -246,8 +246,8 @@ class AbstractAgentSetRegistry(CopyMixin):
         agents: (
             IdsLike
             | AgentMask
-            | mesa_frames.concrete.agents.AbstractAgentSet
-            | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+            | mesa_frames.abstract.agents.AbstractAgentSet
+            | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
         ),
         inplace: bool = True,
     ) -> Self:
@@ -255,7 +255,7 @@ class AbstractAgentSetRegistry(CopyMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AgentMask | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+        agents : IdsLike | AgentMask | mesa_frames.abstract.agents.AbstractAgentSet | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
             The agents to remove.
         inplace : bool, optional
             Whether to remove the agent in place.
@@ -396,14 +396,14 @@ class AbstractAgentSetRegistry(CopyMixin):
         self,
         other: DataFrame
         | DataFrameInput
-        | mesa_frames.concrete.agents.AbstractAgentSet
-        | Collection[mesa_frames.concrete.agents.AbstractAgentSet],
+        | mesa_frames.abstract.agents.AbstractAgentSet
+        | Collection[mesa_frames.abstract.agents.AbstractAgentSet],
     ) -> Self:
         """Add agents to a new AbstractAgentSetRegistry through the + operator.
 
         Parameters
         ----------
-        other : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+        other : DataFrame | DataFrameInput | mesa_frames.abstract.agents.AbstractAgentSet | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
             The agents to add.
 
         Returns
@@ -491,15 +491,15 @@ class AbstractAgentSetRegistry(CopyMixin):
         other: (
             DataFrame
             | DataFrameInput
-            | mesa_frames.concrete.agents.AbstractAgentSet
-            | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+            | mesa_frames.abstract.agents.AbstractAgentSet
+            | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
         ),
     ) -> Self:
         """Add agents to the AbstractAgentSetRegistry through the += operator.
 
         Parameters
         ----------
-        other : DataFrame | DataFrameInput | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+        other : DataFrame | DataFrameInput | mesa_frames.abstract.agents.AbstractAgentSet | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
             The agents to add.
 
         Returns
@@ -514,15 +514,15 @@ class AbstractAgentSetRegistry(CopyMixin):
         other: (
             IdsLike
             | AgentMask
-            | mesa_frames.concrete.agents.AbstractAgentSet
-            | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+            | mesa_frames.abstract.agents.AbstractAgentSet
+            | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
         ),
     ) -> Self:
         """Remove agents from the AbstractAgentSetRegistry through the -= operator.
 
         Parameters
         ----------
-        other : IdsLike | AgentMask | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+        other : IdsLike | AgentMask | mesa_frames.abstract.agents.AbstractAgentSet | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
             The agents to remove.
 
         Returns
@@ -537,15 +537,15 @@ class AbstractAgentSetRegistry(CopyMixin):
         other: (
             IdsLike
             | AgentMask
-            | mesa_frames.concrete.agents.AbstractAgentSet
-            | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+            | mesa_frames.abstract.agents.AbstractAgentSet
+            | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
         ),
     ) -> Self:
         """Remove agents from a new AbstractAgentSetRegistry through the - operator.
 
         Parameters
         ----------
-        other : IdsLike | AgentMask | mesa_frames.concrete.agents.AbstractAgentSet | Collection[mesa_frames.concrete.agents.AbstractAgentSet]
+        other : IdsLike | AgentMask | mesa_frames.abstract.agents.AbstractAgentSet | Collection[mesa_frames.abstract.agents.AbstractAgentSet]
             The agents to remove.
 
         Returns
@@ -711,13 +711,13 @@ class AbstractAgentSetRegistry(CopyMixin):
     @df.setter
     @abstractmethod
     def df(
-        self, agents: DataFrame | list[mesa_frames.concrete.agents.AbstractAgentSet]
+        self, agents: DataFrame | list[mesa_frames.abstract.agents.AbstractAgentSet]
     ) -> None:
         """Set the agents in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : DataFrame | list[mesa_frames.concrete.agents.AbstractAgentSet]
+        agents : DataFrame | list[mesa_frames.abstract.agents.AbstractAgentSet]
         """
 
     @property
@@ -749,24 +749,24 @@ class AbstractAgentSetRegistry(CopyMixin):
     @abstractmethod
     def inactive_agents(
         self,
-    ) -> DataFrame | dict[mesa_frames.concrete.agents.AbstractAgentSet, DataFrame]:
+    ) -> DataFrame | dict[mesa_frames.abstract.agents.AbstractAgentSet, DataFrame]:
         """The inactive agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
-        DataFrame | dict[mesa_frames.concrete.agents.AbstractAgentSet, DataFrame]
+        DataFrame | dict[mesa_frames.abstract.agents.AbstractAgentSet, DataFrame]
         """
 
     @property
     @abstractmethod
     def index(
         self,
-    ) -> Index | dict[mesa_frames.concrete.agents.AbstractAgentSet, Index]:
+    ) -> Index | dict[mesa_frames.abstract.agents.AbstractAgentSet, Index]:
         """The ids in the AbstractAgentSetRegistry.
 
         Returns
         -------
-        Index | dict[mesa_frames.concrete.agents.AbstractAgentSet, Index]
+        Index | dict[mesa_frames.abstract.agents.AbstractAgentSet, Index]
         """
         ...
 
@@ -774,12 +774,12 @@ class AbstractAgentSetRegistry(CopyMixin):
     @abstractmethod
     def pos(
         self,
-    ) -> DataFrame | dict[mesa_frames.concrete.agents.AbstractAgentSet, DataFrame]:
+    ) -> DataFrame | dict[mesa_frames.abstract.agents.AbstractAgentSet, DataFrame]:
         """The position of the agents in the AbstractAgentSetRegistry.
 
         Returns
         -------
-        DataFrame | dict[mesa_frames.concrete.agents.AbstractAgentSet, DataFrame]
+        DataFrame | dict[mesa_frames.abstract.agents.AbstractAgentSet, DataFrame]
         """
         ...
 
