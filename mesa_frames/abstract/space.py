@@ -7,14 +7,14 @@ including discrete spaces and grids, using DataFrame-based approaches for improv
 performance and scalability.
 
 Classes:
-    SpaceDF(CopyMixin, DataFrameMixin):
+    Space(CopyMixin, DataFrameMixin):
         An abstract base class that defines the common interface for all space
         classes in mesa-frames. It combines fast copying functionality with
         DataFrame operations.
 
-    AbstractDiscreteSpace(SpaceDF):
+    AbstractDiscreteSpace(Space):
         An abstract base class for discrete space implementations, such as grids
-        and networks. It extends SpaceDF with methods specific to discrete spaces.
+        and networks. It extends Space with methods specific to discrete spaces.
 
     AbstractGrid(AbstractDiscreteSpace):
         An abstract base class for grid-based spaces. It inherits from
@@ -98,7 +98,7 @@ class Space(CopyMixin, DataFrameMixin):
     ]  # The column names of the positions in the _agents dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
 
     def __init__(self, model: mesa_frames.concrete.model.Model) -> None:
-        """Create a new SpaceDF.
+        """Create a new Space.
 
         Parameters
         ----------
