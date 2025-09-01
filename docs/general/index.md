@@ -41,11 +41,11 @@ pip install -e .
 Here's a quick example of how to create a model using mesa-frames:
 
 ```python
-from mesa_frames import AgentSetPolars, ModelDF
+from mesa_frames import AgentSet, Model
 import polars as pl
 
-class MoneyAgentPolars(AgentSetPolars):
-    def __init__(self, n: int, model: ModelDF):
+class MoneyAgentDF(AgentSet):
+    def __init__(self, n: int, model: Model):
         super().__init__(model)
         self += pl.DataFrame(
             {"wealth": pl.ones(n, eager=True)}
@@ -57,13 +57,13 @@ class MoneyAgentPolars(AgentSetPolars):
     def give_money(self):
         # ... (implementation details)
 
-class MoneyModelDF(ModelDF):
+class MoneyModelDF(Model):
     def __init__(self, N: int):
         super().__init__()
-        self.agents += MoneyAgentPolars(N, self)
+        self.sets += MoneyAgentDF(N, self)
 
     def step(self):
-        self.agents.do("step")
+        self.sets.do("step")
 
     def run_model(self, n):
         for _ in range(n):

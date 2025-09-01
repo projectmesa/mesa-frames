@@ -1,9 +1,9 @@
-Model
+Data Collection
 =====
 
 .. currentmodule:: mesa_frames
 
-.. autoclass:: Model
+.. autoclass:: DataCollector
     :members:
     :inherited-members:
     :autosummary:

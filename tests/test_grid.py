@@ -3,18 +3,18 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from mesa_frames import GridPolars, ModelDF
+from mesa_frames import GridPolars, Model
 from tests.test_agentset import (
-    ExampleAgentSetPolars,
-    fix1_AgentSetPolars,
-    fix2_AgentSetPolars,
+    ExampleAgentSet,
+    fix1_AgentSet,
+    fix2_AgentSet,
 )
 
 
-def get_unique_ids(model: ModelDF) -> pl.Series:
-    # return model.get_agents_of_type(model.agent_types[0])["unique_id"]
+def get_unique_ids(model: Model) -> pl.Series:
+    # return model.get_sets_of_type(model.set_types[0])["unique_id"]
     series_list = [
-        agent_set["unique_id"].cast(pl.UInt64) for agent_set in model.agents.df.values()
+        agent_set["unique_id"].cast(pl.UInt64) for agent_set in model.sets.df.values()
     ]
     return pl.concat(series_list)
 
@@ -23,15 +23,15 @@ class TestGridPolars:
     @pytest.fixture
     def model(
         self,
-        fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
-    ) -> ModelDF:
-        model = ModelDF()
-        model.agents.add([fix1_AgentSetPolars, fix2_AgentSetPolars])
+        fix1_AgentSet: ExampleAgentSet,
+        fix2_AgentSet: ExampleAgentSet,
+    ) -> Model:
+        model = Model()
+        model.sets.add([fix1_AgentSet, fix2_AgentSet])
         return model
 
     @pytest.fixture
-    def grid_moore(self, model: ModelDF) -> GridPolars:
+    def grid_moore(self, model: Model) -> GridPolars:
         space = GridPolars(model, dimensions=[3, 3], capacity=2)
         unique_ids = get_unique_ids(model)
         space.place_agents(agents=unique_ids[[0, 1]], pos=[[0, 0], [1, 1]])
@@ -41,7 +41,7 @@ class TestGridPolars:
         return space
 
     @pytest.fixture
-    def grid_moore_torus(self, model: ModelDF) -> GridPolars:
+    def grid_moore_torus(self, model: Model) -> GridPolars:
         space = GridPolars(model, dimensions=[3, 3], capacity=2, torus=True)
         unique_ids = get_unique_ids(model)
         space.place_agents(agents=unique_ids[[0, 1]], pos=[[0, 0], [1, 1]])
@@ -51,20 +51,20 @@ class TestGridPolars:
         return space
 
     @pytest.fixture
-    def grid_von_neumann(self, model: ModelDF) -> GridPolars:
+    def grid_von_neumann(self, model: Model) -> GridPolars:
         space = GridPolars(model, dimensions=[3, 3], neighborhood_type="von_neumann")
         unique_ids = get_unique_ids(model)
         space.place_agents(agents=unique_ids[[0, 1]], pos=[[0, 0], [1, 1]])
         return space
 
     @pytest.fixture
-    def grid_hexagonal(self, model: ModelDF) -> GridPolars:
+    def grid_hexagonal(self, model: Model) -> GridPolars:
         space = GridPolars(model, dimensions=[10, 10], neighborhood_type="hexagonal")
         unique_ids = get_unique_ids(model)
         space.place_agents(agents=unique_ids[[0, 1]], pos=[[0, 0], [1, 1]])
         return space
 
-    def test___init__(self, model: ModelDF):
+    def test___init__(self, model: Model):
         # Test with default parameters
         grid1 = GridPolars(model, dimensions=[3, 3])
         assert isinstance(grid1, GridPolars)
@@ -133,8 +133,8 @@ class TestGridPolars:
     def test_get_directions(
         self,
         grid_moore: GridPolars,
-        fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix1_AgentSet: ExampleAgentSet,
+        fix2_AgentSet: ExampleAgentSet,
     ):
         unique_ids = get_unique_ids(grid_moore.model)
         # Test with GridCoordinate
@@ -151,12 +151,10 @@ class TestGridPolars:
 
         # Test with missing agents (raises ValueError)
         with pytest.raises(ValueError):
-            grid_moore.get_directions(
-                agents0=fix1_AgentSetPolars, agents1=fix2_AgentSetPolars
-            )
+            grid_moore.get_directions(agents0=fix1_AgentSet, agents1=fix2_AgentSet)
 
         # Test with IdsLike
-        grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
+        grid_moore.place_agents(fix2_AgentSet, [[0, 1], [0, 2], [1, 0], [1, 2]])
         assert_frame_equal(
             grid_moore.agents,
             pl.DataFrame(
@@ -177,18 +175,16 @@ class TestGridPolars:
         assert dir.select(pl.col("dim_0")).to_series().to_list() == [0, -1]
         assert dir.select(pl.col("dim_1")).to_series().to_list() == [1, 1]
 
-        # Test with two AgentSetDFs
+        # Test with two AgentSets
         grid_moore.place_agents(unique_ids[[2, 3]], [[1, 1], [2, 2]])
-        dir = grid_moore.get_directions(
-            agents0=fix1_AgentSetPolars, agents1=fix2_AgentSetPolars
-        )
+        dir = grid_moore.get_directions(agents0=fix1_AgentSet, agents1=fix2_AgentSet)
         assert isinstance(dir, pl.DataFrame)
         assert dir.select(pl.col("dim_0")).to_series().to_list() == [0, -1, 0, -1]
         assert dir.select(pl.col("dim_1")).to_series().to_list() == [1, 1, -1, 0]
 
-        # Test with AgentsDF
+        # Test with AgentSetRegistry
         dir = grid_moore.get_directions(
-            agents0=grid_moore.model.agents, agents1=grid_moore.model.agents
+            agents0=grid_moore.model.sets, agents1=grid_moore.model.sets
         )
         assert isinstance(dir, pl.DataFrame)
         assert grid_moore._df_all(dir == 0).all()
@@ -216,8 +212,8 @@ class TestGridPolars:
     def test_get_distances(
         self,
         grid_moore: GridPolars,
-        fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix1_AgentSet: ExampleAgentSet,
+        fix2_AgentSet: ExampleAgentSet,
     ):
         # Test with GridCoordinate
         dist = grid_moore.get_distances(pos0=[1, 1], pos1=[2, 2])
@@ -236,12 +232,10 @@ class TestGridPolars:
 
         # Test with missing agents (raises ValueError)
         with pytest.raises(ValueError):
-            grid_moore.get_distances(
-                agents0=fix1_AgentSetPolars, agents1=fix2_AgentSetPolars
-            )
+            grid_moore.get_distances(agents0=fix1_AgentSet, agents1=fix2_AgentSet)
 
         # Test with IdsLike
-        grid_moore.place_agents(fix2_AgentSetPolars, [[0, 1], [0, 2], [1, 0], [1, 2]])
+        grid_moore.place_agents(fix2_AgentSet, [[0, 1], [0, 2], [1, 0], [1, 2]])
         unique_ids = get_unique_ids(grid_moore.model)
         dist = grid_moore.get_distances(
             agents0=unique_ids[[0, 1]], agents1=unique_ids[[4, 5]]
@@ -251,20 +245,18 @@ class TestGridPolars:
             dist.select(pl.col("distance")).to_series().to_list(), [1.0, np.sqrt(2)]
         )
 
-        # Test with two AgentSetDFs
+        # Test with two AgentSets
         grid_moore.place_agents(unique_ids[[2, 3]], [[1, 1], [2, 2]])
-        dist = grid_moore.get_distances(
-            agents0=fix1_AgentSetPolars, agents1=fix2_AgentSetPolars
-        )
+        dist = grid_moore.get_distances(agents0=fix1_AgentSet, agents1=fix2_AgentSet)
         assert isinstance(dist, pl.DataFrame)
         assert np.allclose(
             dist.select(pl.col("distance")).to_series().to_list(),
             [1.0, np.sqrt(2), 1.0, 1.0],
         )
 
-        # Test with AgentsDF
+        # Test with AgentSetRegistry
         dist = grid_moore.get_distances(
-            agents0=grid_moore.model.agents, agents1=grid_moore.model.agents
+            agents0=grid_moore.model.sets, agents1=grid_moore.model.sets
         )
         assert grid_moore._df_all(dist == 0).all()
 
@@ -621,7 +613,7 @@ class TestGridPolars:
 
     def test_get_neighbors(
         self,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix2_AgentSet: ExampleAgentSet,
         grid_moore: GridPolars,
         grid_hexagonal: GridPolars,
         grid_von_neumann: GridPolars,
@@ -798,8 +790,8 @@ class TestGridPolars:
     def test_move_agents(
         self,
         grid_moore: GridPolars,
-        fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix1_AgentSet: ExampleAgentSet,
+        fix2_AgentSet: ExampleAgentSet,
     ):
         # Test with IdsLike
         unique_ids = get_unique_ids(grid_moore.model)
@@ -813,10 +805,10 @@ class TestGridPolars:
             check_row_order=False,
         )
 
-        # Test with AgentSetDF
+        # Test with AgentSet
         with pytest.warns(RuntimeWarning):
             space = grid_moore.move_agents(
-                agents=fix2_AgentSetPolars,
+                agents=fix2_AgentSet,
                 pos=[[0, 0], [1, 0], [2, 0], [0, 1]],
                 inplace=False,
             )
@@ -833,10 +825,10 @@ class TestGridPolars:
             check_row_order=False,
         )
 
-        # Test with Collection[AgentSetDF]
+        # Test with Collection[AgentSet]
         with pytest.warns(RuntimeWarning):
             space = grid_moore.move_agents(
-                agents=[fix1_AgentSetPolars, fix2_AgentSetPolars],
+                agents=[fix1_AgentSet, fix2_AgentSet],
                 pos=[[0, 2], [1, 2], [2, 2], [0, 1], [1, 1], [2, 1], [0, 0], [1, 0]],
                 inplace=False,
             )
@@ -859,7 +851,7 @@ class TestGridPolars:
                 agents=unique_ids[[0, 1]], pos=[[0, 0], [1, 1], [2, 2]], inplace=False
             )
 
-        # Test with AgentsDF, pos=DataFrame
+        # Test with AgentSetRegistry, pos=DataFrame
         pos = pl.DataFrame(
             {
                 "dim_0": [0, 1, 2, 0, 1, 2, 0, 1],
@@ -869,7 +861,7 @@ class TestGridPolars:
 
         with pytest.warns(RuntimeWarning):
             space = grid_moore.move_agents(
-                agents=grid_moore.model.agents,
+                agents=grid_moore.model.sets,
                 pos=pos,
                 inplace=False,
             )
@@ -939,12 +931,12 @@ class TestGridPolars:
             last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
-        # Test with AgentSetDF
+        # Test with AgentSet
         last = None
         different = False
         for _ in range(10):
             available_cells = grid_moore.available_cells
-            space = grid_moore.move_to_available(grid_moore.model.agents, inplace=False)
+            space = grid_moore.move_to_available(grid_moore.model.sets, inplace=False)
             if last is not None and not different:
                 if (space.agents.select(pl.col("dim_0")).to_numpy() != last).any():
                     different = True
@@ -999,12 +991,12 @@ class TestGridPolars:
             last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
-        # Test with AgentSetDF
+        # Test with AgentSet
         last = None
         different = False
         for _ in range(10):
             empty_cells = grid_moore.empty_cells
-            space = grid_moore.move_to_empty(grid_moore.model.agents, inplace=False)
+            space = grid_moore.move_to_empty(grid_moore.model.sets, inplace=False)
             if last is not None and not different:
                 if (space.agents.select(pl.col("dim_0")).to_numpy() != last).any():
                     different = True
@@ -1037,8 +1029,8 @@ class TestGridPolars:
     def test_place_agents(
         self,
         grid_moore: GridPolars,
-        fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix1_AgentSet: ExampleAgentSet,
+        fix2_AgentSet: ExampleAgentSet,
     ):
         # Test with IdsLike
         unique_ids = get_unique_ids(grid_moore.model)
@@ -1069,9 +1061,9 @@ class TestGridPolars:
                 inplace=False,
             )
 
-        # Test with AgentSetDF
+        # Test with AgentSet
         space = grid_moore.place_agents(
-            agents=fix2_AgentSetPolars,
+            agents=fix2_AgentSet,
             pos=[[0, 0], [1, 0], [2, 0], [0, 1]],
             inplace=False,
         )
@@ -1113,10 +1105,10 @@ class TestGridPolars:
             check_row_order=False,
         )
 
-        # Test with Collection[AgentSetDF]
+        # Test with Collection[AgentSet]
         with pytest.warns(RuntimeWarning):
             space = grid_moore.place_agents(
-                agents=[fix1_AgentSetPolars, fix2_AgentSetPolars],
+                agents=[fix1_AgentSet, fix2_AgentSet],
                 pos=[[0, 2], [1, 2], [2, 2], [0, 1], [1, 1], [2, 1], [0, 0], [1, 0]],
                 inplace=False,
             )
@@ -1163,7 +1155,7 @@ class TestGridPolars:
             check_row_order=False,
         )
 
-        # Test with AgentsDF, pos=DataFrame
+        # Test with AgentSetRegistry, pos=DataFrame
         pos = pl.DataFrame(
             {
                 "dim_0": [0, 1, 2, 0, 1, 2, 0, 1],
@@ -1172,7 +1164,7 @@ class TestGridPolars:
         )
         with pytest.warns(RuntimeWarning):
             space = grid_moore.place_agents(
-                agents=grid_moore.model.agents,
+                agents=grid_moore.model.sets,
                 pos=pos,
                 inplace=False,
             )
@@ -1274,14 +1266,12 @@ class TestGridPolars:
             last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
-        # Test with AgentSetDF
+        # Test with AgentSet
         last = None
         different = False
         for _ in range(10):
             available_cells = grid_moore.available_cells
-            space = grid_moore.place_to_available(
-                grid_moore.model.agents, inplace=False
-            )
+            space = grid_moore.place_to_available(grid_moore.model.sets, inplace=False)
             if last is not None and not different:
                 if (space.agents.select(pl.col("dim_0")).to_numpy() != last).any():
                     different = True
@@ -1336,12 +1326,12 @@ class TestGridPolars:
             last = space.agents.select(pl.col("dim_0", "dim_1")).to_numpy()
         assert different
 
-        # Test with AgentSetDF
+        # Test with AgentSet
         last = None
         different = False
         for _ in range(10):
             empty_cells = grid_moore.empty_cells
-            space = grid_moore.place_to_empty(grid_moore.model.agents, inplace=False)
+            space = grid_moore.place_to_empty(grid_moore.model.sets, inplace=False)
             if last is not None and not different:
                 if (space.agents.select(pl.col("dim_0")).to_numpy() != last).any():
                     different = True
@@ -1389,8 +1379,8 @@ class TestGridPolars:
     def test_remove_agents(
         self,
         grid_moore: GridPolars,
-        fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix1_AgentSet: ExampleAgentSet,
+        fix2_AgentSet: ExampleAgentSet,
     ):
         unique_ids = get_unique_ids(grid_moore.model)
         grid_moore.move_agents(
@@ -1416,11 +1406,11 @@ class TestGridPolars:
             ].to_list()
         )
         assert [
-            x for id in space.model.agents.index.values() for x in id.to_list()
+            x for id in space.model.sets.index.values() for x in id.to_list()
         ] == unique_ids[:8].to_list()
 
-        # Test with AgentSetDF
-        space = grid_moore.remove_agents(fix1_AgentSetPolars, inplace=False)
+        # Test with AgentSet
+        space = grid_moore.remove_agents(fix1_AgentSet, inplace=False)
         assert space.agents.shape == (4, 3)
         assert space.remaining_capacity == capacity + 4
         assert (
@@ -1435,24 +1425,22 @@ class TestGridPolars:
             ].to_list()
         )
         assert [
-            x for id in space.model.agents.index.values() for x in id.to_list()
+            x for id in space.model.sets.index.values() for x in id.to_list()
         ] == unique_ids[:8].to_list()
 
-        # Test with Collection[AgentSetDF]
-        space = grid_moore.remove_agents(
-            [fix1_AgentSetPolars, fix2_AgentSetPolars], inplace=False
-        )
+        # Test with Collection[AgentSet]
+        space = grid_moore.remove_agents([fix1_AgentSet, fix2_AgentSet], inplace=False)
         assert [
-            x for id in space.model.agents.index.values() for x in id.to_list()
+            x for id in space.model.sets.index.values() for x in id.to_list()
         ] == unique_ids[:8].to_list()
         assert space.agents.is_empty()
         assert space.remaining_capacity == capacity + 8
-        # Test with AgentsDF
-        space = grid_moore.remove_agents(grid_moore.model.agents, inplace=False)
+        # Test with AgentSetRegistry
+        space = grid_moore.remove_agents(grid_moore.model.sets, inplace=False)
         assert space.remaining_capacity == capacity + 8
         assert space.agents.is_empty()
         assert [
-            x for id in space.model.agents.index.values() for x in id.to_list()
+            x for id in space.model.sets.index.values() for x in id.to_list()
         ] == unique_ids[:8].to_list()
 
     def test_sample_cells(self, grid_moore: GridPolars):
@@ -1532,7 +1520,7 @@ class TestGridPolars:
         with pytest.raises(AssertionError):
             grid_moore.sample_cells(3, cell_type="full", with_replacement=False)
 
-    def test_set_cells(self, model: ModelDF):
+    def test_set_cells(self, model: Model):
         # Initialize GridPolars
         grid_moore = GridPolars(model, dimensions=[3, 3], capacity=2)
 
@@ -1584,8 +1572,8 @@ class TestGridPolars:
     def test_swap_agents(
         self,
         grid_moore: GridPolars,
-        fix1_AgentSetPolars: ExampleAgentSetPolars,
-        fix2_AgentSetPolars: ExampleAgentSetPolars,
+        fix1_AgentSet: ExampleAgentSet,
+        fix2_AgentSet: ExampleAgentSet,
     ):
         unique_ids = get_unique_ids(grid_moore.model)
         grid_moore.move_agents(
@@ -1612,10 +1600,8 @@ class TestGridPolars:
             space.agents.filter(pl.col("agent_id") == unique_ids[3]).row(0)[1:]
             == grid_moore.agents.filter(pl.col("agent_id") == unique_ids[1]).row(0)[1:]
         )
-        # Test with AgentSetDFs
-        space = grid_moore.swap_agents(
-            fix1_AgentSetPolars, fix2_AgentSetPolars, inplace=False
-        )
+        # Test with AgentSets
+        space = grid_moore.swap_agents(fix1_AgentSet, fix2_AgentSet, inplace=False)
         assert (
             space.agents.filter(pl.col("agent_id") == unique_ids[0]).row(0)[1:]
             == grid_moore.agents.filter(pl.col("agent_id") == unique_ids[4]).row(0)[1:]
@@ -1765,7 +1751,7 @@ class TestGridPolars:
             )
         ).all()
 
-    def test_model(self, grid_moore: GridPolars, model: ModelDF):
+    def test_model(self, grid_moore: GridPolars, model: Model):
         assert grid_moore.model == model
 
     def test_neighborhood_type(
@@ -1784,7 +1770,7 @@ class TestGridPolars:
     def test_remaining_capacity(self, grid_moore: GridPolars):
         assert grid_moore.remaining_capacity == (3 * 3 * 2 - 2)
 
-    def test_torus(self, model: ModelDF, grid_moore: GridPolars):
+    def test_torus(self, model: Model, grid_moore: GridPolars):
         assert not grid_moore.torus
 
         grid_2 = GridPolars(model, [3, 3], torus=True)

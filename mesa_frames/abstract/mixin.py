@@ -85,8 +85,8 @@ class CopyMixin(ABC):
         Parameters
         ----------
         deep : bool, optional
-            Flag indicating whether to perform a deep copy of the AgentContainer.
-            If True, all attributes of the AgentContainer will be recursively copied (except attributes in self._copy_reference_only).
+            Flag indicating whether to perform a deep copy of the AbstractAgentSetRegistry.
+            If True, all attributes of the AbstractAgentSetRegistry will be recursively copied (except attributes in self._copy_reference_only).
             If False, only the top-level attributes will be copied.
             Defaults to False.
         memo : dict | None, optional
@@ -99,7 +99,7 @@ class CopyMixin(ABC):
         Returns
         -------
         Self
-            A new instance of the AgentContainer class that is a copy of the original instance.
+            A new instance of the AbstractAgentSetRegistry class that is a copy of the original instance.
         """
         cls = self.__class__
         obj = cls.__new__(cls)
@@ -165,17 +165,17 @@ class CopyMixin(ABC):
             return deepcopy(self)
 
     def __copy__(self) -> Self:
-        """Create a shallow copy of the AgentContainer.
+        """Create a shallow copy of the AbstractAgentSetRegistry.
 
         Returns
         -------
         Self
-            A shallow copy of the AgentContainer.
+            A shallow copy of the AbstractAgentSetRegistry.
         """
         return self.copy(deep=False)
 
     def __deepcopy__(self, memo: dict) -> Self:
-        """Create a deep copy of the AgentContainer.
+        """Create a deep copy of the AbstractAgentSetRegistry.
 
         Parameters
         ----------
@@ -185,7 +185,7 @@ class CopyMixin(ABC):
         Returns
         -------
         Self
-            A deep copy of the AgentContainer.
+            A deep copy of the AbstractAgentSetRegistry.
         """
         return self.copy(deep=True, memo=memo)
 

@@ -2,31 +2,31 @@
 Concrete implementation of the model class for mesa-frames.
 
 This module provides the concrete implementation of the base model class for
-the mesa-frames library. It defines the ModelDF class, which serves as the
+the mesa-frames library. It defines the Model class, which serves as the
 foundation for creating agent-based models using DataFrame-based agent storage.
 
 Classes:
-    ModelDF:
+    Model:
         The base class for models in the mesa-frames library. This class
         provides the core functionality for initializing and running
         agent-based simulations using DataFrame-backed agent sets.
 
-The ModelDF class is designed to be subclassed by users to create specific
+The Model class is designed to be subclassed by users to create specific
 model implementations. It provides the basic structure and methods necessary
 for setting up and running simulations, while leveraging the performance
 benefits of DataFrame-based agent storage.
 
 Usage:
-    To create a custom model, subclass ModelDF and implement the necessary
+    To create a custom model, subclass Model and implement the necessary
     methods:
 
-    from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.agents import AgentSetPolars
+    from mesa_frames.concrete.model import Model
+    from mesa_frames.concrete.agentset import AgentSet
 
-    class MyCustomModel(ModelDF):
+    class MyCustomModel(Model):
         def __init__(self, num_agents):
             super().__init__()
-            self.agents += AgentSetPolars(self)
+            self.sets += AgentSet(self)
             # Initialize your model-specific attributes and agent sets
 
         def run_model(self):
@@ -36,7 +36,7 @@ Usage:
 
         # Add any other custom methods for your model
 
-For more detailed information on the ModelDF class and its methods, refer to
+For more detailed information on the Model class and its methods, refer to
 the class docstring.
 """
 
@@ -46,12 +46,12 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from mesa_frames.abstract.agents import AgentSetDF
+from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.abstract.space import SpaceDF
-from mesa_frames.concrete.agents import AgentsDF
+from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 
 
-class ModelDF:
+class Model:
     """Base class for models in the mesa-frames library.
 
     This class serves as a foundational structure for creating agent-based models.
@@ -63,7 +63,7 @@ class ModelDF:
     random: np.random.Generator
     running: bool
     _seed: int | Sequence[int]
-    _agents: AgentsDF  # Where the agents are stored
+    _sets: AgentSetRegistry  # Where the agent sets are stored
     _space: SpaceDF | None  # This will be a MultiSpaceDF object
 
     def __init__(self, seed: int | Sequence[int] | None = None) -> None:
@@ -82,7 +82,7 @@ class ModelDF:
         self.reset_randomizer(seed)
         self.running = True
         self.current_id = 0
-        self._agents = AgentsDF(self)
+        self._sets = AgentSetRegistry(self)
         self._space = None
         self._steps = 0
 
@@ -126,7 +126,7 @@ class ModelDF:
 
         The default method calls the step() method of all agents. Overload as needed.
         """
-        self.agents.step()
+        self.sets.step()
 
     @property
     def steps(self) -> int:
@@ -140,13 +140,13 @@ class ModelDF:
         return self._steps
 
     @property
-    def agents(self) -> AgentsDF:
-        """Get the AgentsDF object containing all agents in the model.
+    def sets(self) -> AgentSetRegistry:
+        """Get the AgentSetRegistry object containing all agent sets in the model.
 
         Returns
         -------
-        AgentsDF
-            The AgentsDF object containing all agents in the model.
+        AgentSetRegistry
+            The AgentSetRegistry object containing all agent sets in the model.
 
         Raises
         ------
@@ -154,21 +154,20 @@ class ModelDF:
             If the model has not been initialized properly with super().__init__().
         """
         try:
-            return self._agents
+            return self._sets
         except AttributeError:
             if __debug__:  # Only execute in non-optimized mode
                 raise RuntimeError(
                     "You haven't called super().__init__() in your model. Make sure to call it in your __init__ method."
                 )
 
-    @agents.setter
-    def agents(self, agents: AgentsDF) -> None:
+    @sets.setter
+    def sets(self, sets: AgentSetRegistry) -> None:
         if __debug__:  # Only execute in non-optimized mode
-            if not isinstance(agents, AgentsDF):
-                raise TypeError("agents must be an instance of AgentsDF")
+            if not isinstance(sets, AgentSetRegistry):
+                raise TypeError("sets must be an instance of AgentSetRegistry")
 
-        self._agents = agents
-
+        self._sets = sets
 
     @property
     def space(self) -> SpaceDF:

@@ -88,13 +88,13 @@ pip install -e .
 
 ### Creation of an Agent
 
-The agent implementation differs from base mesa. Agents are only defined at the AgentSet level. You can import `AgentSetPolars`. As in mesa, you subclass and make sure to call `super().__init__(model)`. You can use the `add` method or the `+=` operator to add agents to the AgentSet. Most methods mirror the functionality of `mesa.AgentSet`. Additionally, `mesa-frames.AgentSet` implements many dunder methods such as `AgentSet[mask, attr]` to get and set items intuitively. All operations are by default inplace, but if you'd like to use functional programming, mesa-frames implements a fast copy method which aims to reduce memory usage, relying on reference-only and native copy methods.
+The agent implementation differs from base mesa. Agents are only defined at the AgentSet level. You can import `AgentSet`. As in mesa, you subclass and make sure to call `super().__init__(model)`. You can use the `add` method or the `+=` operator to add agents to the AgentSet. Most methods mirror the functionality of `mesa.AgentSet`. Additionally, `mesa-frames.AgentSet` implements many dunder methods such as `AgentSet[mask, attr]` to get and set items intuitively. All operations are by default inplace, but if you'd like to use functional programming, mesa-frames implements a fast copy method which aims to reduce memory usage, relying on reference-only and native copy methods.
 
 ```python
-from mesa-frames import AgentSetPolars
+from mesa-frames import AgentSet
 
-class MoneyAgentPolars(AgentSetPolars):
-    def __init__(self, n: int, model: ModelDF):
+class MoneyAgentDF(AgentSet):
+    def __init__(self, n: int, model: Model):
         super().__init__(model)
         # Adding the agents to the agent set
         self += pl.DataFrame(
@@ -126,20 +126,20 @@ class MoneyAgentPolars(AgentSetPolars):
 
 ### Creation of the Model
 
-Creation of the model is fairly similar to the process in mesa. You subclass `ModelDF` and call `super().__init__()`. The `model.agents` attribute has the same interface as `mesa-frames.AgentSet`. You can use `+=` or `self.agents.add` with a `mesa-frames.AgentSet` (or a list of `AgentSet`) to add agents to the model.
+Creation of the model is fairly similar to the process in mesa. You subclass `Model` and call `super().__init__()`. The `model.sets` attribute has the same interface as `mesa-frames.AgentSet`. You can use `+=` or `self.sets.add` with a `mesa-frames.AgentSet` (or a list of `AgentSet`) to add agents to the model.
 
 ```python
-from mesa-frames import ModelDF
+from mesa-frames import Model
 
-class MoneyModelDF(ModelDF):
+class MoneyModelDF(Model):
     def __init__(self, N: int, agents_cls):
         super().__init__()
         self.n_agents = N
-        self.agents += MoneyAgentPolars(N, self)
+        self.sets += MoneyAgentDF(N, self)
 
     def step(self):
-        # Executes the step method for every agentset in self.agents
-        self.agents.do("step")
+        # Executes the step method for every agentset in self.sets
+        self.sets.do("step")
 
     def run_model(self, n):
         for _ in range(n):

@@ -393,23 +393,13 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         return pos
 
     @property
-    def name(self) -> str | None:
+    def name(self) -> str:
         """The name of the agent set.
 
         Returns
         -------
-        str | None
-            The name of the agent set, or None if not set.
+        str
+            The name of the agent set
         """
-        return getattr(self, '_name', None)
+        return self._name
 
-    @name.setter
-    def name(self, value: str) -> None:
-        """Set the name of the agent set.
-
-        Parameters
-        ----------
-        value : str
-            The name to set.
-        """
-        self._name = value

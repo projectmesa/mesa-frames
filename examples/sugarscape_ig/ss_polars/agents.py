@@ -4,13 +4,13 @@ import numpy as np
 import polars as pl
 from numba import b1, guvectorize, int32
 
-from mesa_frames import AgentSetPolars, ModelDF
+from mesa_frames import AgentSet, Model
 
 
-class AntPolarsBase(AgentSetPolars):
+class AntDFBase(AgentSet):
     def __init__(
         self,
-        model: ModelDF,
+        model: Model,
         n_agents: int,
         initial_sugar: np.ndarray | None = None,
         metabolism: np.ndarray | None = None,
@@ -169,7 +169,7 @@ class AntPolarsBase(AgentSetPolars):
         raise NotImplementedError("Subclasses must implement this method")
 
 
-class AntPolarsLoopDF(AntPolarsBase):
+class AntPolarsLoopDF(AntDFBase):
     def get_best_moves(self, neighborhood: pl.DataFrame):
         best_moves = pl.DataFrame()
 
@@ -224,7 +224,7 @@ class AntPolarsLoopDF(AntPolarsBase):
         return best_moves.sort("agent_order").select(["dim_0", "dim_1"])
 
 
-class AntPolarsLoop(AntPolarsBase):
+class AntPolarsLoop(AntDFBase):
     numba_target = None
 
     def get_best_moves(self, neighborhood: pl.DataFrame):

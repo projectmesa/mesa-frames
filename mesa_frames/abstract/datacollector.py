@@ -45,10 +45,12 @@ For more detailed information on each class, refer to their individual docstring
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union, Any, Literal, List
+from typing import Any, Literal
 from collections.abc import Callable
-from mesa_frames import ModelDF
+from mesa_frames import Model
 import polars as pl
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 
 class AbstractDataCollector(ABC):
@@ -59,31 +61,32 @@ class AbstractDataCollector(ABC):
     Sub classes must implement logic for the methods
     """
 
-    _model: ModelDF
+    _model: Model
     _model_reporters: dict[str, Callable] | None
     _agent_reporters: dict[str, str | Callable] | None
-    _trigger: Callable[..., bool]
+    _trigger: Callable[..., bool] | None
     _reset_memory = bool
     _storage: Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"]
     _frames: list[pl.DataFrame]
 
     def __init__(
         self,
-        model: ModelDF,
-        model_reporters: dict[str, Callable] | None = None,
-        agent_reporters: dict[str, str | Callable] | None = None,
-        trigger: Callable[[Any], bool] | None = None,
-        reset_memory: bool = True,
+        model: Model,
+        model_reporters: dict[str, Callable] | None,
+        agent_reporters: dict[str, str | Callable] | None,
+        trigger: Callable[[Any], bool] | None,
+        reset_memory: bool,
         storage: Literal[
             "memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"
-        ] = "memory",
+        ],
+        max_workers: int,
     ):
         """
         Initialize a Datacollector.
 
         Parameters
         ----------
-        model : ModelDF
+        model : Model
             The model object from which data is collected.
         model_reporters : dict[str, Callable] | None
             Functions to collect data at the model level.
@@ -95,6 +98,8 @@ class AbstractDataCollector(ABC):
             Whether to reset in-memory data after flushing. Default is True.
         storage : Literal["memory", "csv", "parquet", "S3-csv", "S3-parquet", "postgresql"        ]
             Storage backend URI (e.g. 'memory:', 'csv:', 'postgresql:').
+        max_workers : int
+            Maximum number of worker threads used for flushing collected data asynchronously
         """
         self._model = model
         self._model_reporters = model_reporters or {}
@@ -103,6 +108,8 @@ class AbstractDataCollector(ABC):
         self._reset_memory = reset_memory
         self._storage = storage or "memory"
         self._frames = []
+        self._lock = threading.Lock()
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
 
     def collect(self) -> None:
         """
@@ -120,7 +127,7 @@ class AbstractDataCollector(ABC):
         """
         Trigger data collection if condition is met.
 
-        This method caslls _collect() to perform actual data collection
+        This method calls _collect() to perform actual data collection only if trigger returns True
 
         Example
         -------
@@ -177,9 +184,12 @@ class AbstractDataCollector(ABC):
         >>> datacollector.flush()
         >>> # Data is saved externally and in-memory buffers are cleared if configured
         """
-        self._flush()
-        if self._reset_memory:
-            self._reset()
+        with self._lock:
+            frames_to_flush = self._frames
+            if self._reset_memory:
+                self._reset()
+
+        self._executor.submit(self._flush, frames_to_flush)
 
     def _reset(self):
         """

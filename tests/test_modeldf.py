@@ -1,7 +1,7 @@
-from mesa_frames import ModelDF
+from mesa_frames import Model
 
 
-class CustomModel(ModelDF):
+class CustomModel(Model):
     def __init__(self):
         super().__init__()
         self.custom_step_count = 0
@@ -12,7 +12,7 @@ class CustomModel(ModelDF):
 
 class Test_ModelDF:
     def test_steps(self):
-        model = ModelDF()
+        model = Model()
 
         assert model.steps == 0
 
