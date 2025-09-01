@@ -1,10 +1,20 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from collections.abc import Collection, Iterable, Iterator
 from typing import Any, Literal, Self, overload
 
 from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry
 from mesa_frames.abstract.mixin import DataFrameMixin
-from mesa_frames.types_ import DataFrame, Series, AgentMask, IdsLike, DataFrameInput, Index, BoolSeries
+from mesa_frames.types_ import (
+    AgentMask,
+    BoolSeries,
+    DataFrame,
+    DataFrameInput,
+    IdsLike,
+    Index,
+    Series,
+)
 
 
 class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
