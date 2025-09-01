@@ -1,7 +1,7 @@
 import numpy as np
 import polars as pl
 
-from mesa_frames import GridPolars, Model
+from mesa_frames import Grid, Model
 
 from .agents import AntPolarsBase
 
@@ -24,7 +24,7 @@ class SugarscapePolars(Model):
         if sugar_grid is None:
             sugar_grid = self.random.integers(0, 4, (width, height))
         grid_dimensions = sugar_grid.shape
-        self.space = GridPolars(
+        self.space = Grid(
             self, grid_dimensions, neighborhood_type="von_neumann", capacity=1
         )
         dim_0 = pl.Series("dim_0", pl.arange(grid_dimensions[0], eager=True)).to_frame()

@@ -12,13 +12,13 @@ Classes:
         classes in mesa-frames. It combines fast copying functionality with
         DataFrame operations.
 
-    DiscreteSpaceDF(SpaceDF):
+    AbstractDiscreteSpace(SpaceDF):
         An abstract base class for discrete space implementations, such as grids
         and networks. It extends SpaceDF with methods specific to discrete spaces.
 
-    GridDF(DiscreteSpaceDF):
+    AbstractGrid(AbstractDiscreteSpace):
         An abstract base class for grid-based spaces. It inherits from
-        DiscreteSpaceDF and adds grid-specific functionality.
+        AbstractDiscreteSpace and adds grid-specific functionality.
 
 These abstract classes are designed to be subclassed by concrete implementations
 that use Polars library as their backend.
@@ -29,9 +29,9 @@ Usage:
     These classes should not be instantiated directly. Instead, they should be
     subclassed to create concrete implementations:
 
-    from mesa_frames.abstract.space import GridDF
+    from mesa_frames.abstract.space import AbstractGrid
 
-    class GridPolars(GridDF):
+    class Grid(AbstractGrid):
         def __init__(self, model, dimensions, torus, capacity, neighborhood_type):
             super().__init__(model, dimensions, torus, capacity, neighborhood_type)
             # Implementation using polars DataFrame
@@ -86,8 +86,8 @@ from mesa_frames.types_ import (
 ESPG = int
 
 
-class SpaceDF(CopyMixin, DataFrameMixin):
-    """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames."""
+class Space(CopyMixin, DataFrameMixin):
+    """The Space class is an abstract class that defines the interface for all space classes in mesa_frames."""
 
     _agents: DataFrame  # | GeoDataFrame  # Stores the agents placed in the space
     _center_col_names: list[
@@ -532,7 +532,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
     @abstractmethod
     def __repr__(self) -> str:
-        """Return a string representation of the SpaceDF.
+        """Return a string representation of the Space.
 
         Returns
         -------
@@ -542,7 +542,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
     @abstractmethod
     def __str__(self) -> str:
-        """Return a string representation of the SpaceDF.
+        """Return a string representation of the Space.
 
         Returns
         -------
@@ -581,8 +581,8 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return self.model.random
 
 
-class DiscreteSpaceDF(SpaceDF):
-    """The DiscreteSpaceDF class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames."""
+class AbstractDiscreteSpace(Space):
+    """The AbstractDiscreteSpace class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames."""
 
     _agents: DataFrame
     _capacity: int | None  # The maximum capacity for cells (default is infinite)
@@ -596,7 +596,7 @@ class DiscreteSpaceDF(SpaceDF):
         model: mesa_frames.concrete.model.Model,
         capacity: int | None = None,
     ):
-        """Create a new DiscreteSpaceDF.
+        """Create a new AbstractDiscreteSpace.
 
         Parameters
         ----------
@@ -1173,10 +1173,10 @@ class DiscreteSpaceDF(SpaceDF):
         ...
 
 
-class GridDF(DiscreteSpaceDF):
-    """The GridDF class is an abstract class that defines the interface for all grid classes in mesa-frames.
+class AbstractGrid(AbstractDiscreteSpace):
+    """The AbstractGrid class is an abstract class that defines the interface for all grid classes in mesa-frames.
 
-    Inherits from DiscreteSpaceDF.
+    Inherits from AbstractDiscreteSpace.
 
     Warning
     -------
@@ -1215,7 +1215,7 @@ class GridDF(DiscreteSpaceDF):
         capacity: int | None = None,
         neighborhood_type: str = "moore",
     ):
-        """Create a new GridDF.
+        """Create a new AbstractGrid.
 
         Parameters
         ----------

@@ -17,7 +17,7 @@ Modules:
     model: Provides the Model class, the base class for models in mesa-frames.
     agentset: Defines the AgentSet class, a Polars-based implementation of AgentSet.
     mixin: Provides the PolarsMixin class, implementing DataFrame operations using Polars.
-    space: Contains the GridPolars class, a Polars-based implementation of Grid.
+    space: Contains the Grid class, a Polars-based implementation of Grid.
 
 Classes:
     from agentset:
@@ -30,7 +30,7 @@ Classes:
             A mixin class that implements DataFrame operations using Polars,
             providing methods for data manipulation and analysis.
     from space:
-        GridPolars(GridDF, PolarsMixin):
+        Grid(AbstractGrid, PolarsMixin):
             A Polars-based implementation of Grid, using Polars DataFrames for
             efficient spatial operations and agent positioning.
 
@@ -45,17 +45,17 @@ Usage:
 
     from mesa_frames.concrete import Model, AgentSetRegistry
     # For Polars-based implementations
-    from mesa_frames.concrete import AgentSet, GridPolars
+    from mesa_frames.concrete import AgentSet, Grid
     from mesa_frames.concrete.model import Model
 
     class MyModel(Model):
         def __init__(self):
             super().__init__()
             self.sets.add(AgentSet(self))
-            self.space = GridPolars(self, dimensions=[10, 10])
+            self.space = Grid(self, dimensions=[10, 10])
             # ... other initialization code
 
-        from mesa_frames.concrete import AgentSet, GridPolars
+        from mesa_frames.concrete import AgentSet, Grid
 
     class MyAgents(AgentSet):
         def __init__(self, model):
@@ -66,7 +66,7 @@ Usage:
         def __init__(self, width, height):
             super().__init__()
             self.sets = MyAgents(self)
-            self.grid = GridPolars(width, height, self)
+            self.grid = Grid(width, height, self)
 Features:
     - High-performance DataFrame operations using Polars
     - Efficient memory usage and fast computation

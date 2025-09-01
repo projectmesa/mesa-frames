@@ -47,7 +47,7 @@ from collections.abc import Sequence
 import numpy as np
 
 from mesa_frames.abstract.agentset import AbstractAgentSet
-from mesa_frames.abstract.space import SpaceDF
+from mesa_frames.abstract.space import Space
 from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 
 
@@ -64,7 +64,7 @@ class Model:
     running: bool
     _seed: int | Sequence[int]
     _sets: AgentSetRegistry  # Where the agent sets are stored
-    _space: SpaceDF | None  # This will be a MultiSpaceDF object
+    _space: Space | None  # This will be a MultiSpaceDF object
 
     def __init__(self, seed: int | Sequence[int] | None = None) -> None:
         """Create a new model.
@@ -199,12 +199,12 @@ class Model:
         return [agent.__class__ for agent in self._sets._agentsets]
 
     @property
-    def space(self) -> SpaceDF:
+    def space(self) -> Space:
         """Get the space object associated with the model.
 
         Returns
         -------
-        SpaceDF
+        Space
             The space object associated with the model.
 
         Raises
@@ -219,7 +219,7 @@ class Model:
         return self._space
 
     @space.setter
-    def space(self, space: SpaceDF) -> None:
+    def space(self, space: Space) -> None:
         """Set the space of the model.
 
         Parameters

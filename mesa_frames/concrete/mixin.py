@@ -10,7 +10,7 @@ Classes:
     PolarsMixin(DataFrameMixin):
         A Polars-based implementation of DataFrame operations. This class provides
         methods for manipulating and analyzing data stored in Polars DataFrames,
-        tailored for use in mesa-frames components like AgentSet and GridPolars.
+        tailored for use in mesa-frames components like AgentSet and Grid.
 
 The PolarsMixin class is designed to be used as a mixin with other mesa-frames
 classes, providing them with Polars-specific DataFrame functionality. It implements

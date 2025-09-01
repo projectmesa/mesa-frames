@@ -46,7 +46,7 @@ class EcosystemModel(Model):
         self.prey.do("reproduce")
 ```
 
-## Space: GridDF 🌐
+## Space: Grid 🌐
 
 mesa-frames provides efficient implementations of spatial environments:
 
@@ -58,7 +58,7 @@ Example:
 class GridWorld(Model):
     def __init__(self, width, height):
         super().__init__()
-        self.space = GridPolars(self, (width, height))
+        self.space = Grid(self, (width, height))
         self.sets += AgentSet(100, self)
         self.space.place_to_empty(self.sets)
 ```

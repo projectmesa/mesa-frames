@@ -11,17 +11,17 @@ Key Features:
 - Provides similar syntax to Mesa for ease of transition
 - Allows for vectorized functions when simultaneous activation of agents is possible
 - Implements SIMD processing for optimized simultaneous operations
-- Includes GridDF for efficient grid-based spatial modeling
+- Includes Grid for efficient grid-based spatial modeling
 
 Main Components:
 - AgentSet: Agent set implementation using Polars backend
 - Model: Base model class for mesa-frames
-- GridDF: Grid space implementation for spatial modeling
+- Grid: Grid space implementation for spatial modeling
 
 Usage:
 To use mesa-frames, import the necessary components and subclass them as needed:
 
-    from mesa_frames import AgentSet, Model, GridDF
+    from mesa_frames import AgentSet, Model, Grid
 
     class MyAgent(AgentSet):
         # Define your agent logic here
@@ -29,7 +29,7 @@ To use mesa-frames, import the necessary components and subclass them as needed:
     class MyModel(Model):
         def __init__(self, width, height):
             super().__init__()
-            self.grid = GridDF(width, height, self)
+            self.grid = Grid(self, [width, height])
             # Define your model logic here
 
 Note: mesa-frames is in early development. API and usage patterns may change.
@@ -60,12 +60,12 @@ if os.getenv("MESA_FRAMES_RUNTIME_TYPECHECKING", "").lower() in ("1", "true", "y
             stacklevel=2,
         )
 
-from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 from mesa_frames.concrete.agentset import AgentSet
-from mesa_frames.concrete.model import Model
-from mesa_frames.concrete.space import GridPolars
+from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 from mesa_frames.concrete.datacollector import DataCollector
+from mesa_frames.concrete.model import Model
+from mesa_frames.concrete.space import Grid
 
-__all__ = ["AgentSetRegistry", "AgentSet", "Model", "GridPolars", "DataCollector"]
+__all__ = ["AgentSetRegistry", "AgentSet", "Model", "Grid", "DataCollector"]
 
 __version__ = "0.1.1.dev0"
