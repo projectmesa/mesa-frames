@@ -413,7 +413,9 @@ class AbstractAgentSetRegistry(CopyMixin):
         """
         return self.add(agents=other, inplace=False)
 
-    def __contains__(self, agents: int | mesa_frames.abstract.agentset.AbstractAgentSet) -> bool:
+    def __contains__(
+        self, agents: int | mesa_frames.abstract.agentset.AbstractAgentSet
+    ) -> bool:
         """Check if an agent is in the AbstractAgentSetRegistry.
 
         Parameters
@@ -437,7 +439,9 @@ class AbstractAgentSetRegistry(CopyMixin):
     def __getitem__(
         self,
         key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
-    ) -> DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]: ...
+    ) -> (
+        DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
+    ): ...
 
     def __getitem__(
         self,
@@ -447,8 +451,13 @@ class AbstractAgentSetRegistry(CopyMixin):
             | AgentMask
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
-            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str]
-            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
+            | tuple[
+                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str
+            ]
+            | tuple[
+                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask],
+                Collection[str],
+            ]
         ),
     ) -> (
         Series
@@ -562,8 +571,13 @@ class AbstractAgentSetRegistry(CopyMixin):
             | Collection[str]
             | AgentMask
             | tuple[AgentMask, str | Collection[str]]
-            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str]
-            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
+            | tuple[
+                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str
+            ]
+            | tuple[
+                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask],
+                Collection[str],
+            ]
         ),
         values: Any,
     ) -> None:
