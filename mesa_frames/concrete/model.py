@@ -99,26 +99,6 @@ class ModelDF:
         """Get the current step count."""
         return self._steps
 
-    def get_agents_of_type(self, agent_type: type) -> AgentSetDF:
-        """Retrieve the AgentSetDF of a specified type.
-
-        Parameters
-        ----------
-        agent_type : type
-            The type of AgentSetDF to retrieve.
-
-        Returns
-        -------
-        AgentSetDF
-            The AgentSetDF of the specified type.
-        """
-        try:
-            return self.agents.sets[agent_type]
-        except KeyError as e:
-            raise ValueError(
-                f"No agents of type {agent_type} found in the model."
-            ) from e
-
     def reset_randomizer(self, seed: int | Sequence[int] | None) -> None:
         """Reset the model random number generator.
 
@@ -189,16 +169,6 @@ class ModelDF:
 
         self._agents = agents
 
-    @property
-    def agent_types(self) -> list[type]:
-        """Get a list of different agent types present in the model.
-
-        Returns
-        -------
-        list[type]
-            A list of the different agent types present in the model.
-        """
-        return [agent.__class__ for agent in self.agents.sets]
 
     @property
     def space(self) -> SpaceDF:
