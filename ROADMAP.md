@@ -49,7 +49,7 @@ The Sugarscape example demonstrates the need for this abstraction, as multiple a
 
 #### Progress and Next Steps
 
-- Create utility functions in `DiscreteSpaceDF` and `AbstractAgentSetRegistry` to move agents optimally based on specified attributes
+- Create utility functions in `AbstractDiscreteSpace` and `AbstractAgentSetRegistry` to move agents optimally based on specified attributes
 - Provide built-in resolution strategies for common concurrency scenarios
 - Ensure the implementation works efficiently with the vectorized approach of mesa-frames
 

@@ -10,7 +10,7 @@ class CustomModel(Model):
         self.custom_step_count += 2
 
 
-class Test_ModelDF:
+class Test_Model:
     def test_steps(self):
         model = Model()
 

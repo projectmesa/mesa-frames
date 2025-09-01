@@ -4,7 +4,7 @@ import polars as pl
 import pytest
 from numpy.random import Generator
 
-from mesa_frames import AgentSet, GridPolars, Model
+from mesa_frames import AgentSet, Grid, Model
 
 
 class ExampleAgentSet(AgentSet):
@@ -49,7 +49,7 @@ def fix2_AgentSet() -> ExampleAgentSet:
     agents["age"] = [100, 200, 300, 400]
 
     model.sets.add(agents)
-    space = GridPolars(model, dimensions=[3, 3], capacity=2)
+    space = Grid(model, dimensions=[3, 3], capacity=2)
     model.space = space
     space.place_agents(agents=agents["unique_id"][[0, 1]], pos=[[2, 1], [1, 2]])
     return agents
@@ -68,7 +68,7 @@ def fix3_AgentSet() -> ExampleAgentSet:
 def fix1_AgentSet_with_pos(
     fix1_AgentSet: ExampleAgentSet,
 ) -> ExampleAgentSet:
-    space = GridPolars(fix1_AgentSet.model, dimensions=[3, 3], capacity=2)
+    space = Grid(fix1_AgentSet.model, dimensions=[3, 3], capacity=2)
     fix1_AgentSet.model.space = space
     space.place_agents(agents=fix1_AgentSet["unique_id"][[0, 1]], pos=[[0, 0], [1, 1]])
     return fix1_AgentSet
