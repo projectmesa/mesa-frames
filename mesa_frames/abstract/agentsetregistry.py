@@ -413,12 +413,14 @@ class AbstractAgentSetRegistry(CopyMixin):
         """
         return self.add(agents=other, inplace=False)
 
-    def __contains__(self, agents: int | mesa_frames.abstract.agentset.AbstractAgentSet) -> bool:
+    def __contains__(
+        self, agents: int | mesa_frames.abstract.agentset.AbstractAgentSet
+    ) -> bool:
         """Check if an agent is in the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : int | AbstractAgentSet
+        agents : int | mesa_frames.abstract.agentset.AbstractAgentSet
             The ID(s) or AbstractAgentSet to check for.
 
         Returns
@@ -437,7 +439,9 @@ class AbstractAgentSetRegistry(CopyMixin):
     def __getitem__(
         self,
         key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
-    ) -> DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]: ...
+    ) -> (
+        DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
+    ): ...
 
     def __getitem__(
         self,
@@ -447,8 +451,13 @@ class AbstractAgentSetRegistry(CopyMixin):
             | AgentMask
             | tuple[AgentMask, str]
             | tuple[AgentMask, Collection[str]]
-            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str]
-            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
+            | tuple[
+                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str
+            ]
+            | tuple[
+                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask],
+                Collection[str],
+            ]
         ),
     ) -> (
         Series
@@ -467,12 +476,12 @@ class AbstractAgentSetRegistry(CopyMixin):
 
         Parameters
         ----------
-        key : str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]] | tuple[dict[AbstractAgentSet, AgentMask], str] | tuple[dict[AbstractAgentSet, AgentMask], Collection[str]]
+        key : str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]] | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str] | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
             The key to retrieve.
 
         Returns
         -------
-        Series | DataFrame | dict[AbstractAgentSet, Series] | dict[AbstractAgentSet, DataFrame]
+        Series | DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Series] | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
             The attribute values.
         """
         # TODO: fix types
@@ -562,8 +571,13 @@ class AbstractAgentSetRegistry(CopyMixin):
             | Collection[str]
             | AgentMask
             | tuple[AgentMask, str | Collection[str]]
-            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str]
-            | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
+            | tuple[
+                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str
+            ]
+            | tuple[
+                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask],
+                Collection[str],
+            ]
         ),
         values: Any,
     ) -> None:
@@ -579,7 +593,7 @@ class AbstractAgentSetRegistry(CopyMixin):
 
         Parameters
         ----------
-        key : str | Collection[str] | AgentMask | tuple[AgentMask, str | Collection[str]] | tuple[dict[AbstractAgentSet, AgentMask], str] | tuple[dict[AbstractAgentSet, AgentMask], Collection[str]]
+        key : str | Collection[str] | AgentMask | tuple[AgentMask, str | Collection[str]] | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str] | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
             The key to set.
         values : Any
             The values to set for the specified key.

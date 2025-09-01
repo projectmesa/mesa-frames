@@ -1,3 +1,21 @@
+"""
+Abstract base classes for agent sets in mesa-frames.
+
+This module defines the core abstractions for agent sets in the mesa-frames
+extension. It provides the foundation for implementing agent set storage and
+manipulation.
+
+Classes:
+    AbstractAgentSet:
+        An abstract base class for agent sets that combines agent container
+        functionality with DataFrame operations. It inherits from both
+        AbstractAgentSetRegistry and DataFrameMixin to provide comprehensive
+        agent management capabilities.
+
+This abstract class is designed to be subclassed to create concrete
+implementations that use specific DataFrame backends.
+"""
+
 from __future__ import annotations
 
 from abc import abstractmethod
