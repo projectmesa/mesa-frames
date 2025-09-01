@@ -169,7 +169,6 @@ class ModelDF:
 
         self._agents = agents
 
-
     @property
     def space(self) -> SpaceDF:
         """Get the space object associated with the model.

@@ -401,7 +401,7 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         str | None
             The name of the agent set, or None if not set.
         """
-        return getattr(self, '_name', None)
+        return getattr(self, "_name", None)
 
     @name.setter
     def name(self, value: str) -> None:
