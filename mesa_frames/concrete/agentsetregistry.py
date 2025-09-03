@@ -650,30 +650,6 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         """
         return super().__sub__(agents)
 
-    @property
-    def df(self) -> dict[AbstractAgentSet, DataFrame]:
-        return {agentset: agentset.df for agentset in self._agentsets}
-
-    @df.setter
-    def df(self, other: Iterable[AbstractAgentSet]) -> None:
-        """Set the agents in the AgentSetRegistry.
-
-        Parameters
-        ----------
-        other : Iterable[AbstractAgentSet]
-            The AbstractAgentSets to set.
-        """
-        self._agentsets = list(other)
-
-    @property
-    def active_agents(self) -> dict[AbstractAgentSet, DataFrame]:
-        return {agentset: agentset.active_agents for agentset in self._agentsets}
-
-    @active_agents.setter
-    def active_agents(
-        self, agents: AgnosticAgentMask | IdsLike | dict[AbstractAgentSet, AgentMask]
-    ) -> None:
-        self.select(agents, inplace=True)
 
     @property
     def agentsets_by_type(self) -> dict[type[AbstractAgentSet], Self]:
@@ -697,14 +673,3 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
             dictionary[agentset.__class__] = agents_df
         return dictionary
 
-    @property
-    def inactive_agents(self) -> dict[AbstractAgentSet, DataFrame]:
-        return {agentset: agentset.inactive_agents for agentset in self._agentsets}
-
-    @property
-    def index(self) -> dict[AbstractAgentSet, Index]:
-        return {agentset: agentset.index for agentset in self._agentsets}
-
-    @property
-    def pos(self) -> dict[AbstractAgentSet, DataFrame]:
-        return {agentset: agentset.pos for agentset in self._agentsets}
