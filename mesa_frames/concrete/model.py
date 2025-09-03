@@ -64,7 +64,7 @@ class Model:
     running: bool
     _seed: int | Sequence[int]
     _sets: AgentSetRegistry  # Where the agent sets are stored
-    _space: Space | None  # This will be a MultiSpaceDF object
+    _space: Space | None  # This will be a Space object
 
     def __init__(self, seed: int | Sequence[int] | None = None) -> None:
         """Create a new model.
@@ -170,7 +170,7 @@ class Model:
         self._sets = sets
 
     @property
-    def space(self) -> SpaceDF:
+    def space(self) -> Space:
         """Get the space object associated with the model.
 
         Returns
@@ -195,6 +195,6 @@ class Model:
 
         Parameters
         ----------
-        space : SpaceDF
+        space : Space
         """
         self._space = space
