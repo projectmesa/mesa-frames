@@ -65,7 +65,7 @@ class MoneyModel(mesa.Model):
 ### ---------- Mesa-frames implementation ---------- ###
 
 
-class MoneyAgentDFConcise(AgentSet):
+class MoneyAgentConcise(AgentSet):
     def __init__(self, n: int, model: Model):
         super().__init__(model)
         ## Adding the agents to the agent set
@@ -120,7 +120,7 @@ class MoneyAgentDFConcise(AgentSet):
         self[new_wealth, "wealth"] += new_wealth["len"]
 
 
-class MoneyAgentDFNative(AgentSet):
+class MoneyAgentNative(AgentSet):
     def __init__(self, n: int, model: Model):
         super().__init__(model)
         self += pl.DataFrame({"wealth": pl.ones(n, eager=True)})
@@ -154,7 +154,7 @@ class MoneyAgentDFNative(AgentSet):
         )
 
 
-class MoneyModelDF(Model):
+class MoneyModel(Model):
     def __init__(self, N: int, agents_cls):
         super().__init__()
         self.n_agents = N
@@ -170,12 +170,12 @@ class MoneyModelDF(Model):
 
 
 def mesa_frames_polars_concise(n_agents: int) -> None:
-    model = MoneyModelDF(n_agents, MoneyAgentDFConcise)
+    model = MoneyModel(n_agents, MoneyAgentConcise)
     model.run_model(100)
 
 
 def mesa_frames_polars_native(n_agents: int) -> None:
-    model = MoneyModelDF(n_agents, MoneyAgentDFNative)
+    model = MoneyModel(n_agents, MoneyAgentNative)
     model.run_model(100)
 
 
