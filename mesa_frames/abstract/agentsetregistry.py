@@ -703,96 +703,12 @@ class AbstractAgentSetRegistry(CopyMixin):
         return self.model.random
 
     @property
-    def space(self) -> mesa_frames.abstract.space.SpaceDF | None:
+    def space(self) -> mesa_frames.abstract.space.Space | None:
         """The space of the model.
 
         Returns
         -------
-        mesa_frames.abstract.space.SpaceDF | None
+        mesa_frames.abstract.space.Space | None
         """
         return self.model.space
 
-    @property
-    @abstractmethod
-    def df(self) -> DataFrame | dict[str, DataFrame]:
-        """The agents in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        DataFrame | dict[str, DataFrame]
-        """
-
-    @df.setter
-    @abstractmethod
-    def df(
-        self, agents: DataFrame | list[mesa_frames.abstract.agentset.AbstractAgentSet]
-    ) -> None:
-        """Set the agents in the AbstractAgentSetRegistry.
-
-        Parameters
-        ----------
-        agents : DataFrame | list[mesa_frames.abstract.agentset.AbstractAgentSet]
-        """
-
-    @property
-    @abstractmethod
-    def active_agents(self) -> DataFrame | dict[str, DataFrame]:
-        """The active agents in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        DataFrame | dict[str, DataFrame]
-        """
-
-    @active_agents.setter
-    @abstractmethod
-    def active_agents(
-        self,
-        mask: AgentMask,
-    ) -> None:
-        """Set the active agents in the AbstractAgentSetRegistry.
-
-        Parameters
-        ----------
-        mask : AgentMask
-            The mask to apply.
-        """
-        self.select(mask=mask, inplace=True)
-
-    @property
-    @abstractmethod
-    def inactive_agents(
-        self,
-    ) -> DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]:
-        """The inactive agents in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
-        """
-
-    @property
-    @abstractmethod
-    def index(
-        self,
-    ) -> Index | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Index]:
-        """The ids in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        Index | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Index]
-        """
-        ...
-
-    @property
-    @abstractmethod
-    def pos(
-        self,
-    ) -> DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]:
-        """The position of the agents in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
-        """
-        ...
