@@ -63,6 +63,7 @@ if os.getenv("MESA_FRAMES_RUNTIME_TYPECHECKING", "").lower() in ("1", "true", "y
 from mesa_frames.concrete.agentset import AgentSet
 from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 from mesa_frames.concrete.model import Model
+
 # DataCollector has to be imported after Model or a circular import error will occur
 from mesa_frames.concrete.datacollector import DataCollector
 from mesa_frames.concrete.space import Grid
