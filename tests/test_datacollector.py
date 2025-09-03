@@ -1,5 +1,5 @@
 from mesa_frames.concrete.datacollector import DataCollector
-from mesa_frames import ModelDF, AgentSetPolars, AgentsDF
+from mesa_frames import Model, AgentSet, AgentSetRegistry
 import pytest
 import polars as pl
 import beartype
@@ -12,8 +12,8 @@ def custom_trigger(model):
     return model._steps % 2 == 0
 
 
-class ExampleAgentSet1(AgentSetPolars):
-    def __init__(self, model: ModelDF):
+class ExampleAgentSet1(AgentSet):
+    def __init__(self, model: Model):
         super().__init__(model)
         self["wealth"] = pl.Series("wealth", [1, 2, 3, 4])
         self["age"] = pl.Series("age", [10, 20, 30, 40])
@@ -25,8 +25,8 @@ class ExampleAgentSet1(AgentSetPolars):
         self.add_wealth(1)
 
 
-class ExampleAgentSet2(AgentSetPolars):
-    def __init__(self, model: ModelDF):
+class ExampleAgentSet2(AgentSet):
+    def __init__(self, model: Model):
         super().__init__(model)
         self["wealth"] = pl.Series("wealth", [10, 20, 30, 40])
         self["age"] = pl.Series("age", [11, 22, 33, 44])
@@ -38,8 +38,8 @@ class ExampleAgentSet2(AgentSetPolars):
         self.add_wealth(2)
 
 
-class ExampleAgentSet3(AgentSetPolars):
-    def __init__(self, model: ModelDF):
+class ExampleAgentSet3(AgentSet):
+    def __init__(self, model: Model):
         super().__init__(model)
         self["age"] = pl.Series("age", [1, 2, 3, 4])
         self["wealth"] = pl.Series("wealth", [1, 2, 3, 4])
@@ -51,13 +51,13 @@ class ExampleAgentSet3(AgentSetPolars):
         self.age_agents(1)
 
 
-class ExampleModel(ModelDF):
-    def __init__(self, agents: AgentsDF):
+class ExampleModel(Model):
+    def __init__(self, sets: AgentSetRegistry):
         super().__init__()
-        self.agents = agents
+        self.sets = sets
 
     def step(self):
-        self.agents.do("step")
+        self.sets.do("step")
 
     def run_model(self, n):
         for _ in range(n):
@@ -74,14 +74,14 @@ class ExampleModel(ModelDF):
             self.dc.conditional_collect()
 
 
-class ExampleModelWithMultipleCollects(ModelDF):
-    def __init__(self, agents: AgentsDF):
+class ExampleModelWithMultipleCollects(Model):
+    def __init__(self, agents: AgentSetRegistry):
         super().__init__()
-        self.agents = agents
+        self.sets = agents
 
     def step(self):
         self.dc.conditional_collect()
-        self.agents.do("step")
+        self.sets.do("step")
         self.dc.conditional_collect()
 
     def run_model_with_conditional_collect_multiple_batch(self, n):
@@ -95,40 +95,40 @@ def postgres_uri():
 
 
 @pytest.fixture
-def fix1_AgentSetPolars() -> ExampleAgentSet1:
-    return ExampleAgentSet1(ModelDF())
+def fix1_AgentSet() -> ExampleAgentSet1:
+    return ExampleAgentSet1(Model())
 
 
 @pytest.fixture
-def fix2_AgentSetPolars() -> ExampleAgentSet2:
-    return ExampleAgentSet2(ModelDF())
+def fix2_AgentSet() -> ExampleAgentSet2:
+    return ExampleAgentSet2(Model())
 
 
 @pytest.fixture
-def fix3_AgentSetPolars() -> ExampleAgentSet3:
-    return ExampleAgentSet3(ModelDF())
+def fix3_AgentSet() -> ExampleAgentSet3:
+    return ExampleAgentSet3(Model())
 
 
 @pytest.fixture
-def fix_AgentsDF(
-    fix1_AgentSetPolars: ExampleAgentSet1,
-    fix2_AgentSetPolars: ExampleAgentSet2,
-    fix3_AgentSetPolars: ExampleAgentSet3,
-) -> AgentsDF:
-    model = ModelDF()
-    agents = AgentsDF(model)
-    agents.add([fix1_AgentSetPolars, fix2_AgentSetPolars, fix3_AgentSetPolars])
+def fix_AgentSetRegistry(
+    fix1_AgentSet: ExampleAgentSet1,
+    fix2_AgentSet: ExampleAgentSet2,
+    fix3_AgentSet: ExampleAgentSet3,
+) -> AgentSetRegistry:
+    model = Model()
+    agents = AgentSetRegistry(model)
+    agents.add([fix1_AgentSet, fix2_AgentSet, fix3_AgentSet])
     return agents
 
 
 @pytest.fixture
-def fix1_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
-    return ExampleModel(fix_AgentsDF)
+def fix1_model(fix_AgentSetRegistry: AgentSetRegistry) -> ExampleModel:
+    return ExampleModel(fix_AgentSetRegistry)
 
 
 @pytest.fixture
-def fix2_model(fix_AgentsDF: AgentsDF) -> ExampleModel:
-    return ExampleModelWithMultipleCollects(fix_AgentsDF)
+def fix2_model(fix_AgentSetRegistry: AgentSetRegistry) -> ExampleModel:
+    return ExampleModelWithMultipleCollects(fix_AgentSetRegistry)
 
 
 class TestDataCollector:
@@ -160,11 +160,11 @@ class TestDataCollector:
             model=model,
             model_reporters={
                 "total_agents": lambda model: sum(
-                    len(agentset) for agentset in model.agents._agentsets
+                    len(agentset) for agentset in model.sets._agentsets
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -219,11 +219,11 @@ class TestDataCollector:
             model=model,
             model_reporters={
                 "total_agents": lambda model: sum(
-                    len(agentset) for agentset in model.agents._agentsets
+                    len(agentset) for agentset in model.sets._agentsets
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -275,11 +275,11 @@ class TestDataCollector:
             trigger=custom_trigger,
             model_reporters={
                 "total_agents": lambda model: sum(
-                    len(agentset) for agentset in model.agents._agentsets
+                    len(agentset) for agentset in model.sets._agentsets
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -357,11 +357,11 @@ class TestDataCollector:
                 trigger=custom_trigger,
                 model_reporters={
                     "total_agents": lambda model: sum(
-                        len(agentset) for agentset in model.agents._agentsets
+                        len(agentset) for agentset in model.sets._agentsets
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
                     "age": "age",
                 },
                 storage="csv",
@@ -433,11 +433,11 @@ class TestDataCollector:
                 trigger=custom_trigger,
                 model_reporters={
                     "total_agents": lambda model: sum(
-                        len(agentset) for agentset in model.agents._agentsets
+                        len(agentset) for agentset in model.sets._agentsets
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
                 },
                 storage="parquet",
                 storage_uri=tmpdir,
@@ -509,11 +509,11 @@ class TestDataCollector:
             trigger=custom_trigger,
             model_reporters={
                 "total_agents": lambda model: sum(
-                    len(agentset) for agentset in model.agents._agentsets
+                    len(agentset) for agentset in model.sets._agentsets
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
                 "age": "age",
             },
             storage="postgresql",
@@ -558,11 +558,11 @@ class TestDataCollector:
             trigger=custom_trigger,
             model_reporters={
                 "total_agents": lambda model: sum(
-                    len(agentset) for agentset in model.agents._agentsets
+                    len(agentset) for agentset in model.sets._agentsets
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -703,11 +703,11 @@ class TestDataCollector:
                 trigger=custom_trigger,
                 model_reporters={
                     "total_agents": lambda model: sum(
-                        len(agentset) for agentset in model.agents._agentsets
+                        len(agentset) for agentset in model.sets._agentsets
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda model: model.agents._agentsets[0]["wealth"],
+                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
                     "age": "age",
                 },
                 storage="csv",
