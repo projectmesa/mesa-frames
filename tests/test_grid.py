@@ -14,7 +14,7 @@ from tests.test_agentset import (
 def get_unique_ids(model: Model) -> pl.Series:
     # return model.get_sets_of_type(model.set_types[0])["unique_id"]
     series_list = [
-        agent_set["unique_id"].cast(pl.UInt64) for agent_set in model.sets.df.values()
+        series.cast(pl.UInt64) for series in model.sets.get("unique_id").values()
     ]
     return pl.concat(series_list)
 
