@@ -113,7 +113,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         return getattr(self, "_name", None)
 
     def rename(self, new_name: str) -> str:
-        """Rename this agent set. If attached to AgentsDF, delegate for uniqueness enforcement.
+        """Rename this agent set. If attached to AgentSetRegistry, delegate for uniqueness enforcement.
 
         Parameters
         ----------
@@ -130,10 +130,10 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         ValueError
             If name conflicts occur and delegate encounters errors.
         """
-        # Always delegate to the container's accessor if available through the model's agents
-        # Check if we have a model and can find the AgentsDF that contains this set
-        if self in self.model.agents.sets:
-            return self.model.agents.sets.rename(self._name, new_name)
+        # Always delegate to the container's accessor if available through the model's sets
+        # Check if we have a model and can find the AgentSetRegistry that contains this set
+        if self in self.model.sets:
+            return self.model.sets.rename(self._name, new_name)
 
         # Set name locally if no container found
         self._name = new_name
