@@ -402,4 +402,3 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
             The name of the agent set
         """
         return self._name
-

@@ -654,7 +654,6 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         """
         return super().__sub__(agents)
 
-
     @property
     def agentsets_by_type(self) -> dict[type[AbstractAgentSet], Self]:
         """Get the agent sets in the AgentSetRegistry grouped by type.
@@ -676,4 +675,3 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
             agents_df._agentsets = agents_df._agentsets + [agentset]
             dictionary[agentset.__class__] = agents_df
         return dictionary
-

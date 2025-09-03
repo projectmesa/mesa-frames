@@ -16,4 +16,3 @@ def copydoc(fromfunc, sep="\n"):
         return func
 
     return _decorator
-
