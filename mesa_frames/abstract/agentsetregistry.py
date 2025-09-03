@@ -711,4 +711,3 @@ class AbstractAgentSetRegistry(CopyMixin):
         mesa_frames.abstract.space.Space | None
         """
         return self.model.space
-
