@@ -703,12 +703,12 @@ class AbstractAgentSetRegistry(CopyMixin):
         return self.model.random
 
     @property
-    def space(self) -> mesa_frames.abstract.space.SpaceDF | None:
+    def space(self) -> mesa_frames.abstract.space.Space | None:
         """The space of the model.
 
         Returns
         -------
-        mesa_frames.abstract.space.SpaceDF | None
+        mesa_frames.abstract.space.Space | None
         """
         return self.model.space
 
