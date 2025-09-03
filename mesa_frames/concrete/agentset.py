@@ -69,7 +69,7 @@ from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.concrete.model import Model
 from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
-from mesa_frames.utils import camel_case_to_snake_case, copydoc
+from mesa_frames.utils import copydoc
 
 
 @copydoc(AbstractAgentSet)
