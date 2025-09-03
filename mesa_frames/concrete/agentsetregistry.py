@@ -497,7 +497,9 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         """Check if a name is in the registry."""
         if not isinstance(name, str):
             return False
-        return name in [agentset.name for agentset in self._agentsets if agentset.name is not None]
+        return name in [
+            agentset.name for agentset in self._agentsets if agentset.name is not None
+        ]
 
     def __getitem__(self, key: str) -> AbstractAgentSet:
         """Get an agent set by name."""
@@ -510,7 +512,9 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
 
     def _generate_name(self, base_name: str) -> str:
         """Generate a unique name for an agent set."""
-        existing_names = [agentset.name for agentset in self._agentsets if agentset.name is not None]
+        existing_names = [
+            agentset.name for agentset in self._agentsets if agentset.name is not None
+        ]
         if base_name not in existing_names:
             return base_name
         counter = 1
