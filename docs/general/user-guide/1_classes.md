@@ -11,7 +11,7 @@ How can you choose which agents should be in the same AgentSet? The idea is that
 Example:
 
 ```python
-class MoneyAgent(AgentSet):
+class MoneyAgents(AgentSet):
     def __init__(self, n: int, model: Model):
         super().__init__(model)
         self.initial_wealth = pl.ones(n)

@@ -52,9 +52,9 @@ class ExampleAgentSet3(AgentSet):
 
 
 class ExampleModel(Model):
-    def __init__(self, agents: AgentSetRegistry):
+    def __init__(self, sets: AgentSetRegistry):
         super().__init__()
-        self.sets = agents
+        self.sets = sets
 
     def step(self):
         self.sets.do("step")

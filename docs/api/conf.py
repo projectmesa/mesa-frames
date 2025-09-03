@@ -4,6 +4,7 @@ import os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here.
 import sys
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path("..").resolve()))
@@ -11,7 +12,7 @@ sys.path.insert(0, str(Path("..").resolve()))
 # -- Project information -----------------------------------------------------
 project = "mesa-frames"
 author = "Project Mesa, Adam Amer"
-copyright = f"2023, {author}"
+copyright = f"{datetime.now().year}, {author}"
 
 # -- General configuration ---------------------------------------------------
 extensions = [

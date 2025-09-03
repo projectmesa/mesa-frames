@@ -44,7 +44,7 @@ Here's a quick example of how to create a model using mesa-frames:
 from mesa_frames import AgentSet, Model
 import polars as pl
 
-class MoneyAgentDF(AgentSet):
+class MoneyAgents(AgentSet):
     def __init__(self, n: int, model: Model):
         super().__init__(model)
         self += pl.DataFrame(
@@ -57,7 +57,7 @@ class MoneyAgentDF(AgentSet):
     def give_money(self):
         # ... (implementation details)
 
-class MoneyModelDF(Model):
+class MoneyModel(Model):
     def __init__(self, N: int):
         super().__init__()
         self.sets += MoneyAgentDF(N, self)

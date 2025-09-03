@@ -35,7 +35,7 @@ Here's a comparison between mesa-frames and mesa:
 === "mesa-frames"
 
     ```python
-    class MoneyAgentDFConcise(AgentSet):
+    class MoneyAgents(AgentSet):
         # initialization...
         def give_money(self):
             # Active agents are changed to wealthy agents
@@ -84,7 +84,7 @@ If you're familiar with mesa, this guide will help you understand the key differ
 === "mesa-frames"
 
     ```python
-    class MoneyAgentSet(AgentSet):
+    class MoneyAgents(AgentSet):
         def __init__(self, n, model):
             super().__init__(model)
             self += pl.DataFrame({
@@ -124,7 +124,7 @@ If you're familiar with mesa, this guide will help you understand the key differ
     class MoneyModel(Model):
         def __init__(self, N):
             super().__init__()
-            self.sets += MoneyAgentSet(N, self)
+            self.sets += MoneyAgents(N, self)
 
         def step(self):
             self.sets.do("step")
