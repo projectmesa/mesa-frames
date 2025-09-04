@@ -497,7 +497,7 @@ class Space(CopyMixin, DataFrameMixin):
                 name="agent_id",
                 dtype="uint64",
             )
-        elif isinstance(agents, AgentSetRegistry):
+        elif isinstance(agents, AbstractAgentSetRegistry):
             return self._srs_constructor(agents._ids, name="agent_id", dtype="uint64")
         elif isinstance(agents, Collection) and (
             isinstance(agents[0], AbstractAgentSetRegistry)
@@ -512,7 +512,7 @@ class Space(CopyMixin, DataFrameMixin):
                             dtype="uint64",
                         )
                     )
-                elif isinstance(a, AgentSetRegistry):
+                elif isinstance(a, AbstractAgentSetRegistry):
                     ids.append(
                         self._srs_constructor(a._ids, name="agent_id", dtype="uint64")
                     )
