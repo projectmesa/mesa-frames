@@ -52,7 +52,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
-from typing import Any, Literal, Self
+from typing import Any, Literal, Self, cast
 from warnings import warn
 
 import numpy as np
@@ -64,7 +64,6 @@ from mesa_frames.abstract.agentsetregistry import (
     AbstractAgentSetRegistry,
 )
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
-from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 from mesa_frames.types_ import (
     ArrayLike,
     BoolSeries,
@@ -109,7 +108,9 @@ class Space(CopyMixin, DataFrameMixin):
     def move_agents(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         pos: SpaceCoordinate | SpaceCoordinates,
         inplace: bool = True,
@@ -145,7 +146,9 @@ class Space(CopyMixin, DataFrameMixin):
     def place_agents(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         pos: SpaceCoordinate | SpaceCoordinates,
         inplace: bool = True,
@@ -198,10 +201,14 @@ class Space(CopyMixin, DataFrameMixin):
     def swap_agents(
         self,
         agents0: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         agents1: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
@@ -222,8 +229,6 @@ class Space(CopyMixin, DataFrameMixin):
         -------
         Self
         """
-        agents0 = self._get_ids_srs(agents0)
-        agents1 = self._get_ids_srs(agents1)
         if __debug__:
             if len(agents0) != len(agents1):
                 raise ValueError("The two sets of agents must have the same length")
@@ -257,11 +262,15 @@ class Space(CopyMixin, DataFrameMixin):
         pos0: SpaceCoordinate | SpaceCoordinates | None = None,
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
         agents0: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         agents1: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         normalize: bool = False,
@@ -298,11 +307,15 @@ class Space(CopyMixin, DataFrameMixin):
         pos0: SpaceCoordinate | SpaceCoordinates | None = None,
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
         agents0: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         agents1: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
     ) -> DataFrame:
@@ -336,7 +349,9 @@ class Space(CopyMixin, DataFrameMixin):
         radius: int | float | Sequence[int] | Sequence[float] | ArrayLike,
         pos: SpaceCoordinate | SpaceCoordinates | None = None,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         include_center: bool = False,
@@ -438,7 +453,9 @@ class Space(CopyMixin, DataFrameMixin):
     def remove_agents(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
@@ -467,7 +484,9 @@ class Space(CopyMixin, DataFrameMixin):
     def _get_ids_srs(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
     ) -> Series:
         if isinstance(agents, Sized) and len(agents) == 0:
@@ -657,7 +676,9 @@ class AbstractDiscreteSpace(Space):
         self,
         agents: IdsLike
         | AbstractAgentSetRegistry
-        | Collection[AbstractAgentSetRegistry],
+        | Collection[AbstractAgentSetRegistry]
+        | AbstractAgentSet
+        | Collection[AbstractAgentSet],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -668,7 +689,9 @@ class AbstractDiscreteSpace(Space):
     def move_to_available(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
@@ -686,6 +709,7 @@ class AbstractDiscreteSpace(Space):
         Self
         """
         obj = self._get_obj(inplace)
+
         return obj._place_or_move_agents_to_cells(
             agents, cell_type="available", is_move=True
         )
@@ -693,11 +717,14 @@ class AbstractDiscreteSpace(Space):
     def place_to_empty(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
+
         return obj._place_or_move_agents_to_cells(
             agents, cell_type="empty", is_move=False
         )
@@ -705,7 +732,9 @@ class AbstractDiscreteSpace(Space):
     def place_to_available(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
@@ -933,7 +962,9 @@ class AbstractDiscreteSpace(Space):
     def _place_or_move_agents_to_cells(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         cell_type: Literal["any", "empty", "available"],
         is_move: bool,
@@ -994,7 +1025,7 @@ class AbstractDiscreteSpace(Space):
         self,
         n: int | None,
         with_replacement: bool,
-        condition: Callable[[DiscreteSpaceCapacity], BoolSeries],
+        condition: Callable[[DiscreteSpaceCapacity], BoolSeries | np.ndarray],
         respect_capacity: bool = True,
     ) -> DataFrame:
         """Sample cells from the grid according to a condition on the capacity.
@@ -1259,11 +1290,15 @@ class AbstractGrid(AbstractDiscreteSpace):
         pos0: GridCoordinate | GridCoordinates | None = None,
         pos1: GridCoordinate | GridCoordinates | None = None,
         agents0: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         agents1: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         normalize: bool = False,
@@ -1278,11 +1313,15 @@ class AbstractGrid(AbstractDiscreteSpace):
         pos0: GridCoordinate | GridCoordinates | None = None,
         pos1: GridCoordinate | GridCoordinates | None = None,
         agents0: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         agents1: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
     ) -> DataFrame:
@@ -1311,7 +1350,7 @@ class AbstractGrid(AbstractDiscreteSpace):
     def get_neighborhood(
         self,
         radius: int | Sequence[int] | ArrayLike,
-        pos: GridCoordinate | GridCoordinates | None = None,
+        pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
         agents: IdsLike
         | AbstractAgentSetRegistry
         | Collection[AbstractAgentSetRegistry]
@@ -1594,11 +1633,15 @@ class AbstractGrid(AbstractDiscreteSpace):
         pos0: GridCoordinate | GridCoordinates | None,
         pos1: GridCoordinate | GridCoordinates | None,
         agents0: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None,
         agents1: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None,
     ) -> DataFrame:
@@ -1694,7 +1737,9 @@ class AbstractGrid(AbstractDiscreteSpace):
         self,
         pos: GridCoordinate | GridCoordinates | None = None,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         check_bounds: bool = True,
@@ -1796,7 +1841,9 @@ class AbstractGrid(AbstractDiscreteSpace):
     def _place_or_move_agents(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         pos: GridCoordinate | GridCoordinates,
         is_move: bool,
