@@ -83,9 +83,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-    def __init__(
-        self, model: mesa_frames.concrete.model.Model, name: str | None = None
-    ) -> None:
+    def __init__(self, model: Model, name: str | None = None) -> None:
         """Initialize a new AgentSet.
 
         Parameters
@@ -103,10 +101,6 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
-
-    @property
-    def name(self) -> str | None:
-        return getattr(self, "_name", None)
 
     def rename(self, new_name: str) -> str:
         """Rename this agent set. If attached to AgentSetRegistry, delegate for uniqueness enforcement.
@@ -590,7 +584,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         return super().pos
 
     @property
-    def name(self) -> str | None:
+    def name(self) -> str:
         """Return the name of the AgentSet."""
         return self._name
 
