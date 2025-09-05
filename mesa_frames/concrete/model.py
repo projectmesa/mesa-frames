@@ -224,6 +224,6 @@ class Model:
 
         Parameters
         ----------
-        space : SpaceDF
+        space : Space
         """
         self._space = space
