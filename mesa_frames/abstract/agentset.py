@@ -35,7 +35,7 @@ from mesa_frames.types_ import (
 )
 
 
-class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
+class AbstractAgentSet(DataFrameMixin):
     """The AbstractAgentSet class is a container for agents of the same type.
 
     Parameters
@@ -44,6 +44,7 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         The model that the agent set belongs to.
     """
 
+    _copy_only_reference: list[str] = ["_model"]
     _df: DataFrame  # The agents in the AbstractAgentSet
     _mask: AgentMask  # The underlying mask used for the active agents in the AbstractAgentSet.
     _model: (
@@ -79,6 +80,31 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         """
         ...
 
+    @overload
+    @abstractmethod
+    def contains(self, agents: int) -> bool: ...
+
+    @overload
+    @abstractmethod
+    def contains(self, agents: IdsLike) -> BoolSeries: ...
+
+    @abstractmethod
+    def contains(self, agents: IdsLike) -> bool | BoolSeries:
+        """Check if agents with the specified IDs are in the AgentSet.
+
+        Parameters
+        ----------
+        agents : mesa_frames.concrete.agents.AgentSetDF | IdsLike
+            The ID(s) to check for.
+
+        Returns
+        -------
+        bool | BoolSeries
+            True if the agent is in the AgentSet, False otherwise.
+        """
+        ...
+
+    @abstractmethod
     def discard(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
         """Remove an agent from the AbstractAgentSet. Does not raise an error if the agent is not found.
 
@@ -94,65 +120,64 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Self
             The updated AbstractAgentSet.
         """
-        return super().discard(agents, inplace)
 
     @overload
+    @abstractmethod
     def do(
         self,
         method_name: str,
-        *args,
+        *args: Any,
         mask: AgentMask | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Self: ...
 
     @overload
+    @abstractmethod
     def do(
         self,
         method_name: str,
-        *args,
+        *args: Any,
         mask: AgentMask | None = None,
         return_results: Literal[True],
         inplace: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Any: ...
 
+    @abstractmethod
     def do(
         self,
         method_name: str,
-        *args,
+        *args: Any,
         mask: AgentMask | None = None,
         return_results: bool = False,
         inplace: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Self | Any:
-        masked_df = self._get_masked_df(mask)
-        # If the mask is empty, we can use the object as is
-        if len(masked_df) == len(self._df):
-            obj = self._get_obj(inplace)
-            method = getattr(obj, method_name)
-            result = method(*args, **kwargs)
-        else:  # If the mask is not empty, we need to create a new masked AbstractAgentSet and concatenate the AbstractAgentSets at the end
-            obj = self._get_obj(inplace=False)
-            obj._df = masked_df
-            original_masked_index = obj._get_obj_copy(obj.index)
-            method = getattr(obj, method_name)
-            result = method(*args, **kwargs)
-            obj._concatenate_agentsets(
-                [self],
-                duplicates_allowed=True,
-                keep_first_only=True,
-                original_masked_index=original_masked_index,
-            )
-            if inplace:
-                for key, value in obj.__dict__.items():
-                    setattr(self, key, value)
-                obj = self
-        if return_results:
-            return result
-        else:
-            return obj
+        """Invoke a method on the AgentSet.
+
+        Parameters
+        ----------
+        method_name : str
+            The name of the method to invoke.
+        *args : Any
+            Positional arguments to pass to the method
+        mask : AgentMask | None, optional
+            The subset of agents on which to apply the method
+        return_results : bool, optional
+            Whether to return the result of the method, by default False
+        inplace : bool, optional
+            Whether the operation should be done inplace, by default False
+        **kwargs : Any
+            Keyword arguments to pass to the method
+
+        Returns
+        -------
+        Self | Any
+            The updated AgentSet or the result of the method.
+        """
+        ...
 
     @abstractmethod
     @overload
@@ -181,20 +206,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
     def step(self) -> None:
         """Run a single step of the AbstractAgentSet. This method should be overridden by subclasses."""
         ...
-
-    def remove(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
-        if isinstance(agents, str) and agents == "active":
-            agents = self.active_agents
-        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
-            return self._get_obj(inplace)
-        agents = self._df_index(self._get_masked_df(agents), "unique_id")
-        sets = self.model.sets.remove(agents, inplace=inplace)
-        # TODO: Refactor AgentSetRegistry to return dict[str, AbstractAgentSet] instead of dict[AbstractAgentSet, DataFrame]
-        # And assign a name to AbstractAgentSet? This has to be replaced by a nicer API of AgentSetRegistry
-        for agentset in sets.df.keys():
-            if isinstance(agentset, self.__class__):
-                return agentset
-        return self
 
     @abstractmethod
     def _concatenate_agentsets(
