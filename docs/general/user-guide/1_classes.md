@@ -79,7 +79,7 @@ class ExampleModel(Model):
         self.sets = MoneyAgent(self)
         self.datacollector = DataCollector(
             model=self,
-            model_reporters={"total_wealth": lambda m: m.agents["wealth"].sum()},
+            model_reporters={"total_wealth": lambda m: lambda m: list(m.sets.df.values())[0]["wealth"].sum()},
             agent_reporters={"wealth": "wealth"},
             storage="csv",
             storage_uri="./data",
