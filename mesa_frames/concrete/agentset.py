@@ -67,7 +67,6 @@ import polars as pl
 
 from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
-from mesa_frames.concrete.model import Model
 from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
