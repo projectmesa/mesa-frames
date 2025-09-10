@@ -14,7 +14,7 @@ Classes:
         - DataFrameMixin: Mixin class defining the interface for DataFrame operations.
 
     space.py:
-            - Space: Abstract base class for all space classes.
+            - AbstractSpace: Abstract base class for all space classes.
             - AbstractDiscreteSpace: Abstract base class for discrete space classes (Grids and Networks).
             - AbstractGrid: Abstract base class for grid classes.
 
