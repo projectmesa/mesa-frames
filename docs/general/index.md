@@ -60,7 +60,7 @@ class MoneyAgents(AgentSet):
 class MoneyModel(Model):
     def __init__(self, N: int):
         super().__init__()
-        self.sets += MoneyAgentDF(N, self)
+        self.sets += MoneyAgents(N, self)
 
     def step(self):
         self.sets.do("step")
