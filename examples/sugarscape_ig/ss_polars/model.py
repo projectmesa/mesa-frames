@@ -3,13 +3,13 @@ import polars as pl
 
 from mesa_frames import Grid, Model
 
-from .agents import AntPolarsBase
+from .agents import AntDFBase
 
 
 class SugarscapePolars(Model):
     def __init__(
         self,
-        agent_type: type[AntPolarsBase],
+        agent_type: type[AntDFBase],
         n_agents: int,
         sugar_grid: np.ndarray | None = None,
         initial_sugar: np.ndarray | None = None,
@@ -41,7 +41,7 @@ class SugarscapePolars(Model):
 
     def run_model(self, steps: int) -> list[int]:
         for _ in range(steps):
-            if len(self.sets) == 0:
+            if len(list(self.sets.df.values())[0]) == 0:
                 return
             empty_cells = self.space.empty_cells
             full_cells = self.space.full_cells

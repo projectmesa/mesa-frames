@@ -93,7 +93,7 @@ The agent implementation differs from base mesa. Agents are only defined at the 
 ```python
 from mesa-frames import AgentSet
 
-class MoneyAgentDF(AgentSet):
+class MoneyAgents(AgentSet):
     def __init__(self, n: int, model: Model):
         super().__init__(model)
         # Adding the agents to the agent set
@@ -135,7 +135,7 @@ class MoneyModelDF(Model):
     def __init__(self, N: int, agents_cls):
         super().__init__()
         self.n_agents = N
-        self.sets += MoneyAgentDF(N, self)
+        self.sets += MoneyAgents(N, self)
 
     def step(self):
         # Executes the step method for every agentset in self.sets

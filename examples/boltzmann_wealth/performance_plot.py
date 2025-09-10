@@ -13,11 +13,11 @@ from mesa_frames import AgentSet, Model
 
 ### ---------- Mesa implementation ---------- ###
 def mesa_implementation(n_agents: int) -> None:
-    model = MoneyModel(n_agents)
+    model = MesaMoneyModel(n_agents)
     model.run_model(100)
 
 
-class MoneyAgent(mesa.Agent):
+class MesaMoneyAgent(mesa.Agent):
     """An agent with fixed initial wealth."""
 
     def __init__(self, model):
@@ -30,24 +30,24 @@ class MoneyAgent(mesa.Agent):
     def step(self):
         # Verify agent has some wealth
         if self.wealth > 0:
-            other_agent = self.random.choice(self.model.sets)
+            other_agent = self.random.choice(self.model.agents)
             if other_agent is not None:
                 other_agent.wealth += 1
                 self.wealth -= 1
 
 
-class MoneyModel(mesa.Model):
+class MesaMoneyModel(mesa.Model):
     """A model with some number of agents."""
 
     def __init__(self, N):
         super().__init__()
         self.num_agents = N
         for _ in range(self.num_agents):
-            self.sets.add(MoneyAgent(self))
+            self.agents.add(MesaMoneyAgent(self))
 
     def step(self):
         """Advance the model by one step."""
-        self.sets.shuffle_do("step")
+        self.agents.shuffle_do("step")
 
     def run_model(self, n_steps) -> None:
         for _ in range(n_steps):
@@ -65,7 +65,7 @@ class MoneyModel(mesa.Model):
 ### ---------- Mesa-frames implementation ---------- ###
 
 
-class MoneyAgentConcise(AgentSet):
+class MoneyAgentsConcise(AgentSet):
     def __init__(self, n: int, model: Model):
         super().__init__(model)
         ## Adding the agents to the agent set
@@ -120,7 +120,7 @@ class MoneyAgentConcise(AgentSet):
         self[new_wealth, "wealth"] += new_wealth["len"]
 
 
-class MoneyAgentNative(AgentSet):
+class MoneyAgentsNative(AgentSet):
     def __init__(self, n: int, model: Model):
         super().__init__(model)
         self += pl.DataFrame({"wealth": pl.ones(n, eager=True)})
@@ -170,12 +170,12 @@ class MoneyModel(Model):
 
 
 def mesa_frames_polars_concise(n_agents: int) -> None:
-    model = MoneyModel(n_agents, MoneyAgentConcise)
+    model = MoneyModel(n_agents, MoneyAgentsConcise)
     model.run_model(100)
 
 
 def mesa_frames_polars_native(n_agents: int) -> None:
-    model = MoneyModel(n_agents, MoneyAgentNative)
+    model = MoneyModel(n_agents, MoneyAgentsNative)
     model.run_model(100)
 
 

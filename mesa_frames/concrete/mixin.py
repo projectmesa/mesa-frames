@@ -23,7 +23,7 @@ Usage:
     from mesa_frames.abstract import AbstractAgentSet
     from mesa_frames.concrete.mixin import PolarsMixin
 
-    class AgentSet(AbstractAgentSet, PolarsMixin):
+    class AgentSet(AgentSet, PolarsMixin):
         def __init__(self, model):
             super().__init__(model)
             self.sets = pl.DataFrame()  # Initialize empty DataFrame
