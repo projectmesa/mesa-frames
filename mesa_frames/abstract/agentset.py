@@ -20,10 +20,12 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Collection, Iterable, Iterator
+from contextlib import suppress
 from typing import Any, Literal, Self, overload
 
-from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry
-from mesa_frames.abstract.mixin import DataFrameMixin
+from numpy.random import Generator
+
+from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
     AgentMask,
     BoolSeries,
@@ -35,7 +37,7 @@ from mesa_frames.types_ import (
 )
 
 
-class AbstractAgentSet(DataFrameMixin):
+class AbstractAgentSet(CopyMixin, DataFrameMixin):
     """The AbstractAgentSet class is a container for agents of the same type.
 
     Parameters
@@ -76,7 +78,7 @@ class AbstractAgentSet(DataFrameMixin):
         Returns
         -------
         Self
-            A new AbstractAgentSetRegistry with the added agents.
+            A new AbstractAgentSet with the added agents.
         """
         ...
 
@@ -104,7 +106,6 @@ class AbstractAgentSet(DataFrameMixin):
         """
         ...
 
-    @abstractmethod
     def discard(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
         """Remove an agent from the AbstractAgentSet. Does not raise an error if the agent is not found.
 
@@ -120,6 +121,27 @@ class AbstractAgentSet(DataFrameMixin):
         Self
             The updated AbstractAgentSet.
         """
+        with suppress(KeyError, ValueError):
+            return self.remove(agents, inplace=inplace)
+        return self._get_obj(inplace)
+
+    @abstractmethod
+    def remove(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
+        """Remove agents from this AbstractAgentSet.
+
+        Parameters
+        ----------
+        agents : IdsLike | AgentMask
+            The agents or mask to remove.
+        inplace : bool, optional
+            Whether to remove in place, by default True.
+
+        Returns
+        -------
+        Self
+            The updated agent set.
+        """
+        ...
 
     @overload
     @abstractmethod
@@ -296,9 +318,9 @@ class AbstractAgentSet(DataFrameMixin):
         Returns
         -------
         Self
-            A new AbstractAgentSetRegistry with the added agents.
+            A new AbstractAgentSet with the added agents.
         """
-        return super().__add__(other)
+        return self.add(other, inplace=False)
 
     def __iadd__(self, other: DataFrame | DataFrameInput) -> Self:
         """
@@ -316,9 +338,17 @@ class AbstractAgentSet(DataFrameMixin):
         Returns
         -------
         Self
-            The updated AbstractAgentSetRegistry.
+            The updated AbstractAgentSet.
         """
-        return super().__iadd__(other)
+        return self.add(other, inplace=True)
+
+    def __isub__(self, other: IdsLike | AgentMask | DataFrame) -> Self:
+        """Remove agents via -= operator."""
+        return self.discard(other, inplace=True)
+
+    def __sub__(self, other: IdsLike | AgentMask | DataFrame) -> Self:
+        """Return a new set with agents removed via - operator."""
+        return self.discard(other, inplace=False)
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any:
@@ -347,9 +377,20 @@ class AbstractAgentSet(DataFrameMixin):
             | tuple[AgentMask, Collection[str]]
         ),
     ) -> Series | DataFrame:
-        attr = super().__getitem__(key)
-        assert isinstance(attr, (Series, DataFrame, Index))
-        return attr
+        # Mirror registry/old container behavior: delegate to get()
+        if isinstance(key, tuple):
+            return self.get(mask=key[0], attr_names=key[1])
+        else:
+            if isinstance(key, str) or (
+                isinstance(key, Collection) and all(isinstance(k, str) for k in key)
+            ):
+                return self.get(attr_names=key)
+            else:
+                return self.get(mask=key)
+
+    def __contains__(self, agents: int) -> bool:
+        """Membership test for an agent id in this set."""
+        return bool(self.contains(agents))
 
     def __len__(self) -> int:
         return len(self._df)
@@ -387,6 +428,7 @@ class AbstractAgentSet(DataFrameMixin):
     def inactive_agents(self) -> DataFrame: ...
 
     @property
+    @abstractmethod
     def index(self) -> Index: ...
 
     @property
@@ -413,3 +455,37 @@ class AbstractAgentSet(DataFrameMixin):
             The name of the agent set
         """
         return self._name
+
+    @property
+    def model(self) -> mesa_frames.concrete.model.Model:
+        return self._model
+
+    @property
+    def random(self) -> Generator:
+        return self.model.random
+
+    @property
+    def space(self) -> mesa_frames.abstract.space.Space | None:
+        return self.model.space
+
+    def __setitem__(
+        self,
+        key: str
+        | Collection[str]
+        | AgentMask
+        | tuple[AgentMask, str | Collection[str]],
+        values: Any,
+    ) -> None:
+        """Set values using [] syntax, delegating to set()."""
+        if isinstance(key, tuple):
+            self.set(mask=key[0], attr_names=key[1], values=values)
+        else:
+            if isinstance(key, str) or (
+                isinstance(key, Collection) and all(isinstance(k, str) for k in key)
+            ):
+                try:
+                    self.set(attr_names=key, values=values)
+                except KeyError:  # key may actually be a mask
+                    self.set(attr_names=None, mask=key, values=values)
+            else:
+                self.set(attr_names=None, mask=key, values=values)
