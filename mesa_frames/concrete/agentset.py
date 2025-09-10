@@ -67,7 +67,7 @@ import polars as pl
 
 from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
-from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
+from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
 
@@ -214,6 +214,64 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         else:
             return agents in self._df["unique_id"]
 
+    @overload
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: Literal[False] = False,
+        inplace: bool = True,
+        **kwargs,
+    ) -> Self: ...
+
+    @overload
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: Literal[True],
+        inplace: bool = True,
+        **kwargs,
+    ) -> Any: ...
+
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: bool = False,
+        inplace: bool = True,
+        **kwargs,
+    ) -> Self | Any:
+        masked_df = self._get_masked_df(mask)
+        # If the mask is empty, we can use the object as is
+        if len(masked_df) == len(self._df):
+            obj = self._get_obj(inplace)
+            method = getattr(obj, method_name)
+            result = method(*args, **kwargs)
+        else:  # If the mask is not empty, we need to create a new masked AbstractAgentSet and concatenate the AbstractAgentSets at the end
+            obj = self._get_obj(inplace=False)
+            obj._df = masked_df
+            original_masked_index = obj._get_obj_copy(obj.index)
+            method = getattr(obj, method_name)
+            result = method(*args, **kwargs)
+            obj._concatenate_agentsets(
+                [self],
+                duplicates_allowed=True,
+                keep_first_only=True,
+                original_masked_index=original_masked_index,
+            )
+            if inplace:
+                for key, value in obj.__dict__.items():
+                    setattr(self, key, value)
+                obj = self
+        if return_results:
+            return result
+        else:
+            return obj
+
     def get(
         self,
         attr_names: IntoExpr | Iterable[IntoExpr] | None,
@@ -230,6 +288,18 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         if masked_df.shape[1] == 1:
             return masked_df[masked_df.columns[0]]
         return masked_df
+
+    def remove(self, agents: PolarsIdsLike | AgentMask, inplace: bool = True) -> Self:
+        if isinstance(agents, str) and agents == "active":
+            agents = self.active_agents
+        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
+            return self._get_obj(inplace)
+        agents = self._df_index(self._get_masked_df(agents), "unique_id")
+        sets = self.model.sets.remove(agents, inplace=inplace)
+        for agentset in sets.df.keys():
+            if isinstance(agentset, self.__class__):
+                return agentset
+        return self
 
     def set(
         self,
