@@ -46,7 +46,7 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from mesa_frames.abstract.agentset import AbstractAgentSet
+from mesa_frames.concrete.agentset import AgentSet
 from mesa_frames.abstract.space import Space
 from mesa_frames.concrete.agentsetregistry import AgentSetRegistry
 
@@ -99,18 +99,18 @@ class Model:
         """Get the current step count."""
         return self._steps
 
-    def get_sets_of_type(self, agent_type: type) -> AbstractAgentSet:
-        """Retrieve the AbstractAgentSet of a specified type.
+    def get_sets_of_type(self, agent_type: type) -> AgentSet:
+        """Retrieve the AgentSet of a specified type.
 
         Parameters
         ----------
         agent_type : type
-            The type of AbstractAgentSet to retrieve.
+            The type of AgentSet to retrieve.
 
         Returns
         -------
-        AbstractAgentSet
-            The AbstractAgentSet of the specified type.
+        AgentSet
+            The AgentSet of the specified type.
         """
         for agentset in self._sets._agentsets:
             if isinstance(agentset, agent_type):

@@ -41,7 +41,7 @@ class SugarscapePolars(Model):
 
     def run_model(self, steps: int) -> list[int]:
         for _ in range(steps):
-            if len(self.sets) == 0:
+            if len(list(self.sets.df.values())[0]) == 0:
                 return
             empty_cells = self.space.empty_cells
             full_cells = self.space.full_cells

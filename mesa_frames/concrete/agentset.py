@@ -118,7 +118,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         obj = self._get_obj(inplace)
         if isinstance(agents, AbstractAgentSet):
             raise TypeError(
-                "AgentSet.add() does not accept AbstractAgentSet objects. "
+                "AgentSet.add() does not accept AgentSet objects. "
                 "Extract the DataFrame with agents.agents.drop('unique_id') first."
             )
         elif isinstance(agents, pl.DataFrame):
@@ -314,7 +314,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
             all_indices = pl.concat(indices_list)
             if all_indices.is_duplicated().any():
                 raise ValueError(
-                    "Some ids are duplicated in the AbstractAgentSets that are trying to be concatenated"
+                    "Some ids are duplicated in the AgentSets that are trying to be concatenated"
                 )
         if duplicates_allowed & keep_first_only:
             # Find the original_index list (ie longest index list), to sort correctly the rows after concatenation
