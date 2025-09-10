@@ -4,7 +4,7 @@ This page provides a high-level overview of possible space objects for mesa-fram
 
 .. currentmodule:: mesa_frames
 
-.. autoclass:: GridPolars
+.. autoclass:: Grid
     :members:
     :inherited-members:
     :autosummary:
