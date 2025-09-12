@@ -238,32 +238,19 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         key: int | str | type[AgentSet],
         default: AgentSet | list[AgentSet] | None = None,
     ) -> AgentSet | list[AgentSet] | None:
-        attr_names: str | Collection[str] | None = None,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSet, AgentMask] = None,
-    ) -> dict[AgentSet, Series] | dict[AgentSet, DataFrame]:
-        agentsets_masks = self._get_bool_masks(mask)
-        result = {}
-
-        # Convert attr_names to list for consistent checking
-        if attr_names is None:
-            # None means get all data - no column filtering needed
-            required_columns = []
-        elif isinstance(attr_names, str):
-            required_columns = [attr_names]
-        else:
-            required_columns = list(attr_names)
-
-        for agentset, mask in agentsets_masks.items():
-            # Fast column existence check - no data processing, just property access
-            agentset_columns = agentset.df.columns
-
-            # Check if all required columns exist in this agent set
-            if not required_columns or all(
-                col in agentset_columns for col in required_columns
-            ):
-                result[agentset] = agentset.get(attr_names, mask)
-
-        return result
+        try:
+            if isinstance(key, int):
+                return self._agentsets[key]
+            if isinstance(key, str):
+                for s in self._agentsets:
+                    if s.name == key:
+                        return s
+                return default
+            if isinstance(key, type) and issubclass(key, AgentSet):
+                return [s for s in self._agentsets if isinstance(s, key)]
+        except (IndexError, KeyError, TypeError):
+            return default
+        return default
 
     def remove(
         self,
