@@ -424,17 +424,39 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
             [agentset in other_set for agentset in self._agentsets], dtype=pl.Boolean
         )
 
-    def _get_bool_masks(
-        self,
-        mask: (AgnosticAgentMask | IdsLike | dict[AgentSet, AgentMask]) = None,
-    ) -> dict[AgentSet, BoolSeries]:
-        return_dictionary = {}
-        if not isinstance(mask, dict):
-            # No need to convert numpy integers - let polars handle them directly
-            mask = {agentset: mask for agentset in self._agentsets}
-        for agentset, mask_value in mask.items():
-            return_dictionary[agentset] = agentset._get_bool_mask(mask_value)
-        return return_dictionary
+    def _resolve_selector(self, selector: AgentSetSelector = None) -> list[AgentSet]:
+        """Resolve a selector (instance/type/name or collection) to a list of AgentSets."""
+        if selector is None:
+            return list(self._agentsets)
+        # Single instance
+        if isinstance(selector, AgentSet):
+            return [selector] if selector in self._agentsets else []
+        # Single type
+        if isinstance(selector, type) and issubclass(selector, AgentSet):
+            return [s for s in self._agentsets if isinstance(s, selector)]
+        # Single name
+        if isinstance(selector, str):
+            return [s for s in self._agentsets if s.name == selector]
+        # Collection of mixed selectors
+        selected: list[AgentSet] = []
+        for item in selector:  # type: ignore[assignment]
+            if isinstance(item, AgentSet):
+                if item in self._agentsets:
+                    selected.append(item)
+            elif isinstance(item, type) and issubclass(item, AgentSet):
+                selected.extend([s for s in self._agentsets if isinstance(s, item)])
+            elif isinstance(item, str):
+                selected.extend([s for s in self._agentsets if s.name == item])
+            else:
+                raise TypeError("Unsupported selector element type")
+        # Deduplicate while preserving order
+        seen = set()
+        result = []
+        for s in selected:
+            if s not in seen:
+                seen.add(s)
+                result.append(s)
+        return result
 
     def _return_agentsets_list(
         self, agentsets: AgentSet | Iterable[AgentSet]
