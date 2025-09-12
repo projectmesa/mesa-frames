@@ -103,6 +103,116 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         obj._ids = new_ids
         return obj
 
+    def replace(
+        self,
+        mapping: (dict[int | str, AgentSet] | list[tuple[int | str, AgentSet]]),
+        *,
+        inplace: bool = True,
+        atomic: bool = True,
+    ) -> Self:
+        # Normalize to list of (key, value)
+        items: list[tuple[int | str, AgentSet]]
+        if isinstance(mapping, dict):
+            items = list(mapping.items())
+        else:
+            items = list(mapping)
+
+        obj = self._get_obj(inplace)
+
+        # Helpers (build name->idx map only if needed)
+        has_str_keys = any(isinstance(k, str) for k, _ in items)
+        if has_str_keys:
+            name_to_idx = {
+                s.name: i for i, s in enumerate(obj._agentsets) if s.name is not None
+            }
+
+            def _find_index_by_name(name: str) -> int:
+                try:
+                    return name_to_idx[name]
+                except KeyError:
+                    raise KeyError(f"Agent set '{name}' not found")
+        else:
+
+            def _find_index_by_name(name: str) -> int:
+                for i, s in enumerate(obj._agentsets):
+                    if s.name == name:
+                        return i
+
+                raise KeyError(f"Agent set '{name}' not found")
+
+        if atomic:
+            n = len(obj._agentsets)
+            # Map existing object identity -> index (for aliasing checks)
+            id_to_idx = {id(s): i for i, s in enumerate(obj._agentsets)}
+
+            for k, v in items:
+                if not isinstance(v, AgentSet):
+                    raise TypeError("Values must be AgentSet instances")
+                if v.model is not obj.model:
+                    raise TypeError(
+                        "All AgentSets must belong to the same model as the registry"
+                    )
+
+                v_idx_existing = id_to_idx.get(id(v))
+
+                if isinstance(k, int):
+                    if not (0 <= k < n):
+                        raise IndexError(
+                            f"Index {k} out of range for AgentSetRegistry of size {n}"
+                        )
+
+                    # Prevent aliasing: the same object cannot appear in two positions
+                    if v_idx_existing is not None and v_idx_existing != k:
+                        raise ValueError(
+                            f"This AgentSet instance already exists at index {v_idx_existing}; cannot also place it at {k}."
+                        )
+
+                    # Preserve name uniqueness when assigning by index
+                    vname = v.name
+                    if vname is not None:
+                        try:
+                            other_idx = _find_index_by_name(vname)
+                            if other_idx != k:
+                                raise ValueError(
+                                    f"Duplicate agent set name disallowed: '{vname}' already at index {other_idx}"
+                                )
+                        except KeyError:
+                            # name not present elsewhere -> OK
+                            pass
+
+                elif isinstance(k, str):
+                    # Locate the slot by name; replacing that slot preserves uniqueness
+                    idx = _find_index_by_name(k)
+
+                    # Prevent aliasing: if the same object already exists at a different slot, forbid
+                    if v_idx_existing is not None and v_idx_existing != idx:
+                        raise ValueError(
+                            f"This AgentSet instance already exists at index {v_idx_existing}; cannot also place it at {idx}."
+                        )
+
+                else:
+                    raise TypeError("Keys must be int indices or str names")
+
+        # Apply
+        target = obj if inplace else obj.copy(deep=False)
+        if not inplace:
+            target._agentsets = list(obj._agentsets)
+
+        for k, v in items:
+            if isinstance(k, int):
+                target._agentsets[k] = v  # keep v.name as-is (validated above)
+            else:
+                idx = _find_index_by_name(k)
+                # Force the authoritative name without triggering external uniqueness checks
+                if hasattr(v, "_name"):
+                    v._name = k  # type: ignore[attr-defined]
+                target._agentsets[idx] = v
+
+        # Recompute ids cache
+        target._recompute_ids()
+
+        return target
+
     @overload
     def contains(self, sets: AgentSet | type[AgentSet] | str) -> bool: ...
 
@@ -267,13 +377,7 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         for idx in indices:
             obj._agentsets.pop(idx)
         # Recompute ids cache
-        if obj._agentsets:
-            obj._ids = pl.concat(
-                [pl.Series(name="unique_id", dtype=pl.UInt64)]
-                + [pl.Series(s["unique_id"]) for s in obj._agentsets]
-            )
-        else:
-            obj._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
+        obj._recompute_ids()
         return obj
 
     def shuffle(self, inplace: bool = False) -> Self:
@@ -350,6 +454,21 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         return pl.Series(
             [agentset in other_set for agentset in self._agentsets], dtype=pl.Boolean
         )
+
+    def _recompute_ids(self) -> None:
+        """Rebuild the registry-level `unique_id` cache from current AgentSets.
+
+        Ensures `self._ids` stays a `pl.UInt64` Series and empty when no sets.
+        """
+        if self._agentsets:
+            cols = [pl.Series(s["unique_id"]) for s in self._agentsets]
+            self._ids = (
+                pl.concat(cols)
+                if cols
+                else pl.Series(name="unique_id", dtype=pl.UInt64)
+            )
+        else:
+            self._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
 
     def _resolve_selector(self, selector: AgentSetSelector = None) -> list[AgentSet]:
         """Resolve a selector (instance/type/name or collection) to a list of AgentSets."""
@@ -468,13 +587,7 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         else:
             raise TypeError("Key must be int index or str name")
         # Recompute ids cache
-        if self._agentsets:
-            self._ids = pl.concat(
-                [pl.Series(name="unique_id", dtype=pl.UInt64)]
-                + [pl.Series(s["unique_id"]) for s in self._agentsets]
-            )
-        else:
-            self._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
+        self._recompute_ids()
 
     def __str__(self) -> str:
         return "\n".join([str(agentset) for agentset in self._agentsets])
