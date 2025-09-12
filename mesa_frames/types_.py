@@ -3,7 +3,7 @@
 from __future__ import annotations
 from collections.abc import Collection, Sequence
 from datetime import date, datetime, time, timedelta
-from typing import Literal, Annotated, Union, Any
+from typing import Literal, Annotated, Union, Any, TYPE_CHECKING
 from collections.abc import Mapping
 from beartype.vale import IsEqual
 import math
@@ -85,6 +85,16 @@ Infinity = Annotated[float, IsEqual[math.inf]]  # Only accepts math.inf
 
 # Common option types
 KeyBy = Literal["name", "index", "type"]
+
+# Selector for choosing AgentSets at the registry level
+if TYPE_CHECKING:
+    from mesa_frames.abstract.agentset import AbstractAgentSet as _AAS
+
+    AgentSetSelector = (
+        _AAS | type[_AAS] | str | Collection[_AAS | type[_AAS] | str] | None
+    )
+else:
+    AgentSetSelector = Any  # runtime fallback to avoid import cycles
 
 ###----- Time ------###
 TimeT = float | int

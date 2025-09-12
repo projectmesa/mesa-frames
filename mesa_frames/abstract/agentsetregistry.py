@@ -51,12 +51,10 @@ from numpy.random import Generator
 
 from mesa_frames.abstract.mixin import CopyMixin
 from mesa_frames.types_ import (
-    AgentMask,
     BoolSeries,
-    DataFrame,
-    DataFrameInput,
-    IdsLike,
     Index,
+    KeyBy,
+    AgentSetSelector,
     Series,
 )
 
@@ -74,20 +72,17 @@ class AbstractAgentSetRegistry(CopyMixin):
 
     def discard(
         self,
-        agents: IdsLike
-        | AgentMask
-        | mesa_frames.abstract.agentset.AbstractAgentSet
-        | Collection[mesa_frames.abstract.agentset.AbstractAgentSet],
+        sets: AgentSetSelector,
         inplace: bool = True,
     ) -> Self:
-        """Remove agents from the AbstractAgentSetRegistry. Does not raise an error if the agent is not found.
+        """Remove AgentSets selected by ``sets``. Ignores missing.
 
         Parameters
         ----------
-        agents : IdsLike | AgentMask | mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
-            The agents to remove
+        sets : AgentSetSelector
+            Which AgentSets to remove (instance, type, name, or collection thereof).
         inplace : bool
-            Whether to remove the agent in place. Defaults to True.
+            Whether to remove in place. Defaults to True.
 
         Returns
         -------
@@ -95,26 +90,26 @@ class AbstractAgentSetRegistry(CopyMixin):
             The updated AbstractAgentSetRegistry.
         """
         with suppress(KeyError, ValueError):
-            return self.remove(agents, inplace=inplace)
+            return self.remove(sets, inplace=inplace)
         return self._get_obj(inplace)
 
     @abstractmethod
     def add(
         self,
-        agents: DataFrame
-        | DataFrameInput
-        | mesa_frames.abstract.agentset.AbstractAgentSet
-        | Collection[mesa_frames.abstract.agentset.AbstractAgentSet],
+        sets: (
+            mesa_frames.abstract.agentset.AbstractAgentSet
+            | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
+        ),
         inplace: bool = True,
     ) -> Self:
-        """Add agents to the AbstractAgentSetRegistry.
+        """Add AgentSets to the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : DataFrame | DataFrameInput | mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
-            The agents to add.
+        agents : mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
+            The AgentSet(s) to add.
         inplace : bool
-            Whether to add the agents in place. Defaults to True.
+            Whether to add in place. Defaults to True.
 
         Returns
         -------
@@ -125,29 +120,40 @@ class AbstractAgentSetRegistry(CopyMixin):
 
     @overload
     @abstractmethod
-    def contains(self, agents: int) -> bool: ...
+    def contains(
+        self,
+        sets: (
+            mesa_frames.abstract.agentset.AbstractAgentSet
+            | type[mesa_frames.abstract.agentset.AbstractAgentSet]
+            | str
+        ),
+    ) -> bool: ...
 
     @overload
     @abstractmethod
     def contains(
-        self, agents: mesa_frames.abstract.agentset.AbstractAgentSet | IdsLike
+        self,
+        sets: Collection[
+            mesa_frames.abstract.agentset.AbstractAgentSet
+            | type[mesa_frames.abstract.agentset.AbstractAgentSet]
+            | str
+        ],
     ) -> BoolSeries: ...
 
     @abstractmethod
-    def contains(
-        self, agents: mesa_frames.abstract.agentset.AbstractAgentSet | IdsLike
-    ) -> bool | BoolSeries:
-        """Check if agents with the specified IDs are in the AbstractAgentSetRegistry.
+    def contains(self, sets: AgentSetSelector) -> bool | BoolSeries:
+        """Check if selected AgentSets are present in the registry.
 
         Parameters
         ----------
-        agents : mesa_frames.abstract.agentset.AbstractAgentSet | IdsLike
-            The ID(s) to check for.
+        sets : AgentSetSelector
+            An AgentSet instance, class/type, name string, or a collection of
+            those. For collections, returns a BoolSeries aligned with input order.
 
         Returns
         -------
         bool | BoolSeries
-            True if the agent is in the AbstractAgentSetRegistry, False otherwise.
+            Boolean for single selector values; BoolSeries for collections.
         """
 
     @overload
@@ -156,9 +162,10 @@ class AbstractAgentSetRegistry(CopyMixin):
         self,
         method_name: str,
         *args: Any,
-        mask: AgentMask | None = None,
+        sets: AgentSetSelector | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
+        key_by: KeyBy = "name",
         **kwargs: Any,
     ) -> Self: ...
 
@@ -168,22 +175,35 @@ class AbstractAgentSetRegistry(CopyMixin):
         self,
         method_name: str,
         *args: Any,
-        mask: AgentMask | None = None,
+        sets: AgentSetSelector,
         return_results: Literal[True],
         inplace: bool = True,
+        key_by: KeyBy = "name",
         **kwargs: Any,
-    ) -> Any | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Any]: ...
+    ) -> (
+        Any
+        | dict[str, Any]
+        | dict[int, Any]
+        | dict[type[mesa_frames.abstract.agentset.AbstractAgentSet], Any]
+    ): ...
 
     @abstractmethod
     def do(
         self,
         method_name: str,
         *args: Any,
-        mask: AgentMask | None = None,
+        sets: AgentSetSelector = None,
         return_results: bool = False,
         inplace: bool = True,
+        key_by: KeyBy = "name",
         **kwargs: Any,
-    ) -> Self | Any | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Any]:
+    ) -> (
+        Self
+        | Any
+        | dict[str, Any]
+        | dict[int, Any]
+        | dict[type[mesa_frames.abstract.agentset.AbstractAgentSet], Any]
+    ):
         """Invoke a method on the AbstractAgentSetRegistry.
 
         Parameters
@@ -192,71 +212,88 @@ class AbstractAgentSetRegistry(CopyMixin):
             The name of the method to invoke.
         *args : Any
             Positional arguments to pass to the method
-        mask : AgentMask | None, optional
-            The subset of agents on which to apply the method
+        sets : AgentSetSelector, optional
+            Which AgentSets to target (instance, type, name, or collection thereof). Defaults to all.
         return_results : bool, optional
-            Whether to return the result of the method, by default False
+            Whether to return per-set results as a dictionary, by default False.
         inplace : bool, optional
             Whether the operation should be done inplace, by default False
+        key_by : KeyBy, optional
+            Key domain for the returned mapping when ``return_results`` is True.
+            - "name" (default) → keys are set names (str)
+            - "index" → keys are positional indices (int)
+            - "type" → keys are concrete set classes (type)
         **kwargs : Any
             Keyword arguments to pass to the method
 
         Returns
         -------
-        Self | Any | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Any]
-            The updated AbstractAgentSetRegistry or the result of the method.
+        Self | Any | dict[str, Any] | dict[int, Any] | dict[type[AbstractAgentSet], Any]
+            The updated registry, or the method result(s). When ``return_results``
+            is True, returns a dictionary keyed per ``key_by``.
         """
         ...
 
-    @abstractmethod
     @overload
-    def get(self, attr_names: str) -> Series | dict[str, Series]: ...
-
     @abstractmethod
-    @overload
     def get(
-        self, attr_names: Collection[str] | None = None
-    ) -> DataFrame | dict[str, DataFrame]: ...
+        self, key: int, default: None = ...
+    ) -> mesa_frames.abstract.agentset.AbstractAgentSet | None: ...
+
+    @overload
+    @abstractmethod
+    def get(
+        self, key: str, default: None = ...
+    ) -> mesa_frames.abstract.agentset.AbstractAgentSet | None: ...
+
+    @overload
+    @abstractmethod
+    def get(
+        self,
+        key: type[mesa_frames.abstract.agentset.AbstractAgentSet],
+        default: None = ...,
+    ) -> list[mesa_frames.abstract.agentset.AbstractAgentSet]: ...
+
+    @overload
+    @abstractmethod
+    def get(
+        self,
+        key: int | str | type[mesa_frames.abstract.agentset.AbstractAgentSet],
+        default: mesa_frames.abstract.agentset.AbstractAgentSet
+        | list[mesa_frames.abstract.agentset.AbstractAgentSet]
+        | None,
+    ) -> (
+        mesa_frames.abstract.agentset.AbstractAgentSet
+        | list[mesa_frames.abstract.agentset.AbstractAgentSet]
+        | None
+    ): ...
 
     @abstractmethod
     def get(
         self,
-        attr_names: str | Collection[str] | None = None,
-        mask: AgentMask | None = None,
-    ) -> Series | dict[str, Series] | DataFrame | dict[str, DataFrame]:
-        """Retrieve the value of a specified attribute for each agent in the AbstractAgentSetRegistry.
-
-        Parameters
-        ----------
-        attr_names : str | Collection[str] | None, optional
-            The attributes to retrieve. If None, all attributes are retrieved. Defaults to None.
-        mask : AgentMask | None, optional
-            The AgentMask of agents to retrieve the attribute for. If None, attributes of all agents are returned. Defaults to None.
-
-        Returns
-        -------
-        Series | dict[str, Series] | DataFrame | dict[str, DataFrame]
-            The attribute values.
-        """
-        ...
+        key: int | str | type[mesa_frames.abstract.agentset.AbstractAgentSet],
+        default: mesa_frames.abstract.agentset.AbstractAgentSet
+        | list[mesa_frames.abstract.agentset.AbstractAgentSet]
+        | None = None,
+    ) -> (
+        mesa_frames.abstract.agentset.AbstractAgentSet
+        | list[mesa_frames.abstract.agentset.AbstractAgentSet]
+        | None
+    ):
+        """Safe lookup for AgentSet(s) by index, name, or type."""
 
     @abstractmethod
     def remove(
         self,
-        agents: (
-            IdsLike
-            | AgentMask
-            | mesa_frames.abstract.agentset.AbstractAgentSet
-            | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
-        ),
+        sets: AgentSetSelector,
         inplace: bool = True,
     ) -> Self:
-        """Remove the agents from the AbstractAgentSetRegistry.
+        """Remove AgentSets from the AbstractAgentSetRegistry.
 
         Parameters
         ----------
-        agents : IdsLike | AgentMask | mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
-            The agents to remove.
+        sets : AgentSetSelector
+            Which AgentSets to remove (instance, type, name, or collection thereof).
         inplace : bool, optional
             Whether to remove the agent in place.
 
@@ -267,96 +304,46 @@ class AbstractAgentSetRegistry(CopyMixin):
         """
         ...
 
+    # select() intentionally removed from the abstract API.
+
     @abstractmethod
-    def select(
+    def replace(
         self,
-        mask: AgentMask | None = None,
-        filter_func: Callable[[Self], AgentMask] | None = None,
-        n: int | None = None,
-        negate: bool = False,
+        mapping: (
+            dict[int | str, mesa_frames.abstract.agentset.AbstractAgentSet]
+            | list[tuple[int | str, mesa_frames.abstract.agentset.AbstractAgentSet]]
+        ),
+        *,
         inplace: bool = True,
+        atomic: bool = True,
     ) -> Self:
-        """Select agents in the AbstractAgentSetRegistry based on the given criteria.
+        """Batch assign/replace AgentSets by index or name.
 
         Parameters
         ----------
-        mask : AgentMask | None, optional
-            The AgentMask of agents to be selected, by default None
-        filter_func : Callable[[Self], AgentMask] | None, optional
-            A function which takes as input the AbstractAgentSetRegistry and returns a AgentMask, by default None
-        n : int | None, optional
-            The maximum number of agents to be selected, by default None
-        negate : bool, optional
-            If the selection should be negated, by default False
+        mapping : dict[int | str, AbstractAgentSet] | list[tuple[int | str, AbstractAgentSet]]
+            Keys are indices or names to assign; values are AgentSets bound to the same model.
         inplace : bool, optional
-            If the operation should be performed on the same object, by default True
+            Whether to apply on this registry or return a copy, by default True.
+        atomic : bool, optional
+            When True, validates all keys and name invariants before applying any
+            change; either all assignments succeed or none are applied.
 
         Returns
         -------
         Self
-            A new or updated AbstractAgentSetRegistry.
-        """
-        ...
-
-    @abstractmethod
-    @overload
-    def set(
-        self,
-        attr_names: dict[str, Any],
-        values: None,
-        mask: AgentMask | None = None,
-        inplace: bool = True,
-    ) -> Self: ...
-
-    @abstractmethod
-    @overload
-    def set(
-        self,
-        attr_names: str | Collection[str],
-        values: Any,
-        mask: AgentMask | None = None,
-        inplace: bool = True,
-    ) -> Self: ...
-
-    @abstractmethod
-    def set(
-        self,
-        attr_names: DataFrameInput | str | Collection[str],
-        values: Any | None = None,
-        mask: AgentMask | None = None,
-        inplace: bool = True,
-    ) -> Self:
-        """Set the value of a specified attribute or attributes for each agent in the mask in AbstractAgentSetRegistry.
-
-        Parameters
-        ----------
-        attr_names : DataFrameInput | str | Collection[str]
-            The key can be:
-            - A string: sets the specified column of the agents in the AbstractAgentSetRegistry.
-            - A collection of strings: sets the specified columns of the agents in the AbstractAgentSetRegistry.
-            - A dictionary: keys should be attributes and values should be the values to set. Value should be None.
-        values : Any | None
-            The value to set the attribute to. If None, attr_names must be a dictionary.
-        mask : AgentMask | None
-            The AgentMask of agents to set the attribute for.
-        inplace : bool
-            Whether to set the attribute in place.
-
-        Returns
-        -------
-        Self
-            The updated agent set.
+            Updated registry.
         """
         ...
 
     @abstractmethod
     def shuffle(self, inplace: bool = False) -> Self:
-        """Shuffles the order of agents in the AbstractAgentSetRegistry.
+        """Shuffle the order of AgentSets in the registry.
 
         Parameters
         ----------
         inplace : bool
-            Whether to shuffle the agents in place.
+            Whether to shuffle in place.
 
         Returns
         -------
@@ -373,7 +360,7 @@ class AbstractAgentSetRegistry(CopyMixin):
         **kwargs,
     ) -> Self:
         """
-        Sorts the agents in the agent set based on the given criteria.
+        Sort the AgentSets in the registry based on the given criteria.
 
         Parameters
         ----------
@@ -394,145 +381,75 @@ class AbstractAgentSetRegistry(CopyMixin):
 
     def __add__(
         self,
-        other: DataFrame
-        | DataFrameInput
-        | mesa_frames.abstract.agentset.AbstractAgentSet
+        other: mesa_frames.abstract.agentset.AbstractAgentSet
         | Collection[mesa_frames.abstract.agentset.AbstractAgentSet],
     ) -> Self:
-        """Add agents to a new AbstractAgentSetRegistry through the + operator.
-
-        Parameters
-        ----------
-        other : DataFrame | DataFrameInput | mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
-            The agents to add.
-
-        Returns
-        -------
-        Self
-            A new AbstractAgentSetRegistry with the added agents.
-        """
-        return self.add(agents=other, inplace=False)
+        """Add AgentSets to a new AbstractAgentSetRegistry through the + operator."""
+        return self.add(sets=other, inplace=False)
 
     def __contains__(
-        self, agents: int | mesa_frames.abstract.agentset.AbstractAgentSet
+        self, sets: mesa_frames.abstract.agentset.AbstractAgentSet
     ) -> bool:
-        """Check if an agent is in the AbstractAgentSetRegistry.
-
-        Parameters
-        ----------
-        agents : int | mesa_frames.abstract.agentset.AbstractAgentSet
-            The ID(s) or AbstractAgentSet to check for.
-
-        Returns
-        -------
-        bool
-            True if the agent is in the AbstractAgentSetRegistry, False otherwise.
-        """
-        return self.contains(agents=agents)
+        """Check if an AgentSet is in the AbstractAgentSetRegistry."""
+        return bool(self.contains(sets=sets))
 
     @overload
     def __getitem__(
-        self, key: str | tuple[AgentMask, str]
-    ) -> Series | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Series]: ...
+        self, key: int
+    ) -> mesa_frames.abstract.agentset.AbstractAgentSet: ...
 
     @overload
     def __getitem__(
-        self,
-        key: AgentMask | Collection[str] | tuple[AgentMask, Collection[str]],
-    ) -> (
-        DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
-    ): ...
+        self, key: str
+    ) -> mesa_frames.abstract.agentset.AbstractAgentSet: ...
+
+    @overload
+    def __getitem__(
+        self, key: type[mesa_frames.abstract.agentset.AbstractAgentSet]
+    ) -> list[mesa_frames.abstract.agentset.AbstractAgentSet]: ...
 
     def __getitem__(
-        self,
-        key: (
-            str
-            | Collection[str]
-            | AgentMask
-            | tuple[AgentMask, str]
-            | tuple[AgentMask, Collection[str]]
-            | tuple[
-                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str
-            ]
-            | tuple[
-                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask],
-                Collection[str],
-            ]
-        ),
+        self, key: int | str | type[mesa_frames.abstract.agentset.AbstractAgentSet]
     ) -> (
-        Series
-        | DataFrame
-        | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Series]
-        | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
+        mesa_frames.abstract.agentset.AbstractAgentSet
+        | list[mesa_frames.abstract.agentset.AbstractAgentSet]
     ):
-        """Implement the [] operator for the AbstractAgentSetRegistry.
-
-        The key can be:
-        - An attribute or collection of attributes (eg. AbstractAgentSetRegistry["str"], AbstractAgentSetRegistry[["str1", "str2"]]): returns the specified column(s) of the agents in the AbstractAgentSetRegistry.
-        - An AgentMask (eg. AbstractAgentSetRegistry[AgentMask]): returns the agents in the AbstractAgentSetRegistry that satisfy the AgentMask.
-        - A tuple (eg. AbstractAgentSetRegistry[AgentMask, "str"]): returns the specified column of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask.
-        - A tuple with a dictionary (eg. AbstractAgentSetRegistry[{AbstractAgentSet: AgentMask}, "str"]): returns the specified column of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask from the dictionary.
-        - A tuple with a dictionary (eg. AbstractAgentSetRegistry[{AbstractAgentSet: AgentMask}, Collection[str]]): returns the specified columns of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask from the dictionary.
-
-        Parameters
-        ----------
-        key : str | Collection[str] | AgentMask | tuple[AgentMask, str] | tuple[AgentMask, Collection[str]] | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str] | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
-            The key to retrieve.
-
-        Returns
-        -------
-        Series | DataFrame | dict[mesa_frames.abstract.agentset.AbstractAgentSet, Series] | dict[mesa_frames.abstract.agentset.AbstractAgentSet, DataFrame]
-            The attribute values.
-        """
-        # TODO: fix types
-        if isinstance(key, tuple):
-            return self.get(mask=key[0], attr_names=key[1])
-        else:
-            if isinstance(key, str) or (
-                isinstance(key, Collection) and all(isinstance(k, str) for k in key)
-            ):
-                return self.get(attr_names=key)
-            else:
-                return self.get(mask=key)
+        """Retrieve AgentSet(s) by index, name, or type."""
 
     def __iadd__(
         self,
         other: (
-            DataFrame
-            | DataFrameInput
-            | mesa_frames.abstract.agentset.AbstractAgentSet
+            mesa_frames.abstract.agentset.AbstractAgentSet
             | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
         ),
     ) -> Self:
-        """Add agents to the AbstractAgentSetRegistry through the += operator.
+        """Add AgentSets to the registry through the += operator.
 
         Parameters
         ----------
-        other : DataFrame | DataFrameInput | mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
-            The agents to add.
+        other : mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
+            The AgentSets to add.
 
         Returns
         -------
         Self
             The updated AbstractAgentSetRegistry.
         """
-        return self.add(agents=other, inplace=True)
+        return self.add(sets=other, inplace=True)
 
     def __isub__(
         self,
         other: (
-            IdsLike
-            | AgentMask
-            | mesa_frames.abstract.agentset.AbstractAgentSet
+            mesa_frames.abstract.agentset.AbstractAgentSet
             | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
         ),
     ) -> Self:
-        """Remove agents from the AbstractAgentSetRegistry through the -= operator.
+        """Remove AgentSets from the registry through the -= operator.
 
         Parameters
         ----------
-        other : IdsLike | AgentMask | mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
-            The agents to remove.
+        other : mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
+            The AgentSets to remove.
 
         Returns
         -------
@@ -544,142 +461,65 @@ class AbstractAgentSetRegistry(CopyMixin):
     def __sub__(
         self,
         other: (
-            IdsLike
-            | AgentMask
-            | mesa_frames.abstract.agentset.AbstractAgentSet
+            mesa_frames.abstract.agentset.AbstractAgentSet
             | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
         ),
     ) -> Self:
-        """Remove agents from a new AbstractAgentSetRegistry through the - operator.
+        """Remove AgentSets from a new registry through the - operator.
 
         Parameters
         ----------
-        other : IdsLike | AgentMask | mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
-            The agents to remove.
+        other : mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
+            The AgentSets to remove.
 
         Returns
         -------
         Self
-            A new AbstractAgentSetRegistry with the removed agents.
+            A new AbstractAgentSetRegistry with the removed AgentSets.
         """
         return self.discard(other, inplace=False)
 
     def __setitem__(
         self,
-        key: (
-            str
-            | Collection[str]
-            | AgentMask
-            | tuple[AgentMask, str | Collection[str]]
-            | tuple[
-                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str
-            ]
-            | tuple[
-                dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask],
-                Collection[str],
-            ]
-        ),
-        values: Any,
+        key: int | str,
+        value: mesa_frames.abstract.agentset.AbstractAgentSet,
     ) -> None:
-        """Implement the [] operator for setting values in the AbstractAgentSetRegistry.
+        """Assign/replace a single AgentSet at an index or name.
 
-        The key can be:
-        - A string (eg. AbstractAgentSetRegistry["str"]): sets the specified column of the agents in the AbstractAgentSetRegistry.
-        - A list of strings(eg. AbstractAgentSetRegistry[["str1", "str2"]]): sets the specified columns of the agents in the AbstractAgentSetRegistry.
-        - A tuple (eg. AbstractAgentSetRegistry[AgentMask, "str"]): sets the specified column of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask.
-        - A AgentMask (eg. AbstractAgentSetRegistry[AgentMask]): sets the attributes of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask.
-        - A tuple with a dictionary (eg. AbstractAgentSetRegistry[{AbstractAgentSet: AgentMask}, "str"]): sets the specified column of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask from the dictionary.
-        - A tuple with a dictionary (eg. AbstractAgentSetRegistry[{AbstractAgentSet: AgentMask}, Collection[str]]): sets the specified columns of the agents in the AbstractAgentSetRegistry that satisfy the AgentMask from the dictionary.
-
-        Parameters
-        ----------
-        key : str | Collection[str] | AgentMask | tuple[AgentMask, str | Collection[str]] | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], str] | tuple[dict[mesa_frames.abstract.agentset.AbstractAgentSet, AgentMask], Collection[str]]
-            The key to set.
-        values : Any
-            The values to set for the specified key.
+        Mirrors the invariants of ``replace`` for single-key assignment:
+        - Names remain unique across the registry
+        - ``value.model is self.model``
+        - For name keys, the key is authoritative for the assigned set's name
+        - For index keys, collisions on a different entry's name must raise
         """
-        # TODO: fix types as in __getitem__
-        if isinstance(key, tuple):
-            self.set(mask=key[0], attr_names=key[1], values=values)
-        else:
-            if isinstance(key, str) or (
-                isinstance(key, Collection) and all(isinstance(k, str) for k in key)
-            ):
-                try:
-                    self.set(attr_names=key, values=values)
-                except KeyError:  # key=AgentMask
-                    self.set(attr_names=None, mask=key, values=values)
-            else:
-                self.set(attr_names=None, mask=key, values=values)
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any | dict[str, Any]:
-        """Fallback for retrieving attributes of the AbstractAgentSetRegistry. Retrieve an attribute of the underlying DataFrame(s).
-
-        Parameters
-        ----------
-        name : str
-            The name of the attribute to retrieve.
-
-        Returns
-        -------
-        Any | dict[str, Any]
-            The attribute value
-        """
+        """Fallback for retrieving attributes of the AgentSetRegistry."""
 
     @abstractmethod
-    def __iter__(self) -> Iterator[dict[str, Any]]:
-        """Iterate over the agents in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        Iterator[dict[str, Any]]
-            An iterator over the agents.
-        """
+    def __iter__(self) -> Iterator[mesa_frames.abstract.agentset.AbstractAgentSet]:
+        """Iterate over AgentSets in the registry."""
         ...
 
     @abstractmethod
     def __len__(self) -> int:
-        """Get the number of agents in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        int
-            The number of agents in the AbstractAgentSetRegistry.
-        """
+        """Get the number of AgentSets in the registry."""
         ...
 
     @abstractmethod
     def __repr__(self) -> str:
-        """Get a string representation of the DataFrame in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        str
-            A string representation of the DataFrame in the AbstractAgentSetRegistry.
-        """
+        """Get a string representation of the AgentSets in the registry."""
         pass
 
     @abstractmethod
     def __reversed__(self) -> Iterator:
-        """Iterate over the agents in the AbstractAgentSetRegistry in reverse order.
-
-        Returns
-        -------
-        Iterator
-            An iterator over the agents in reverse order.
-        """
+        """Iterate over AgentSets in reverse order."""
         ...
 
     @abstractmethod
     def __str__(self) -> str:
-        """Get a string representation of the agents in the AbstractAgentSetRegistry.
-
-        Returns
-        -------
-        str
-            A string representation of the agents in the AbstractAgentSetRegistry.
-        """
+        """Get a string representation of the AgentSets in the registry."""
         ...
 
     @property
