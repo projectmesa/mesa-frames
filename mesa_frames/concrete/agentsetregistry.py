@@ -193,32 +193,29 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         **kwargs: Any,
     ) -> Self | Any:
         obj = self._get_obj(inplace)
-        agentsets_masks = obj._get_bool_masks(mask)
+        target_sets = obj._resolve_selector(sets)
         if return_results:
+
+            def make_key(i: int, s: AgentSet) -> Any:
+                if key_by == "name":
+                    return s.name
+                if key_by == "index":
+                    return i
+                if key_by == "type":
+                    return type(s)
+                return s  # backward-compatible: key by object
+
             return {
-                agentset: agentset.do(
-                    method_name,
-                    *args,
-                    mask=mask,
-                    return_results=return_results,
-                    **kwargs,
-                    inplace=inplace,
+                make_key(i, s): s.do(
+                    method_name, *args, return_results=True, inplace=inplace, **kwargs
                 )
-                for agentset, mask in agentsets_masks.items()
+                for i, s in enumerate(target_sets)
             }
-        else:
-            obj._agentsets = [
-                agentset.do(
-                    method_name,
-                    *args,
-                    mask=mask,
-                    return_results=return_results,
-                    **kwargs,
-                    inplace=inplace,
-                )
-                for agentset, mask in agentsets_masks.items()
-            ]
-            return obj
+        obj._agentsets = [
+            s.do(method_name, *args, return_results=False, inplace=inplace, **kwargs)
+            for s in target_sets
+        ]
+        return obj
 
     @overload
     def get(self, key: int, default: None = ...) -> AgentSet | None: ...
