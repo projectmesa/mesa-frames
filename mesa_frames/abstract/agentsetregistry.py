@@ -54,7 +54,7 @@ from mesa_frames.types_ import (
     BoolSeries,
     Index,
     KeyBy,
-    AgentSetSelector,
+    AbstractAgentSetSelector as AgentSetSelector,
     Series,
 )
 
