@@ -46,26 +46,16 @@ the class docstring.
 
 from __future__ import annotations  # For forward references
 
-from collections import defaultdict
-from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
-from typing import Any, Literal, Self, cast, overload
+from collections.abc import Collection, Iterable, Iterator, Sequence
+from typing import Any, Literal, Self, overload, cast
 
-import numpy as np
 import polars as pl
 
 from mesa_frames.abstract.agentsetregistry import (
     AbstractAgentSetRegistry,
 )
 from mesa_frames.concrete.agentset import AgentSet
-from mesa_frames.types_ import (
-    AgentMask,
-    AgnosticAgentMask,
-    BoolSeries,
-    DataFrame,
-    IdsLike,
-    Index,
-    Series,
-)
+from mesa_frames.types_ import BoolSeries, KeyBy, AgentSetSelector
 
 
 class AgentSetRegistry(AbstractAgentSetRegistry):
@@ -88,30 +78,11 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
 
     def add(
         self,
-        agents: AgentSet | Iterable[AgentSet],
+        sets: AgentSet | Iterable[AgentSet],
         inplace: bool = True,
     ) -> Self:
-        """Add an AgentSet to the AgentSetRegistry.
-
-        Parameters
-        ----------
-        agents : AgentSet | Iterable[AgentSet]
-            The AgentSets to add.
-        inplace : bool, optional
-            Whether to add the AgentSets in place. Defaults to True.
-
-        Returns
-        -------
-        Self
-            The updated AgentSetRegistry.
-
-        Raises
-        ------
-        ValueError
-            If any AgentSets are already present or if IDs are not unique.
-        """
         obj = self._get_obj(inplace)
-        other_list = obj._return_agentsets_list(agents)
+        other_list = obj._return_agentsets_list(sets)
         if obj._check_agentsets_presence(other_list).any():
             raise ValueError(
                 "Some agentsets are already present in the AgentSetRegistry."
@@ -132,13 +103,22 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         return obj
 
     @overload
-    def contains(self, agents: int | AgentSet) -> bool: ...
+    def contains(self, sets: AgentSet | type[AgentSet] | str) -> bool: ...
 
     @overload
-    def contains(self, agents: IdsLike | Iterable[AgentSet]) -> pl.Series: ...
+    def contains(
+        self,
+        sets: Iterable[AgentSet] | Iterable[type[AgentSet]] | Iterable[str],
+    ) -> pl.Series: ...
 
     def contains(
-        self, agents: IdsLike | AgentSet | Iterable[AgentSet]
+        self,
+        sets: AgentSet
+        | type[AgentSet]
+        | str
+        | Iterable[AgentSet]
+        | Iterable[type[AgentSet]]
+        | Iterable[str],
     ) -> bool | pl.Series:
         if isinstance(agents, int):
             return agents in self._ids
@@ -159,32 +139,35 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
     def do(
         self,
         method_name: str,
-        *args,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSet, AgentMask] = None,
+        *args: Any,
+        sets: AgentSetSelector | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
-        **kwargs,
+        key_by: KeyBy = "name",
+        **kwargs: Any,
     ) -> Self: ...
 
     @overload
     def do(
         self,
         method_name: str,
-        *args,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSet, AgentMask] = None,
+        *args: Any,
+        sets: AgentSetSelector,
         return_results: Literal[True],
         inplace: bool = True,
-        **kwargs,
-    ) -> dict[AgentSet, Any]: ...
+        key_by: KeyBy = "name",
+        **kwargs: Any,
+    ) -> dict[str, Any] | dict[int, Any] | dict[type[AgentSet], Any]: ...
 
     def do(
         self,
         method_name: str,
-        *args,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSet, AgentMask] = None,
+        *args: Any,
+        sets: AgentSetSelector = None,
         return_results: bool = False,
         inplace: bool = True,
-        **kwargs,
+        key_by: KeyBy = "name",
+        **kwargs: Any,
     ) -> Self | Any:
         obj = self._get_obj(inplace)
         agentsets_masks = obj._get_bool_masks(mask)
@@ -214,8 +197,27 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
             ]
             return obj
 
+    @overload
+    def get(self, key: int, default: None = ...) -> AgentSet | None: ...
+
+    @overload
+    def get(self, key: str, default: None = ...) -> AgentSet | None: ...
+
+    @overload
+    def get(self, key: type[AgentSet], default: None = ...) -> list[AgentSet]: ...
+
+    @overload
     def get(
         self,
+        key: int | str | type[AgentSet],
+        default: AgentSet | list[AgentSet] | None,
+    ) -> AgentSet | list[AgentSet] | None: ...
+
+    def get(
+        self,
+        key: int | str | type[AgentSet],
+        default: AgentSet | list[AgentSet] | None = None,
+    ) -> AgentSet | list[AgentSet] | None:
         attr_names: str | Collection[str] | None = None,
         mask: AgnosticAgentMask | IdsLike | dict[AgentSet, AgentMask] = None,
     ) -> dict[AgentSet, Series] | dict[AgentSet, DataFrame]:
@@ -245,7 +247,7 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
 
     def remove(
         self,
-        agents: AgentSet | Iterable[AgentSet] | IdsLike,
+        sets: AgentSetSelector,
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -340,6 +342,7 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         return obj
 
     def shuffle(self, inplace: bool = True) -> Self:
+    def shuffle(self, inplace: bool = False) -> Self:
         obj = self._get_obj(inplace)
         obj._agentsets = [agentset.shuffle(inplace=True) for agentset in obj._agentsets]
         return obj
@@ -349,30 +352,13 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         by: str | Sequence[str],
         ascending: bool | Sequence[bool] = True,
         inplace: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Self:
         obj = self._get_obj(inplace)
         obj._agentsets = [
             agentset.sort(by=by, ascending=ascending, inplace=inplace, **kwargs)
             for agentset in obj._agentsets
         ]
-        return obj
-
-    def step(self, inplace: bool = True) -> Self:
-        """Advance the state of the agents in the AgentSetRegistry by one step.
-
-        Parameters
-        ----------
-        inplace : bool, optional
-            Whether to update the AgentSetRegistry in place, by default True
-
-        Returns
-        -------
-        Self
-        """
-        obj = self._get_obj(inplace)
-        for agentset in obj._agentsets:
-            agentset.step()
         return obj
 
     def _check_ids_presence(self, other: list[AgentSet]) -> pl.DataFrame:
@@ -458,54 +444,6 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         """
         return [agentsets] if isinstance(agentsets, AgentSet) else list(agentsets)
 
-    def __add__(self, other: AgentSet | Iterable[AgentSet]) -> Self:
-        """Add AgentSets to a new AgentSetRegistry through the + operator.
-
-        Parameters
-        ----------
-        other : AgentSet | Iterable[AgentSet]
-            The AgentSets to add.
-
-        Returns
-        -------
-        Self
-            A new AgentSetRegistry with the added AgentSets.
-        """
-        return super().__add__(other)
-
-    def keys(self) -> Iterator[str]:
-        """Return an iterator over the names of the agent sets."""
-        for agentset in self._agentsets:
-            if agentset.name is not None:
-                yield agentset.name
-
-    def names(self) -> list[str]:
-        """Return a list of the names of the agent sets."""
-        return list(self.keys())
-
-    def items(self) -> Iterator[tuple[str, AbstractAgentSet]]:
-        """Return an iterator over (name, agentset) pairs."""
-        for agentset in self._agentsets:
-            if agentset.name is not None:
-                yield agentset.name, agentset
-
-    def __contains__(self, name: object) -> bool:
-        """Check if a name is in the registry."""
-        if not isinstance(name, str):
-            return False
-        return name in [
-            agentset.name for agentset in self._agentsets if agentset.name is not None
-        ]
-
-    def __getitem__(self, key: str) -> AbstractAgentSet:
-        """Get an agent set by name."""
-        if isinstance(key, str):
-            for agentset in self._agentsets:
-                if agentset.name == key:
-                    return agentset
-            raise KeyError(f"Agent set '{key}' not found")
-        return super().__getitem__(key)
-
     def _generate_name(self, base_name: str) -> str:
         """Generate a unique name for an agent set."""
         existing_names = [
@@ -520,150 +458,89 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
             candidate = f"{base_name}_{counter}"
         return candidate
 
-    def __getattr__(self, name: str) -> dict[AbstractAgentSet, Any]:
-        # Handle special mapping methods
-        if name in ("keys", "items", "values"):
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
-        # Avoid delegating container-level attributes to agentsets
-        if name in ("df", "active_agents", "inactive_agents", "index", "pos"):
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
+    def __getattr__(self, name: str) -> Any | dict[str, Any]:
         # Avoids infinite recursion of private attributes
-        if __debug__:  # Only execute in non-optimized mode
-            if name.startswith("_"):
-                raise AttributeError(
-                    f"'{self.__class__.__name__}' object has no attribute '{name}'"
-                )
-        return {agentset: getattr(agentset, name) for agentset in self._agentsets}
+        if name.startswith("_"):
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
+        # Delegate attribute access to sets; map results by set name
+        return {cast(str, s.name): getattr(s, name) for s in self._agentsets}
 
-    @overload
-    def __getitem__(
-        self, key: str | tuple[dict[AgentSet, AgentMask], str]
-    ) -> dict[AgentSet, Series | pl.Expr]: ...
-
-    @overload
-    def __getitem__(
-        self,
-        key: (
-            Collection[str]
-            | AgnosticAgentMask
-            | IdsLike
-            | tuple[dict[AgentSet, AgentMask], Collection[str]]
-        ),
-    ) -> dict[AgentSet, DataFrame]: ...
-
-    def __getitem__(
-        self,
-        key: (
-            str
-            | Collection[str]
-            | AgnosticAgentMask
-            | IdsLike
-            | tuple[dict[AgentSet, AgentMask], str]
-            | tuple[dict[AgentSet, AgentMask], Collection[str]]
-        ),
-    ) -> dict[AgentSet, Series | pl.Expr] | dict[AgentSet, DataFrame]:
-        return super().__getitem__(key)
-
-    def __iadd__(self, agents: AgentSet | Iterable[AgentSet]) -> Self:
-        """Add AgentSets to the AgentSetRegistry through the += operator.
-
-        Parameters
-        ----------
-        agents : AgentSet | Iterable[AgentSet]
-            The AgentSets to add.
-
-        Returns
-        -------
-        Self
-            The updated AgentSetRegistry.
-        """
-        return super().__iadd__(agents)
-
-    def __iter__(self) -> Iterator[dict[str, Any]]:
-        return (agent for agentset in self._agentsets for agent in iter(agentset))
-
-    def __isub__(self, agents: AgentSet | Iterable[AgentSet] | IdsLike) -> Self:
-        """Remove AgentSets from the AgentSetRegistry through the -= operator.
-
-        Parameters
-        ----------
-        agents : AgentSet | Iterable[AgentSet] | IdsLike
-            The AgentSets or agent IDs to remove.
-
-        Returns
-        -------
-        Self
-            The updated AgentSetRegistry.
-        """
-        return super().__isub__(agents)
+    def __iter__(self) -> Iterator[AgentSet]:
+        return iter(self._agentsets)
 
     def __len__(self) -> int:
-        return sum(len(agentset._df) for agentset in self._agentsets)
+        return len(self._agentsets)
 
     def __repr__(self) -> str:
         return "\n".join([repr(agentset) for agentset in self._agentsets])
 
-    def __reversed__(self) -> Iterator:
-        return (
-            agent
-            for agentset in self._agentsets
-            for agent in reversed(agentset._backend)
-        )
+    def __reversed__(self) -> Iterator[AgentSet]:
+        return reversed(self._agentsets)
 
-    def __setitem__(
-        self,
-        key: (
-            str
-            | Collection[str]
-            | AgnosticAgentMask
-            | IdsLike
-            | tuple[dict[AgentSet, AgentMask], str]
-            | tuple[dict[AgentSet, AgentMask], Collection[str]]
-        ),
-        values: Any,
-    ) -> None:
-        super().__setitem__(key, values)
+    def __setitem__(self, key: int | str, value: AgentSet) -> None:
+        """Assign/replace a single AgentSet at an index or name.
+
+        Enforces name uniqueness and model consistency.
+        """
+        if value.model is not self.model:
+            raise TypeError("Assigned AgentSet must belong to the same model")
+        if isinstance(key, int):
+            if value.name is not None:
+                for i, s in enumerate(self._agentsets):
+                    if i != key and s.name == value.name:
+                        raise ValueError(
+                            f"Duplicate agent set name disallowed: {value.name}"
+                        )
+            self._agentsets[key] = value
+        elif isinstance(key, str):
+            try:
+                value.rename(key)
+            except Exception:
+                if hasattr(value, "_name"):
+                    setattr(value, "_name", key)
+            idx = None
+            for i, s in enumerate(self._agentsets):
+                if s.name == key:
+                    idx = i
+                    break
+            if idx is None:
+                self._agentsets.append(value)
+            else:
+                self._agentsets[idx] = value
+        else:
+            raise TypeError("Key must be int index or str name")
+        # Recompute ids cache
+        if self._agentsets:
+            self._ids = pl.concat(
+                [pl.Series(name="unique_id", dtype=pl.UInt64)]
+                + [pl.Series(s["unique_id"]) for s in self._agentsets]
+            )
+        else:
+            self._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
 
     def __str__(self) -> str:
         return "\n".join([str(agentset) for agentset in self._agentsets])
 
-    def __sub__(self, agents: AgentSet | Iterable[AgentSet] | IdsLike) -> Self:
-        """Remove AgentSets from a new AgentSetRegistry through the - operator.
+    @overload
+    def __getitem__(self, key: int) -> AgentSet: ...
 
-        Parameters
-        ----------
-        agents : AgentSet | Iterable[AgentSet] | IdsLike
-            The AgentSets or agent IDs to remove. Supports NumPy integer types.
+    @overload
+    def __getitem__(self, key: str) -> AgentSet: ...
 
-        Returns
-        -------
-        Self
-            A new AgentSetRegistry with the removed AgentSets.
-        """
-        return super().__sub__(agents)
+    @overload
+    def __getitem__(self, key: type[AgentSet]) -> list[AgentSet]: ...
 
-    @property
-    def agentsets_by_type(self) -> dict[type[AbstractAgentSet], Self]:
-        """Get the agent sets in the AgentSetRegistry grouped by type.
-
-        Returns
-        -------
-        dict[type[AgentSet], Self]
-            A dictionary mapping agent set types to the corresponding AgentSetRegistry.
-        """
-
-        def copy_without_agentsets() -> Self:
-            return self.copy(deep=False, skip=["_agentsets"])
-
-        dictionary = defaultdict(copy_without_agentsets)
-
-        for agentset in self._agentsets:
-            agents_df = dictionary[agentset.__class__]
-            agents_df._agentsets = []
-            agents_df._agentsets = agents_df._agentsets + [agentset]
-            dictionary[agentset.__class__] = agents_df
-        return dictionary
+    def __getitem__(self, key: int | str | type[AgentSet]) -> AgentSet | list[AgentSet]:
+        """Retrieve AgentSet(s) by index, name, or type."""
+        if isinstance(key, int):
+            return self._agentsets[key]
+        if isinstance(key, str):
+            for s in self._agentsets:
+                if s.name == key:
+                    return s
+            raise KeyError(f"Agent set '{key}' not found")
+        if isinstance(key, type) and issubclass(key, AgentSet):
+            return [s for s in self._agentsets if isinstance(s, key)]
+        raise TypeError("Key must be int, str (name), or AgentSet type")
