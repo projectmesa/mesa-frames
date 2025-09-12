@@ -48,7 +48,8 @@ from __future__ import annotations  # For forward references
 
 from collections.abc import Collection, Iterable, Iterator, Sequence
 from typing import Any, Literal, Self, overload, cast
-
+from collections.abc import Sized
+from itertools import chain
 import polars as pl
 
 from mesa_frames.abstract.agentsetregistry import (
@@ -258,97 +259,23 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
-        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
-            return obj
-        if isinstance(agents, AgentSet):
-            agents = [agents]
-        if isinstance(agents, Iterable) and isinstance(next(iter(agents)), AgentSet):
-            # We have to get the index of the original AgentSet because the copy made AgentSets with different hash
-            ids = [self._agentsets.index(agentset) for agentset in iter(agents)]
-            ids.sort(reverse=True)
-            removed_ids = pl.Series(dtype=pl.UInt64)
-            for id in ids:
-                removed_ids = pl.concat(
-                    [
-                        removed_ids,
-                        pl.Series(obj._agentsets[id]["unique_id"], dtype=pl.UInt64),
-                    ]
-                )
-                obj._agentsets.pop(id)
-
-        else:  # IDsLike
-            if isinstance(agents, (int, np.uint64)):
-                agents = [agents]
-            elif isinstance(agents, DataFrame):
-                agents = agents["unique_id"]
-            removed_ids = pl.Series(agents, dtype=pl.UInt64)
-            deleted = 0
-
-            for agentset in obj._agentsets:
-                initial_len = len(agentset)
-                agentset._discard(removed_ids)
-                deleted += initial_len - len(agentset)
-                if deleted == len(removed_ids):
-                    break
-            if deleted < len(removed_ids):  # TODO: fix type hint
-                raise KeyError(
-                    "There exist some IDs which are not present in any agentset"
-                )
-        try:
-            obj.space.remove_agents(removed_ids, inplace=True)
-        except ValueError:
-            pass
-        obj._ids = obj._ids.filter(obj._ids.is_in(removed_ids).not_())
-        return obj
-
-    def select(
-        self,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSet, AgentMask] = None,
-        filter_func: Callable[[AgentSet], AgentMask] | None = None,
-        n: int | None = None,
-        inplace: bool = True,
-        negate: bool = False,
-    ) -> Self:
-        obj = self._get_obj(inplace)
-        agentsets_masks = obj._get_bool_masks(mask)
-        if n is not None:
-            n = n // len(agentsets_masks)
-        obj._agentsets = [
-            agentset.select(
-                mask=mask, filter_func=filter_func, n=n, negate=negate, inplace=inplace
+        # Normalize to a list of AgentSet instances using _resolve_selector
+        selected = obj._resolve_selector(sets)  # type: ignore[arg-type]
+        # Remove in reverse positional order
+        indices = [i for i, s in enumerate(obj._agentsets) if s in selected]
+        indices.sort(reverse=True)
+        for idx in indices:
+            obj._agentsets.pop(idx)
+        # Recompute ids cache
+        if obj._agentsets:
+            obj._ids = pl.concat(
+                [pl.Series(name="unique_id", dtype=pl.UInt64)]
+                + [pl.Series(s["unique_id"]) for s in obj._agentsets]
             )
-            for agentset, mask in agentsets_masks.items()
-        ]
-        return obj
-
-    def set(
-        self,
-        attr_names: str | dict[AgentSet, Any] | Collection[str],
-        values: Any | None = None,
-        mask: AgnosticAgentMask | IdsLike | dict[AgentSet, AgentMask] = None,
-        inplace: bool = True,
-    ) -> Self:
-        obj = self._get_obj(inplace)
-        agentsets_masks = obj._get_bool_masks(mask)
-        if isinstance(attr_names, dict):
-            for agentset, values in attr_names.items():
-                if not inplace:
-                    # We have to get the index of the original AgentSet because the copy made AgentSets with different hash
-                    id = self._agentsets.index(agentset)
-                    agentset = obj._agentsets[id]
-                agentset.set(
-                    attr_names=values, mask=agentsets_masks[agentset], inplace=True
-                )
         else:
-            obj._agentsets = [
-                agentset.set(
-                    attr_names=attr_names, values=values, mask=mask, inplace=True
-                )
-                for agentset, mask in agentsets_masks.items()
-            ]
+            obj._ids = pl.Series(name="unique_id", dtype=pl.UInt64)
         return obj
 
-    def shuffle(self, inplace: bool = True) -> Self:
     def shuffle(self, inplace: bool = False) -> Self:
         obj = self._get_obj(inplace)
         obj._agentsets = [agentset.shuffle(inplace=True) for agentset in obj._agentsets]
