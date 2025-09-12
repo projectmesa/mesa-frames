@@ -120,20 +120,43 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         | Iterable[type[AgentSet]]
         | Iterable[str],
     ) -> bool | pl.Series:
-        if isinstance(agents, int):
-            return agents in self._ids
-        elif isinstance(agents, AgentSet):
-            return self._check_agentsets_presence([agents]).any()
-        elif isinstance(agents, Iterable):
-            if len(agents) == 0:
-                return True
-            elif isinstance(next(iter(agents)), AgentSet):
-                agents = cast(Iterable[AgentSet], agents)
-                return self._check_agentsets_presence(list(agents))
-            else:  # IdsLike
-                agents = cast(IdsLike, agents)
+        # Single value fast paths
+        if isinstance(sets, AgentSet):
+            return self._check_agentsets_presence([sets]).any()
+        if isinstance(sets, type) and issubclass(sets, AgentSet):
+            return any(isinstance(s, sets) for s in self._agentsets)
+        if isinstance(sets, str):
+            return any(s.name == sets for s in self._agentsets)
 
-                return pl.Series(agents, dtype=pl.UInt64).is_in(self._ids)
+        # Iterable paths without materializing unnecessarily
+
+        if isinstance(sets, Sized) and len(sets) == 0:  # type: ignore[arg-type]
+            return True
+        it = iter(sets)  # type: ignore[arg-type]
+        try:
+            first = next(it)
+        except StopIteration:
+            return True
+
+        if isinstance(first, AgentSet):
+            lst = [first, *it]
+            return self._check_agentsets_presence(lst)
+
+        if isinstance(first, type) and issubclass(first, AgentSet):
+            present_types = {type(s) for s in self._agentsets}
+
+            def has_type(t: type[AgentSet]) -> bool:
+                return any(issubclass(pt, t) for pt in present_types)
+
+            return pl.Series(
+                (has_type(t) for t in chain([first], it)), dtype=pl.Boolean
+            )
+
+        if isinstance(first, str):
+            names = {s.name for s in self._agentsets if s.name is not None}
+            return pl.Series((x in names for x in chain([first], it)), dtype=pl.Boolean)
+
+        raise TypeError("Unsupported type for contains()")
 
     @overload
     def do(
