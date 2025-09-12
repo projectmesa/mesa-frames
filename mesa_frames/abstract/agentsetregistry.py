@@ -43,7 +43,7 @@ Attributes and methods of each class are documented in their respective docstrin
 from __future__ import annotations  # PEP 563: postponed evaluation of type annotations
 
 from abc import abstractmethod
-from collections.abc import Callable, Collection, Iterator, Sequence
+from collections.abc import Callable, Collection, Iterator, Sequence, Iterable
 from contextlib import suppress
 from typing import Any, Literal, Self, overload
 
@@ -520,6 +520,30 @@ class AbstractAgentSetRegistry(CopyMixin):
     @abstractmethod
     def __str__(self) -> str:
         """Get a string representation of the AgentSets in the registry."""
+        ...
+
+    @abstractmethod
+    def keys(
+        self, *, key_by: KeyBy = "name"
+    ) -> Iterable[str | int | type[mesa_frames.abstract.agentset.AbstractAgentSet]]:
+        """Iterate keys for contained AgentSets (by name|index|type)."""
+        ...
+
+    @abstractmethod
+    def items(
+        self, *, key_by: KeyBy = "name"
+    ) -> Iterable[
+        tuple[
+            str | int | type[mesa_frames.abstract.agentset.AbstractAgentSet],
+            mesa_frames.abstract.agentset.AbstractAgentSet,
+        ]
+    ]:
+        """Iterate (key, AgentSet) pairs for contained sets."""
+        ...
+
+    @abstractmethod
+    def values(self) -> Iterable[mesa_frames.abstract.agentset.AbstractAgentSet]:
+        """Iterate contained AgentSets (values view)."""
         ...
 
     @property
