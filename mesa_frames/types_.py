@@ -1,15 +1,17 @@
 """Type aliases for the mesa_frames package."""
 
 from __future__ import annotations
-from collections.abc import Collection, Sequence
-from datetime import date, datetime, time, timedelta
-from typing import Literal, Annotated, Union, Any, TYPE_CHECKING
-from collections.abc import Mapping
-from beartype.vale import IsEqual
+
 import math
-import polars as pl
-from numpy import ndarray
+from collections.abc import Collection, Mapping, Sequence
+from datetime import date, datetime, time, timedelta
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Union
+
 import numpy as np
+import polars as pl
+from beartype.vale import IsEqual
+from numpy import ndarray
+
 # import geopolars as gpl # TODO: Uncomment when geopolars is available
 
 ###----- Optional Types -----###
@@ -86,15 +88,42 @@ Infinity = Annotated[float, IsEqual[math.inf]]  # Only accepts math.inf
 # Common option types
 KeyBy = Literal["name", "index", "type"]
 
-# Selector for choosing AgentSets at the registry level
+# Selectors for choosing AgentSets at the registry level
+# Abstract (for abstract layer APIs)
 if TYPE_CHECKING:
     from mesa_frames.abstract.agentset import AbstractAgentSet as _AAS
 
-    AgentSetSelector = (
+    AbstractAgentSetSelector = (
         _AAS | type[_AAS] | str | Collection[_AAS | type[_AAS] | str] | None
     )
 else:
+    AbstractAgentSetSelector = Any  # runtime fallback to avoid import cycles
+
+# Concrete (for concrete layer APIs)
+if TYPE_CHECKING:
+    from mesa_frames.concrete.agentset import AgentSet as _CAS
+
+    AgentSetSelector = (
+        _CAS | type[_CAS] | str | Collection[_CAS | type[_CAS] | str] | None
+    )
+else:
     AgentSetSelector = Any  # runtime fallback to avoid import cycles
+
+__all__ = [
+    # common
+    "DataFrame",
+    "Series",
+    "Index",
+    "BoolSeries",
+    "Mask",
+    "AgentMask",
+    "IdsLike",
+    "ArrayLike",
+    "KeyBy",
+    # selectors
+    "AbstractAgentSetSelector",
+    "AgentSetSelector",
+]
 
 ###----- Time ------###
 TimeT = float | int
