@@ -596,8 +596,7 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         if key_by not in ("name", "index", "type"):
             raise ValueError("key_by must be 'name'|'index'|'type'")
         if key_by == "index":
-            for i in range(len(self._agentsets)):
-                yield i
+            yield from range(len(self._agentsets))
             return
         if key_by == "type":
             for s in self._agentsets:
