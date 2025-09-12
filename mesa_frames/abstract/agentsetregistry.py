@@ -106,7 +106,7 @@ class AbstractAgentSetRegistry(CopyMixin):
 
         Parameters
         ----------
-        agents : mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
+        sets : mesa_frames.abstract.agentset.AbstractAgentSet | Collection[mesa_frames.abstract.agentset.AbstractAgentSet]
             The AgentSet(s) to add.
         inplace : bool
             Whether to add in place. Defaults to True.
@@ -217,7 +217,7 @@ class AbstractAgentSetRegistry(CopyMixin):
         return_results : bool, optional
             Whether to return per-set results as a dictionary, by default False.
         inplace : bool, optional
-            Whether the operation should be done inplace, by default False
+            Whether the operation should be done inplace, by default True
         key_by : KeyBy, optional
             Key domain for the returned mapping when ``return_results`` is True.
             - "name" (default) → keys are set names (str)
@@ -228,7 +228,7 @@ class AbstractAgentSetRegistry(CopyMixin):
 
         Returns
         -------
-        Self | Any | dict[str, Any] | dict[int, Any] | dict[type[AbstractAgentSet], Any]
+        Self | Any | dict[str, Any] | dict[int, Any] | dict[type[mesa_frames.abstract.agentset.AbstractAgentSet], Any]
             The updated registry, or the method result(s). When ``return_results``
             is True, returns a dictionary keyed per ``key_by``.
         """
@@ -321,7 +321,7 @@ class AbstractAgentSetRegistry(CopyMixin):
 
         Parameters
         ----------
-        mapping : dict[int | str, AbstractAgentSet] | list[tuple[int | str, AbstractAgentSet]]
+        mapping : dict[int | str, mesa_frames.abstract.agentset.AbstractAgentSet] | list[tuple[int | str, mesa_frames.abstract.agentset.AbstractAgentSet]]
             Keys are indices or names to assign; values are AgentSets bound to the same model.
         inplace : bool, optional
             Whether to apply on this registry or return a copy, by default True.
