@@ -82,7 +82,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-    def __init__(self, model: Model, name: str | None = None) -> None:
+    def __init__(
+        self, model: mesa_frames.concrete.model.Model, name: str | None = None
+    ) -> None:
         """Initialize a new AgentSet.
 
         Parameters
