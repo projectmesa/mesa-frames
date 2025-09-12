@@ -523,6 +523,41 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
     def __str__(self) -> str:
         return "\n".join([str(agentset) for agentset in self._agentsets])
 
+    def keys(self, *, key_by: KeyBy = "name") -> Iterable[Any]:
+        if key_by not in ("name", "index", "type"):
+            raise ValueError("key_by must be 'name'|'index'|'type'")
+        if key_by == "index":
+            for i in range(len(self._agentsets)):
+                yield i
+            return
+        if key_by == "type":
+            for s in self._agentsets:
+                yield type(s)
+            return
+        # name
+        for s in self._agentsets:
+            if s.name is not None:
+                yield s.name
+
+    def items(self, *, key_by: KeyBy = "name") -> Iterable[tuple[Any, AgentSet]]:
+        if key_by not in ("name", "index", "type"):
+            raise ValueError("key_by must be 'name'|'index'|'type'")
+        if key_by == "index":
+            for i, s in enumerate(self._agentsets):
+                yield i, s
+            return
+        if key_by == "type":
+            for s in self._agentsets:
+                yield type(s), s
+            return
+        # name
+        for s in self._agentsets:
+            if s.name is not None:
+                yield s.name, s
+
+    def values(self) -> Iterable[AgentSet]:
+        return iter(self._agentsets)
+
     @overload
     def __getitem__(self, key: int) -> AgentSet: ...
 
