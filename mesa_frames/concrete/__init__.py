@@ -13,15 +13,15 @@ Subpackages:
     polars: Contains Polars-based implementations of agent sets, mixins, and spatial structures.
 
 Modules:
-    agents: Defines the AgentsDF class, a collection of AgentSetDFs.
-    model: Provides the ModelDF class, the base class for models in mesa-frames.
-    agentset: Defines the AgentSetPolars class, a Polars-based implementation of AgentSet.
+    agents: Defines the AgentSetRegistry class, a collection of AgentSets.
+    model: Provides the Model class, the base class for models in mesa-frames.
+    agentset: Defines the AgentSet class, a Polars-based implementation of AgentSet.
     mixin: Provides the PolarsMixin class, implementing DataFrame operations using Polars.
-    space: Contains the GridPolars class, a Polars-based implementation of Grid.
+    space: Contains the Grid class, a Polars-based implementation of Grid.
 
 Classes:
     from agentset:
-        AgentSetPolars(AgentSetDF, PolarsMixin):
+        AgentSet(AbstractAgentSet, PolarsMixin):
             A Polars-based implementation of the AgentSet, using Polars DataFrames
             for efficient agent storage and manipulation.
 
@@ -30,43 +30,43 @@ Classes:
             A mixin class that implements DataFrame operations using Polars,
             providing methods for data manipulation and analysis.
     from space:
-        GridPolars(GridDF, PolarsMixin):
+        Grid(AbstractGrid, PolarsMixin):
             A Polars-based implementation of Grid, using Polars DataFrames for
             efficient spatial operations and agent positioning.
 
     From agents:
-        AgentsDF(AgentContainer): A collection of AgentSetDFs. All agents of the model are stored here.
+        AgentSetRegistry(AbstractAgentSetRegistry): A collection of AbstractAgentSets. All agents of the model are stored here.
 
     From model:
-        ModelDF: Base class for models in the mesa-frames library.
+        Model: Base class for models in the mesa-frames library.
 
 Usage:
     Users can import the concrete implementations directly from this package:
 
-    from mesa_frames.concrete import ModelDF, AgentsDF
+    from mesa_frames.concrete import Model, AgentSetRegistry
     # For Polars-based implementations
-    from mesa_frames.concrete import AgentSetPolars, GridPolars
-    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete import AgentSet, Grid
+    from mesa_frames.concrete.model import Model
 
-    class MyModel(ModelDF):
+    class MyModel(Model):
         def __init__(self):
             super().__init__()
-            self.agents.add(AgentSetPolars(self))
-            self.space = GridPolars(self, dimensions=[10, 10])
+            self.sets.add(AgentSet(self))
+            self.space = Grid(self, dimensions=[10, 10])
             # ... other initialization code
 
-        from mesa_frames.concrete import AgentSetPolars, GridPolars
+        from mesa_frames.concrete import AgentSet, Grid
 
-    class MyAgents(AgentSetPolars):
+    class MyAgents(AgentSet):
         def __init__(self, model):
             super().__init__(model)
             # Initialize agents
 
-    class MyModel(ModelDF):
+    class MyModel(Model):
         def __init__(self, width, height):
             super().__init__()
-            self.agents = MyAgents(self)
-            self.grid = GridPolars(width, height, self)
+            self.sets = MyAgents(self)
+            self.grid = Grid(width, height, self)
 Features:
     - High-performance DataFrame operations using Polars
     - Efficient memory usage and fast computation

@@ -3,7 +3,7 @@ Model
 
 .. currentmodule:: mesa_frames
 
-.. autoclass:: ModelDF
+.. autoclass:: Model
     :members:
     :inherited-members:
     :autosummary:

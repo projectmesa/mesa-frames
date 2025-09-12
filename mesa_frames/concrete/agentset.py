@@ -2,29 +2,29 @@
 Polars-based implementation of AgentSet for mesa-frames.
 
 This module provides a concrete implementation of the AgentSet class using Polars
-as the backend for DataFrame operations. It defines the AgentSetPolars class,
-which combines the abstract AgentSetDF functionality with Polars-specific
+as the backend for DataFrame operations. It defines the AgentSet class,
+which combines the abstract AbstractAgentSet functionality with Polars-specific
 operations for efficient agent management and manipulation.
 
 Classes:
-    AgentSetPolars(AgentSetDF, PolarsMixin):
+    AgentSet(AbstractAgentSet, PolarsMixin):
         A Polars-based implementation of the AgentSet. This class uses Polars
         DataFrames to store and manipulate agent data, providing high-performance
         operations for large numbers of agents.
 
-The AgentSetPolars class is designed to be used within ModelDF instances or as
-part of an AgentsDF collection. It leverages the power of Polars for fast and
+The AgentSet class is designed to be used within Model instances or as
+part of an AgentSetRegistry collection. It leverages the power of Polars for fast and
 efficient data operations on agent attributes and behaviors.
 
 Usage:
-    The AgentSetPolars class can be used directly in a model or as part of an
-    AgentsDF collection:
+    The AgentSet class can be used directly in a model or as part of an
+    AgentSetRegistry collection:
 
-    from mesa_frames.concrete.model import ModelDF
-    from mesa_frames.concrete.agentset import AgentSetPolars
+    from mesa_frames.concrete.model import Model
+    from mesa_frames.concrete.agentset import AgentSet
     import polars as pl
 
-    class MyAgents(AgentSetPolars):
+    class MyAgents(AgentSet):
         def __init__(self, model):
             super().__init__(model)
             # Initialize with some agents
@@ -32,15 +32,15 @@ Usage:
 
         def step(self):
             # Implement step behavior using Polars operations
-            self.agents = self.agents.with_columns(new_wealth = pl.col('wealth') + 1)
+            self.sets = self.sets.with_columns(new_wealth = pl.col('wealth') + 1)
 
-    class MyModel(ModelDF):
+    class MyModel(Model):
         def __init__(self):
             super().__init__()
-            self.agents += MyAgents(self)
+            self.sets += MyAgents(self)
 
         def step(self):
-            self.agents.step()
+            self.sets.step()
 
 Features:
     - Efficient storage and manipulation of large agent populations
@@ -53,7 +53,7 @@ Note:
     is installed and imported. The performance characteristics of this class
     will depend on the Polars version and the specific operations used.
 
-For more detailed information on the AgentSetPolars class and its methods,
+For more detailed information on the AgentSet class and its methods,
 refer to the class docstring.
 """
 
@@ -65,16 +65,15 @@ from typing import Any, Literal, Self, overload
 import numpy as np
 import polars as pl
 
-from mesa_frames.concrete.agents import AgentSetDF
+from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
-from mesa_frames.concrete.model import ModelDF
-from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
+from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
 
 
-@copydoc(AgentSetDF)
-class AgentSetPolars(AgentSetDF, PolarsMixin):
-    """Polars-based implementation of AgentSetDF."""
+@copydoc(AbstractAgentSet)
+class AgentSet(AbstractAgentSet, PolarsMixin):
+    """Polars-based implementation of AgentSet."""
 
     _df: pl.DataFrame
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
@@ -83,25 +82,58 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
-        """Initialize a new AgentSetPolars.
+    def __init__(self, model: Model, name: str | None = None) -> None:
+        """Initialize a new AgentSet.
 
         Parameters
         ----------
-        model : "mesa_frames.concrete.model.ModelDF"
+        model : "mesa_frames.concrete.model.Model"
             The model that the agent set belongs to.
+        name : str | None, optional
+            Name for this agent set. If None, class name is used.
+            Will be converted to snake_case if in camelCase.
         """
+        # Model reference
         self._model = model
+        # Set proposed name (no uniqueness guarantees here)
+        self._name = name if name is not None else self.__class__.__name__
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
+
+    def rename(self, new_name: str) -> str:
+        """Rename this agent set. If attached to AgentSetRegistry, delegate for uniqueness enforcement.
+
+        Parameters
+        ----------
+        new_name : str
+            Desired new name.
+
+        Returns
+        -------
+        str
+            The final name used (may be canonicalized if duplicates exist).
+
+        Raises
+        ------
+        ValueError
+            If name conflicts occur and delegate encounters errors.
+        """
+        # Always delegate to the container's accessor if available through the model's sets
+        # Check if we have a model and can find the AgentSetRegistry that contains this set
+        if self in self.model.sets:
+            return self.model.sets.rename(self._name, new_name)
+
+        # Set name locally if no container found
+        self._name = new_name
+        return new_name
 
     def add(
         self,
         agents: pl.DataFrame | Sequence[Any] | dict[str, Any],
         inplace: bool = True,
     ) -> Self:
-        """Add agents to the AgentSetPolars.
+        """Add agents to the AgentSet.
 
         Parameters
         ----------
@@ -113,12 +145,12 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         Returns
         -------
         Self
-            The updated AgentSetPolars.
+            The updated AgentSet.
         """
         obj = self._get_obj(inplace)
-        if isinstance(agents, AgentSetDF):
+        if isinstance(agents, AbstractAgentSet):
             raise TypeError(
-                "AgentSetPolars.add() does not accept AgentSetDF objects. "
+                "AgentSet.add() does not accept AgentSet objects. "
                 "Extract the DataFrame with agents.agents.drop('unique_id') first."
             )
         elif isinstance(agents, pl.DataFrame):
@@ -182,6 +214,64 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         else:
             return agents in self._df["unique_id"]
 
+    @overload
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: Literal[False] = False,
+        inplace: bool = True,
+        **kwargs,
+    ) -> Self: ...
+
+    @overload
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: Literal[True],
+        inplace: bool = True,
+        **kwargs,
+    ) -> Any: ...
+
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: bool = False,
+        inplace: bool = True,
+        **kwargs,
+    ) -> Self | Any:
+        masked_df = self._get_masked_df(mask)
+        # If the mask is empty, we can use the object as is
+        if len(masked_df) == len(self._df):
+            obj = self._get_obj(inplace)
+            method = getattr(obj, method_name)
+            result = method(*args, **kwargs)
+        else:  # If the mask is not empty, we need to create a new masked AbstractAgentSet and concatenate the AbstractAgentSets at the end
+            obj = self._get_obj(inplace=False)
+            obj._df = masked_df
+            original_masked_index = obj._get_obj_copy(obj.index)
+            method = getattr(obj, method_name)
+            result = method(*args, **kwargs)
+            obj._concatenate_agentsets(
+                [self],
+                duplicates_allowed=True,
+                keep_first_only=True,
+                original_masked_index=original_masked_index,
+            )
+            if inplace:
+                for key, value in obj.__dict__.items():
+                    setattr(self, key, value)
+                obj = self
+        if return_results:
+            return result
+        else:
+            return obj
+
     def get(
         self,
         attr_names: IntoExpr | Iterable[IntoExpr] | None,
@@ -198,6 +288,18 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         if masked_df.shape[1] == 1:
             return masked_df[masked_df.columns[0]]
         return masked_df
+
+    def remove(self, agents: PolarsIdsLike | AgentMask, inplace: bool = True) -> Self:
+        if isinstance(agents, str) and agents == "active":
+            agents = self.active_agents
+        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
+            return self._get_obj(inplace)
+        agents = self._df_index(self._get_masked_df(agents), "unique_id")
+        sets = self.model.sets.remove(agents, inplace=inplace)
+        for agentset in sets.df.keys():
+            if isinstance(agentset, self.__class__):
+                return agentset
+        return self
 
     def set(
         self,
@@ -314,7 +416,7 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
             all_indices = pl.concat(indices_list)
             if all_indices.is_duplicated().any():
                 raise ValueError(
-                    "Some ids are duplicated in the AgentSetDFs that are trying to be concatenated"
+                    "Some ids are duplicated in the AgentSets that are trying to be concatenated"
                 )
         if duplicates_allowed & keep_first_only:
             # Find the original_index list (ie longest index list), to sort correctly the rows after concatenation
@@ -464,7 +566,9 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
         else:
             self._mask = self._df["unique_id"].is_in(original_active_indices)
 
-    def __getattr__(self, key: str) -> pl.Series:
+    def __getattr__(self, key: str) -> Any:
+        if key == "name":
+            return self.name
         super().__getattr__(key)
         return self._df[key]
 
@@ -547,3 +651,13 @@ class AgentSetPolars(AgentSetDF, PolarsMixin):
     @property
     def pos(self) -> pl.DataFrame:
         return super().pos
+
+    @property
+    def name(self) -> str:
+        """Return the name of the AgentSet."""
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        """Set the name of the AgentSet."""
+        self._name = value

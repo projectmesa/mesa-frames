@@ -7,18 +7,18 @@ including discrete spaces and grids, using DataFrame-based approaches for improv
 performance and scalability.
 
 Classes:
-    SpaceDF(CopyMixin, DataFrameMixin):
+    Space(CopyMixin, DataFrameMixin):
         An abstract base class that defines the common interface for all space
         classes in mesa-frames. It combines fast copying functionality with
         DataFrame operations.
 
-    DiscreteSpaceDF(SpaceDF):
+    AbstractDiscreteSpace(Space):
         An abstract base class for discrete space implementations, such as grids
-        and networks. It extends SpaceDF with methods specific to discrete spaces.
+        and networks. It extends Space with methods specific to discrete spaces.
 
-    GridDF(DiscreteSpaceDF):
+    AbstractGrid(AbstractDiscreteSpace):
         An abstract base class for grid-based spaces. It inherits from
-        DiscreteSpaceDF and adds grid-specific functionality.
+        AbstractDiscreteSpace and adds grid-specific functionality.
 
 These abstract classes are designed to be subclassed by concrete implementations
 that use Polars library as their backend.
@@ -29,9 +29,9 @@ Usage:
     These classes should not be instantiated directly. Instead, they should be
     subclassed to create concrete implementations:
 
-    from mesa_frames.abstract.space import GridDF
+    from mesa_frames.abstract.space import AbstractGrid
 
-    class GridPolars(GridDF):
+    class Grid(AbstractGrid):
         def __init__(self, model, dimensions, torus, capacity, neighborhood_type):
             super().__init__(model, dimensions, torus, capacity, neighborhood_type)
             # Implementation using polars DataFrame
@@ -52,16 +52,18 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Callable, Collection, Sequence, Sized
 from itertools import product
-from typing import Any, Literal, Self
+from typing import Any, Literal, Self, cast
 from warnings import warn
 
 import numpy as np
 import polars as pl
 from numpy.random import Generator
 
-from mesa_frames.abstract.agents import AgentContainer, AgentSetDF
+from mesa_frames.abstract.agentset import AbstractAgentSet
+from mesa_frames.abstract.agentsetregistry import (
+    AbstractAgentSetRegistry,
+)
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
-from mesa_frames.concrete.agents import AgentsDF
 from mesa_frames.types_ import (
     ArrayLike,
     BoolSeries,
@@ -83,8 +85,8 @@ from mesa_frames.types_ import (
 ESPG = int
 
 
-class SpaceDF(CopyMixin, DataFrameMixin):
-    """The SpaceDF class is an abstract class that defines the interface for all space classes in mesa_frames."""
+class Space(CopyMixin, DataFrameMixin):
+    """The Space class is an abstract class that defines the interface for all space classes in mesa_frames."""
 
     _agents: DataFrame  # | GeoDataFrame  # Stores the agents placed in the space
     _center_col_names: list[
@@ -94,18 +96,22 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         str
     ]  # The column names of the positions in the _agents dataframe (eg. ['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
 
-    def __init__(self, model: mesa_frames.concrete.model.ModelDF) -> None:
-        """Create a new SpaceDF.
+    def __init__(self, model: mesa_frames.concrete.model.Model) -> None:
+        """Create a new Space.
 
         Parameters
         ----------
-        model : mesa_frames.concrete.model.ModelDF
+        model : mesa_frames.concrete.model.Model
         """
         self._model = model
 
     def move_agents(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         pos: SpaceCoordinate | SpaceCoordinates,
         inplace: bool = True,
     ) -> Self:
@@ -115,7 +121,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The agents to move
         pos : SpaceCoordinate | SpaceCoordinates
             The coordinates for each agents. The length of the coordinates must match the number of agents.
@@ -139,7 +145,11 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
     def place_agents(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         pos: SpaceCoordinate | SpaceCoordinates,
         inplace: bool = True,
     ) -> Self:
@@ -147,7 +157,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The agents to place in the space
         pos : SpaceCoordinate | SpaceCoordinates
             The coordinates for each agents. The length of the coordinates must match the number of agents.
@@ -190,8 +200,16 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
     def swap_agents(
         self,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer],
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents0: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
+        agents1: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         """Swap the positions of the agents in the space.
@@ -200,9 +218,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents0 : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents0 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The first set of agents to swap
-        agents1 : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents1 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The second set of agents to swap
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -211,8 +229,6 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         -------
         Self
         """
-        agents0 = self._get_ids_srs(agents0)
-        agents1 = self._get_ids_srs(agents1)
         if __debug__:
             if len(agents0) != len(agents1):
                 raise ValueError("The two sets of agents must have the same length")
@@ -245,8 +261,18 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self,
         pos0: SpaceCoordinate | SpaceCoordinates | None = None,
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents0: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
+        agents1: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
         normalize: bool = False,
     ) -> DataFrame:
         """Return the directions from pos0 to pos1 or agents0 and agents1.
@@ -261,9 +287,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             The starting positions
         pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
             The ending positions
-        agents0 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+        agents0 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
             The starting agents
-        agents1 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+        agents1 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
             The ending agents
         normalize : bool, optional
             Whether to normalize the vectors to unit norm. By default False
@@ -280,8 +306,18 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self,
         pos0: SpaceCoordinate | SpaceCoordinates | None = None,
         pos1: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents0: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
+        agents1: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
     ) -> DataFrame:
         """Return the distances from pos0 to pos1 or agents0 and agents1.
 
@@ -295,9 +331,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             The starting positions
         pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
             The ending positions
-        agents0 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+        agents0 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
             The starting agents
-        agents1 : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+        agents1 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
             The ending agents
 
         Returns
@@ -312,7 +348,12 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         self,
         radius: int | float | Sequence[int] | Sequence[float] | ArrayLike,
         pos: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
         include_center: bool = False,
     ) -> DataFrame:
         """Get the neighboring agents from given positions or agents according to the specified radiuses.
@@ -325,7 +366,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
             The radius(es) of the neighborhood
         pos : SpaceCoordinate | SpaceCoordinates | None, optional
             The coordinates of the cell to get the neighborhood from, by default None
-        agents : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
             The id of the agents to get the neighborhood from, by default None
         include_center : bool, optional
             If the center cells or agents should be included in the result, by default False
@@ -346,14 +387,16 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     @abstractmethod
     def move_to_empty(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         """Move agents to empty cells/positions in the space (cells/positions where there isn't any single agent).
 
         Parameters
         ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The agents to move to empty cells/positions
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -367,14 +410,16 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     @abstractmethod
     def place_to_empty(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         """Place agents in empty cells/positions in the space (cells/positions where there isn't any single agent).
 
         Parameters
         ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The agents to place in empty cells/positions
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -407,7 +452,11 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     @abstractmethod
     def remove_agents(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         """Remove agents from the space.
@@ -416,7 +465,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The agents to remove from the space
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -433,22 +482,29 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return ...
 
     def _get_ids_srs(
-        self, agents: IdsLike | AgentContainer | Collection[AgentContainer]
+        self,
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
     ) -> Series:
         if isinstance(agents, Sized) and len(agents) == 0:
             return self._srs_constructor([], name="agent_id", dtype="uint64")
-        if isinstance(agents, AgentSetDF):
+        if isinstance(agents, AbstractAgentSet):
             return self._srs_constructor(
                 self._df_index(agents.df, "unique_id"),
                 name="agent_id",
                 dtype="uint64",
             )
-        elif isinstance(agents, AgentsDF):
+        elif isinstance(agents, AbstractAgentSetRegistry):
             return self._srs_constructor(agents._ids, name="agent_id", dtype="uint64")
-        elif isinstance(agents, Collection) and (isinstance(agents[0], AgentContainer)):
+        elif isinstance(agents, Collection) and (
+            isinstance(agents[0], AbstractAgentSetRegistry)
+        ):
             ids = []
             for a in agents:
-                if isinstance(a, AgentSetDF):
+                if isinstance(a, AbstractAgentSet):
                     ids.append(
                         self._srs_constructor(
                             self._df_index(a.df, "unique_id"),
@@ -456,7 +512,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
                             dtype="uint64",
                         )
                     )
-                elif isinstance(a, AgentsDF):
+                elif isinstance(a, AbstractAgentSetRegistry):
                     ids.append(
                         self._srs_constructor(a._ids, name="agent_id", dtype="uint64")
                     )
@@ -469,7 +525,9 @@ class SpaceDF(CopyMixin, DataFrameMixin):
     @abstractmethod
     def _place_or_move_agents(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry],
         pos: SpaceCoordinate | SpaceCoordinates,
         is_move: bool,
     ) -> Self:
@@ -479,7 +537,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The agents to move/place
         pos : SpaceCoordinate | SpaceCoordinates
             The position to move/place agents to
@@ -493,7 +551,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
     @abstractmethod
     def __repr__(self) -> str:
-        """Return a string representation of the SpaceDF.
+        """Return a string representation of the Space.
 
         Returns
         -------
@@ -503,7 +561,7 @@ class SpaceDF(CopyMixin, DataFrameMixin):
 
     @abstractmethod
     def __str__(self) -> str:
-        """Return a string representation of the SpaceDF.
+        """Return a string representation of the Space.
 
         Returns
         -------
@@ -522,12 +580,12 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return self._agents
 
     @property
-    def model(self) -> mesa_frames.concrete.model.ModelDF:
+    def model(self) -> mesa_frames.concrete.model.Model:
         """The model to which the space belongs.
 
         Returns
         -------
-        'mesa_frames.concrete.model.ModelDF'
+        'mesa_frames.concrete.model.Model'
         """
         return self._model
 
@@ -542,8 +600,8 @@ class SpaceDF(CopyMixin, DataFrameMixin):
         return self.model.random
 
 
-class DiscreteSpaceDF(SpaceDF):
-    """The DiscreteSpaceDF class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames."""
+class AbstractDiscreteSpace(Space):
+    """The AbstractDiscreteSpace class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames."""
 
     _agents: DataFrame
     _capacity: int | None  # The maximum capacity for cells (default is infinite)
@@ -554,14 +612,14 @@ class DiscreteSpaceDF(SpaceDF):
 
     def __init__(
         self,
-        model: mesa_frames.concrete.model.ModelDF,
+        model: mesa_frames.concrete.model.Model,
         capacity: int | None = None,
     ):
-        """Create a new DiscreteSpaceDF.
+        """Create a new AbstractDiscreteSpace.
 
         Parameters
         ----------
-        model : mesa_frames.concrete.model.ModelDF
+        model : mesa_frames.concrete.model.Model
             The model to which the space belongs
         capacity : int | None, optional
             The maximum capacity for cells (default is infinite), by default None
@@ -616,7 +674,11 @@ class DiscreteSpaceDF(SpaceDF):
 
     def move_to_empty(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry]
+        | AbstractAgentSet
+        | Collection[AbstractAgentSet],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -626,14 +688,18 @@ class DiscreteSpaceDF(SpaceDF):
 
     def move_to_available(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         """Move agents to available cells/positions in the space (cells/positions where there is at least one spot available).
 
         Parameters
         ----------
-        agents : IdsLike | AgentContainer | Collection[AgentContainer]
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
             The agents to move to available cells/positions
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -643,23 +709,33 @@ class DiscreteSpaceDF(SpaceDF):
         Self
         """
         obj = self._get_obj(inplace)
+
         return obj._place_or_move_agents_to_cells(
             agents, cell_type="available", is_move=True
         )
 
     def place_to_empty(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
+
         return obj._place_or_move_agents_to_cells(
             agents, cell_type="empty", is_move=False
         )
 
     def place_to_available(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -775,7 +851,9 @@ class DiscreteSpaceDF(SpaceDF):
         self,
         radius: int | float | Sequence[int] | Sequence[float] | ArrayLike,
         pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] = None,
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry] = None,
         include_center: bool = False,
     ) -> DataFrame:
         """Get the neighborhood cells from the given positions (pos) or agents according to the specified radiuses.
@@ -788,7 +866,7 @@ class DiscreteSpaceDF(SpaceDF):
             The radius(es) of the neighborhoods
         pos : DiscreteCoordinate | DiscreteCoordinates | None, optional
             The coordinates of the cell(s) to get the neighborhood from
-        agents : IdsLike | AgentContainer | Collection[AgentContainer], optional
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry], optional
             The agent(s) to get the neighborhood from
         include_center : bool, optional
             If the cell in the center of the neighborhood should be included in the result, by default False
@@ -883,7 +961,11 @@ class DiscreteSpaceDF(SpaceDF):
 
     def _place_or_move_agents_to_cells(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         cell_type: Literal["any", "empty", "available"],
         is_move: bool,
     ) -> Self:
@@ -892,7 +974,7 @@ class DiscreteSpaceDF(SpaceDF):
 
         if __debug__:
             # Check ids presence in model
-            b_contained = self.model.agents.contains(agents)
+            b_contained = self.model.sets.contains(agents)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
@@ -912,7 +994,10 @@ class DiscreteSpaceDF(SpaceDF):
     def _get_df_coords(
         self,
         pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
     ) -> DataFrame:
         """Get the DataFrame of coordinates from the specified positions or agents.
 
@@ -920,7 +1005,7 @@ class DiscreteSpaceDF(SpaceDF):
         ----------
         pos : DiscreteCoordinate | DiscreteCoordinates | None, optional
             The positions to get the DataFrame from, by default None
-        agents : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
             The agents to get the DataFrame from, by default None
 
         Returns
@@ -940,7 +1025,7 @@ class DiscreteSpaceDF(SpaceDF):
         self,
         n: int | None,
         with_replacement: bool,
-        condition: Callable[[DiscreteSpaceCapacity], BoolSeries],
+        condition: Callable[[DiscreteSpaceCapacity], BoolSeries | np.ndarray],
         respect_capacity: bool = True,
     ) -> DataFrame:
         """Sample cells from the grid according to a condition on the capacity.
@@ -1119,10 +1204,10 @@ class DiscreteSpaceDF(SpaceDF):
         ...
 
 
-class GridDF(DiscreteSpaceDF):
-    """The GridDF class is an abstract class that defines the interface for all grid classes in mesa-frames.
+class AbstractGrid(AbstractDiscreteSpace):
+    """The AbstractGrid class is an abstract class that defines the interface for all grid classes in mesa-frames.
 
-    Inherits from DiscreteSpaceDF.
+    Inherits from AbstractDiscreteSpace.
 
     Warning
     -------
@@ -1155,17 +1240,17 @@ class GridDF(DiscreteSpaceDF):
 
     def __init__(
         self,
-        model: mesa_frames.concrete.model.ModelDF,
+        model: mesa_frames.concrete.model.Model,
         dimensions: Sequence[int],
         torus: bool = False,
         capacity: int | None = None,
         neighborhood_type: str = "moore",
     ):
-        """Create a new GridDF.
+        """Create a new AbstractGrid.
 
         Parameters
         ----------
-        model : mesa_frames.concrete.model.ModelDF
+        model : mesa_frames.concrete.model.Model
             The model to which the space belongs
         dimensions : Sequence[int]
             The dimensions of the grid
@@ -1204,8 +1289,18 @@ class GridDF(DiscreteSpaceDF):
         self,
         pos0: GridCoordinate | GridCoordinates | None = None,
         pos1: GridCoordinate | GridCoordinates | None = None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents0: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
+        agents1: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
         normalize: bool = False,
     ) -> DataFrame:
         result = self._calculate_differences(pos0, pos1, agents0, agents1)
@@ -1217,8 +1312,18 @@ class GridDF(DiscreteSpaceDF):
         self,
         pos0: GridCoordinate | GridCoordinates | None = None,
         pos1: GridCoordinate | GridCoordinates | None = None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents0: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
+        agents1: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
     ) -> DataFrame:
         result = self._calculate_differences(pos0, pos1, agents0, agents1)
         return self._df_norm(result, "distance", True)
@@ -1227,7 +1332,10 @@ class GridDF(DiscreteSpaceDF):
         self,
         radius: int | Sequence[int],
         pos: GridCoordinate | GridCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
         include_center: bool = False,
     ) -> DataFrame:
         neighborhood_df = self.get_neighborhood(
@@ -1242,8 +1350,11 @@ class GridDF(DiscreteSpaceDF):
     def get_neighborhood(
         self,
         radius: int | Sequence[int] | ArrayLike,
-        pos: GridCoordinate | GridCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
         include_center: bool = False,
     ) -> DataFrame:
         pos_df = self._get_df_coords(pos, agents)
@@ -1476,7 +1587,9 @@ class GridDF(DiscreteSpaceDF):
 
     def remove_agents(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
         obj = self._get_obj(inplace)
@@ -1485,7 +1598,7 @@ class GridDF(DiscreteSpaceDF):
 
         if __debug__:
             # Check ids presence in model
-            b_contained = obj.model.agents.contains(agents)
+            b_contained = obj.model.sets.contains(agents)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
@@ -1519,8 +1632,18 @@ class GridDF(DiscreteSpaceDF):
         self,
         pos0: GridCoordinate | GridCoordinates | None,
         pos1: GridCoordinate | GridCoordinates | None,
-        agents0: IdsLike | AgentContainer | Collection[AgentContainer] | None,
-        agents1: IdsLike | AgentContainer | Collection[AgentContainer] | None,
+        agents0: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None,
+        agents1: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None,
     ) -> DataFrame:
         """Calculate the differences between two positions or agents.
 
@@ -1530,9 +1653,9 @@ class GridDF(DiscreteSpaceDF):
             The starting positions
         pos1 : GridCoordinate | GridCoordinates | None
             The ending positions
-        agents0 : IdsLike | AgentContainer | Collection[AgentContainer] | None
+        agents0 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None
             The starting agents
-        agents1 : IdsLike | AgentContainer | Collection[AgentContainer] | None
+        agents1 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None
             The ending agents
 
         Returns
@@ -1613,7 +1736,12 @@ class GridDF(DiscreteSpaceDF):
     def _get_df_coords(
         self,
         pos: GridCoordinate | GridCoordinates | None = None,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer] | None = None,
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
         check_bounds: bool = True,
     ) -> DataFrame:
         """Get the DataFrame of coordinates from the specified positions or agents.
@@ -1622,7 +1750,7 @@ class GridDF(DiscreteSpaceDF):
         ----------
         pos : GridCoordinate | GridCoordinates | None, optional
             The positions to get the DataFrame from, by default None
-        agents : IdsLike | AgentContainer | Collection[AgentContainer] | None, optional
+        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
             The agents to get the DataFrame from, by default None
         check_bounds: bool, optional
             If the positions should be checked for out-of-bounds in non-toroidal grids, by default True
@@ -1652,7 +1780,7 @@ class GridDF(DiscreteSpaceDF):
             if agents is not None:
                 agents = self._get_ids_srs(agents)
                 # Check ids presence in model
-                b_contained = self.model.agents.contains(agents)
+                b_contained = self.model.sets.contains(agents)
                 if (isinstance(b_contained, Series) and not b_contained.all()) or (
                     isinstance(b_contained, bool) and not b_contained
                 ):
@@ -1712,7 +1840,11 @@ class GridDF(DiscreteSpaceDF):
 
     def _place_or_move_agents(
         self,
-        agents: IdsLike | AgentContainer | Collection[AgentContainer],
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
         pos: GridCoordinate | GridCoordinates,
         is_move: bool,
     ) -> Self:
@@ -1728,7 +1860,7 @@ class GridDF(DiscreteSpaceDF):
                     warn("Some agents are already present in the grid", RuntimeWarning)
 
             # Check if agents are present in the model
-            b_contained = self.model.agents.contains(agents)
+            b_contained = self.model.sets.contains(agents)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):

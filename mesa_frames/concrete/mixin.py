@@ -10,7 +10,7 @@ Classes:
     PolarsMixin(DataFrameMixin):
         A Polars-based implementation of DataFrame operations. This class provides
         methods for manipulating and analyzing data stored in Polars DataFrames,
-        tailored for use in mesa-frames components like AgentSetPolars and GridPolars.
+        tailored for use in mesa-frames components like AgentSet and Grid.
 
 The PolarsMixin class is designed to be used as a mixin with other mesa-frames
 classes, providing them with Polars-specific DataFrame functionality. It implements
@@ -20,17 +20,17 @@ operations across the mesa-frames package.
 Usage:
     The PolarsMixin is typically used in combination with other base classes:
 
-    from mesa_frames.abstract import AgentSetDF
+    from mesa_frames.abstract import AbstractAgentSet
     from mesa_frames.concrete.mixin import PolarsMixin
 
-    class AgentSetPolars(AgentSetDF, PolarsMixin):
+    class AgentSet(AgentSet, PolarsMixin):
         def __init__(self, model):
             super().__init__(model)
-            self.agents = pl.DataFrame()  # Initialize empty DataFrame
+            self.sets = pl.DataFrame()  # Initialize empty DataFrame
 
         def some_method(self):
             # Use Polars operations provided by the mixin
-            result = self._df_groupby(self.agents, 'some_column')
+            result = self._df_groupby(self.sets, 'some_column')
             # ... further processing ...
 
 Features:
