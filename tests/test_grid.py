@@ -12,10 +12,8 @@ from tests.test_agentset import (
 
 
 def get_unique_ids(model: Model) -> pl.Series:
-    # return model.get_sets_of_type(model.set_types[0])["unique_id"]
-    series_list = [
-        series.cast(pl.UInt64) for series in model.sets.get("unique_id").values()
-    ]
+    # Collect unique_id across all concrete AgentSets in the registry
+    series_list = [aset["unique_id"].cast(pl.UInt64) for aset in model.sets]
     return pl.concat(series_list)
 
 
