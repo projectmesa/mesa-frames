@@ -575,3 +575,15 @@ class AbstractAgentSetRegistry(CopyMixin):
         mesa_frames.abstract.space.Space | None
         """
         return self.model.space
+
+    @property
+    @abstractmethod
+    def ids(self) -> Series:
+        """Public view of all agent unique_id values across contained sets.
+
+        Returns
+        -------
+        Series
+            Concatenated unique_id Series for all AgentSets.
+        """
+        ...

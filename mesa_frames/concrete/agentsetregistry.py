@@ -631,6 +631,11 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
     def values(self) -> Iterable[AgentSet]:
         return iter(self._agentsets)
 
+    @property
+    def ids(self) -> pl.Series:
+        """Public view of all agent unique_id values across contained sets."""
+        return self._ids
+
     @overload
     def __getitem__(self, key: int) -> AgentSet: ...
 

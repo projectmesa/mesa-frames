@@ -229,24 +229,27 @@ class Space(CopyMixin, DataFrameMixin):
         -------
         Self
         """
+        # Normalize inputs to Series of ids for validation and operations
+        ids0 = self._get_ids_srs(agents0)
+        ids1 = self._get_ids_srs(agents1)
         if __debug__:
-            if len(agents0) != len(agents1):
+            if len(ids0) != len(ids1):
                 raise ValueError("The two sets of agents must have the same length")
-            if not self._df_contains(self._agents, "agent_id", agents0).all():
+            if not self._df_contains(self._agents, "agent_id", ids0).all():
                 raise ValueError("Some agents in agents0 are not in the space")
-            if not self._df_contains(self._agents, "agent_id", agents1).all():
+            if not self._df_contains(self._agents, "agent_id", ids1).all():
                 raise ValueError("Some agents in agents1 are not in the space")
-            if self._srs_contains(agents0, agents1).any():
+            if self._srs_contains(ids0, ids1).any():
                 raise ValueError("Some agents are present in both agents0 and agents1")
         obj = self._get_obj(inplace)
         agents0_df = obj._df_get_masked_df(
-            obj._agents, index_cols="agent_id", mask=agents0
+            obj._agents, index_cols="agent_id", mask=ids0
         )
         agents1_df = obj._df_get_masked_df(
-            obj._agents, index_cols="agent_id", mask=agents1
+            obj._agents, index_cols="agent_id", mask=ids1
         )
-        agents0_df = obj._df_set_index(agents0_df, "agent_id", agents1)
-        agents1_df = obj._df_set_index(agents1_df, "agent_id", agents0)
+        agents0_df = obj._df_set_index(agents0_df, "agent_id", ids1)
+        agents1_df = obj._df_set_index(agents1_df, "agent_id", ids0)
         obj._agents = obj._df_combine_first(
             agents0_df, obj._agents, index_cols="agent_id"
         )
@@ -498,9 +501,10 @@ class Space(CopyMixin, DataFrameMixin):
                 dtype="uint64",
             )
         elif isinstance(agents, AbstractAgentSetRegistry):
-            return self._srs_constructor(agents._ids, name="agent_id", dtype="uint64")
+            return self._srs_constructor(agents.ids, name="agent_id", dtype="uint64")
         elif isinstance(agents, Collection) and (
-            isinstance(agents[0], AbstractAgentSetRegistry)
+            isinstance(agents[0], AbstractAgentSet)
+            or isinstance(agents[0], AbstractAgentSetRegistry)
         ):
             ids = []
             for a in agents:
@@ -514,7 +518,7 @@ class Space(CopyMixin, DataFrameMixin):
                     )
                 elif isinstance(a, AbstractAgentSetRegistry):
                     ids.append(
-                        self._srs_constructor(a._ids, name="agent_id", dtype="uint64")
+                        self._srs_constructor(a.ids, name="agent_id", dtype="uint64")
                     )
             return self._df_concat(ids, ignore_index=True)
         elif isinstance(agents, int):
@@ -973,8 +977,8 @@ class AbstractDiscreteSpace(Space):
         agents = self._get_ids_srs(agents)
 
         if __debug__:
-            # Check ids presence in model
-            b_contained = self.model.sets.contains(agents)
+            # Check ids presence in model using public API
+            b_contained = agents.is_in(self.model.sets.ids)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
@@ -1588,7 +1592,9 @@ class AbstractGrid(AbstractDiscreteSpace):
     def remove_agents(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
@@ -1597,8 +1603,8 @@ class AbstractGrid(AbstractDiscreteSpace):
         agents = obj._get_ids_srs(agents)
 
         if __debug__:
-            # Check ids presence in model
-            b_contained = obj.model.sets.contains(agents)
+            # Check ids presence in model via public ids
+            b_contained = agents.is_in(obj.model.sets.ids)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
@@ -1780,7 +1786,7 @@ class AbstractGrid(AbstractDiscreteSpace):
             if agents is not None:
                 agents = self._get_ids_srs(agents)
                 # Check ids presence in model
-                b_contained = self.model.sets.contains(agents)
+                b_contained = agents.is_in(self.model.sets.ids)
                 if (isinstance(b_contained, Series) and not b_contained.all()) or (
                     isinstance(b_contained, bool) and not b_contained
                 ):
@@ -1859,8 +1865,8 @@ class AbstractGrid(AbstractDiscreteSpace):
                 if self._df_contains(self._agents, "agent_id", agents).any():
                     warn("Some agents are already present in the grid", RuntimeWarning)
 
-            # Check if agents are present in the model
-            b_contained = self.model.sets.contains(agents)
+            # Check if agents are present in the model using the public ids
+            b_contained = agents.is_in(self.model.sets.ids)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
