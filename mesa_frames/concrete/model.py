@@ -126,7 +126,8 @@ class Model:
 
         The default method calls the step() method of all agents. Overload as needed.
         """
-        self.sets.step()
+        # Invoke step on all contained AgentSets via the public registry API
+        self.sets.do("step")
 
     @property
     def steps(self) -> int:
