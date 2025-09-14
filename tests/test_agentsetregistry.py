@@ -88,9 +88,7 @@ class TestAgentSetRegistry:
         # ids concatenated
         assert reg.ids.len() == len(a1) + len(a2)
         # Duplicate instance rejected
-        with pytest.raises(
-            ValueError, match="already present in the AgentSetRegistry"
-        ):
+        with pytest.raises(ValueError, match="already present in the AgentSetRegistry"):
             reg.add([a1])
         # Duplicate unique_id space rejected
         a3 = ExampleAgentSetB(fix_model)
@@ -179,6 +177,7 @@ class TestAgentSetRegistry:
         reg = fix_registry_with_two
         reg.shuffle(inplace=True)
         assert len(reg) == 2
+
     # Public: sort
     def test_sort(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
@@ -193,24 +192,29 @@ class TestAgentSetRegistry:
         ages = reg.age
         assert isinstance(ages, dict)
         assert set(ages.keys()) == {s.name for s in reg}
+
     # Dunder: __iter__
     def test__iter__(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
         it = list(iter(reg))
         assert it[0] is reg[0]
         assert all(isinstance(s, AgentSet) for s in it)
+
     # Dunder: __len__
     def test__len__(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
         assert len(reg) == 2
+
     # Dunder: __repr__
     def test__repr__(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
         repr(reg)
+
     # Dunder: __str__
     def test__str__(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
         str(reg)
+
     # Dunder: __reversed__
     def test__reversed__(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
@@ -238,7 +242,9 @@ class TestAgentSetRegistry:
         assert reg["extra_set"] is extra
         # Model mismatch raises
         other_model_set = ExampleAgentSetA(Model())
-        with pytest.raises(TypeError, match="Assigned AgentSet must belong to the same model"):
+        with pytest.raises(
+            TypeError, match="Assigned AgentSet must belong to the same model"
+        ):
             reg[0] = other_model_set
 
     # Public: keys
@@ -254,6 +260,7 @@ class TestAgentSetRegistry:
         # invalid key_by
         with pytest.raises(bear_roar.BeartypeCallHintParamViolation):
             list(reg.keys(key_by="bad"))
+
     # Public: items
     def test_items(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
@@ -263,10 +270,12 @@ class TestAgentSetRegistry:
         assert [k for k, _ in items_idx] == [0, 1]
         items_type = list(reg.items(key_by="type"))
         assert set(k for k, _ in items_type) == {ExampleAgentSetA, ExampleAgentSetB}
+
     # Public: values
     def test_values(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
         assert list(reg.values())[0] is reg[0]
+
     # Public: discard
     def test_discard(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
@@ -280,6 +289,7 @@ class TestAgentSetRegistry:
         # Non-inplace returns new copy
         reg2 = reg.discard("missing_name", inplace=False)
         assert len(reg2) == len(reg)
+
     # Public: ids (property)
     def test_ids(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
@@ -287,6 +297,7 @@ class TestAgentSetRegistry:
         before = reg.ids.len()
         reg.remove(reg[0])
         assert reg.ids.len() < before
+
     # Dunder: __getitem__
     def test__getitem__(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
@@ -297,16 +308,20 @@ class TestAgentSetRegistry:
         assert reg[name0] is reg[0]
         # By type
         lst = reg[ExampleAgentSetA]
-        assert isinstance(lst, list) and all(isinstance(s, ExampleAgentSetA) for s in lst)
+        assert isinstance(lst, list) and all(
+            isinstance(s, ExampleAgentSetA) for s in lst
+        )
         # Missing name raises KeyError
         with pytest.raises(KeyError):
             _ = reg["missing"]
+
     # Dunder: __contains__ (membership)
     def test__contains__(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
         assert reg[0] in reg
         new_set = ExampleAgentSetA(reg.model)
         assert new_set not in reg
+
     # Dunder: __add__
     def test__add__(self, fix_model: Model) -> None:
         reg = AgentSetRegistry(fix_model)
@@ -320,6 +335,7 @@ class TestAgentSetRegistry:
         # Presence by type/name (instances are deep-copied)
         assert reg_new.contains(ExampleAgentSetA) is True
         assert reg_new.contains(ExampleAgentSetB) is True
+
     # Dunder: __iadd__
     def test__iadd__(self, fix_model: Model) -> None:
         reg = AgentSetRegistry(fix_model)
@@ -330,6 +346,7 @@ class TestAgentSetRegistry:
         reg += [a2]
         assert len(reg) == 2
         assert reg.contains([a1, a2]).all()
+
     # Dunder: __sub__
     def test__sub__(self, fix_model: Model) -> None:
         reg = AgentSetRegistry(fix_model)
@@ -346,6 +363,7 @@ class TestAgentSetRegistry:
         # subtract list of instances also yields unchanged copy
         reg_new2 = reg - [a1, a2]
         assert len(reg_new2) == len(reg)
+
     # Dunder: __isub__
     def test__isub__(self, fix_model: Model) -> None:
         reg = AgentSetRegistry(fix_model)
