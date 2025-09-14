@@ -88,12 +88,22 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
             raise ValueError(
                 "Some agentsets are already present in the AgentSetRegistry."
             )
+        # Ensure unique names across existing and to-be-added sets
+        existing_names = {s.name for s in obj._agentsets}
         for agentset in other_list:
-            # Set name if not already set, using class name
-            if agentset.name is None:
-                base_name = agentset.__class__.__name__
-                name = obj._generate_name(base_name)
+            base_name = agentset.name or agentset.__class__.__name__
+            name = base_name
+            if name in existing_names:
+                counter = 1
+                candidate = f"{base_name}_{counter}"
+                while candidate in existing_names:
+                    counter += 1
+                    candidate = f"{base_name}_{counter}"
+                name = candidate
+            # Assign back if changed or was None
+            if name != (agentset.name or base_name):
                 agentset.name = name
+            existing_names.add(name)
         new_ids = pl.concat(
             [obj._ids] + [pl.Series(agentset["unique_id"]) for agentset in other_list]
         )
@@ -224,12 +234,7 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
 
     def contains(
         self,
-        sets: AgentSet
-        | type[AgentSet]
-        | str
-        | Iterable[AgentSet]
-        | Iterable[type[AgentSet]]
-        | Iterable[str],
+        sets: AgentSet | type[AgentSet] | str | Iterable[AgentSet] | Iterable[type[AgentSet]] | Iterable[str],
     ) -> bool | pl.Series:
         # Single value fast paths
         if isinstance(sets, AgentSet):
