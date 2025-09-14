@@ -234,7 +234,12 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
 
     def contains(
         self,
-        sets: AgentSet | type[AgentSet] | str | Iterable[AgentSet] | Iterable[type[AgentSet]] | Iterable[str],
+        sets: AgentSet
+        | type[AgentSet]
+        | str
+        | Iterable[AgentSet]
+        | Iterable[type[AgentSet]]
+        | Iterable[str],
     ) -> bool | pl.Series:
         # Single value fast paths
         if isinstance(sets, AgentSet):
