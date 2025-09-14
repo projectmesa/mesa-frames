@@ -296,12 +296,14 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
             agents = self.active_agents
         if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
             return self._get_obj(inplace)
-        agents = self._df_index(self._get_masked_df(agents), "unique_id")
-        sets = self.model.sets.remove(agents, inplace=inplace)
-        for agentset in sets.df.keys():
-            if isinstance(agentset, self.__class__):
-                return agentset
-        return self
+        obj = self._get_obj(inplace)
+        # Normalize to Series of unique_ids
+        ids = obj._df_index(obj._get_masked_df(agents), "unique_id")
+        # Validate presence
+        if not ids.is_in(obj._df["unique_id"]).all():
+            raise KeyError("Some 'unique_id' of mask are not present in this AgentSet.")
+        # Remove by ids
+        return obj._discard(ids)
 
     def set(
         self,
