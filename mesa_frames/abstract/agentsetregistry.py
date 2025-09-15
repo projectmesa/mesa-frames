@@ -94,6 +94,44 @@ class AbstractAgentSetRegistry(CopyMixin):
         return self._get_obj(inplace)
 
     @abstractmethod
+    def rename(
+        self,
+        target: (
+            mesa_frames.abstract.agentset.AbstractAgentSet
+            | str
+            | dict[mesa_frames.abstract.agentset.AbstractAgentSet | str, str]
+            | list[tuple[mesa_frames.abstract.agentset.AbstractAgentSet | str, str]]
+        ),
+        new_name: str | None = None,
+        *,
+        on_conflict: Literal["canonicalize", "raise"] = "canonicalize",
+        mode: Literal["atomic", "best_effort"] = "atomic",
+        inplace: bool = True,
+    ) -> Self:
+        """Rename AgentSets in this registry, handling conflicts.
+
+        Parameters
+        ----------
+        target : AgentSet | str | dict | list[tuple]
+            Single target (instance or existing name) with ``new_name`` provided,
+            or a mapping/sequence of (target, new_name) pairs for batch rename.
+        new_name : str | None
+            New name for single-target rename.
+        on_conflict : {"canonicalize", "raise"}
+            When a desired name collides, either canonicalize by appending a
+            numeric suffix (default) or raise ``ValueError``.
+        mode : {"atomic", "best_effort"}
+            In "atomic" mode, validate all renames before applying any. In
+            "best_effort" mode, apply what can be applied and skip failures.
+
+        Returns
+        -------
+        Self
+            Updated registry (or a renamed copy when ``inplace=False``).
+        """
+        ...
+
+    @abstractmethod
     def add(
         self,
         sets: (

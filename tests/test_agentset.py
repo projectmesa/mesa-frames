@@ -260,6 +260,36 @@ class Test_AgentSet:
             selected.active_agents["wealth"].to_list() == agents.df["wealth"].to_list()
         )
 
+    def test_rename(self, fix1_AgentSet: ExampleAgentSet) -> None:
+        agents = fix1_AgentSet
+        reg = agents.model.sets
+        # Inplace rename returns self and updates registry
+        old_name = agents.name
+        result = agents.rename("alpha", inplace=True)
+        assert result is agents
+        assert agents.name == "alpha"
+        assert reg.get("alpha") is agents
+        assert reg.get(old_name) is None
+
+        # Add a second set and claim the same name via registry first
+        other = ExampleAgentSet(agents.model)
+        other["wealth"] = other.starting_wealth
+        other["age"] = [1, 2, 3, 4]
+        reg.add(other)
+        reg.rename(other, "omega")
+        # Now rename the first to an existing name; should canonicalize to omega_1
+        agents.rename("omega", inplace=True)
+        assert agents.name != "omega"
+        assert agents.name.startswith("omega_")
+        assert reg.get(agents.name) is agents
+
+        # Non-inplace: returns a renamed copy of the set
+        copy_set = agents.rename("beta", inplace=False)
+        assert copy_set is not agents
+        assert copy_set.name in ("beta", "beta_1")
+        # Original remains unchanged
+        assert agents.name not in ("beta", "beta_1")
+
         # Test with a pl.Series[bool]
         mask = pl.Series("mask", [True, False, True, True], dtype=pl.Boolean)
         selected = agents.select(mask, inplace=False)

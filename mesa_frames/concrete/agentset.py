@@ -103,7 +103,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
 
-    def rename(self, new_name: str) -> str:
+    def rename(self, new_name: str, inplace: bool = True) -> Self:
         """Rename this agent set. If attached to AgentSetRegistry, delegate for uniqueness enforcement.
 
         Parameters
@@ -113,22 +113,40 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
 
         Returns
         -------
-        str
-            The final name used (may be canonicalized if duplicates exist).
+        Self
+            The updated AgentSet (or a renamed copy when ``inplace=False``).
 
         Raises
         ------
         ValueError
             If name conflicts occur and delegate encounters errors.
         """
+        # Respect inplace semantics consistently with other mutators
+        obj = self._get_obj(inplace)
+
         # Always delegate to the container's accessor if available through the model's sets
         # Check if we have a model and can find the AgentSetRegistry that contains this set
-        if self in self.model.sets:
-            return self.model.sets.rename(self._name, new_name)
+        try:
+            if self in self.model.sets:
+                # Save index to locate the copy on non-inplace path
+                try:
+                    idx = list(self.model.sets).index(self)  # type: ignore[arg-type]
+                except Exception:
+                    idx = None
+                reg = self.model.sets.rename(self, new_name, inplace=inplace)
+                if inplace:
+                    return self
+                if idx is not None:
+                    return reg[idx]
+                return reg.get(new_name)  # type: ignore[return-value]
+        except Exception:
+            # Fall back to local rename if delegation fails
+            obj._name = new_name
+            return obj
 
         # Set name locally if no container found
-        self._name = new_name
-        return new_name
+        obj._name = new_name
+        return obj
 
     def add(
         self,

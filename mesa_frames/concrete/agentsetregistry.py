@@ -113,6 +113,111 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         obj._ids = new_ids
         return obj
 
+    def rename(
+        self,
+        target: (
+            AgentSet
+            | str
+            | dict[AgentSet | str, str]
+            | list[tuple[AgentSet | str, str]]
+        ),
+        new_name: str | None = None,
+        *,
+        on_conflict: Literal["canonicalize", "raise"] = "canonicalize",
+        mode: Literal["atomic", "best_effort"] = "atomic",
+        inplace: bool = True,
+    ) -> Self:
+        """Rename AgentSets with conflict handling.
+
+        Supports single-target ``(set | old_name, new_name)`` and batch rename via
+        dict or list of pairs. Names remain unique across the registry.
+        """
+
+        # Normalize to list of (index_in_self, desired_name) using the original registry
+        def _resolve_one(x: AgentSet | str) -> int:
+            if isinstance(x, AgentSet):
+                for i, s in enumerate(self._agentsets):
+                    if s is x:
+                        return i
+                raise KeyError("AgentSet not found in registry")
+            # name lookup on original registry
+            for i, s in enumerate(self._agentsets):
+                if s.name == x:
+                    return i
+            raise KeyError(f"Agent set '{x}' not found")
+
+        if isinstance(target, (AgentSet, str)):
+            if new_name is None:
+                raise TypeError("new_name must be provided for single rename")
+            pairs_idx: list[tuple[int, str]] = [(_resolve_one(target), new_name)]
+            single = True
+        elif isinstance(target, dict):
+            pairs_idx = [(_resolve_one(k), v) for k, v in target.items()]
+            single = False
+        else:
+            pairs_idx = [(_resolve_one(k), v) for k, v in target]
+            single = False
+
+        # Choose object to mutate
+        obj = self._get_obj(inplace)
+        # Translate indices to object AgentSets in the selected registry object
+        target_sets = [obj._agentsets[i] for i, _ in pairs_idx]
+
+        # Build the set of names that remain fixed (exclude targets' current names)
+        targets_set = set(target_sets)
+        fixed_names: set[str] = {
+            s.name
+            for s in obj._agentsets
+            if s.name is not None and s not in targets_set
+        }  # type: ignore[comparison-overlap]
+
+        # Plan final names
+        final: list[tuple[AgentSet, str]] = []
+        used = set(fixed_names)
+
+        def _canonicalize(base: str) -> str:
+            if base not in used:
+                used.add(base)
+                return base
+            counter = 1
+            cand = f"{base}_{counter}"
+            while cand in used:
+                counter += 1
+                cand = f"{base}_{counter}"
+            used.add(cand)
+            return cand
+
+        errors: list[Exception] = []
+        for aset, (_idx, desired) in zip(target_sets, pairs_idx):
+            if on_conflict == "canonicalize":
+                final_name = _canonicalize(desired)
+                final.append((aset, final_name))
+            else:  # on_conflict == 'raise'
+                if desired in used:
+                    err = ValueError(
+                        f"Duplicate agent set name disallowed: '{desired}'"
+                    )
+                    if mode == "atomic":
+                        errors.append(err)
+                    else:
+                        # best_effort: skip this rename
+                        continue
+                else:
+                    used.add(desired)
+                    final.append((aset, desired))
+
+        if errors and mode == "atomic":
+            # Surface first meaningful error
+            raise errors[0]
+
+        # Apply renames
+        for aset, newn in final:
+            # Set the private name directly to avoid external uniqueness hooks
+            if hasattr(aset, "_name"):
+                aset._name = newn  # type: ignore[attr-defined]
+
+        return obj
+
     def replace(
         self,
         mapping: (dict[int | str, AgentSet] | list[tuple[int | str, AgentSet]]),

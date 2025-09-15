@@ -186,6 +186,42 @@ class TestAgentSetRegistry:
             reg[0]["wealth"].to_list(), reverse=True
         )
 
+    # Public: rename
+    def test_rename(self, fix_registry_with_two: AgentSetRegistry) -> None:
+        reg = fix_registry_with_two
+        # Single rename by instance, inplace
+        a0 = reg[0]
+        reg.rename(a0, "X")
+        assert a0.name == "X"
+        assert reg.get("X") is a0
+
+        # Rename second to same name should canonicalize
+        a1 = reg[1]
+        reg.rename(a1, "X")
+        assert a1.name != "X" and a1.name.startswith("X_")
+        assert reg.get(a1.name) is a1
+
+        # Non-inplace copy
+        reg2 = reg.rename(a0, "Y", inplace=False)
+        assert reg2 is not reg
+        assert reg.get("Y") is None
+        assert reg2.get("Y") is not None
+
+        # Atomic conflict raise: attempt to rename to existing name
+        with pytest.raises(ValueError):
+            reg.rename({a0: a1.name}, on_conflict="raise", mode="atomic")
+        # Names unchanged
+        assert reg.get(a1.name) is a1
+
+        # Best-effort: one ok, one conflicting → only ok applied
+        unique_name = "Z_unique"
+        reg.rename(
+            {a0: unique_name, a1: unique_name}, on_conflict="raise", mode="best_effort"
+        )
+        assert a0.name == unique_name
+        # a1 stays with its previous (non-unique_name) value
+        assert a1.name != unique_name
+
     # Dunder: __getattr__
     def test__getattr__(self, fix_registry_with_two: AgentSetRegistry) -> None:
         reg = fix_registry_with_two
