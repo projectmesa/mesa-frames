@@ -35,12 +35,13 @@ class AntDFBase(AgentSet):
         self.add(agents)
 
     def eat(self):
+        # Only consider cells currently occupied by agents of this set
         cells = self.space.cells.filter(pl.col("agent_id").is_not_null())
-        self[cells["agent_id"], "sugar"] = (
-            self[cells["agent_id"], "sugar"]
-            + cells["sugar"]
-            - self[cells["agent_id"], "metabolism"]
-        )
+        mask_in_set = cells["agent_id"].is_in(self.index)
+        if mask_in_set.any():
+            cells = cells.filter(mask_in_set)
+            ids = cells["agent_id"]
+            self[ids, "sugar"] = self[ids, "sugar"] + cells["sugar"] - self[ids, "metabolism"]
 
     def step(self):
         self.shuffle().do("move").do("eat")
