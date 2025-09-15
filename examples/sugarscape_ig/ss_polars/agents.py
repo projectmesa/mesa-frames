@@ -41,7 +41,9 @@ class AntDFBase(AgentSet):
         if mask_in_set.any():
             cells = cells.filter(mask_in_set)
             ids = cells["agent_id"]
-            self[ids, "sugar"] = self[ids, "sugar"] + cells["sugar"] - self[ids, "metabolism"]
+            self[ids, "sugar"] = (
+                self[ids, "sugar"] + cells["sugar"] - self[ids, "metabolism"]
+            )
 
     def step(self):
         self.shuffle().do("move").do("eat")
