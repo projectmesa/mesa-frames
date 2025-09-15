@@ -269,7 +269,7 @@ class TestAgentSetRegistry:
         items_idx = list(reg.items(key_by="index"))
         assert [k for k, _ in items_idx] == [0, 1]
         items_type = list(reg.items(key_by="type"))
-        assert set(k for k, _ in items_type) == {ExampleAgentSetA, ExampleAgentSetB}
+        assert {k for k, _ in items_type} == {ExampleAgentSetA, ExampleAgentSetB}
 
     # Public: values
     def test_values(self, fix_registry_with_two: AgentSetRegistry) -> None:
