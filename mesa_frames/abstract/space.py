@@ -121,7 +121,7 @@ class Space(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry]
             The agents to move
         pos : SpaceCoordinate | SpaceCoordinates
             The coordinates for each agents. The length of the coordinates must match the number of agents.
@@ -157,7 +157,7 @@ class Space(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry]
             The agents to place in the space
         pos : SpaceCoordinate | SpaceCoordinates
             The coordinates for each agents. The length of the coordinates must match the number of agents.
@@ -218,9 +218,9 @@ class Space(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents0 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
+        agents0 : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry]
             The first set of agents to swap
-        agents1 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
+        agents1 : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry]
             The second set of agents to swap
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -290,9 +290,9 @@ class Space(CopyMixin, DataFrameMixin):
             The starting positions
         pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
             The ending positions
-        agents0 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
+        agents0 : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None, optional
             The starting agents
-        agents1 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
+        agents1 : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None, optional
             The ending agents
         normalize : bool, optional
             Whether to normalize the vectors to unit norm. By default False
@@ -334,9 +334,9 @@ class Space(CopyMixin, DataFrameMixin):
             The starting positions
         pos1 : SpaceCoordinate | SpaceCoordinates | None, optional
             The ending positions
-        agents0 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
+        agents0 : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None, optional
             The starting agents
-        agents1 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
+        agents1 : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None, optional
             The ending agents
 
         Returns
@@ -369,7 +369,7 @@ class Space(CopyMixin, DataFrameMixin):
             The radius(es) of the neighborhood
         pos : SpaceCoordinate | SpaceCoordinates | None, optional
             The coordinates of the cell to get the neighborhood from, by default None
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None, optional
             The id of the agents to get the neighborhood from, by default None
         include_center : bool, optional
             If the center cells or agents should be included in the result, by default False
@@ -391,7 +391,9 @@ class Space(CopyMixin, DataFrameMixin):
     def move_to_empty(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
@@ -399,7 +401,7 @@ class Space(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry]
             The agents to move to empty cells/positions
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -414,7 +416,9 @@ class Space(CopyMixin, DataFrameMixin):
     def place_to_empty(
         self,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
     ) -> Self:
@@ -422,7 +426,7 @@ class Space(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry]
             The agents to place in empty cells/positions
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -468,7 +472,7 @@ class Space(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry]
             The agents to remove from the space
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -703,7 +707,7 @@ class AbstractDiscreteSpace(Space):
 
         Parameters
         ----------
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry]
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry]
             The agents to move to available cells/positions
         inplace : bool, optional
             Whether to perform the operation inplace, by default True
@@ -856,7 +860,9 @@ class AbstractDiscreteSpace(Space):
         radius: int | float | Sequence[int] | Sequence[float] | ArrayLike,
         pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
         agents: IdsLike
+        | AbstractAgentSet
         | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry] = None,
         include_center: bool = False,
     ) -> DataFrame:
@@ -870,7 +876,7 @@ class AbstractDiscreteSpace(Space):
             The radius(es) of the neighborhoods
         pos : DiscreteCoordinate | DiscreteCoordinates | None, optional
             The coordinates of the cell(s) to get the neighborhood from
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry], optional
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry], optional
             The agent(s) to get the neighborhood from
         include_center : bool, optional
             If the cell in the center of the neighborhood should be included in the result, by default False
@@ -1040,7 +1046,7 @@ class AbstractDiscreteSpace(Space):
             The number of cells to sample. If None, samples the maximum available.
         with_replacement : bool
             If the sampling should be with replacement
-        condition : Callable[[DiscreteSpaceCapacity], BoolSeries]
+        condition : Callable[[DiscreteSpaceCapacity], BoolSeries | np.ndarray]
             The condition to apply on the capacity
         respect_capacity : bool, optional
             If the capacity should be respected in the sampling.
@@ -1659,9 +1665,9 @@ class AbstractGrid(AbstractDiscreteSpace):
             The starting positions
         pos1 : GridCoordinate | GridCoordinates | None
             The ending positions
-        agents0 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None
+        agents0 : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None
             The starting agents
-        agents1 : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None
+        agents1 : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None
             The ending agents
 
         Returns
@@ -1756,7 +1762,7 @@ class AbstractGrid(AbstractDiscreteSpace):
         ----------
         pos : GridCoordinate | GridCoordinates | None, optional
             The positions to get the DataFrame from, by default None
-        agents : IdsLike | AbstractAgentSetRegistry | Collection[AbstractAgentSetRegistry] | None, optional
+        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None, optional
             The agents to get the DataFrame from, by default None
         check_bounds: bool, optional
             If the positions should be checked for out-of-bounds in non-toroidal grids, by default True

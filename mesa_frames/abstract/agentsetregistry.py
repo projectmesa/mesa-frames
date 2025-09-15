@@ -43,7 +43,7 @@ Attributes and methods of each class are documented in their respective docstrin
 from __future__ import annotations  # PEP 563: postponed evaluation of type annotations
 
 from abc import abstractmethod
-from collections.abc import Callable, Collection, Iterator, Sequence, Iterable
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from contextlib import suppress
 from typing import Any, Literal, Self, overload
 
@@ -51,10 +51,12 @@ from numpy.random import Generator
 
 from mesa_frames.abstract.mixin import CopyMixin
 from mesa_frames.types_ import (
+    AbstractAgentSetSelector as AgentSetSelector,
+)
+from mesa_frames.types_ import (
     BoolSeries,
     Index,
     KeyBy,
-    AbstractAgentSetSelector as AgentSetSelector,
     Series,
 )
 
@@ -112,15 +114,15 @@ class AbstractAgentSetRegistry(CopyMixin):
 
         Parameters
         ----------
-        target : AgentSet | str | dict | list[tuple]
+        target : mesa_frames.abstract.agentset.AbstractAgentSet | str | dict[mesa_frames.abstract.agentset.AbstractAgentSet | str, str] | list[tuple[mesa_frames.abstract.agentset.AbstractAgentSet | str, str]]
             Single target (instance or existing name) with ``new_name`` provided,
             or a mapping/sequence of (target, new_name) pairs for batch rename.
         new_name : str | None
             New name for single-target rename.
-        on_conflict : {"canonicalize", "raise"}
+        on_conflict : Literal["canonicalize", "raise"]
             When a desired name collides, either canonicalize by appending a
             numeric suffix (default) or raise ``ValueError``.
-        mode : {"atomic", "best_effort"}
+        mode : Literal["atomic", "best_effort"]
             In "atomic" mode, validate all renames before applying any. In
             "best_effort" mode, apply what can be applied and skip failures.
 
@@ -128,6 +130,12 @@ class AbstractAgentSetRegistry(CopyMixin):
         -------
         Self
             Updated registry (or a renamed copy when ``inplace=False``).
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Whether to perform the rename in place. If False, a renamed copy is
+            returned, by default True.
         """
         ...
 

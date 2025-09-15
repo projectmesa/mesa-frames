@@ -111,6 +111,10 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         new_name : str
             Desired new name.
 
+        inplace : bool, optional
+            Whether to perform the rename in place. If False, a renamed copy is
+            returned, by default True.
+
         Returns
         -------
         Self

@@ -96,7 +96,7 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
 
         Parameters
         ----------
-        agents : mesa_frames.concrete.agents.AgentSetDF | IdsLike
+        agents : IdsLike
             The ID(s) to check for.
 
         Returns
@@ -480,6 +480,9 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         ----------
         new_name : str
             Desired new name for this AgentSet.
+        inplace : bool, optional
+            Whether to perform the rename in place. If False, a renamed copy is
+            returned, by default True.
 
         Returns
         -------
