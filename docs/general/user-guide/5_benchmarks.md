@@ -8,11 +8,11 @@ mesa-frames offers significant performance improvements over the original mesa f
 
 ### Comparison with mesa
 
-![Performance Graph BW](https://github.com/projectmesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
+![Performance Graph BW](https://github.com/projectmesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
 
 ### Comparison of mesa-frames implementations
 
-![Performance Graph BW without Mesa](https://github.com/projectmesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
+![Performance Graph BW without Mesa](https://github.com/projectmesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
 
 ## SugarScape with Instantaneous Growback 🍬
 
