@@ -21,7 +21,7 @@ mesa-frames leverages the power of vectorized operations provided by DataFrame l
 - This approach is significantly faster than iterating over individual agents
 - Complex behaviors can be expressed in fewer lines of code
 
-Default to vectorized operations when expressing agent behaviour; that's where mesa-frames gains most of its speed-ups. If your agents must act sequentially (for example, to resolve conflicts or enforce ordering), fall back to loops or staged vectorized passes—mesa-frames will behave more like base mesa in those situations. We'll unpack these trade-offs in the upcoming SugarScape advanced tutorial.
+Default to vectorized operations when expressing agent behaviour; that's where mesa-frames gains most of its speed-ups. If your agents must act sequentially (for example, to resolve conflicts or enforce ordering), fall back to loops or staged vectorized passes—mesa-frames will behave more like base mesa in those situations. We'll unpack these trade-offs in the SugarScape advanced tutorial.
 
 It's important to note that in traditional `mesa` models, the order in which agents are activated can significantly impact the results of the model (see [Comer, 2014](http://mars.gmu.edu/bitstream/handle/1920/9070/Comer_gmu_0883E_10539.pdf)). `mesa-frames`, by default, doesn't have this issue as all agents are processed simultaneously. However, this comes with the trade-off of needing to carefully implement conflict resolution mechanisms when sequential processing is required. We'll discuss how to handle these situations later in this guide.
 
