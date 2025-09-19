@@ -24,59 +24,17 @@ The following is a performance graph showing execution time using mesa and mesa-
 pip install mesa-frames
 ```
 
-### Install from Source
+### Install from Source (development)
 
-To install the most updated version of mesa-frames, you can clone the repository and install the package in editable mode.
-
-#### Cloning the Repository
-
-To get started with mesa-frames, first clone the repository from GitHub:
+Clone the repository and install dependencies with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 git clone https://github.com/projectmesa/mesa-frames.git
-cd mesa_frames
+cd mesa-frames
+uv sync --all-extras
 ```
 
-#### Installing in a Conda Environment
-
-If you want to install it into a new environment:
-
-```bash
-conda create -n myenv
-```
-
-If you want to install it into an existing environment:
-
-```bash
-conda activate myenv
-```
-
-Then, to install mesa-frames itself:
-
-```bash
-pip install -e .
-```
-
-#### Installing in a Python Virtual Environment
-
-If you want to install it into a new environment:
-
-```bash
-python3 -m venv myenv
-source myenv/bin/activate  # On Windows, use `myenv\Scripts\activate`
-```
-
-If you want to install it into an existing environment:
-
-```bash
-source myenv/bin/activate  # On Windows, use `myenv\Scripts\activate`
-```
-
-Then, to install mesa-frames itself:
-
-```bash
-pip install -e .
-```
+`uv sync` creates a local `.venv/` with mesa-frames and its development extras.
 
 ## Usage
 
