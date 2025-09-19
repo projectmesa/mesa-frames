@@ -91,7 +91,11 @@ class AbstractDataCollector(ABC):
         model_reporters : dict[str, Callable] | None
             Functions to collect data at the model level.
         agent_reporters : dict[str, str | Callable] | None
-            Attributes or functions to collect data at the agent level.
+            Agent-level reporters. Values may be:
+            - str or list[str]: pull existing columns from each set; columns are suffixed per-set.
+            - Callable[[AbstractAgentSetRegistry], Series | DataFrame | dict[str, Series|DataFrame]]: registry-level, runs once per step.
+            - Callable[[mesa_frames.abstract.agentset.AbstractAgentSet], Series | DataFrame]: set-level, runs once per set.
+            Note: model-level callables are not supported for agent reporters.
         trigger : Callable[[Any], bool] | None
             A function(model) -> bool that determines whether to collect data.
         reset_memory : bool
