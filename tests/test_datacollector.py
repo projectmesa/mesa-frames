@@ -164,7 +164,11 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
+<<<<<<< HEAD
                 "wealth": lambda sets: sets[0]["wealth"],
+=======
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                 "age": "age",
             },
         )
@@ -223,7 +227,11 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
+<<<<<<< HEAD
                 "wealth": lambda sets: sets[0]["wealth"],
+=======
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                 "age": "age",
             },
         )
@@ -279,7 +287,11 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
+<<<<<<< HEAD
                 "wealth": lambda sets: sets[0]["wealth"],
+=======
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                 "age": "age",
             },
         )
@@ -361,7 +373,11 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
+<<<<<<< HEAD
                     "wealth": lambda sets: sets[0]["wealth"],
+=======
+                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                     "age": "age",
                 },
                 storage="csv",
@@ -437,7 +453,11 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
+<<<<<<< HEAD
                     "wealth": lambda sets: sets[0]["wealth"],
+=======
+                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                 },
                 storage="parquet",
                 storage_uri=tmpdir,
@@ -513,7 +533,11 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
+<<<<<<< HEAD
                 "wealth": lambda sets: sets[0]["wealth"],
+=======
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                 "age": "age",
             },
             storage="postgresql",
@@ -562,7 +586,11 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
+<<<<<<< HEAD
                 "wealth": lambda sets: sets[0]["wealth"],
+=======
+                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                 "age": "age",
             },
         )
@@ -707,7 +735,11 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
+<<<<<<< HEAD
                     "wealth": lambda sets: sets[0]["wealth"],
+=======
+                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                     "age": "age",
                 },
                 storage="csv",

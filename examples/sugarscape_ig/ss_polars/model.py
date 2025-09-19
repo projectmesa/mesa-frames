@@ -33,10 +33,14 @@ class SugarscapePolars(Model):
             sugar=sugar_grid.flatten(), max_sugar=sugar_grid.flatten()
         )
         self.space.set_cells(sugar_grid)
+<<<<<<< HEAD
         # Create and register the main agent set; keep its name for later lookups
         main_set = agent_type(self, n_agents, initial_sugar, metabolism, vision)
         self.sets += main_set
         self._main_set_name = main_set.name
+=======
+        self.sets += agent_type(self, n_agents, initial_sugar, metabolism, vision)
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
         if initial_positions is not None:
             self.space.place_agents(self.sets, initial_positions)
         else:
@@ -44,8 +48,12 @@ class SugarscapePolars(Model):
 
     def run_model(self, steps: int) -> list[int]:
         for _ in range(steps):
+<<<<<<< HEAD
             # Stop if the main agent set is empty
             if len(self.sets[self._main_set_name]) == 0:  # type: ignore[index]
+=======
+            if len(list(self.sets.df.values())[0]) == 0:
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
                 return
             empty_cells = self.space.empty_cells
             full_cells = self.space.full_cells

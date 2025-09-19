@@ -64,7 +64,11 @@ class Model:
     running: bool
     _seed: int | Sequence[int]
     _sets: AgentSetRegistry  # Where the agent sets are stored
+<<<<<<< HEAD
     _space: Space | None  # This will be a Space object
+=======
+    _space: Space | None  # This will be a MultiSpaceDF object
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 
     def __init__(self, seed: int | Sequence[int] | None = None) -> None:
         """Create a new model.
@@ -99,6 +103,27 @@ class Model:
         """Get the current step count."""
         return self._steps
 
+<<<<<<< HEAD
+=======
+    def get_sets_of_type(self, agent_type: type) -> AgentSet:
+        """Retrieve the AgentSet of a specified type.
+
+        Parameters
+        ----------
+        agent_type : type
+            The type of AgentSet to retrieve.
+
+        Returns
+        -------
+        AgentSet
+            The AgentSet of the specified type.
+        """
+        for agentset in self._sets._agentsets:
+            if isinstance(agentset, agent_type):
+                return agentset
+        raise ValueError(f"No agent sets of type {agent_type} found in the model.")
+
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
     def reset_randomizer(self, seed: int | Sequence[int] | None) -> None:
         """Reset the model random number generator.
 
@@ -126,8 +151,12 @@ class Model:
 
         The default method calls the step() method of all agents. Overload as needed.
         """
+<<<<<<< HEAD
         # Invoke step on all contained AgentSets via the public registry API
         self.sets.do("step")
+=======
+        self.sets.step()
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 
     @property
     def steps(self) -> int:
@@ -171,6 +200,20 @@ class Model:
         self._sets = sets
 
     @property
+<<<<<<< HEAD
+=======
+    def set_types(self) -> list[type]:
+        """Get a list of different agent set types present in the model.
+
+        Returns
+        -------
+        list[type]
+            A list of the different agent set types present in the model.
+        """
+        return [agent.__class__ for agent in self._sets._agentsets]
+
+    @property
+>>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
     def space(self) -> Space:
         """Get the space object associated with the model.
 
