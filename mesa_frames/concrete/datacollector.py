@@ -26,18 +26,18 @@ Triggers:
       If true, data is collected during `conditional_collect()`.
 
 Usage:
-    The `DataCollector` class is designed to be used within a `ModelDF` instance
+    The `DataCollector` class is designed to be used within a `Model` instance
     to collect model-level and/or agent-level data.
 
     Example:
     --------
-    from mesa_frames.concrete.model import ModelDF
+    from mesa_frames.concrete.model import Model
     from mesa_frames.concrete.datacollector import DataCollector
 
-    class ExampleModel(ModelDF):
-        def __init__(self, agents: AgentsDF):
+    class ExampleModel(Model):
+        def __init__(self, agents: AgentSetRegistry):
             super().__init__()
-            self.agents = agents
+            self.sets = agents
             self.dc = DataCollector(
                 model=self,
                 # other required arguments
@@ -62,14 +62,14 @@ import psycopg2
 from mesa_frames.abstract.datacollector import AbstractDataCollector
 from typing import Any, Literal
 from collections.abc import Callable
-from mesa_frames import ModelDF
+from mesa_frames import Model
 from psycopg2.extensions import connection
 
 
 class DataCollector(AbstractDataCollector):
     def __init__(
         self,
-        model: ModelDF,
+        model: Model,
         model_reporters: dict[str, Callable] | None = None,
         agent_reporters: dict[str, str | Callable] | None = None,
         trigger: Callable[[Any], bool] | None = None,
@@ -86,7 +86,7 @@ class DataCollector(AbstractDataCollector):
 
         Parameters
         ----------
-        model : ModelDF
+        model : Model
             The model object from which data is collected.
         model_reporters : dict[str, Callable] | None
             Functions to collect data at the model level.
@@ -180,7 +180,7 @@ class DataCollector(AbstractDataCollector):
         agent_data_dict = {}
         for col_name, reporter in self._agent_reporters.items():
             if isinstance(reporter, str):
-                for k, v in self._model.agents[reporter].items():
+                for k, v in self._model.sets[reporter].items():
                     agent_data_dict[col_name + "_" + str(k.__class__.__name__)] = v
             else:
                 agent_data_dict[col_name] = reporter(self._model)
@@ -463,7 +463,7 @@ class DataCollector(AbstractDataCollector):
         expected_columns = set()
         for col_name, required_column in reporter.items():
             if isinstance(required_column, str):
-                for k, v in self._model.agents[required_column].items():
+                for k, v in self._model.sets[required_column].items():
                     expected_columns.add(
                         (col_name + "_" + str(k.__class__.__name__)).lower()
                     )

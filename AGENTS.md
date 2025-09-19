@@ -13,7 +13,7 @@
 
 - Install (dev stack): `uv sync` (always use uv)
 - Lint & format: `uv run ruff check . --fix && uv run ruff format .`
-- Tests (quiet + coverage): `export MESA_FRAMES_RUNTIME_TYPECHECKING = 1 && uv run pytest -q --cov=mesa_frames --cov-report=term-missing`
+- Tests (quiet + coverage): `export MESA_FRAMES_RUNTIME_TYPECHECKING=1 && uv run pytest -q --cov=mesa_frames --cov-report=term-missing`
 - Pre-commit (all files): `uv run pre-commit run -a`
 - Docs preview: `uv run mkdocs serve`
 
@@ -36,7 +36,7 @@ Always run tools via uv: `uv run <command>`.
 ## Commit & Pull Request Guidelines
 
 - Commits: Imperative mood, concise subject, meaningful body when needed.
-  Example: `Fix AgentsDF.sets copy binding and tests`.
+  Example: `Fix AgentSetRegistry.sets copy binding and tests`.
 - PRs: Link issues, summarize changes, note API impacts, add/adjust tests and docs.
 - CI hygiene: Run `ruff`, `pytest`, and `pre-commit` locally before pushing.
 

@@ -4,13 +4,13 @@ Agents
 .. currentmodule:: mesa_frames
 
 
-.. autoclass:: AgentSetPolars
+.. autoclass:: AgentSet
     :members:
     :inherited-members:
     :autosummary:
     :autosummary-nosignatures:
 
-.. autoclass:: AgentsDF
+.. autoclass:: AgentSetRegistry
     :members:
     :inherited-members:
     :autosummary:

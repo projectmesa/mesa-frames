@@ -6,17 +6,17 @@ interfaces and shared functionality for the mesa-frames extension.
 
 Classes:
     agents.py:
-        - AgentContainer: Abstract base class for agent containers.
-        - AgentSetDF: Abstract base class for agent sets using DataFrames.
+        - AbstractAgentSetRegistry: Abstract base class for agent containers.
+        - AbstractAgentSet: Abstract base class for agent sets using DataFrames.
 
     mixin.py:
         - CopyMixin: Mixin class providing fast copy functionality.
         - DataFrameMixin: Mixin class defining the interface for DataFrame operations.
 
     space.py:
-        - SpaceDF: Abstract base class for all space classes.
-        - DiscreteSpaceDF: Abstract base class for discrete space classes (Grids and Networks).
-        - GridDF: Abstract base class for grid classes.
+            - AbstractSpace: Abstract base class for all space classes.
+            - AbstractDiscreteSpace: Abstract base class for discrete space classes (Grids and Networks).
+            - AbstractGrid: Abstract base class for grid classes.
 
 These abstract classes and mixins provide the foundation for the concrete
 implementations in mesa-frames, ensuring consistent interfaces and shared
@@ -28,9 +28,9 @@ Usage:
 
     For example:
 
-    from mesa_frames.abstract import AgentSetDF, DataFrameMixin
+    from mesa_frames.abstract import AbstractAgentSet, DataFrameMixin
 
-    class ConcreteAgentSet(AgentSetDF):
+    class ConcreteAgentSet(AbstractAgentSet):
         # Implement abstract methods here
         ...
 

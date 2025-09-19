@@ -35,14 +35,14 @@ Here's a comparison between mesa-frames and mesa:
 === "mesa-frames"
 
     ```python
-    class MoneyAgentPolarsConcise(AgentSetPolars):
+    class MoneyAgents(AgentSet):
         # initialization...
         def give_money(self):
             # Active agents are changed to wealthy agents
             self.select(self.wealth > 0)
 
             # Receiving agents are sampled (only native expressions currently supported)
-            other_agents = self.agents.sample(
+            other_agents = self.sets.sample(
                 n=len(self.active_agents), with_replacement=True
             )
 
@@ -64,7 +64,7 @@ Here's a comparison between mesa-frames and mesa:
         def give_money(self):
             # Verify agent has some wealth
             if self.wealth > 0:
-                other_agent = self.random.choice(self.model.agents)
+                other_agent = self.random.choice(self.model.sets)
                 if other_agent is not None:
                     other_agent.wealth += 1
                     self.wealth -= 1
@@ -84,7 +84,7 @@ If you're familiar with mesa, this guide will help you understand the key differ
 === "mesa-frames"
 
     ```python
-    class MoneyAgentSet(AgentSetPolars):
+    class MoneyAgents(AgentSet):
         def __init__(self, n, model):
             super().__init__(model)
             self += pl.DataFrame({
@@ -92,7 +92,7 @@ If you're familiar with mesa, this guide will help you understand the key differ
                 })
         def step(self):
             givers = self.wealth > 0
-            receivers = self.agents.sample(n=len(self.active_agents))
+            receivers = self.sets.sample(n=len(self.active_agents))
             self[givers, "wealth"] -= 1
             new_wealth = receivers.groupby("unique_id").count()
             self[new_wealth["unique_id"], "wealth"] += new_wealth["count"]
@@ -121,13 +121,13 @@ If you're familiar with mesa, this guide will help you understand the key differ
 === "mesa-frames"
 
     ```python
-    class MoneyModel(ModelDF):
+    class MoneyModel(Model):
         def __init__(self, N):
             super().__init__()
-            self.agents += MoneyAgentSet(N, self)
+            self.sets += MoneyAgents(N, self)
 
         def step(self):
-            self.agents.do("step")
+            self.sets.do("step")
 
     ```
 
