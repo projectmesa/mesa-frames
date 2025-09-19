@@ -492,6 +492,35 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         """
         ...
 
+    @abstractmethod
+    def set(
+        self,
+        attr_names: str | Collection[str] | dict[str, Any] | None = None,
+        values: Any | None = None,
+        mask: AgentMask | None = None,
+        inplace: bool = True,
+    ) -> Self:
+        """Update agent attributes, optionally on a masked subset.
+
+        Parameters
+        ----------
+        attr_names : str | Collection[str] | dict[str, Any] | None, optional
+            Attribute(s) to assign. When ``None``, concrete implementations may
+            derive targets from ``values``.
+        values : Any | None, optional
+            Replacement value(s) aligned with ``attr_names``.
+        mask : AgentMask | None, optional
+            Subset selector limiting which agents are updated.
+        inplace : bool, optional
+            Whether to mutate in place or return an updated copy, by default True.
+
+        Returns
+        -------
+        Self
+            The updated AgentSet (or a modified copy when ``inplace=False``).
+        """
+        ...
+
     def __setitem__(
         self,
         key: str
