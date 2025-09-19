@@ -420,27 +420,65 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
     ) -> Self | Any:
         obj = self._get_obj(inplace)
         target_sets = obj._resolve_selector(sets)
+
+        if not target_sets:
+            return {} if return_results else obj
+
+        index_lookup = {id(s): idx for idx, s in enumerate(obj._agentsets)}
+
         if return_results:
 
-            def make_key(i: int, s: AgentSet) -> Any:
+            def make_key(agentset: AgentSet) -> Any:
                 if key_by == "name":
-                    return s.name
+                    return agentset.name
                 if key_by == "index":
-                    return i
+                    try:
+                        return index_lookup[id(agentset)]
+                    except KeyError as exc:  # pragma: no cover - defensive
+                        raise ValueError(
+                            "AgentSet not found in registry; cannot key by index."
+                        ) from exc
                 if key_by == "type":
-                    return type(s)
-                return s  # backward-compatible: key by object
+                    return type(agentset)
+                return agentset  # backward-compatible: key by object
 
-            return {
-                make_key(i, s): s.do(
-                    method_name, *args, return_results=True, inplace=inplace, **kwargs
+            results: dict[Any, Any] = {}
+            for agentset in target_sets:
+                key = make_key(agentset)
+                if key_by == "type" and key in results:
+                    raise ValueError(
+                        "Multiple agent sets of the same type were selected; "
+                        "use key_by='name' or key_by='index' instead."
+                    )
+                results[key] = agentset.do(
+                    method_name,
+                    *args,
+                    return_results=True,
+                    inplace=inplace,
+                    **kwargs,
                 )
-                for i, s in enumerate(target_sets)
-            }
-        obj._agentsets = [
-            s.do(method_name, *args, return_results=False, inplace=inplace, **kwargs)
-            for s in target_sets
-        ]
+            return results
+
+        updates: list[tuple[int, AgentSet]] = []
+        for agentset in target_sets:
+            try:
+                registry_index = index_lookup[id(agentset)]
+            except KeyError as exc:  # pragma: no cover - defensive
+                raise ValueError(
+                    "AgentSet not found in registry; cannot apply operation."
+                ) from exc
+            updated = agentset.do(
+                method_name,
+                *args,
+                return_results=False,
+                inplace=inplace,
+                **kwargs,
+            )
+            updates.append((registry_index, updated))
+
+        for registry_index, updated in updates:
+            obj._agentsets[registry_index] = updated
+        obj._recompute_ids()
         return obj
 
     @overload
