@@ -191,7 +191,6 @@ class DataCollector(AbstractDataCollector):
         agent_data_dict: dict[str, pl.Series] = {}
 
         for col_name, reporter in self._agent_reporters.items():
-<<<<<<< HEAD
             # 1) String or collection[str]: shorthand to fetch columns
             if isinstance(reporter, str) or _is_str_collection(reporter):
                 # If a single string, fetch that attribute from each set
@@ -266,13 +265,6 @@ class DataCollector(AbstractDataCollector):
                 "agent_reporters values must be str, collection[str], or callable"
             )
 
-=======
-            if isinstance(reporter, str):
-                for k, v in self._model.sets[reporter].items():
-                    agent_data_dict[col_name + "_" + str(k.__class__.__name__)] = v
-            else:
-                agent_data_dict[col_name] = reporter(self._model)
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
         agent_lazy_frame = pl.LazyFrame(agent_data_dict)
         agent_lazy_frame = agent_lazy_frame.with_columns(
             [
@@ -552,7 +544,6 @@ class DataCollector(AbstractDataCollector):
         ValueError
             If any expected columns are missing from the table.
         """
-<<<<<<< HEAD
 
         def _is_str_collection(x: Any) -> bool:
             try:
@@ -582,17 +573,6 @@ class DataCollector(AbstractDataCollector):
             # Callable: conservative default → require 'col_name' to exist
             # We cannot know the dynamic column explosion without running model code safely here.
             expected_columns.add(col_name.lower())
-=======
-        expected_columns = set()
-        for col_name, required_column in reporter.items():
-            if isinstance(required_column, str):
-                for k, v in self._model.sets[required_column].items():
-                    expected_columns.add(
-                        (col_name + "_" + str(k.__class__.__name__)).lower()
-                    )
-            else:
-                expected_columns.add(col_name.lower())
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 
         query = f"""
             SELECT column_name

@@ -20,19 +20,12 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Collection, Iterable, Iterator
-<<<<<<< HEAD
 from contextlib import suppress
 from typing import Any, Literal, Self, overload
 
 from numpy.random import Generator
 
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
-=======
-from typing import Any, Literal, Self, overload
-
-from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry
-from mesa_frames.abstract.mixin import DataFrameMixin
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 from mesa_frames.types_ import (
     AgentMask,
     BoolSeries,
@@ -44,11 +37,7 @@ from mesa_frames.types_ import (
 )
 
 
-<<<<<<< HEAD
 class AbstractAgentSet(CopyMixin, DataFrameMixin):
-=======
-class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
     """The AbstractAgentSet class is a container for agents of the same type.
 
     Parameters
@@ -57,10 +46,7 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         The model that the agent set belongs to.
     """
 
-<<<<<<< HEAD
     _copy_only_reference: list[str] = ["_model"]
-=======
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
     _df: DataFrame  # The agents in the AbstractAgentSet
     _mask: AgentMask  # The underlying mask used for the active agents in the AbstractAgentSet.
     _model: (
@@ -92,7 +78,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Returns
         -------
         Self
-<<<<<<< HEAD
             A new AbstractAgentSet with the added agents.
         """
         ...
@@ -118,9 +103,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         -------
         bool | BoolSeries
             True if the agent is in the AgentSet, False otherwise.
-=======
-            A new AbstractAgentSetRegistry with the added agents.
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
         """
         ...
 
@@ -139,7 +121,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Self
             The updated AbstractAgentSet.
         """
-<<<<<<< HEAD
         with suppress(KeyError, ValueError):
             return self.remove(agents, inplace=inplace)
         return self._get_obj(inplace)
@@ -219,67 +200,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
             The updated AgentSet or the result of the method.
         """
         ...
-=======
-        return super().discard(agents, inplace)
-
-    @overload
-    def do(
-        self,
-        method_name: str,
-        *args,
-        mask: AgentMask | None = None,
-        return_results: Literal[False] = False,
-        inplace: bool = True,
-        **kwargs,
-    ) -> Self: ...
-
-    @overload
-    def do(
-        self,
-        method_name: str,
-        *args,
-        mask: AgentMask | None = None,
-        return_results: Literal[True],
-        inplace: bool = True,
-        **kwargs,
-    ) -> Any: ...
-
-    def do(
-        self,
-        method_name: str,
-        *args,
-        mask: AgentMask | None = None,
-        return_results: bool = False,
-        inplace: bool = True,
-        **kwargs,
-    ) -> Self | Any:
-        masked_df = self._get_masked_df(mask)
-        # If the mask is empty, we can use the object as is
-        if len(masked_df) == len(self._df):
-            obj = self._get_obj(inplace)
-            method = getattr(obj, method_name)
-            result = method(*args, **kwargs)
-        else:  # If the mask is not empty, we need to create a new masked AbstractAgentSet and concatenate the AbstractAgentSets at the end
-            obj = self._get_obj(inplace=False)
-            obj._df = masked_df
-            original_masked_index = obj._get_obj_copy(obj.index)
-            method = getattr(obj, method_name)
-            result = method(*args, **kwargs)
-            obj._concatenate_agentsets(
-                [self],
-                duplicates_allowed=True,
-                keep_first_only=True,
-                original_masked_index=original_masked_index,
-            )
-            if inplace:
-                for key, value in obj.__dict__.items():
-                    setattr(self, key, value)
-                obj = self
-        if return_results:
-            return result
-        else:
-            return obj
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 
     @abstractmethod
     @overload
@@ -309,23 +229,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         """Run a single step of the AbstractAgentSet. This method should be overridden by subclasses."""
         ...
 
-<<<<<<< HEAD
-=======
-    def remove(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
-        if isinstance(agents, str) and agents == "active":
-            agents = self.active_agents
-        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
-            return self._get_obj(inplace)
-        agents = self._df_index(self._get_masked_df(agents), "unique_id")
-        sets = self.model.sets.remove(agents, inplace=inplace)
-        # TODO: Refactor AgentSetRegistry to return dict[str, AbstractAgentSet] instead of dict[AbstractAgentSet, DataFrame]
-        # And assign a name to AbstractAgentSet? This has to be replaced by a nicer API of AgentSetRegistry
-        for agentset in sets.df.keys():
-            if isinstance(agentset, self.__class__):
-                return agentset
-        return self
-
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
     @abstractmethod
     def _concatenate_agentsets(
         self,
@@ -415,15 +318,9 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Returns
         -------
         Self
-<<<<<<< HEAD
             A new AbstractAgentSet with the added agents.
         """
         return self.add(other, inplace=False)
-=======
-            A new AbstractAgentSetRegistry with the added agents.
-        """
-        return super().__add__(other)
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 
     def __iadd__(self, other: DataFrame | DataFrameInput) -> Self:
         """
@@ -441,7 +338,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Returns
         -------
         Self
-<<<<<<< HEAD
             The updated AbstractAgentSet.
         """
         return self.add(other, inplace=True)
@@ -453,11 +349,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
     def __sub__(self, other: IdsLike | AgentMask | DataFrame) -> Self:
         """Return a new set with agents removed via - operator."""
         return self.discard(other, inplace=False)
-=======
-            The updated AbstractAgentSetRegistry.
-        """
-        return super().__iadd__(other)
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any:
@@ -486,7 +377,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
             | tuple[AgentMask, Collection[str]]
         ),
     ) -> Series | DataFrame:
-<<<<<<< HEAD
         # Mirror registry/old container behavior: delegate to get()
         if isinstance(key, tuple):
             return self.get(mask=key[0], attr_names=key[1])
@@ -501,11 +391,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
     def __contains__(self, agents: int) -> bool:
         """Membership test for an agent id in this set."""
         return bool(self.contains(agents))
-=======
-        attr = super().__getitem__(key)
-        assert isinstance(attr, (Series, DataFrame, Index))
-        return attr
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 
     def __len__(self) -> int:
         return len(self._df)
@@ -543,10 +428,7 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
     def inactive_agents(self) -> DataFrame: ...
 
     @property
-<<<<<<< HEAD
     @abstractmethod
-=======
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
     def index(self) -> Index: ...
 
     @property
@@ -562,7 +444,6 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
             pos, self.index, new_index_cols="unique_id", original_index_cols="agent_id"
         )
         return pos
-<<<<<<< HEAD
 
     @property
     def name(self) -> str:
@@ -655,5 +536,3 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
                     self.set(attr_names=None, mask=key, values=values)
             else:
                 self.set(attr_names=None, mask=key, values=values)
-=======
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956

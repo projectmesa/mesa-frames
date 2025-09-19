@@ -67,11 +67,7 @@ import polars as pl
 
 from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
-<<<<<<< HEAD
 from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
-=======
-from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
 from mesa_frames.utils import copydoc
 
 
@@ -86,13 +82,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-<<<<<<< HEAD
     def __init__(
         self, model: mesa_frames.concrete.model.Model, name: str | None = None
     ) -> None:
-=======
-    def __init__(self, model: mesa_frames.concrete.model.Model) -> None:
->>>>>>> 51c54cd666d876a5debb1b7dd71556ee9c458956
         """Initialize a new AgentSet.
 
         Parameters
