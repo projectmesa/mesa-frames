@@ -538,6 +538,13 @@ class AbstractAgentSetRegistry(CopyMixin):
         - For name keys, the key is authoritative for the assigned set's name
         - For index keys, collisions on a different entry's name must raise
         """
+        if value.model is not self.model:
+            raise TypeError("Assigned AgentSet must belong to the same model")
+        if isinstance(key, (int, str)):
+            # Delegate to replace() so subclasses centralize invariant handling.
+            self.replace({key: value}, inplace=True, atomic=True)
+            return
+        raise TypeError("Key must be int index or str name")
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any | dict[str, Any]:
@@ -568,14 +575,23 @@ class AbstractAgentSetRegistry(CopyMixin):
         """Get a string representation of the AgentSets in the registry."""
         ...
 
-    @abstractmethod
     def keys(
         self, *, key_by: KeyBy = "name"
     ) -> Iterable[str | int | type[mesa_frames.abstract.agentset.AbstractAgentSet]]:
         """Iterate keys for contained AgentSets (by name|index|type)."""
-        ...
+        if key_by == "index":
+            yield from range(len(self))
+            return
+        if key_by == "type":
+            for agentset in self:
+                yield type(agentset)
+            return
+        if key_by != "name":
+            raise ValueError("key_by must be 'name'|'index'|'type'")
+        for agentset in self:
+            if agentset.name is not None:
+                yield agentset.name
 
-    @abstractmethod
     def items(
         self, *, key_by: KeyBy = "name"
     ) -> Iterable[
@@ -585,12 +601,23 @@ class AbstractAgentSetRegistry(CopyMixin):
         ]
     ]:
         """Iterate (key, AgentSet) pairs for contained sets."""
-        ...
+        if key_by == "index":
+            for idx, agentset in enumerate(self):
+                yield idx, agentset
+            return
+        if key_by == "type":
+            for agentset in self:
+                yield type(agentset), agentset
+            return
+        if key_by != "name":
+            raise ValueError("key_by must be 'name'|'index'|'type'")
+        for agentset in self:
+            if agentset.name is not None:
+                yield agentset.name, agentset
 
-    @abstractmethod
     def values(self) -> Iterable[mesa_frames.abstract.agentset.AbstractAgentSet]:
         """Iterate contained AgentSets (values view)."""
-        ...
+        yield from self
 
     @property
     def model(self) -> mesa_frames.concrete.model.Model:

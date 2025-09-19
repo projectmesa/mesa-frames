@@ -669,77 +669,8 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
     def __reversed__(self) -> Iterator[AgentSet]:
         return reversed(self._agentsets)
 
-    def __setitem__(self, key: int | str, value: AgentSet) -> None:
-        """Assign/replace a single AgentSet at an index or name.
-
-        Enforces name uniqueness and model consistency.
-        """
-        if value.model is not self.model:
-            raise TypeError("Assigned AgentSet must belong to the same model")
-        if isinstance(key, int):
-            if value.name is not None:
-                for i, s in enumerate(self._agentsets):
-                    if i != key and s.name == value.name:
-                        raise ValueError(
-                            f"Duplicate agent set name disallowed: {value.name}"
-                        )
-            self._agentsets[key] = value
-        elif isinstance(key, str):
-            try:
-                value.rename(key)
-            except Exception:
-                if hasattr(value, "_name"):
-                    setattr(value, "_name", key)
-            idx = None
-            for i, s in enumerate(self._agentsets):
-                if s.name == key:
-                    idx = i
-                    break
-            if idx is None:
-                self._agentsets.append(value)
-            else:
-                self._agentsets[idx] = value
-        else:
-            raise TypeError("Key must be int index or str name")
-        # Recompute ids cache
-        self._recompute_ids()
-
     def __str__(self) -> str:
         return "\n".join([str(agentset) for agentset in self._agentsets])
-
-    def keys(self, *, key_by: KeyBy = "name") -> Iterable[Any]:
-        if key_by not in ("name", "index", "type"):
-            raise ValueError("key_by must be 'name'|'index'|'type'")
-        if key_by == "index":
-            yield from range(len(self._agentsets))
-            return
-        if key_by == "type":
-            for s in self._agentsets:
-                yield type(s)
-            return
-        # name
-        for s in self._agentsets:
-            if s.name is not None:
-                yield s.name
-
-    def items(self, *, key_by: KeyBy = "name") -> Iterable[tuple[Any, AgentSet]]:
-        if key_by not in ("name", "index", "type"):
-            raise ValueError("key_by must be 'name'|'index'|'type'")
-        if key_by == "index":
-            for i, s in enumerate(self._agentsets):
-                yield i, s
-            return
-        if key_by == "type":
-            for s in self._agentsets:
-                yield type(s), s
-            return
-        # name
-        for s in self._agentsets:
-            if s.name is not None:
-                yield s.name, s
-
-    def values(self) -> Iterable[AgentSet]:
-        return iter(self._agentsets)
 
     @property
     def ids(self) -> pl.Series:
