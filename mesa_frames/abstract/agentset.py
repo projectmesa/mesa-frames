@@ -468,13 +468,14 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
     def space(self) -> mesa_frames.abstract.space.Space | None:
         return self.model.space
 
+    @abstractmethod
     def rename(self, new_name: str, inplace: bool = True) -> Self:
         """Rename this AgentSet.
 
-        If this set is contained in the model's AgentSetRegistry, delegate to
-        the registry's rename implementation so that name uniqueness and
-        conflicts are handled consistently. If the set is not yet part of a
-        registry, update the local name directly.
+        Concrete subclasses must implement the mechanics for coordinating with
+        any containing registry and managing ``inplace`` semantics. The method
+        should update the set's name (or return a renamed copy when
+        ``inplace=False``) while preserving registry invariants.
 
         Parameters
         ----------
@@ -489,31 +490,7 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         Self
             The updated AgentSet (or a renamed copy when ``inplace=False``).
         """
-        obj = self._get_obj(inplace)
-        try:
-            # If contained in registry, delegate to it so conflicts are handled
-            if self in self.model.sets:  # type: ignore[operator]
-                # Preserve index to retrieve copy when not inplace
-                idx = None
-                try:
-                    idx = list(self.model.sets).index(self)  # type: ignore[arg-type]
-                except Exception:
-                    idx = None
-                reg = self.model.sets.rename(self, new_name, inplace=inplace)
-                if inplace:
-                    return self
-                # Non-inplace: return the corresponding set from the copied registry
-                if idx is not None:
-                    return reg[idx]  # type: ignore[index]
-                # Fallback: look up by name (may be canonicalized)
-                return reg.get(new_name)  # type: ignore[return-value]
-        except Exception:
-            # If delegation cannot be resolved, fall back to local rename
-            obj._name = new_name
-            return obj
-        # Not in a registry: local rename
-        obj._name = new_name
-        return obj
+        ...
 
     def __setitem__(
         self,
