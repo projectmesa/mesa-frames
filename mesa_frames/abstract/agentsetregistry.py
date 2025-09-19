@@ -540,9 +540,21 @@ class AbstractAgentSetRegistry(CopyMixin):
         """
         if value.model is not self.model:
             raise TypeError("Assigned AgentSet must belong to the same model")
-        if isinstance(key, (int, str)):
+        if isinstance(key, int):
             # Delegate to replace() so subclasses centralize invariant handling.
             self.replace({key: value}, inplace=True, atomic=True)
+            return
+        if isinstance(key, str):
+            for existing in self:
+                if existing.name == key:
+                    self.replace({key: value}, inplace=True, atomic=True)
+                    return
+            try:
+                value.rename(key, inplace=True)
+            except Exception:
+                if hasattr(value, "_name"):
+                    value._name = key  # type: ignore[attr-defined]
+            self.add(value, inplace=True)
             return
         raise TypeError("Key must be int index or str name")
 
