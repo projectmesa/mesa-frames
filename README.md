@@ -34,7 +34,13 @@ cd mesa-frames
 uv sync --all-extras
 ```
 
-`uv sync` creates a local `.venv/` with mesa-frames and its development extras.
+`uv sync` creates a local `.venv/` with mesa-frames and its development extras. Run tooling through uv to keep the virtual environment isolated:
+
+```bash
+uv run pytest -q --cov=mesa_frames --cov-report=term-missing
+uv run ruff check . --fix
+uv run pre-commit run -a
+```
 
 ## Usage
 
