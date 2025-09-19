@@ -240,7 +240,7 @@ class DataCollector(AbstractDataCollector):
                                     "Registry-level reporter dict values must be Series or DataFrame"
                                 )
                         called = True
-                except Exception:
+                except TypeError:
                     called = False
 
                 if not called:
