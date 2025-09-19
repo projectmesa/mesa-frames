@@ -66,10 +66,6 @@ class CopyMixin(ABC):
     _copy_only_reference: list[str] = [
         "_model",
     ]
-    # Attributes listed here are not copied at all and will not be set
-    # on the copied object. Useful for lazily re-creating cyclic or
-    # parent-bound helpers (e.g., accessors) after copy/deepcopy.
-    _skip_copy: list[str] = []
 
     @abstractmethod
     def __init__(self): ...
@@ -117,7 +113,6 @@ class CopyMixin(ABC):
                 for k, v in attributes.items()
                 if k not in self._copy_with_method
                 and k not in self._copy_only_reference
-                and k not in self._skip_copy
                 and k not in skip
             ]
         else:
@@ -126,20 +121,15 @@ class CopyMixin(ABC):
                 for k, v in self.__dict__.items()
                 if k not in self._copy_with_method
                 and k not in self._copy_only_reference
-                and k not in self._skip_copy
                 and k not in skip
             ]
 
         # Copy attributes with a reference only
         for attr in self._copy_only_reference:
-            if attr in self._skip_copy or attr in skip:
-                continue
             setattr(obj, attr, getattr(self, attr))
 
         # Copy attributes with a specified method
         for attr in self._copy_with_method:
-            if attr in self._skip_copy or attr in skip:
-                continue
             attr_obj = getattr(self, attr)
             attr_copy_method, attr_copy_args = self._copy_with_method[attr]
             setattr(obj, attr, getattr(attr_obj, attr_copy_method)(*attr_copy_args))
