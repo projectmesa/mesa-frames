@@ -30,8 +30,9 @@ You can access the underlying DataFrame where agents are stored with `self.df`. 
 <<<<<<< HEAD
 To add your AgentSet to your Model, use the registry `self.sets` with `+=` or `add`.
 
-Note: All agent sets live inside `AgentSetRegistry` (available as `model.sets`). Access sets through the registry, and access DataFrames from the set itself. For example: `self.sets["Preys"].df`.
+Note: All agent sets live inside `AgentSetRegistry` (available as `model.sets`). Access sets through the registry, and access DataFrames from the set itself. For example: `self.sets["Preys"].df`
 =======
+
 To add your AgentSet to your Model, you should also add it to the sets with `+=` or `add`.
 
 NOTE: Model.sets are stored in a class which is entirely similar to AgentSet called AgentSetRegistry. The API of the two are the same. If you try accessing AgentSetRegistry.df, you will get a dictionary of `[AgentSet, DataFrame]`.
