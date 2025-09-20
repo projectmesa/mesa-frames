@@ -104,6 +104,26 @@ We also define some useful functions to compute metrics like the Gini coefficien
 # Model-level reporters
 
 def gini(model: Model) -> float:
+    """Compute the Gini coefficient of agent sugar holdings.
+
+    The function reads the primary agent set from ``model.sets[0]`` and
+    computes the population Gini coefficient on the ``sugar`` column. The
+    implementation is robust to empty sets and zero-total sugar.
+
+    Parameters
+    ----------
+    model : Model
+        The simulation model that contains agent sets. The primary agent set
+        is expected to be at ``model.sets[0]`` and to expose a Polars DataFrame
+        under ``.df`` with a ``sugar`` column.
+
+    Returns
+    -------
+    float
+        Gini coefficient in the range [0, 1] if defined, ``0.0`` when the
+        total sugar is zero, and ``nan`` when the agent set is empty or too
+        small to measure.
+    """
     if len(model.sets) == 0:
         return float("nan")
 
@@ -112,7 +132,7 @@ def gini(model: Model) -> float:
         return float("nan")
 
     sugar = primary_set.df["sugar"].to_numpy().astype(np.float64)
-    
+
     if sugar.size == 0:
         return float("nan")
     sorted_vals = np.sort(sugar.astype(np.float64))
@@ -127,6 +147,27 @@ def gini(model: Model) -> float:
     return float((2.0 * np.dot(index, sorted_vals) / (n * total)) - (n + 1) / n)
 
 def corr_sugar_metabolism(model: Model) -> float:
+    """Pearson correlation between agent sugar and metabolism.
+
+    This reporter extracts the ``sugar`` and ``metabolism`` columns from the
+    primary agent set and returns their Pearson correlation coefficient. When
+    the agent set is empty or contains insufficient variation the function
+    returns ``nan``.
+
+    Parameters
+    ----------
+    model : Model
+        The simulation model that contains agent sets. The primary agent set
+        is expected to be at ``model.sets[0]`` and provide a Polars DataFrame
+        with ``sugar`` and ``metabolism`` columns.
+
+    Returns
+    -------
+    float
+        Pearson correlation coefficient between sugar and metabolism, or
+        ``nan`` when the correlation is undefined (empty set or constant
+        values).
+    """
     if len(model.sets) == 0:
         return float("nan")
 
@@ -140,6 +181,26 @@ def corr_sugar_metabolism(model: Model) -> float:
     return _safe_corr(sugar, metabolism)
 
 def corr_sugar_vision(model: Model) -> float:
+    """Pearson correlation between agent sugar and vision.
+
+    Extracts the ``sugar`` and ``vision`` columns from the primary agent set
+    and returns their Pearson correlation coefficient. If the reporter cannot
+    compute a meaningful correlation (for example, when the agent set is
+    empty or values are constant) it returns ``nan``.
+
+    Parameters
+    ----------
+    model : Model
+        The simulation model that contains agent sets. The primary agent set
+        is expected to be at ``model.sets[0]`` and provide a Polars DataFrame
+        with ``sugar`` and ``vision`` columns.
+
+    Returns
+    -------
+    float
+        Pearson correlation coefficient between sugar and vision, or ``nan``
+        when the correlation is undefined.
+    """
     if len(model.sets) == 0:
         return float("nan")
 
@@ -153,6 +214,26 @@ def corr_sugar_vision(model: Model) -> float:
     return _safe_corr(sugar, vision)
 
 def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
+    """Safely compute Pearson correlation between two 1-D arrays.
+
+    This helper guards against degenerate inputs (too few observations or
+    constant arrays) which would make the Pearson correlation undefined or
+    numerically unstable. When a valid correlation can be computed the
+    function returns a Python float.
+
+    Parameters
+    ----------
+    x, y : np.ndarray
+        One-dimensional numeric arrays of the same length containing the two
+        variables to correlate.
+
+    Returns
+    -------
+    float
+        Pearson correlation coefficient as a Python float, or ``nan`` if the
+        correlation is undefined (fewer than 2 observations or constant
+        inputs).
+    """
     if x.size < 2 or y.size < 2:
         return float("nan")
     if np.allclose(x, x[0]) or np.allclose(y, y[0]):
