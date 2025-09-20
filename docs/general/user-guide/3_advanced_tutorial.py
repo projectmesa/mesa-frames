@@ -1105,6 +1105,13 @@ class AntsParallel(AntsBase):
             )
         )
 
+        # Precompute per‑agent candidate rank once so conflict resolution can
+        # promote losers by incrementing a cheap `current_rank` counter,
+        # without re-sorting after each round. Alternative: drop taken cells
+        # and re-rank by sugar every round; simpler conceptually but requires
+        # repeated sorts and deduplication, which is heavier than filtering by
+        # `rank >= current_rank`.
+
         # Origins for fallback (if an agent exhausts candidates it stays put).
         # origins columns:
         # ┌──────────┬────────────┬────────────┐
@@ -1121,11 +1128,14 @@ class AntsParallel(AntsBase):
         )
 
         # Track the maximum available rank per agent to clamp promotions.
+        # This bounds `current_rank`; once an agent reaches `max_rank` and
+        # cannot secure a cell, they fall back to origin cleanly instead of
+        # chasing nonexistent ranks.
         # max_rank columns:
         # ┌──────────┬───────────┐
         # │ agent_id ┆ max_rank │
         # │ ---      ┆ ---       │
-        # │ u64      ┆ i64       │
+        # │ u64      ┆ u32       │
         # ╞══════════╪═══════════╡
         max_rank = choices.group_by("agent_id").agg(pl.col("rank").max().alias("max_rank"))
         return choices, origins, max_rank
@@ -1212,12 +1222,16 @@ class AntsParallel(AntsBase):
         # candidate; winners per-cell are selected at random and losers are
         # promoted to their next choice.
         while unresolved.height > 0:
+            # Using precomputed `rank` lets us select candidates with
+            # `rank >= current_rank` and avoid re-ranking after each round.
+            # Alternative: remove taken cells and re-sort remaining candidates
+            # by sugar/distance per round (heavier due to repeated sort/dedupe).
             # candidate_pool columns (after join with unresolved):
-            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────────────┐
-            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ current_rank │
-            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---          │
-            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ i64          │
-            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════════════╡
+            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────┬──────────────┐
+            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ rank ┆ current_rank │
+            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---  ┆ ---          │
+            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ u32  ┆ i64          │
+            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════╪══════════════╡
             candidate_pool = choices.join(unresolved, on="agent_id")
             candidate_pool = candidate_pool.filter(pl.col("rank") >= pl.col("current_rank"))
             if not taken.is_empty():
@@ -1229,6 +1243,8 @@ class AntsParallel(AntsBase):
 
             if candidate_pool.is_empty():
                 # No available candidates — everyone falls back to origin.
+                # Note: this covers both agents with no visible cells left and
+                # the case where all remaining candidates are already taken.
                 # fallback columns:
                 # ┌──────────┬────────────┬────────────┬──────────────┐
                 # │ agent_id ┆ dim_0      ┆ dim_1      ┆ current_rank │
@@ -1252,11 +1268,11 @@ class AntsParallel(AntsBase):
                 break
 
             # best_candidates columns (per agent first choice):
-            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────────────┐
-            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ current_rank │
-            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---          │
-            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ i64          │
-            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════════════╡
+            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────┬──────────────┐
+            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ rank ┆ current_rank │
+            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---  ┆ ---          │
+            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ u32  ┆ i64          │
+            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════╪══════════════╡
             best_candidates = (
                 candidate_pool
                 .sort(["agent_id", "rank"])
@@ -1311,11 +1327,11 @@ class AntsParallel(AntsBase):
             best_candidates = best_candidates.with_columns(lottery)
 
             # winners columns:
-            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────────────┬─────────┐
-            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ current_rank │ lottery │
-            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---          ┆ ---     │
-            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ i64          ┆ f64     │
-            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════════════╪═════════╡
+            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────┬──────────────┬─────────┐
+            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ rank ┆ current_rank │ lottery │
+            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---  ┆ ---          ┆ ---     │
+            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ u32  ┆ i64          ┆ f64     │
+            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════╪══════════════╪═════════╡
             winners = (
                 best_candidates
                 .sort(["dim_0_candidate", "dim_1_candidate", "lottery"])
@@ -1354,12 +1370,12 @@ class AntsParallel(AntsBase):
             if losers.is_empty():
                 continue
 
-            # loser_updates columns:
-            # ┌──────────┬───────────┬───────────┐
-            # │ agent_id ┆ next_rank ┆ max_rank  │
-            # │ ---      ┆ ---       ┆ ---       │
-            # │ u64      ┆ i64       ┆ i64       │
-            # ╞══════════╪═══════════╪═══════════╡
+            # loser_updates columns (after select):
+            # ┌──────────┬───────────┐
+            # │ agent_id ┆ next_rank │
+            # │ ---      ┆ ---       │
+            # │ u64      ┆ i64       │
+            # ╞══════════╪═══════════╡
             loser_updates = (
                 losers.select(
                     "agent_id",
