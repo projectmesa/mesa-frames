@@ -1,32 +1,35 @@
-name: Build and Deploy Documentation
+name: Docs — Build & Preview
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]            # regular prod deploy
+    paths:
+      - 'mkdocs.yml'
+      - 'docs/**'
+  pull_request:                    # preview only when docs are touched
+    branches: [ '**' ]
+    paths:
+      - 'mkdocs.yml'
+      - 'docs/**'
 
 jobs:
-  build-and-deploy-docs:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history for .git-restore-mtime to work correctly
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.x' }
+      - uses: astral-sh/setup-uv@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-      - name: Install uv via GitHub Action
-        uses: astral-sh/setup-uv@v6
-
-      - name: Install mesa-frames + docs dependencies
+      - name: Install mesa-frames + docs deps
         run: |
           uv pip install --system .
           uv pip install --group docs --system
 
-      - name: Convert tutorial .py scripts to notebooks
+      - name: Convert jupytext .py notebooks to .ipynb
         run: |
           set -euxo pipefail
           for nb in docs/general/*.ipynb; do
@@ -34,16 +37,53 @@ jobs:
             uv run jupyter nbconvert --to notebook --execute --inplace "$nb"
           done
 
-
-      - name: Build MkDocs site (general documentation)
+      - name: Build MkDocs site
         run: uv run mkdocs build --config-file mkdocs.yml --site-dir ./site
 
-      - name: Build Sphinx docs (API documentation)
+      - name: Build Sphinx docs (API)
         run: uv run sphinx-build -b html docs/api site/api
 
-      - name: Deploy to GitHub Pages
+      - name: Short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site
+
+  deploy-main:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: site, path: site }
+      - name: Deploy to GitHub Pages (main)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
           publish_dir: ./site
           force_orphan: true
+
+  deploy-preview:
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: site, path: site }
+      - name: Deploy preview under subfolder
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          destination_dir: preview/${{ github.head_ref || github.ref_name }}/${{ needs.build.outputs.short_sha }}
+          keep_files: true        # keep previous previews
+          # DO NOT set force_orphan here
+      - name: Print preview URL
+        run: |
+          echo "Preview: https://${{ github.repository_owner }}.github.io/$(basename ${{ github.repository }})/preview/${{ github.head_ref || github.ref_name }}/${{ needs.build.outputs.short_sha }}/"
