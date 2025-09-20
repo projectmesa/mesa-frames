@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # ---
 # jupyter:
 #   jupytext:
@@ -65,7 +67,6 @@ of emergent macro regularities in agent-based models.
 """## 1. Imports"""
 
 # %%
-from __future__ import annotations
 
 from collections import defaultdict
 from time import perf_counter
