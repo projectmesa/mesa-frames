@@ -1177,9 +1177,9 @@ conditions across the different movement rules.
 # %%
 
 # %% 
-GRID_WIDTH = 50
-GRID_HEIGHT = 50
-NUM_AGENTS = 400
+GRID_WIDTH = 250
+GRID_HEIGHT = 250
+NUM_AGENTS = 10000
 MODEL_STEPS = 60
 MAX_SUGAR = 4
 
@@ -1204,7 +1204,7 @@ if RUN_SEQUENTIAL:
     print("Sequential aggregate trajectory (last 5 steps):")
     print(
         seq_model_frame.select(
-            ["step", "mean_sugar", "total_sugar", "living_agents"]
+            ["step", "mean_sugar", "total_sugar", "agents_alive"]
         ).tail(5)
     )
     print(f"Sequential runtime: {sequential_time:.3f} s")
@@ -1233,7 +1233,7 @@ numba_model, numba_time = run_variant(
 numba_model_frame = numba_model.datacollector.data["model"]
 print("Numba sequential aggregate trajectory (last 5 steps):")
 print(
-    numba_model_frame.select(["step", "mean_sugar", "total_sugar", "living_agents"]).tail(5)
+    numba_model_frame.select(["step", "mean_sugar", "total_sugar", "agents_alive"]).tail(5)
 )
 print(f"Numba sequential runtime: {numba_time:.3f} s")
 
@@ -1252,7 +1252,7 @@ parallel_model, parallel_time = run_variant(
 
 par_model_frame = parallel_model.datacollector.data["model"]
 print("Parallel aggregate trajectory (last 5 steps):")
-print(par_model_frame.select(["step", "mean_sugar", "total_sugar", "living_agents"]).tail(5))
+print(par_model_frame.select(["step", "mean_sugar", "total_sugar", "agents_alive"]).tail(5))
 print(f"Parallel runtime: {parallel_time:.3f} s")
 
 # %% [markdown]
@@ -1325,8 +1325,8 @@ indistinguishable, which validates the relaxed, fully-parallel update scheme.
 """
 
 # %%
-comparison = numba_model_frame.select(["step", "mean_sugar", "total_sugar", "living_agents"]).join(
-    par_model_frame.select(["step", "mean_sugar", "total_sugar", "living_agents"]),
+comparison = numba_model_frame.select(["step", "mean_sugar", "total_sugar", "agents_alive"]).join(
+    par_model_frame.select(["step", "mean_sugar", "total_sugar", "agents_alive"]),
     on="step",
     how="inner",
     suffix="_parallel",
@@ -1334,7 +1334,7 @@ comparison = numba_model_frame.select(["step", "mean_sugar", "total_sugar", "liv
 comparison = comparison.with_columns(
     (pl.col("mean_sugar") - pl.col("mean_sugar_parallel")).abs().alias("mean_diff"),
     (pl.col("total_sugar") - pl.col("total_sugar_parallel")).abs().alias("total_diff"),
-    (pl.col("living_agents") - pl.col("living_agents_parallel")).abs().alias("count_diff"),
+    (pl.col("agents_alive") - pl.col("agents_alive_parallel")).abs().alias("count_diff"),
 )
 print("Step-level absolute differences (first 10 steps):")
 print(comparison.select(["step", "mean_diff", "total_diff", "count_diff"]).head(10))
