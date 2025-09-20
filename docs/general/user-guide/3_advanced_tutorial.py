@@ -1503,15 +1503,10 @@ par_model_frame = frames.get("Parallel (Polars)", pl.DataFrame())
 """
 ## 5. Comparing the Update Rules
 
-Even though the micro rules differ, the aggregate trajectories keep the same
-overall shape: sugar holdings trend upward while the population tapers off. By
-joining the model-level traces we can quantify how conflict resolution
-randomness introduces modest deviations (for example, the simultaneous variant
-often retires a few more agents when several conflicts pile up in the same
-neighbourhood). Crucially, the steady-state inequality metrics line up: the Gini
-coefficients differ by roughly 0.0015 and the wealth–trait correlations are
-indistinguishable, which validates the relaxed, fully-parallel update scheme.
-"""
+Even though micro rules differ, aggregate trajectories remain qualitatively similar (sugar trends up while population gradually declines). 
+When we join the traces step-by-step, we see small but noticeable deviations introduced by synchronous conflict resolution (e.g., a few more retirements when conflicts cluster). 
+In our run (seed=42), the final-step Gini differs by ≈0.005, and wealth–trait correlations match within ~1e-3. 
+These gaps vary by seed and grid size, but they consistently stay modest, supporting the relaxed parallel update as a faithful macro-level approximation."""
 
 # %%
 comparison = numba_model_frame.select(["step", "mean_sugar", "total_sugar", "agents_alive"]).join(
@@ -1581,11 +1576,6 @@ print(
     )
 )
 
-# Note: The steady-state rows above are extracted directly from the DataCollector's
-# model-level frame (last available step for each variant). We avoid recomputing
-# metrics on the live model objects to ensure consistency with any user-defined
-# reporters that might add transformations or post-processing in future.
-
 if metrics_table.height >= 2:
     numba_gini = metrics_table.filter(pl.col("update_rule") == "Sequential (Numba)")["gini"][0]
     par_gini = metrics_table.filter(pl.col("update_rule") == "Parallel (random tie-break)")["gini"][0]
@@ -1593,7 +1583,12 @@ if metrics_table.height >= 2:
 
 # %% [markdown]
 """
-## 6. Where to Go Next?
+## 6. Takeaways and Next Steps
+
+Some final notes:
+- mesa-frames should preferably be used when you have many agents and operations can be vectorized.
+- If your model is not easily vectorizable, consider using Numba or reducing your microscopic rule to a vectorizable form. As we saw, the macroscopic behavior can remain consistent (and be more similar to real-world systems).
+
 
 Currently, the Polars implementation spends most of the time in join operations.
 
@@ -1601,3 +1596,4 @@ Currently, the Polars implementation spends most of the time in join operations.
   LazyFrame-powered sets and spaces (which can also use a GPU cuda accelerated backend which greatly accelerates joins), so the same Polars
   code you wrote here will scale even further without touching Numba.
 """
+
