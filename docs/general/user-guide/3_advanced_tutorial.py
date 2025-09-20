@@ -1544,28 +1544,45 @@ comparison = comparison.with_columns(
 print("Step-level absolute differences (first 10 steps):")
 print(comparison.select(["step", "mean_diff", "total_diff", "count_diff"]).head(10))
 
-metrics_table = pl.DataFrame(
-    [
-        {
-            "update_rule": "Sequential (Numba)",
-            "gini": gini(models["Sequential (Numba)"]),
-            "corr_sugar_metabolism": corr_sugar_metabolism(models["Sequential (Numba)"]),
-            "corr_sugar_vision": corr_sugar_vision(models["Sequential (Numba)"]),
-            "agents_alive": float(len(models["Sequential (Numba)"].sets[0]))
-            if len(models["Sequential (Numba)"].sets)
-            else 0.0,
-        },
-        {
-            "update_rule": "Parallel (random tie-break)",
-            "gini": gini(models["Parallel (Polars)"]),
-            "corr_sugar_metabolism": corr_sugar_metabolism(models["Parallel (Polars)"]),
-            "corr_sugar_vision": corr_sugar_vision(models["Parallel (Polars)"]),
-            "agents_alive": float(len(models["Parallel (Polars)"].sets[0]))
-            if len(models["Parallel (Polars)"].sets)
-            else 0.0,
-        },
-    ]
-)
+# Build the steady‑state metrics table from the DataCollector output rather than
+# recomputing reporters directly on the model objects. The collector already
+# stored the model‑level reporters (gini, correlations, etc.) every step.
+def _last_row(df: pl.DataFrame) -> pl.DataFrame:
+    if df.is_empty():
+        return df
+    # Ensure we take the final time step in case steps < MODEL_STEPS due to extinction.
+    return df.sort("step").tail(1)
+
+numba_last = _last_row(frames.get("Sequential (Numba)", pl.DataFrame()))
+parallel_last = _last_row(frames.get("Parallel (Polars)", pl.DataFrame()))
+
+metrics_pieces: list[pl.DataFrame] = []
+if not numba_last.is_empty():
+    metrics_pieces.append(
+        numba_last.select(
+            [
+                pl.lit("Sequential (Numba)").alias("update_rule"),
+                "gini",
+                "corr_sugar_metabolism",
+                "corr_sugar_vision",
+                pl.col("agents_alive"),
+            ]
+        )
+    )
+if not parallel_last.is_empty():
+    metrics_pieces.append(
+        parallel_last.select(
+            [
+                pl.lit("Parallel (random tie-break)").alias("update_rule"),
+                "gini",
+                "corr_sugar_metabolism",
+                "corr_sugar_vision",
+                pl.col("agents_alive"),
+            ]
+        )
+    )
+
+metrics_table = pl.concat(metrics_pieces, how="vertical") if metrics_pieces else pl.DataFrame()
 
 print("\nSteady-state inequality metrics:")
 print(
@@ -1580,24 +1597,15 @@ print(
     )
 )
 
-numba_gini = metrics_table.filter(pl.col("update_rule") == "Sequential (Numba)")["gini"][0]
-par_gini = metrics_table.filter(pl.col("update_rule") == "Parallel (random tie-break)")["gini"][0]
-print(f"Absolute Gini gap (numba vs parallel): {abs(numba_gini - par_gini):.4f}")
+# Note: The steady-state rows above are extracted directly from the DataCollector's
+# model-level frame (last available step for each variant). We avoid recomputing
+# metrics on the live model objects to ensure consistency with any user-defined
+# reporters that might add transformations or post-processing in future.
 
-# %% [markdown]
-"""
-The section above demonstrated how we can iterate across variants inside a single code cell
-without sprinkling the global namespace with per‑variant variables like
-`sequential_model`, `seq_model_frame`, etc. Instead we retained compact dictionaries:
-
-``models[name]`` -> Sugarscape instance
-``frames[name]`` -> model-level DataFrame trace
-``runtimes[name]`` -> wall time in seconds
-
-This keeps the tutorial easier to skim and copy/paste for users who only want one
-variant. The minimal convenience aliases (`numba_model`, `parallel_model`) exist solely
-for the comparison section; feel free to inline those if further slimming is desired.
-"""
+if metrics_table.height >= 2:
+    numba_gini = metrics_table.filter(pl.col("update_rule") == "Sequential (Numba)")["gini"][0]
+    par_gini = metrics_table.filter(pl.col("update_rule") == "Parallel (random tie-break)")["gini"][0]
+    print(f"Absolute Gini gap (numba vs parallel): {abs(numba_gini - par_gini):.4f}")
 
 # %% [markdown]
 """
