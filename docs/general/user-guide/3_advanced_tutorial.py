@@ -126,14 +126,6 @@ def gini(model: Model) -> float:
     index = np.arange(1, n + 1, dtype=np.float64)
     return float((2.0 * np.dot(index, sorted_vals) / (n * total)) - (n + 1) / n)
 
-def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
-    if x.size < 2 or y.size < 2:
-        return float("nan")
-    if np.allclose(x, x[0]) or np.allclose(y, y[0]):
-        return float("nan")
-    return float(np.corrcoef(x, y)[0, 1])
-
-
 def corr_sugar_metabolism(model: Model) -> float:
     if len(model.sets) == 0:
         return float("nan")
@@ -147,7 +139,6 @@ def corr_sugar_metabolism(model: Model) -> float:
     metabolism = agent_df["metabolism"].to_numpy().astype(np.float64)
     return _safe_corr(sugar, metabolism)
 
-
 def corr_sugar_vision(model: Model) -> float:
     if len(model.sets) == 0:
         return float("nan")
@@ -160,6 +151,13 @@ def corr_sugar_vision(model: Model) -> float:
     sugar = agent_df["sugar"].to_numpy().astype(np.float64)
     vision = agent_df["vision"].to_numpy().astype(np.float64)
     return _safe_corr(sugar, vision)
+
+def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
+    if x.size < 2 or y.size < 2:
+        return float("nan")
+    if np.allclose(x, x[0]) or np.allclose(y, y[0]):
+        return float("nan")
+    return float(np.corrcoef(x, y)[0, 1])
 
 class Sugarscape(Model):
     """Minimal Sugarscape model used throughout the tutorial.
