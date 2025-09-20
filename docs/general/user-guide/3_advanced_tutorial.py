@@ -67,7 +67,7 @@ of emergent macro regularities in agent-based models.
 """## 1. Imports"""
 
 # %%
-
+import os
 from collections import defaultdict
 from time import perf_counter
 
@@ -551,6 +551,16 @@ NUM_AGENTS = 400
 MODEL_STEPS = 60
 MAX_SUGAR = 4
 
+# Allow quick testing by skipping the slow pure-Python sequential baseline.
+# Set the environment variable ``MESA_FRAMES_RUN_SEQUENTIAL=0`` (or "false")
+# to disable the baseline when running this script.
+RUN_SEQUENTIAL = os.getenv("MESA_FRAMES_RUN_SEQUENTIAL", "0").lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
+
 @njit(cache=True)
 def _numba_should_replace(
     best_sugar: int,
@@ -817,13 +827,16 @@ class SugarscapeParallelAgents(SugarscapeAgentsBase):
             return
 
         # Map the positional frame to a center lookup used when joining
-        # neighbourhoods produced by the space helper.
-        center_lookup = self.pos.rename(
-            {
-                "unique_id": "agent_id",
-                "dim_0": "dim_0_center",
-                "dim_1": "dim_1_center",
-            }
+        # neighbourhoods produced by the space helper. Build the lookup by
+        # explicitly selecting and aliasing columns so the join creates a
+        # deterministic `agent_id` column (some internal joins can drop or
+        # fail to expose renamed columns when types/indices differ).
+        center_lookup = self.pos.select(
+            [
+                pl.col("unique_id").alias("agent_id"),
+                pl.col("dim_0").alias("dim_0_center"),
+                pl.col("dim_1").alias("dim_1_center"),
+            ]
         )
 
         # Build a neighbourhood frame: for each agent and visible cell we
@@ -837,13 +850,22 @@ class SugarscapeParallelAgents(SugarscapeAgentsBase):
                 on=["dim_0", "dim_1"],
                 how="left",
             )
-            .join(center_lookup, on=["dim_0_center", "dim_1_center"], how="left")
             .with_columns(pl.col("sugar").fill_null(0))
         )
 
-        # Normalise occupant column name if present.
+        # Normalise occupant column name if present (agent occupying the
+        # cell). The center lookup join may produce a conflicting
+        # `agent_id` column (suffix _right) — handle both cases so that
+        # `agent_id` unambiguously refers to the center agent and
+        # `occupant_id` refers to any agent already occupying the cell.
         if "agent_id" in neighborhood.columns:
             neighborhood = neighborhood.rename({"agent_id": "occupant_id"})
+        neighborhood = neighborhood.join(
+            center_lookup, on=["dim_0_center", "dim_1_center"], how="left"
+        )
+        if "agent_id_right" in neighborhood.columns:
+            # Rename the joined center lookup's id to the canonical name.
+            neighborhood = neighborhood.rename({"agent_id_right": "agent_id"})
 
         # Create ranked choices per agent: sort by sugar (desc), radius
         # (asc), then coordinates. Keep the first unique entry per cell.
@@ -869,7 +891,13 @@ class SugarscapeParallelAgents(SugarscapeAgentsBase):
                 keep="first",
                 maintain_order=True,
             )
-            .with_columns(pl.cum_count().over("agent_id").cast(pl.Int64).alias("rank"))
+            .with_columns(
+                pl.col("agent_id")
+                .cum_count()
+                .over("agent_id")
+                .cast(pl.Int64)
+                .alias("rank")
+            )
         )
 
         if choices.is_empty():
@@ -892,7 +920,7 @@ class SugarscapeParallelAgents(SugarscapeAgentsBase):
         unresolved = pl.DataFrame(
             {
                 "agent_id": agent_ids,
-                "current_rank": pl.Series(np.zeros(agent_ids.len(), dtype=np.int64)),
+                "current_rank": pl.Series(np.zeros(len(agent_ids), dtype=np.int64)),
             }
         )
 
@@ -1110,16 +1138,26 @@ conditions across the different movement rules.
 # %%
 sequential_seed = 11
 
-sequential_model, sequential_time = run_variant(
-    SugarscapeSequentialAgents, steps=MODEL_STEPS, seed=sequential_seed
-)
+if RUN_SEQUENTIAL:
+    sequential_model, sequential_time = run_variant(
+        SugarscapeSequentialAgents, steps=MODEL_STEPS, seed=sequential_seed
+    )
 
-seq_model_frame = sequential_model.datacollector.data["model"]
-print("Sequential aggregate trajectory (last 5 steps):")
-print(
-    seq_model_frame.select(["step", "mean_sugar", "total_sugar", "living_agents"]).tail(5)
-)
-print(f"Sequential runtime: {sequential_time:.3f} s")
+    seq_model_frame = sequential_model.datacollector.data["model"]
+    print("Sequential aggregate trajectory (last 5 steps):")
+    print(
+        seq_model_frame.select(
+            ["step", "mean_sugar", "total_sugar", "living_agents"]
+        ).tail(5)
+    )
+    print(f"Sequential runtime: {sequential_time:.3f} s")
+else:
+    sequential_model = None
+    seq_model_frame = pl.DataFrame()
+    sequential_time = float("nan")
+    print(
+        "Skipping sequential baseline; set MESA_FRAMES_RUN_SEQUENTIAL=1 to enable it."
+    )
 
 # %% [markdown]
 """
@@ -1171,16 +1209,38 @@ Python baseline.
 """
 
 # %%
-runtime_table = pl.DataFrame(
-    {
-        "update_rule": [
-            "Sequential (Python loop)",
-            "Sequential (Numba)",
-            "Parallel (Polars)",
-        ],
-        "runtime_seconds": [sequential_time, numba_time, parallel_time],
-    }
-).with_columns(pl.col("runtime_seconds").round(4))
+runtime_rows: list[dict[str, float | str]] = []
+if RUN_SEQUENTIAL:
+    runtime_rows.append(
+        {
+            "update_rule": "Sequential (Python loop)",
+            "runtime_seconds": sequential_time,
+        }
+    )
+else:
+    runtime_rows.append(
+        {
+            "update_rule": "Sequential (Python loop) [skipped]",
+            "runtime_seconds": float("nan"),
+        }
+    )
+
+runtime_rows.extend(
+    [
+        {
+            "update_rule": "Sequential (Numba)",
+            "runtime_seconds": numba_time,
+        },
+        {
+            "update_rule": "Parallel (Polars)",
+            "runtime_seconds": parallel_time,
+        },
+    ]
+)
+
+runtime_table = pl.DataFrame(runtime_rows).with_columns(
+    pl.col("runtime_seconds").round(4)
+)
 
 print(runtime_table)
 
