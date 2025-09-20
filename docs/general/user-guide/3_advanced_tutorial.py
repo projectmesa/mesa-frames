@@ -68,7 +68,6 @@ of emergent macro regularities in agent-based models.
 
 # %%
 import os
-from collections import defaultdict
 from time import perf_counter
 
 import numpy as np
@@ -94,11 +93,73 @@ field is stored as part of the cell data frame, with columns for current sugar
 and maximum sugar (for regrowth). The model also sets up a data collector to
 track aggregate statistics and agent traits over time.
 
-The `step` method advances the sugar field, triggers the agent set's step
+The `step` method advances the sugar field, triggers the agent set's step.
+
+We also define some useful functions to compute metrics like the Gini coefficient and correlations.
 """
 
 
 # %%
+
+# Model-level reporters
+
+def gini(model: Model) -> float:
+    if len(model.sets) == 0:
+        return float("nan")
+
+    primary_set = model.sets[0]
+    if len(primary_set) == 0:
+        return float("nan")
+
+    sugar = primary_set.df["sugar"].to_numpy().astype(np.float64)
+    
+    if sugar.size == 0:
+        return float("nan")
+    sorted_vals = np.sort(sugar.astype(np.float64))
+    n = sorted_vals.size
+    if n == 0:
+        return float("nan")
+    cumulative = np.cumsum(sorted_vals)
+    total = cumulative[-1]
+    if total == 0:
+        return 0.0
+    index = np.arange(1, n + 1, dtype=np.float64)
+    return float((2.0 * np.dot(index, sorted_vals) / (n * total)) - (n + 1) / n)
+
+def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
+    if x.size < 2 or y.size < 2:
+        return float("nan")
+    if np.allclose(x, x[0]) or np.allclose(y, y[0]):
+        return float("nan")
+    return float(np.corrcoef(x, y)[0, 1])
+
+
+def corr_sugar_metabolism(model: Model) -> float:
+    if len(model.sets) == 0:
+        return float("nan")
+
+    primary_set = model.sets[0]
+    if len(primary_set) == 0:
+        return float("nan")
+
+    agent_df = primary_set.df
+    sugar = agent_df["sugar"].to_numpy().astype(np.float64)
+    metabolism = agent_df["metabolism"].to_numpy().astype(np.float64)
+    return _safe_corr(sugar, metabolism)
+
+
+def corr_sugar_vision(model: Model) -> float:
+    if len(model.sets) == 0:
+        return float("nan")
+
+    primary_set = model.sets[0]
+    if len(primary_set) == 0:
+        return float("nan")
+
+    agent_df = primary_set.df
+    sugar = agent_df["sugar"].to_numpy().astype(np.float64)
+    vision = agent_df["vision"].to_numpy().astype(np.float64)
+    return _safe_corr(sugar, vision)
 
 class Sugarscape(Model):
     """Minimal Sugarscape model used throughout the tutorial.
@@ -181,6 +242,11 @@ class Sugarscape(Model):
                 if len(m.sets[0])
                 else 0.0,
                 "living_agents": lambda m: len(m.sets[0]),
+                # Inequality metrics recorded individually.
+                "gini": gini,
+                "corr_sugar_metabolism": corr_sugar_metabolism,
+                "corr_sugar_vision": corr_sugar_vision,
+                "agents_alive": lambda m: float(len(m.sets[0])) if len(m.sets) else 0.0,
             },
             agent_reporters={"traits": ["sugar", "metabolism", "vision"]},
         )
@@ -296,12 +362,11 @@ class Sugarscape(Model):
 """
 ## 3. Agent definition
 
-### Base agent class
+### 3.1 Base agent class
 
 Now let's define the agent class (the ant class). We start with a base class which implements the common logic for eating and starvation, while leaving the `move` method abstract. 
 The base class also provides helper methods for sensing visible cells and choosing the best cell based on sugar, distance, and coordinates.
 This will allow us to define different movement policies (sequential, Numba-accelerated, and parallel) as subclasses that only need to implement the `move` method.
-We also add
 """
 
 # %%
@@ -415,23 +480,156 @@ class SugarscapeAgentsBase(AgentSet):
             self.discard(starved)
 
 
+# %% [markdown]
 
-# %% 
-GRID_WIDTH = 50
-GRID_HEIGHT = 50
-NUM_AGENTS = 400
-MODEL_STEPS = 60
-MAX_SUGAR = 4
+"""### 3.2 Sequential movement
 
-# Allow quick testing by skipping the slow pure-Python sequential baseline.
-# Set the environment variable ``MESA_FRAMES_RUN_SEQUENTIAL=0`` (or "false")
-# to disable the baseline when running this script.
-RUN_SEQUENTIAL = os.getenv("MESA_FRAMES_RUN_SEQUENTIAL", "0").lower() not in {
-    "0",
-    "false",
-    "no",
-    "off",
-}
+We now implement the simplest movement policy: sequential (asynchronous). Each agent moves one at a time in the current ordering, choosing the best visible cell according to the rules.
+
+This implementation uses plain Python loops as the logic cannot be easily vectorised. As a result, it is slow for large populations and grids. We will later show how to speed it up with Numba.
+"""
+
+# %%
+
+class SugarscapeSequentialAgents(SugarscapeAgentsBase):
+    def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
+        """List cells visible from an origin along the four cardinal axes.
+
+        The visibility set includes the origin cell itself and cells at
+        Manhattan distances 1..vision along the four cardinal directions
+        (up, down, left, right), clipped to the grid bounds.
+
+        Parameters
+        ----------
+        origin : tuple[int, int]
+            The agent's current coordinate ``(x, y)``.
+        vision : int
+            Maximum Manhattan radius to consider along each axis.
+
+        Returns
+        -------
+        list[tuple[int, int]]
+            Ordered list of visible cells (origin first, then increasing
+            step distance along each axis).
+        """
+        x0, y0 = origin
+        width, height = self.space.dimensions
+        cells: list[tuple[int, int]] = [origin]
+        # Look outward one step at a time in the four cardinal directions.
+        for step in range(1, vision + 1):
+            if x0 + step < width:
+                cells.append((x0 + step, y0))
+            if x0 - step >= 0:
+                cells.append((x0 - step, y0))
+            if y0 + step < height:
+                cells.append((x0, y0 + step))
+            if y0 - step >= 0:
+                cells.append((x0, y0 - step))
+        return cells
+
+    def _choose_best_cell(
+        self,
+        origin: tuple[int, int],
+        vision: int,
+        sugar_map: dict[tuple[int, int], int],
+        blocked: set[tuple[int, int]] | None,
+    ) -> tuple[int, int]:
+        """Select the best visible cell according to the movement rules.
+
+        Tie-break rules (in order):
+        1. Prefer cells with strictly greater sugar.
+        2. If equal sugar, prefer the cell with smaller distance from the
+           origin (measured with the Frobenius norm returned by
+           ``space.get_distances``).
+        3. If still tied, prefer the cell with smaller coordinates (lexicographic
+           ordering of the ``(x, y)`` tuple).
+
+        Parameters
+        ----------
+        origin : tuple[int, int]
+            Agent's current coordinate.
+        vision : int
+            Maximum vision radius along cardinal axes.
+        sugar_map : dict
+            Mapping from ``(x, y)`` to sugar amount.
+        blocked : set or None
+            Optional set of coordinates that should be considered occupied and
+            therefore skipped (except the origin which is always allowed).
+
+        Returns
+        -------
+        tuple[int, int]
+            Chosen target coordinate (may be the origin if no better cell is
+            available).
+        """
+        best_cell = origin
+        best_sugar = sugar_map.get(origin, 0)
+        best_distance = 0
+        for candidate in self._visible_cells(origin, vision):
+            # Skip blocked cells (occupied by other agents) unless it's the
+            # agent's current cell which we always consider.
+            if blocked and candidate != origin and candidate in blocked:
+                continue
+            sugar_here = sugar_map.get(candidate, 0)
+            distance = self.model.space.get_distances(origin, candidate)["distance"].item()
+            better = False
+            # Primary criterion: strictly more sugar.
+            if sugar_here > best_sugar:
+                better = True
+            elif sugar_here == best_sugar:
+                # Secondary: closer distance.
+                if distance < best_distance:
+                    better = True
+                # Tertiary: lexicographic tie-break on coordinates.
+                elif distance == best_distance and candidate < best_cell:
+                    better = True
+            if better:
+                best_cell = candidate
+                best_sugar = sugar_here
+                best_distance = distance
+        return best_cell
+
+    def _current_sugar_map(self) -> dict[tuple[int, int], int]:
+        """Return a mapping from grid coordinates to the current sugar value.
+
+        Returns
+        -------
+        dict
+            Keys are ``(x, y)`` tuples and values are the integer sugar amount
+            on that cell (zero if missing/None).
+        """
+        cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
+        # Build a plain Python dict for fast lookups in the movement code.
+        return {
+            (int(x), int(y)): 0 if sugar is None else int(sugar)
+            for x, y, sugar in cells.iter_rows()
+        }
+        
+    def move(self) -> None:
+        sugar_map = self._current_sugar_map()
+        state = self.df.join(self.pos, on="unique_id", how="left")
+        positions = {
+            int(row["unique_id"]): (int(row["dim_0"]), int(row["dim_1"]))
+            for row in state.iter_rows(named=True)
+        }
+        taken: set[tuple[int, int]] = set(positions.values())
+
+        for row in state.iter_rows(named=True):
+            agent_id = int(row["unique_id"])
+            vision = int(row["vision"])
+            current = positions[agent_id]
+            taken.discard(current)
+            target = self._choose_best_cell(current, vision, sugar_map, taken)
+            taken.add(target)
+            positions[agent_id] = target
+            if target != current:
+                self.space.move_agents(agent_id, target)
+
+# %% [markdown]
+"""
+## 3.4 Speeding Up the Loop with Numba
+"""
+
 
 @njit(cache=True)
 def _numba_should_replace(
@@ -607,167 +805,6 @@ def sequential_move_numba(
         new_dim1[i] = best_y
 
     return new_dim0, new_dim1
-
-
-
-
-# %% [markdown]
-"""
-## 2. Agent Scaffolding
-
-With the space logic in place we can define the agents. The base class stores
-traits and implements eating/starvation; concrete subclasses only override
-`move`.
-"""
-
-
-
-
-# %% [markdown]
-"""
-## 3. Sequential Movement
-"""
-
-
-class SugarscapeSequentialAgents(SugarscapeAgentsBase):
-    def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
-        """List cells visible from an origin along the four cardinal axes.
-
-        The visibility set includes the origin cell itself and cells at
-        Manhattan distances 1..vision along the four cardinal directions
-        (up, down, left, right), clipped to the grid bounds.
-
-        Parameters
-        ----------
-        origin : tuple[int, int]
-            The agent's current coordinate ``(x, y)``.
-        vision : int
-            Maximum Manhattan radius to consider along each axis.
-
-        Returns
-        -------
-        list[tuple[int, int]]
-            Ordered list of visible cells (origin first, then increasing
-            step distance along each axis).
-        """
-        x0, y0 = origin
-        width, height = self.space.dimensions
-        cells: list[tuple[int, int]] = [origin]
-        # Look outward one step at a time in the four cardinal directions.
-        for step in range(1, vision + 1):
-            if x0 + step < width:
-                cells.append((x0 + step, y0))
-            if x0 - step >= 0:
-                cells.append((x0 - step, y0))
-            if y0 + step < height:
-                cells.append((x0, y0 + step))
-            if y0 - step >= 0:
-                cells.append((x0, y0 - step))
-        return cells
-
-    def _choose_best_cell(
-        self,
-        origin: tuple[int, int],
-        vision: int,
-        sugar_map: dict[tuple[int, int], int],
-        blocked: set[tuple[int, int]] | None,
-    ) -> tuple[int, int]:
-        """Select the best visible cell according to the movement rules.
-
-        Tie-break rules (in order):
-        1. Prefer cells with strictly greater sugar.
-        2. If equal sugar, prefer the cell with smaller distance from the
-           origin (measured with the Frobenius norm returned by
-           ``space.get_distances``).
-        3. If still tied, prefer the cell with smaller coordinates (lexicographic
-           ordering of the ``(x, y)`` tuple).
-
-        Parameters
-        ----------
-        origin : tuple[int, int]
-            Agent's current coordinate.
-        vision : int
-            Maximum vision radius along cardinal axes.
-        sugar_map : dict
-            Mapping from ``(x, y)`` to sugar amount.
-        blocked : set or None
-            Optional set of coordinates that should be considered occupied and
-            therefore skipped (except the origin which is always allowed).
-
-        Returns
-        -------
-        tuple[int, int]
-            Chosen target coordinate (may be the origin if no better cell is
-            available).
-        """
-        best_cell = origin
-        best_sugar = sugar_map.get(origin, 0)
-        best_distance = 0
-        for candidate in self._visible_cells(origin, vision):
-            # Skip blocked cells (occupied by other agents) unless it's the
-            # agent's current cell which we always consider.
-            if blocked and candidate != origin and candidate in blocked:
-                continue
-            sugar_here = sugar_map.get(candidate, 0)
-            distance = self.model.space.get_distances(origin, candidate)["distance"].item()
-            better = False
-            # Primary criterion: strictly more sugar.
-            if sugar_here > best_sugar:
-                better = True
-            elif sugar_here == best_sugar:
-                # Secondary: closer distance.
-                if distance < best_distance:
-                    better = True
-                # Tertiary: lexicographic tie-break on coordinates.
-                elif distance == best_distance and candidate < best_cell:
-                    better = True
-            if better:
-                best_cell = candidate
-                best_sugar = sugar_here
-                best_distance = distance
-        return best_cell
-
-    def _current_sugar_map(self) -> dict[tuple[int, int], int]:
-        """Return a mapping from grid coordinates to the current sugar value.
-
-        Returns
-        -------
-        dict
-            Keys are ``(x, y)`` tuples and values are the integer sugar amount
-            on that cell (zero if missing/None).
-        """
-        cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
-        # Build a plain Python dict for fast lookups in the movement code.
-        return {
-            (int(x), int(y)): 0 if sugar is None else int(sugar)
-            for x, y, sugar in cells.iter_rows()
-        }
-    def move(self) -> None:
-        sugar_map = self._current_sugar_map()
-        state = self.df.join(self.pos, on="unique_id", how="left")
-        positions = {
-            int(row["unique_id"]): (int(row["dim_0"]), int(row["dim_1"]))
-            for row in state.iter_rows(named=True)
-        }
-        taken: set[tuple[int, int]] = set(positions.values())
-
-        for row in state.iter_rows(named=True):
-            agent_id = int(row["unique_id"])
-            vision = int(row["vision"])
-            current = positions[agent_id]
-            taken.discard(current)
-            target = self._choose_best_cell(current, vision, sugar_map, taken)
-            taken.add(target)
-            positions[agent_id] = target
-            if target != current:
-                self.space.move_agents(agent_id, target)
-
-
-# %% [markdown]
-"""
-## 4. Speeding Up the Loop with Numba
-"""
-
 
 class SugarscapeNumbaAgents(SugarscapeAgentsBase):
     def move(self) -> None:
@@ -1016,6 +1053,16 @@ class SugarscapeParallelAgents(SugarscapeAgentsBase):
         # so pass Series/DataFrame directly rather than converting to Python lists.
         self.space.move_agents(move_df["unique_id"], move_df.select(["dim_0", "dim_1"]))
         
+
+
+# %% [markdown]
+"""
+## 6. Shared Model Infrastructure
+
+`SugarscapeTutorialModel` wires the grid, agent set, regrowth logic, and data
+collection. Each variant simply plugs in a different agent class.
+"""
+
 def run_variant(
     agent_cls: type[SugarscapeAgentsBase],
     *,
@@ -1034,80 +1081,6 @@ def run_variant(
     model.run(steps)
     return model, perf_counter() - start
 
-
-# %% [markdown]
-"""
-## 6. Shared Model Infrastructure
-
-`SugarscapeTutorialModel` wires the grid, agent set, regrowth logic, and data
-collection. Each variant simply plugs in a different agent class.
-"""
-
-
-def gini(values: np.ndarray) -> float:
-    if values.size == 0:
-        return float("nan")
-    sorted_vals = np.sort(values.astype(np.float64))
-    n = sorted_vals.size
-    if n == 0:
-        return float("nan")
-    cumulative = np.cumsum(sorted_vals)
-    total = cumulative[-1]
-    if total == 0:
-        return 0.0
-    index = np.arange(1, n + 1, dtype=np.float64)
-    return float((2.0 * np.dot(index, sorted_vals) / (n * total)) - (n + 1) / n)
-
-
-def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
-    if x.size < 2 or y.size < 2:
-        return float("nan")
-    if np.allclose(x, x[0]) or np.allclose(y, y[0]):
-        return float("nan")
-    return float(np.corrcoef(x, y)[0, 1])
-
-
-def _column_with_prefix(df: pl.DataFrame, prefix: str) -> str:
-    for col in df.columns:
-        if col.startswith(prefix):
-            return col
-    raise KeyError(f"No column starts with prefix '{prefix}'")
-
-
-def final_agent_snapshot(model: Model) -> pl.DataFrame:
-    agent_frame = model.datacollector.data["agent"]
-    if agent_frame.is_empty():
-        return agent_frame
-    last_step = agent_frame["step"].max()
-    return agent_frame.filter(pl.col("step") == last_step)
-
-
-def summarise_inequality(model: Model) -> dict[str, float]:
-    snapshot = final_agent_snapshot(model)
-    if snapshot.is_empty():
-        return {
-            "gini": float("nan"),
-            "corr_sugar_metabolism": float("nan"),
-            "corr_sugar_vision": float("nan"),
-            "agents_alive": 0,
-        }
-
-    sugar_col = _column_with_prefix(snapshot, "traits_sugar_")
-    metabolism_col = _column_with_prefix(snapshot, "traits_metabolism_")
-    vision_col = _column_with_prefix(snapshot, "traits_vision_")
-
-    sugar = snapshot[sugar_col].to_numpy()
-    metabolism = snapshot[metabolism_col].to_numpy()
-    vision = snapshot[vision_col].to_numpy()
-
-    return {
-        "gini": gini(sugar),
-        "corr_sugar_metabolism": _safe_corr(sugar, metabolism),
-        "corr_sugar_vision": _safe_corr(sugar, vision),
-        "agents_alive": float(sugar.size),
-    }
-
-
 # %% [markdown]
 """
 ## 7. Run the Sequential Model (Python loop)
@@ -1119,6 +1092,24 @@ conditions across the different movement rules.
 """
 
 # %%
+
+# %% 
+GRID_WIDTH = 50
+GRID_HEIGHT = 50
+NUM_AGENTS = 400
+MODEL_STEPS = 60
+MAX_SUGAR = 4
+
+# Allow quick testing by skipping the slow pure-Python sequential baseline.
+# Set the environment variable ``MESA_FRAMES_RUN_SEQUENTIAL=0`` (or "false")
+# to disable the baseline when running this script.
+RUN_SEQUENTIAL = os.getenv("MESA_FRAMES_RUN_SEQUENTIAL", "0").lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
+
 sequential_seed = 11
 
 if RUN_SEQUENTIAL:
@@ -1269,11 +1260,21 @@ metrics_table = pl.DataFrame(
     [
         {
             "update_rule": "Sequential (Numba)",
-            **summarise_inequality(numba_model),
+            "gini": gini(numba_model),
+            "corr_sugar_metabolism": corr_sugar_metabolism(numba_model),
+            "corr_sugar_vision": corr_sugar_vision(numba_model),
+            "agents_alive": float(len(numba_model.sets[0]))
+            if len(numba_model.sets)
+            else 0.0,
         },
         {
             "update_rule": "Parallel (random tie-break)",
-            **summarise_inequality(parallel_model),
+            "gini": gini(parallel_model),
+            "corr_sugar_metabolism": corr_sugar_metabolism(parallel_model),
+            "corr_sugar_vision": corr_sugar_vision(parallel_model),
+            "agents_alive": float(len(parallel_model.sets[0]))
+            if len(parallel_model.sets)
+            else 0.0,
         },
     ]
 )
