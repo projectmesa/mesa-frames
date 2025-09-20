@@ -100,7 +100,42 @@ The `step` method advances the sugar field, triggers the agent set's step
 # %%
 
 class Sugarscape(Model):
-    """Minimal Sugarscape model used throughout the tutorial."""
+    """Minimal Sugarscape model used throughout the tutorial.
+
+    This class wires together a grid that stores ``sugar`` per cell, an
+    agent set implementation (passed in as ``agent_type``), and a
+    data collector that records model- and agent-level statistics.
+
+    The model's responsibilities are to:
+    - create the sugar landscape (cells with current and maximum sugar)
+    - create and place agents on the grid
+    - advance the sugar regrowth rule each step
+    - run the model for a fixed number of steps and collect data
+
+    Parameters
+    ----------
+    agent_type : type
+        The :class:`AgentSet` subclass implementing the movement rules
+        (sequential, numba-accelerated, or parallel).
+    n_agents : int
+        Number of agents to create and place on the grid.
+    width : int
+        Grid width (number of columns).
+    height : int
+        Grid height (number of rows).
+    max_sugar : int, optional
+        Upper bound for the randomly initialised sugar values on the grid,
+        by default 4.
+    seed : int or None, optional
+        RNG seed to make runs reproducible across variants, by default None.
+
+    Notes
+    -----
+    The grid uses a von Neumann neighbourhood and capacity 1 (at most one
+    agent per cell). Both the sugar landscape and initial agent traits are
+    drawn from ``self.random`` so different movement variants can be
+    instantiated with identical initial conditions by passing the same seed.
+    """
 
     def __init__(
         self,
@@ -153,7 +188,23 @@ class Sugarscape(Model):
     def _generate_sugar_grid(
         self, width: int, height: int, max_sugar: int
     ) -> pl.DataFrame:
-        """Generate a random sugar grid using the model RNG."""
+        """Generate a random sugar grid.
+
+        Parameters
+        ----------
+        width : int
+            Grid width (number of columns).
+        height : int
+            Grid height (number of rows).
+        max_sugar : int
+            Maximum sugar value (inclusive) for each cell.
+
+        Returns
+        -------
+        pl.DataFrame
+            DataFrame with columns ``dim_0``, ``dim_1``, ``sugar`` (current
+            amount) and ``max_sugar`` (regrowth target).
+        """
         sugar_vals = self.random.integers(
             0, max_sugar + 1, size=(width, height), dtype=np.int64
         )
@@ -164,7 +215,19 @@ class Sugarscape(Model):
         )
 
     def _generate_agent_frame(self, n_agents: int) -> pl.DataFrame:
-        """Create the initial agent frame populated with traits."""
+        """Create the initial agent frame populated with agent traits.
+
+        Parameters
+        ----------
+        n_agents : int
+            Number of agents to create.
+
+        Returns
+        -------
+        pl.DataFrame
+            DataFrame with columns ``sugar``, ``metabolism`` and ``vision``
+            (integer values) for each agent.
+        """
         rng = self.random
         return pl.DataFrame(
             {
@@ -175,6 +238,15 @@ class Sugarscape(Model):
         )
 
     def step(self) -> None:
+        """Advance the model by one step.
+
+        Notes
+        -----
+        The per-step ordering is important: regrowth happens first (so empty
+        cells are refilled), then agents move and eat, and finally metrics are
+        collected. If the agent set becomes empty at any point the model is
+        marked as not running.
+        """
         if len(self.sets[0]) == 0:
             self.running = False
             return
@@ -185,18 +257,36 @@ class Sugarscape(Model):
             self.running = False
 
     def run(self, steps: int) -> None:
+        """Run the model for a fixed number of steps.
+
+        Parameters
+        ----------
+        steps : int
+            Maximum number of steps to run. The model may terminate earlier if
+            ``self.running`` is set to ``False`` (for example, when all agents
+            have died).
+        """
         for _ in range(steps):
             if not self.running:
                 break
             self.step()
 
     def _advance_sugar_field(self) -> None:
+        """Apply the instant-growback sugar regrowth rule.
+
+        Empty cells (no agent present) are refilled to their ``max_sugar``
+        value. Cells that are occupied are set to zero because agents harvest
+        the sugar when they eat. The method uses vectorised DataFrame joins
+        and writes to keep the operation efficient.
+        """
         empty_cells = self.space.empty_cells
         if not empty_cells.is_empty():
+            # Look up the maximum sugar for each empty cell and restore it.
             refresh = empty_cells.join(self._max_sugar, on=["dim_0", "dim_1"], how="left")
             self.space.set_cells(empty_cells, {"sugar": refresh["max_sugar"]})
         full_cells = self.space.full_cells
         if not full_cells.is_empty():
+            # Occupied cells have just been harvested; set their sugar to 0.
             zeros = pl.Series(np.zeros(len(full_cells), dtype=np.int64))
             self.space.set_cells(full_cells, {"sugar": zeros})
 
