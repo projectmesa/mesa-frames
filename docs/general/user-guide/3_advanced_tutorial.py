@@ -965,8 +965,8 @@ class AntsParallel(AntsBase):
         move_df = pl.DataFrame(
             {
                 "unique_id": assigned["agent_id"],
-                "dim_0": assigned["dim_0"],
-                "dim_1": assigned["dim_1"],
+                "dim_0": assigned["dim_0_candidate"],
+                "dim_1": assigned["dim_1_candidate"],
             }
         )
         # `move_agents` accepts IdsLike and SpaceCoordinates (Polars Series/DataFrame),
@@ -974,6 +974,21 @@ class AntsParallel(AntsBase):
         self.space.move_agents(move_df["unique_id"], move_df.select(["dim_0", "dim_1"]))
 
     def _build_neighborhood_frame(self, current_pos: pl.DataFrame) -> pl.DataFrame:
+        """Assemble the sugar-weighted neighbourhood for each sensing agent.
+
+        Parameters
+        ----------
+        current_pos : pl.DataFrame
+            DataFrame with columns ``agent_id``, ``dim_0_center`` and
+            ``dim_1_center`` describing the current position of each agent.
+
+        Returns
+        -------
+        pl.DataFrame
+            DataFrame with columns ``agent_id``, ``radius``, ``dim_0_candidate``,
+            ``dim_1_candidate`` and ``sugar`` describing the visible cells for
+            each agent.
+        """
         # Build a neighbourhood frame: for each agent and visible cell we
         # attach the cell sugar. The raw offsets contain the candidate
         # cell coordinates and the center coordinates for the sensing agent.
@@ -983,25 +998,27 @@ class AntsParallel(AntsBase):
         # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            │
         # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            │
         # ╞════════════╪════════════╪════════╪════════════════╪════════════════╡
-        neighborhood = self.space.get_neighborhood(
+        neighborhood_cells = self.space.get_neighborhood(
             radius=self["vision"], agents=self, include_center=True
         )
 
-        cell_props = self.space.cells.select(["dim_0", "dim_1", "sugar"])
-        neighborhood = (
-            neighborhood
-            .join(cell_props, on=["dim_0", "dim_1"], how="left")
+        # sugar_cells columns:
+        # ┌────────────┬────────────┬────────┐
+        # │ dim_0      ┆ dim_1      ┆ sugar  │
+        # │ ---        ┆ ---        ┆ ---    │
+        # │ i64        ┆ i64        ┆ i64    │
+        # ╞════════════╪════════════╪════════╡
+
+        sugar_cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
+
+        neighborhood_cells = (
+            neighborhood_cells
+            .join(sugar_cells, on=["dim_0", "dim_1"], how="left")
             .with_columns(pl.col("sugar").fill_null(0))
+            .rename({"dim_0": "dim_0_candidate", "dim_1": "dim_1_candidate"})
         )
 
-        # Neighborhood after sugar join:
-        # ┌────────────┬────────────┬────────┬────────────────┬────────────────┬────────┐
-        # │ dim_0      ┆ dim_1      ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ sugar  │
-        # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            ┆ ---    │
-        # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            ┆ i64    │
-        # ╞════════════╪════════════╪════════╪════════════════╪════════════════╪════════╡
-
-        neighborhood = neighborhood.join(
+        neighborhood_cells = neighborhood_cells.join(
             current_pos,
             left_on=["dim_0_center", "dim_1_center"],
             right_on=["dim_0_center", "dim_1_center"],
@@ -1009,45 +1026,74 @@ class AntsParallel(AntsBase):
         )
 
         # Final neighborhood columns:
-        # ┌────────────┬────────────┬────────┬────────────────┬────────────────┬────────┬──────────┐
-        # │ dim_0      ┆ dim_1      ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ sugar  ┆ agent_id │
-        # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            ┆ ---    ┆ ---      │
-        # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            ┆ i64    ┆ u64      │
-        # ╞════════════╪════════════╪════════╪════════════════╪════════════════╪════════╪══════════╡
-        return neighborhood
+        # ┌──────────┬────────┬──────────────────┬──────────────────┬────────┐
+        # │ agent_id ┆ radius ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  │
+        # │ ---      ┆ ---    ┆ ---              ┆ ---              ┆ ---    │
+        # │ u64      ┆ i64    ┆ i64              ┆ i64              ┆ i64    │
+        # ╞══════════╪════════╪══════════════════╪══════════════════╪════════╡
+        neighborhood_cells = (
+            neighborhood_cells
+            .drop(["dim_0_center", "dim_1_center"])
+            .select(["agent_id", "radius", "dim_0_candidate", "dim_1_candidate", "sugar"])
+        )
+
+        return neighborhood_cells
 
     def _rank_candidates(
         self,
         neighborhood: pl.DataFrame,
         current_pos: pl.DataFrame,
     ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+        """Rank candidate destination cells for each agent.
+
+        Parameters
+        ----------
+        neighborhood : pl.DataFrame
+            Output of :meth:`_build_neighborhood_frame` with columns
+            ``agent_id``, ``radius``, ``dim_0_candidate``, ``dim_1_candidate``
+            and ``sugar``.
+        current_pos : pl.DataFrame
+            Frame with columns ``agent_id``, ``dim_0_center`` and
+            ``dim_1_center`` describing where each agent currently stands.
+
+        Returns
+        -------
+        choices : pl.DataFrame
+            Ranked candidates per agent with columns ``agent_id``,
+            ``dim_0_candidate``, ``dim_1_candidate``, ``sugar``, ``radius`` and
+            ``rank``.
+        origins : pl.DataFrame
+            Original coordinates per agent with columns ``agent_id``,
+            ``dim_0`` and ``dim_1``.
+        max_rank : pl.DataFrame
+            Maximum available rank per agent with columns ``agent_id`` and
+            ``max_rank``.
+        """
         # Create ranked choices per agent: sort by sugar (desc), radius
         # (asc), then coordinates. Keep the first unique entry per cell.
         # choices columns (after select):
-        # ┌──────────┬────────────┬────────────┬────────┬────────┬────────────────┬────────────────┐
-        # │ agent_id ┆ dim_0      ┆ dim_1      ┆ sugar  ┆ radius ┆ dim_0_center   ┆ dim_1_center   │
-        # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---    ┆ ---            ┆ ---            │
-        # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            │
-        # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╡
+        # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┐
+        # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius │
+        # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    │
+        # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    │
+        # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╡
         choices = (
             neighborhood.select(
                 [
                     "agent_id",
-                    "dim_0",
-                    "dim_1",
+                    "dim_0_candidate",
+                    "dim_1_candidate",
                     "sugar",
                     "radius",
-                    "dim_0_center",
-                    "dim_1_center",
                 ]
             )
-            .with_columns(pl.col("radius").cast(pl.Int64))
+            .with_columns(pl.col("radius"))
             .sort(
-                ["agent_id", "sugar", "radius", "dim_0", "dim_1"],
+                ["agent_id", "sugar", "radius", "dim_0_candidate", "dim_1_candidate"],
                 descending=[False, True, False, False, False],
             )
             .unique(
-                subset=["agent_id", "dim_0", "dim_1"],
+                subset=["agent_id", "dim_0_candidate", "dim_1_candidate"],
                 keep="first",
                 maintain_order=True,
             )
@@ -1055,7 +1101,6 @@ class AntsParallel(AntsBase):
                 pl.col("agent_id")
                 .cum_count()
                 .over("agent_id")
-                .cast(pl.Int64)
                 .alias("rank")
             )
         )
@@ -1091,8 +1136,30 @@ class AntsParallel(AntsBase):
         origins: pl.DataFrame,
         max_rank: pl.DataFrame,
     ) -> pl.DataFrame:
+        """Resolve movement conflicts through iterative lottery rounds.
+
+        Parameters
+        ----------
+        choices : pl.DataFrame
+            Ranked candidate cells per agent with headers matching the
+            ``choices`` frame returned by :meth:`_rank_candidates`.
+        origins : pl.DataFrame
+            Agent origin coordinates with columns ``agent_id``, ``dim_0`` and
+            ``dim_1``.
+        max_rank : pl.DataFrame
+            Maximum rank offset per agent with columns ``agent_id`` and
+            ``max_rank``.
+
+        Returns
+        -------
+        pl.DataFrame
+            Allocated movements with columns ``agent_id``, ``dim_0_candidate``
+            and ``dim_1_candidate``; each row records the destination assigned
+            to an agent.
+        """
         # Prepare unresolved agents and working tables.
         agent_ids = choices["agent_id"].unique(maintain_order=True)
+        
         # unresolved columns:
         # ┌──────────┬────────────────┐
         # │ agent_id ┆ current_rank  │
@@ -1107,29 +1174,37 @@ class AntsParallel(AntsBase):
         )
 
         # assigned columns:
-        # ┌──────────┬────────────┬────────────┐
-        # │ agent_id ┆ dim_0      ┆ dim_1      │
-        # │ ---      ┆ ---        ┆ ---        │
-        # │ u64      ┆ i64        ┆ i64        │
-        # ╞══════════╪════════════╪════════════╡
+        # ┌──────────┬──────────────────┬──────────────────┐
+        # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  │
+        # │ ---      ┆ ---              ┆ ---              │
+        # │ u64      ┆ i64              ┆ i64              │
+        # ╞══════════╪══════════════════╪══════════════════╡
         assigned = pl.DataFrame(
             {
                 "agent_id": pl.Series(name="agent_id", values=[], dtype=agent_ids.dtype),
-                "dim_0": pl.Series(name="dim_0", values=[], dtype=pl.Int64),
-                "dim_1": pl.Series(name="dim_1", values=[], dtype=pl.Int64),
+                "dim_0_candidate": pl.Series(
+                    name="dim_0_candidate", values=[], dtype=pl.Int64
+                ),
+                "dim_1_candidate": pl.Series(
+                    name="dim_1_candidate", values=[], dtype=pl.Int64
+                ),
             }
         )
 
         # taken columns:
-        # ┌────────────┬────────────┐
-        # │ dim_0      ┆ dim_1      │
-        # │ ---        ┆ ---        │
-        # │ i64        ┆ i64        │
-        # ╞════════════╪════════════╡
+        # ┌──────────────────┬──────────────────┐
+        # │ dim_0_candidate  ┆ dim_1_candidate  │
+        # │ ---              ┆ ---              │
+        # │ i64              ┆ i64              │
+        # ╞══════════════════╪══════════════════╡
         taken = pl.DataFrame(
             {
-                "dim_0": pl.Series(name="dim_0", values=[], dtype=pl.Int64),
-                "dim_1": pl.Series(name="dim_1", values=[], dtype=pl.Int64),
+                "dim_0_candidate": pl.Series(
+                    name="dim_0_candidate", values=[], dtype=pl.Int64
+                ),
+                "dim_1_candidate": pl.Series(
+                    name="dim_1_candidate", values=[], dtype=pl.Int64
+                ),
             }
         )
 
@@ -1138,15 +1213,19 @@ class AntsParallel(AntsBase):
         # promoted to their next choice.
         while unresolved.height > 0:
             # candidate_pool columns (after join with unresolved):
-            # ┌──────────┬────────────┬────────────┬────────┬────────┬────────────────┬────────────────┬──────────────┐
-            # │ agent_id ┆ dim_0      ┆ dim_1      ┆ sugar  ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ current_rank │
-            # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---    ┆ ---            ┆ ---            ┆ ---          │
-            # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            ┆ i64          │
-            # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╪══════════════╡
+            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────────────┐
+            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ current_rank │
+            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---          │
+            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ i64          │
+            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════════════╡
             candidate_pool = choices.join(unresolved, on="agent_id")
             candidate_pool = candidate_pool.filter(pl.col("rank") >= pl.col("current_rank"))
             if not taken.is_empty():
-                candidate_pool = candidate_pool.join(taken, on=["dim_0", "dim_1"], how="anti")
+                candidate_pool = candidate_pool.join(
+                    taken,
+                    on=["dim_0_candidate", "dim_1_candidate"],
+                    how="anti",
+                )
 
             if candidate_pool.is_empty():
                 # No available candidates — everyone falls back to origin.
@@ -1158,17 +1237,26 @@ class AntsParallel(AntsBase):
                 # ╞══════════╪════════════╪════════════╪══════════════╡
                 fallback = unresolved.join(origins, on="agent_id", how="left")
                 assigned = pl.concat(
-                    [assigned, fallback.select(["agent_id", "dim_0", "dim_1"])],
+                    [
+                        assigned,
+                        fallback.select(
+                            [
+                                "agent_id",
+                                pl.col("dim_0").alias("dim_0_candidate"),
+                                pl.col("dim_1").alias("dim_1_candidate"),
+                            ]
+                        ),
+                    ],
                     how="vertical",
                 )
                 break
 
             # best_candidates columns (per agent first choice):
-            # ┌──────────┬────────────┬────────────┬────────┬────────┬────────────────┬────────────────┬──────────────┐
-            # │ agent_id ┆ dim_0      ┆ dim_1      ┆ sugar  ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ current_rank │
-            # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---    ┆ ---            ┆ ---            ┆ ---          │
-            # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            ┆ i64          │
-            # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╪══════════════╡
+            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────────────┐
+            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ current_rank │
+            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---          │
+            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ i64          │
+            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════════════╡
             best_candidates = (
                 candidate_pool
                 .sort(["agent_id", "rank"])
@@ -1188,10 +1276,30 @@ class AntsParallel(AntsBase):
                 # fallback (missing) columns match fallback table above.
                 fallback = missing.join(origins, on="agent_id", how="left")
                 assigned = pl.concat(
-                    [assigned, fallback.select(["agent_id", "dim_0", "dim_1"])],
+                    [
+                        assigned,
+                        fallback.select(
+                            [
+                                "agent_id",
+                                pl.col("dim_0").alias("dim_0_candidate"),
+                                pl.col("dim_1").alias("dim_1_candidate"),
+                            ]
+                        ),
+                    ],
                     how="vertical",
                 )
-                taken = pl.concat([taken, fallback.select(["dim_0", "dim_1"])], how="vertical")
+                taken = pl.concat(
+                    [
+                        taken,
+                        fallback.select(
+                            [
+                                pl.col("dim_0").alias("dim_0_candidate"),
+                                pl.col("dim_1").alias("dim_1_candidate"),
+                            ]
+                        ),
+                    ],
+                    how="vertical",
+                )
                 unresolved = unresolved.join(missing.select("agent_id"), on="agent_id", how="anti")
                 best_candidates = best_candidates.join(missing.select("agent_id"), on="agent_id", how="anti")
                 if unresolved.is_empty() or best_candidates.is_empty():
@@ -1203,23 +1311,38 @@ class AntsParallel(AntsBase):
             best_candidates = best_candidates.with_columns(lottery)
 
             # winners columns:
-            # ┌──────────┬────────────┬────────────┬────────┬────────┬────────────────┬────────────────┬──────────────┬─────────┐
-            # │ agent_id ┆ dim_0      ┆ dim_1      ┆ sugar  ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ current_rank ┆ lottery │
-            # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---    ┆ ---            ┆ ---            ┆ ---          ┆ ---     │
-            # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            ┆ i64          ┆ f64     │
-            # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╪══════════════╪═════════╡
+            # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┬──────────────┬─────────┐
+            # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius ┆ current_rank │ lottery │
+            # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---          ┆ ---     │
+            # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ i64          ┆ f64     │
+            # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════════════╪═════════╡
             winners = (
                 best_candidates
-                .sort(["dim_0", "dim_1", "lottery"])
-                .group_by(["dim_0", "dim_1"], maintain_order=True)
+                .sort(["dim_0_candidate", "dim_1_candidate", "lottery"])
+                .group_by(["dim_0_candidate", "dim_1_candidate"], maintain_order=True)
                 .first()
             )
 
             assigned = pl.concat(
-                [assigned, winners.select(["agent_id", "dim_0", "dim_1"])],
+                [
+                    assigned,
+                    winners.select(
+                        [
+                            "agent_id",
+                            pl.col("dim_0_candidate"),
+                            pl.col("dim_1_candidate"),
+                        ]
+                    ),
+                ],
                 how="vertical",
             )
-            taken = pl.concat([taken, winners.select(["dim_0", "dim_1"])], how="vertical")
+            taken = pl.concat(
+                [
+                    taken,
+                    winners.select(["dim_0_candidate", "dim_1_candidate"]),
+                ],
+                how="vertical",
+            )
 
             winner_ids = winners.select("agent_id")
             unresolved = unresolved.join(winner_ids, on="agent_id", how="anti")
