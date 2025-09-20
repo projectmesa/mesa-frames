@@ -1395,7 +1395,7 @@ class AntsParallel(AntsBase):
 """
 ## 4. Run the Model Variants
 
-We iterate over each movement policy with a shared helper so all runs reuse the same seed. Set `MESA_FRAMES_RUN_SEQUENTIAL=1` to include the slower pure-Python baseline.
+We iterate over each movement policy with a shared helper so all runs reuse the same seed. The tutorial runs all three variants (Python sequential, Numba sequential, and parallel) by default; edit the script if you want to skip the slow pure-Python baseline.
 
 """
 
