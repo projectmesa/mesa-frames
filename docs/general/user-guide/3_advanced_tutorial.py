@@ -414,103 +414,6 @@ class SugarscapeAgentsBase(AgentSet):
             # ``discard`` accepts a DataFrame of agents to remove.
             self.discard(starved)
 
-    def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
-        """List cells visible from an origin along the four cardinal axes.
-
-        The visibility set includes the origin cell itself and cells at
-        Manhattan distances 1..vision along the four cardinal directions
-        (up, down, left, right), clipped to the grid bounds.
-
-        Parameters
-        ----------
-        origin : tuple[int, int]
-            The agent's current coordinate ``(x, y)``.
-        vision : int
-            Maximum Manhattan radius to consider along each axis.
-
-        Returns
-        -------
-        list[tuple[int, int]]
-            Ordered list of visible cells (origin first, then increasing
-            step distance along each axis).
-        """
-        x0, y0 = origin
-        width, height = self.space.dimensions
-        cells: list[tuple[int, int]] = [origin]
-        # Look outward one step at a time in the four cardinal directions.
-        for step in range(1, vision + 1):
-            if x0 + step < width:
-                cells.append((x0 + step, y0))
-            if x0 - step >= 0:
-                cells.append((x0 - step, y0))
-            if y0 + step < height:
-                cells.append((x0, y0 + step))
-            if y0 - step >= 0:
-                cells.append((x0, y0 - step))
-        return cells
-
-    def _choose_best_cell(
-        self,
-        origin: tuple[int, int],
-        vision: int,
-        sugar_map: dict[tuple[int, int], int],
-        blocked: set[tuple[int, int]] | None,
-    ) -> tuple[int, int]:
-        """Select the best visible cell according to the movement rules.
-
-        Tie-break rules (in order):
-        1. Prefer cells with strictly greater sugar.
-        2. If equal sugar, prefer the cell with smaller distance from the
-           origin (measured with the Frobenius norm returned by
-           ``space.get_distances``).
-        3. If still tied, prefer the cell with smaller coordinates (lexicographic
-           ordering of the ``(x, y)`` tuple).
-
-        Parameters
-        ----------
-        origin : tuple[int, int]
-            Agent's current coordinate.
-        vision : int
-            Maximum vision radius along cardinal axes.
-        sugar_map : dict
-            Mapping from ``(x, y)`` to sugar amount.
-        blocked : set or None
-            Optional set of coordinates that should be considered occupied and
-            therefore skipped (except the origin which is always allowed).
-
-        Returns
-        -------
-        tuple[int, int]
-            Chosen target coordinate (may be the origin if no better cell is
-            available).
-        """
-        best_cell = origin
-        best_sugar = sugar_map.get(origin, 0)
-        best_distance = 0
-        for candidate in self._visible_cells(origin, vision):
-            # Skip blocked cells (occupied by other agents) unless it's the
-            # agent's current cell which we always consider.
-            if blocked and candidate != origin and candidate in blocked:
-                continue
-            sugar_here = sugar_map.get(candidate, 0)
-            distance = self.model.space.get_distances(origin, candidate)["distance"].item()
-            better = False
-            # Primary criterion: strictly more sugar.
-            if sugar_here > best_sugar:
-                better = True
-            elif sugar_here == best_sugar:
-                # Secondary: closer distance.
-                if distance < best_distance:
-                    better = True
-                # Tertiary: lexicographic tie-break on coordinates.
-                elif distance == best_distance and candidate < best_cell:
-                    better = True
-            if better:
-                best_cell = candidate
-                best_sugar = sugar_here
-                best_distance = distance
-        return best_cell
-
 
 
 # %% 
@@ -727,6 +630,103 @@ traits and implements eating/starvation; concrete subclasses only override
 
 
 class SugarscapeSequentialAgents(SugarscapeAgentsBase):
+    def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
+        """List cells visible from an origin along the four cardinal axes.
+
+        The visibility set includes the origin cell itself and cells at
+        Manhattan distances 1..vision along the four cardinal directions
+        (up, down, left, right), clipped to the grid bounds.
+
+        Parameters
+        ----------
+        origin : tuple[int, int]
+            The agent's current coordinate ``(x, y)``.
+        vision : int
+            Maximum Manhattan radius to consider along each axis.
+
+        Returns
+        -------
+        list[tuple[int, int]]
+            Ordered list of visible cells (origin first, then increasing
+            step distance along each axis).
+        """
+        x0, y0 = origin
+        width, height = self.space.dimensions
+        cells: list[tuple[int, int]] = [origin]
+        # Look outward one step at a time in the four cardinal directions.
+        for step in range(1, vision + 1):
+            if x0 + step < width:
+                cells.append((x0 + step, y0))
+            if x0 - step >= 0:
+                cells.append((x0 - step, y0))
+            if y0 + step < height:
+                cells.append((x0, y0 + step))
+            if y0 - step >= 0:
+                cells.append((x0, y0 - step))
+        return cells
+
+    def _choose_best_cell(
+        self,
+        origin: tuple[int, int],
+        vision: int,
+        sugar_map: dict[tuple[int, int], int],
+        blocked: set[tuple[int, int]] | None,
+    ) -> tuple[int, int]:
+        """Select the best visible cell according to the movement rules.
+
+        Tie-break rules (in order):
+        1. Prefer cells with strictly greater sugar.
+        2. If equal sugar, prefer the cell with smaller distance from the
+           origin (measured with the Frobenius norm returned by
+           ``space.get_distances``).
+        3. If still tied, prefer the cell with smaller coordinates (lexicographic
+           ordering of the ``(x, y)`` tuple).
+
+        Parameters
+        ----------
+        origin : tuple[int, int]
+            Agent's current coordinate.
+        vision : int
+            Maximum vision radius along cardinal axes.
+        sugar_map : dict
+            Mapping from ``(x, y)`` to sugar amount.
+        blocked : set or None
+            Optional set of coordinates that should be considered occupied and
+            therefore skipped (except the origin which is always allowed).
+
+        Returns
+        -------
+        tuple[int, int]
+            Chosen target coordinate (may be the origin if no better cell is
+            available).
+        """
+        best_cell = origin
+        best_sugar = sugar_map.get(origin, 0)
+        best_distance = 0
+        for candidate in self._visible_cells(origin, vision):
+            # Skip blocked cells (occupied by other agents) unless it's the
+            # agent's current cell which we always consider.
+            if blocked and candidate != origin and candidate in blocked:
+                continue
+            sugar_here = sugar_map.get(candidate, 0)
+            distance = self.model.space.get_distances(origin, candidate)["distance"].item()
+            better = False
+            # Primary criterion: strictly more sugar.
+            if sugar_here > best_sugar:
+                better = True
+            elif sugar_here == best_sugar:
+                # Secondary: closer distance.
+                if distance < best_distance:
+                    better = True
+                # Tertiary: lexicographic tie-break on coordinates.
+                elif distance == best_distance and candidate < best_cell:
+                    better = True
+            if better:
+                best_cell = candidate
+                best_sugar = sugar_here
+                best_distance = distance
+        return best_cell
+
     def _current_sugar_map(self) -> dict[tuple[int, int], int]:
         """Return a mapping from grid coordinates to the current sugar value.
 
