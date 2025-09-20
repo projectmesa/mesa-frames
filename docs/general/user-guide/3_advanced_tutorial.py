@@ -57,7 +57,6 @@ of emergent macro regularities in agent-based models.
 """## 1. Imports"""
 
 # %%
-import os
 from time import perf_counter
 
 import numpy as np
@@ -1427,35 +1426,17 @@ def run_variant(
     model.run(steps)
     return model, perf_counter() - start
 
-# Allow quick testing by skipping the slow pure-Python sequential baseline.
-# Set the environment variable ``MESA_FRAMES_RUN_SEQUENTIAL=0`` (or "false")
-# to disable the baseline when running this script.
-RUN_SEQUENTIAL = os.getenv("MESA_FRAMES_RUN_SEQUENTIAL", "0").lower() not in {
-    "0",
-    "false",
-    "no",
-    "off",
-}
-
-
-variant_specs: dict[str, tuple[type[AntsBase], bool]] = {
-    "Sequential (Python loop)": (AntsSequential, RUN_SEQUENTIAL),
-    "Sequential (Numba)": (AntsNumba, True),
-    "Parallel (Polars)": (AntsParallel, True),
+variant_specs: dict[str, type[AntsBase]] = {
+    "Sequential (Python loop)": AntsSequential,
+    "Sequential (Numba)": AntsNumba,
+    "Parallel (Polars)": AntsParallel,
 }
 
 models: dict[str, Sugarscape] = {}
 frames: dict[str, pl.DataFrame] = {}
 runtimes: dict[str, float] = {}
 
-for variant_name, (agent_cls, enabled) in variant_specs.items():
-    if not enabled:
-        print(
-            f"Skipping {variant_name}; set MESA_FRAMES_RUN_SEQUENTIAL=1 to enable it."
-        )
-        runtimes[variant_name] = float("nan")
-        continue
-
+for variant_name, agent_cls in variant_specs.items():
     model, runtime = run_variant(agent_cls, steps=MODEL_STEPS, seed=SEED)
     models[variant_name] = model
     frames[variant_name] = model.datacollector.data["model"]
@@ -1474,10 +1455,10 @@ runtime_table = (
     pl.DataFrame(
         [
             {
-                "update_rule": variant_name if enabled else f"{variant_name} [skipped]",
+                "update_rule": variant_name,
                 "runtime_seconds": runtimes.get(variant_name, float("nan")),
             }
-            for variant_name, (_, enabled) in variant_specs.items()
+            for variant_name in variant_specs.keys()
         ]
     )
     .with_columns(pl.col("runtime_seconds").round(4))
