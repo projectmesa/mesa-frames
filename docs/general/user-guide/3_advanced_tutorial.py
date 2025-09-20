@@ -414,22 +414,6 @@ class SugarscapeAgentsBase(AgentSet):
             # ``discard`` accepts a DataFrame of agents to remove.
             self.discard(starved)
 
-    def _current_sugar_map(self) -> dict[tuple[int, int], int]:
-        """Return a mapping from grid coordinates to the current sugar value.
-
-        Returns
-        -------
-        dict
-            Keys are ``(x, y)`` tuples and values are the integer sugar amount
-            on that cell (zero if missing/None).
-        """
-        cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
-        # Build a plain Python dict for fast lookups in the movement code.
-        return {
-            (int(x), int(y)): 0 if sugar is None else int(sugar)
-            for x, y, sugar in cells.iter_rows()
-        }
-
     @staticmethod
     def _manhattan(a: tuple[int, int], b: tuple[int, int]) -> int:
         """Compute the Manhattan (L1) distance between two grid cells.
@@ -758,6 +742,21 @@ traits and implements eating/starvation; concrete subclasses only override
 
 
 class SugarscapeSequentialAgents(SugarscapeAgentsBase):
+    def _current_sugar_map(self) -> dict[tuple[int, int], int]:
+        """Return a mapping from grid coordinates to the current sugar value.
+
+        Returns
+        -------
+        dict
+            Keys are ``(x, y)`` tuples and values are the integer sugar amount
+            on that cell (zero if missing/None).
+        """
+        cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
+        # Build a plain Python dict for fast lookups in the movement code.
+        return {
+            (int(x), int(y)): 0 if sugar is None else int(sugar)
+            for x, y, sugar in cells.iter_rows()
+        }
     def move(self) -> None:
         sugar_map = self._current_sugar_map()
         state = self.df.join(self.pos, on="unique_id", how="left")
@@ -821,12 +820,11 @@ class SugarscapeParallelAgents(SugarscapeAgentsBase):
         # and losers are promoted to their next-ranked choice.
         if len(self.df) == 0:
             return
-        sugar_map = self._current_sugar_map()
         state = self.df.join(self.pos, on="unique_id", how="left")
         if state.is_empty():
             return
 
-        # Map the positional frame to a center lookup used when joining
+    # Map the positional frame to a center lookup used when joining
         # neighbourhoods produced by the space helper. Build the lookup by
         # explicitly selecting and aliasing columns so the join creates a
         # deterministic `agent_id` column (some internal joins can drop or
