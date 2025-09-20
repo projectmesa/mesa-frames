@@ -80,6 +80,7 @@ docs = [
   "seaborn>=0.13.2",
   "sphinx-autobuild>=2025.8.25",
   "mesa>=3.2.0",
+  "jupytext>=1.17.3",
 ]
 
 # dev = test ∪ docs ∪ extra tooling
