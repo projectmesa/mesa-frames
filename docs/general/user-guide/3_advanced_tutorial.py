@@ -704,7 +704,7 @@ class AntsSequential(AntsBase):
 
 # %% [markdown]
 """
-## 3.4 Speeding Up the Loop with Numba
+### 3.3 Speeding Up the Loop with Numba
 
 As we will see later, the previous sequential implementation is slow for large populations and grids because it relies on plain Python loops. We can speed it up significantly by using Numba to compile the movement logic.
 
@@ -911,30 +911,32 @@ class AntsNumba(AntsBase):
 
 # %% [markdown]
 """
-## 5. Simultaneous Movement with Conflict Resolution
+### 3.5. Simultaneous Movement with Conflict Resolution (the Polars mesa-frames idiomatic way)
 
-The previous implementation is fast but it requires
+The previous implementation is optimal speed-wise but it's a bit low-level. It requires mantaining an occupancy grid and imperative loops and it might become tricky to extend with more complex movement rules or models.
+To stay in mesa-frames idiom, we can implement a parallel movement policy that uses Polars DataFrame operations to resolve conflicts when multiple agents target the same cell.
+These conflicts are resolved in rounds: in each round, each agent proposes its current best candidate cell; winners per cell are chosen at random, and losers are promoted to their next-ranked choice. This continues until all agents have moved.
+This implementation is a tad slower but still efficient and easier to read (for a Polars user).
 """
 
 
 class AntsParallel(AntsBase):
     def move(self) -> None:
-        # Parallel movement: each agent proposes a ranked list of visible
-        # cells (including its own). We resolve conflicts in rounds using
-        # DataFrame operations so winners can be chosen per-cell at random
-        # and losers are promoted to their next-ranked choice.
+        """
+        Parallel movement: each agent proposes a ranked list of visible cells (including its own).
+        We resolve conflicts in rounds using DataFrame operations so winners can be chosen per-cell at random and losers are promoted to their next-ranked choice.
+        """
+        # Early exit if there are no agents.
         if len(self.df) == 0:
             return
-        state = self.df.join(self.pos, on="unique_id", how="left")
-        if state.is_empty():
-            return
 
-    # Map the positional frame to a center lookup used when joining
-        # neighbourhoods produced by the space helper. Build the lookup by
-        # explicitly selecting and aliasing columns so the join creates a
-        # deterministic `agent_id` column (some internal joins can drop or
-        # fail to expose renamed columns when types/indices differ).
-        center_lookup = self.pos.select(
+        # current_pos columns:
+        # ┌──────────┬────────────────┬────────────────┐
+        # │ agent_id ┆ dim_0_center   ┆ dim_1_center   │
+        # │ ---      ┆ ---            ┆ ---            │
+        # │ u64      ┆ i64            ┆ i64            │
+        # ╞══════════╪════════════════╪════════════════╡
+        current_pos = self.pos.select(
             [
                 pl.col("unique_id").alias("agent_id"),
                 pl.col("dim_0").alias("dim_0_center"),
@@ -943,35 +945,54 @@ class AntsParallel(AntsBase):
         )
 
         # Build a neighbourhood frame: for each agent and visible cell we
-        # attach the cell sugar and the agent_id of the occupant (if any).
+        # attach the cell sugar. The raw offsets contain the candidate
+        # cell coordinates and the center coordinates for the sensing agent.
+        # Raw neighborhood columns:
+        # ┌────────────┬────────────┬────────┬────────────────┬────────────────┐
+        # │ dim_0      ┆ dim_1      ┆ radius ┆ dim_0_center   ┆ dim_1_center   │
+        # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            │
+        # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            │
+        # ╞════════════╪════════════╪════════╪════════════════╪════════════════╡
+        neighborhood = self.space.get_neighborhood(
+            radius=self["vision"], agents=self, include_center=True
+        )
+
+        cell_props = self.space.cells.select(["dim_0", "dim_1", "sugar"])
         neighborhood = (
-            self.space.get_neighborhood(
-                radius=self["vision"], agents=self, include_center=True
-            )
-            .join(
-                self.space.cells.select(["dim_0", "dim_1", "sugar"]),
-                on=["dim_0", "dim_1"],
-                how="left",
-            )
+            neighborhood
+            .join(cell_props, on=["dim_0", "dim_1"], how="left")
             .with_columns(pl.col("sugar").fill_null(0))
         )
 
-        # Normalise occupant column name if present (agent occupying the
-        # cell). The center lookup join may produce a conflicting
-        # `agent_id` column (suffix _right) — handle both cases so that
-        # `agent_id` unambiguously refers to the center agent and
-        # `occupant_id` refers to any agent already occupying the cell.
-        if "agent_id" in neighborhood.columns:
-            neighborhood = neighborhood.rename({"agent_id": "occupant_id"})
+        # Neighborhood after sugar join:
+        # ┌────────────┬────────────┬────────┬────────────────┬────────────────┬────────┐
+        # │ dim_0      ┆ dim_1      ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ sugar  │
+        # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            ┆ ---    │
+        # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            ┆ i64    │
+        # ╞════════════╪════════════╪════════╪════════════════╪════════════════╪════════╡
+
         neighborhood = neighborhood.join(
-            center_lookup, on=["dim_0_center", "dim_1_center"], how="left"
+            current_pos,
+            left_on=["dim_0_center", "dim_1_center"],
+            right_on=["dim_0_center", "dim_1_center"],
+            how="left",
         )
-        if "agent_id_right" in neighborhood.columns:
-            # Rename the joined center lookup's id to the canonical name.
-            neighborhood = neighborhood.rename({"agent_id_right": "agent_id"})
+
+        # Final neighborhood columns:
+        # ┌────────────┬────────────┬────────┬────────────────┬────────────────┬────────┬──────────┐
+        # │ dim_0      ┆ dim_1      ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ sugar  ┆ agent_id │
+        # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            ┆ ---    ┆ ---      │
+        # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            ┆ i64    ┆ u64      │
+        # ╞════════════╪════════════╪════════╪════════════════╪════════════════╪════════╪══════════╡
 
         # Create ranked choices per agent: sort by sugar (desc), radius
         # (asc), then coordinates. Keep the first unique entry per cell.
+        # choices columns (after select):
+        # ┌──────────┬────────────┬────────────┬────────┬────────┬────────────────┬────────────────┐
+        # │ agent_id ┆ dim_0      ┆ dim_1      ┆ sugar  ┆ radius ┆ dim_0_center   ┆ dim_1_center   │
+        # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---    ┆ ---            ┆ ---            │
+        # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            │
+        # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╡
         choices = (
             neighborhood.select(
                 [
@@ -1007,7 +1028,13 @@ class AntsParallel(AntsBase):
             return
 
         # Origins for fallback (if an agent exhausts candidates it stays put).
-        origins = center_lookup.select(
+        # origins columns:
+        # ┌──────────┬────────────┬────────────┐
+        # │ agent_id ┆ dim_0      ┆ dim_1      │
+        # │ ---      ┆ ---        ┆ ---        │
+        # │ u64      ┆ i64        ┆ i64        │
+        # ╞══════════╪════════════╪════════════╡
+        origins = current_pos.select(
             [
                 "agent_id",
                 pl.col("dim_0_center").alias("dim_0"),
@@ -1016,10 +1043,22 @@ class AntsParallel(AntsBase):
         )
 
         # Track the maximum available rank per agent to clamp promotions.
+        # max_rank columns:
+        # ┌──────────┬───────────┐
+        # │ agent_id ┆ max_rank │
+        # │ ---      ┆ ---       │
+        # │ u64      ┆ i64       │
+        # ╞══════════╪═══════════╡
         max_rank = choices.group_by("agent_id").agg(pl.col("rank").max().alias("max_rank"))
 
         # Prepare unresolved agents and working tables.
         agent_ids = choices["agent_id"].unique(maintain_order=True)
+        # unresolved columns:
+        # ┌──────────┬────────────────┐
+        # │ agent_id ┆ current_rank  │
+        # │ ---      ┆ ---            │
+        # │ u64      ┆ i64            │
+        # ╞══════════╪════════════════╡
         unresolved = pl.DataFrame(
             {
                 "agent_id": agent_ids,
@@ -1027,6 +1066,12 @@ class AntsParallel(AntsBase):
             }
         )
 
+        # assigned columns:
+        # ┌──────────┬────────────┬────────────┐
+        # │ agent_id ┆ dim_0      ┆ dim_1      │
+        # │ ---      ┆ ---        ┆ ---        │
+        # │ u64      ┆ i64        ┆ i64        │
+        # ╞══════════╪════════════╪════════════╡
         assigned = pl.DataFrame(
             {
                 "agent_id": pl.Series(name="agent_id", values=[], dtype=agent_ids.dtype),
@@ -1035,6 +1080,12 @@ class AntsParallel(AntsBase):
             }
         )
 
+        # taken columns:
+        # ┌────────────┬────────────┐
+        # │ dim_0      ┆ dim_1      │
+        # │ ---        ┆ ---        │
+        # │ i64        ┆ i64        │
+        # ╞════════════╪════════════╡
         taken = pl.DataFrame(
             {
                 "dim_0": pl.Series(name="dim_0", values=[], dtype=pl.Int64),
@@ -1046,6 +1097,12 @@ class AntsParallel(AntsBase):
         # candidate; winners per-cell are selected at random and losers are
         # promoted to their next choice.
         while unresolved.height > 0:
+            # candidate_pool columns (after join with unresolved):
+            # ┌──────────┬────────────┬────────────┬────────┬────────┬────────────────┬────────────────┬──────────────┐
+            # │ agent_id ┆ dim_0      ┆ dim_1      ┆ sugar  ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ current_rank │
+            # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---    ┆ ---            ┆ ---            ┆ ---          │
+            # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            ┆ i64          │
+            # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╪══════════════╡
             candidate_pool = choices.join(unresolved, on="agent_id")
             candidate_pool = candidate_pool.filter(pl.col("rank") >= pl.col("current_rank"))
             if not taken.is_empty():
@@ -1053,6 +1110,12 @@ class AntsParallel(AntsBase):
 
             if candidate_pool.is_empty():
                 # No available candidates — everyone falls back to origin.
+                # fallback columns:
+                # ┌──────────┬────────────┬────────────┬──────────────┐
+                # │ agent_id ┆ dim_0      ┆ dim_1      ┆ current_rank │
+                # │ ---      ┆ ---        ┆ ---        ┆ ---          │
+                # │ u64      ┆ i64        ┆ i64        ┆ i64          │
+                # ╞══════════╪════════════╪════════════╪══════════════╡
                 fallback = unresolved.join(origins, on="agent_id", how="left")
                 assigned = pl.concat(
                     [assigned, fallback.select(["agent_id", "dim_0", "dim_1"])],
@@ -1060,13 +1123,26 @@ class AntsParallel(AntsBase):
                 )
                 break
 
+            # best_candidates columns (per agent first choice):
+            # ┌──────────┬────────────┬────────────┬────────┬────────┬────────────────┬────────────────┬──────────────┐
+            # │ agent_id ┆ dim_0      ┆ dim_1      ┆ sugar  ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ current_rank │
+            # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---    ┆ ---            ┆ ---            ┆ ---          │
+            # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            ┆ i64          │
+            # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╪══════════════╡
             best_candidates = (
                 candidate_pool.sort(["agent_id", "rank"]) .group_by("agent_id", maintain_order=True).first()
             )
 
             # Agents that had no candidate this round fall back to origin.
+            # missing columns:
+            # ┌──────────┬──────────────┐
+            # │ agent_id ┆ current_rank │
+            # │ ---      ┆ ---          │
+            # │ u64      ┆ i64          │
+            # ╞══════════╪══════════════╡
             missing = unresolved.join(best_candidates.select("agent_id"), on="agent_id", how="anti")
             if not missing.is_empty():
+                # fallback (missing) columns match fallback table above.
                 fallback = missing.join(origins, on="agent_id", how="left")
                 assigned = pl.concat(
                     [assigned, fallback.select(["agent_id", "dim_0", "dim_1"])],
@@ -1083,6 +1159,12 @@ class AntsParallel(AntsBase):
             lottery = pl.Series("lottery", self.random.random(best_candidates.height))
             best_candidates = best_candidates.with_columns(lottery)
 
+            # winners columns:
+            # ┌──────────┬────────────┬────────────┬────────┬────────┬────────────────┬────────────────┬──────────────┬─────────┐
+            # │ agent_id ┆ dim_0      ┆ dim_1      ┆ sugar  ┆ radius ┆ dim_0_center   ┆ dim_1_center   ┆ current_rank ┆ lottery │
+            # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---    ┆ ---            ┆ ---            ┆ ---          ┆ ---     │
+            # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            ┆ i64          ┆ f64     │
+            # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╪══════════════╪═════════╡
             winners = (
                 best_candidates.sort(["dim_0", "dim_1", "lottery"]) .group_by(["dim_0", "dim_1"], maintain_order=True).first()
             )
@@ -1098,10 +1180,17 @@ class AntsParallel(AntsBase):
             if unresolved.is_empty():
                 break
 
+            # loser candidates columns mirror best_candidates (minus winners).
             losers = best_candidates.join(winner_ids, on="agent_id", how="anti")
             if losers.is_empty():
                 continue
 
+            # loser_updates columns:
+            # ┌──────────┬───────────┬───────────┐
+            # │ agent_id ┆ next_rank ┆ max_rank  │
+            # │ ---      ┆ ---       ┆ ---       │
+            # │ u64      ┆ i64       ┆ i64       │
+            # ╞══════════╪═══════════╪═══════════╡
             loser_updates = (
                 losers.select(
                     "agent_id",
@@ -1115,6 +1204,7 @@ class AntsParallel(AntsBase):
             )
 
             # Promote losers' current_rank (if any) and continue.
+            # unresolved (updated) retains columns agent_id/current_rank.
             unresolved = unresolved.join(loser_updates, on="agent_id", how="left").with_columns(
                 pl.when(pl.col("next_rank").is_not_null())
                 .then(pl.col("next_rank"))
@@ -1125,6 +1215,12 @@ class AntsParallel(AntsBase):
         if assigned.is_empty():
             return
 
+        # move_df columns:
+        # ┌────────────┬────────────┬────────────┐
+        # │ unique_id  ┆ dim_0      ┆ dim_1      │
+        # │ ---        ┆ ---        ┆ ---        │
+        # │ u64        ┆ i64        ┆ i64        │
+        # ╞════════════╪════════════╪════════════╡
         move_df = pl.DataFrame(
             {
                 "unique_id": assigned["agent_id"],
@@ -1177,9 +1273,9 @@ conditions across the different movement rules.
 # %%
 
 # %% 
-GRID_WIDTH = 250
-GRID_HEIGHT = 250
-NUM_AGENTS = 10000
+GRID_WIDTH = 40
+GRID_HEIGHT = 40
+NUM_AGENTS = 400
 MODEL_STEPS = 60
 MAX_SUGAR = 4
 
