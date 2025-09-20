@@ -1596,4 +1596,3 @@ Currently, the Polars implementation spends most of the time in join operations.
   LazyFrame-powered sets and spaces (which can also use a GPU cuda accelerated backend which greatly accelerates joins), so the same Polars
   code you wrote here will scale even further without touching Numba.
 """
-
