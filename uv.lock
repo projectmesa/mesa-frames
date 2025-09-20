@@ -1234,6 +1234,7 @@ dependencies = [
 dev = [
     { name = "autodocsumm" },
     { name = "beartype" },
+    { name = "jupytext" },
     { name = "mesa" },
     { name = "mkdocs-git-revision-date-localized-plugin" },
     { name = "mkdocs-include-markdown-plugin" },
@@ -1258,6 +1259,7 @@ dev = [
 docs = [
     { name = "autodocsumm" },
     { name = "beartype" },
+    { name = "jupytext" },
     { name = "mesa" },
     { name = "mkdocs-git-revision-date-localized-plugin" },
     { name = "mkdocs-include-markdown-plugin" },
@@ -1296,6 +1298,7 @@ requires-dist = [
 dev = [
     { name = "autodocsumm", specifier = ">=0.2.14" },
     { name = "beartype", specifier = ">=0.21.0" },
+    { name = "jupytext", specifier = ">=1.17.3" },
     { name = "mesa", specifier = ">=3.2.0" },
     { name = "mkdocs-git-revision-date-localized-plugin", specifier = ">=1.4.7" },
     { name = "mkdocs-include-markdown-plugin", specifier = ">=7.1.5" },
@@ -1320,6 +1323,7 @@ dev = [
 docs = [
     { name = "autodocsumm", specifier = ">=0.2.14" },
     { name = "beartype", specifier = ">=0.21.0" },
+    { name = "jupytext", specifier = ">=1.17.3" },
     { name = "mesa", specifier = ">=3.2.0" },
     { name = "mkdocs-git-revision-date-localized-plugin", specifier = ">=1.4.7" },
     { name = "mkdocs-include-markdown-plugin", specifier = ">=7.1.5" },
