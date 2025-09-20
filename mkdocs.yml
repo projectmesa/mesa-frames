@@ -112,7 +112,7 @@ nav:
       - Classes: user-guide/1_classes.md
       - Introductory Tutorial: user-guide/2_introductory-tutorial.ipynb
       - Data Collector Tutorial: user-guide/4_datacollector.ipynb
-      - Advanced Tutorial: user-guide/3_advanced-tutorial.md
+      - Advanced Tutorial: user-guide/3_advanced-tutorial.ipynb
       - Benchmarks: user-guide/5_benchmarks.md
   - API Reference: api/index.html
   - Contributing:
