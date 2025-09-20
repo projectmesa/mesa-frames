@@ -301,13 +301,40 @@ class Sugarscape(Model):
 Now let's define the agent class (the ant class). We start with a base class which implements the common logic for eating and starvation, while leaving the `move` method abstract. 
 The base class also provides helper methods for sensing visible cells and choosing the best cell based on sugar, distance, and coordinates.
 This will allow us to define different movement policies (sequential, Numba-accelerated, and parallel) as subclasses that only need to implement the `move` method.
-
+We also add
 """
 
 # %%
 
 class SugarscapeAgentsBase(AgentSet):
+    """Base agent set for the Sugarscape tutorial.
+
+    This class implements the common behaviour shared by all agent
+    movement variants (sequential, numba-accelerated and parallel).
+
+    Notes
+    -----
+    - Agents are expected to have integer traits: ``sugar``, ``metabolism``
+      and ``vision``. These are validated in :meth:`__init__`.
+    - Subclasses must implement :meth:`move` which changes agent positions
+      on the grid (via :meth:`mesa_frames.Grid` helpers).
+    """
     def __init__(self, model: Model, agent_frame: pl.DataFrame) -> None:
+        """Initialise the agent set and validate required trait columns.
+
+        Parameters
+        ----------
+        model : Model
+            The parent model which provides RNG and space.
+        agent_frame : pl.DataFrame
+            A Polars DataFrame with at least the columns ``sugar``,
+            ``metabolism`` and ``vision`` for each agent.
+
+        Raises
+        ------
+        ValueError
+            If required trait columns are missing from ``agent_frame``.
+        """
         super().__init__(model)
         required = {"sugar", "metabolism", "vision"}
         missing = required.difference(agent_frame.columns)
@@ -318,35 +345,83 @@ class SugarscapeAgentsBase(AgentSet):
         self.add(agent_frame.clone())
 
     def step(self) -> None:
+        """Advance the agent set by one time step.
+
+        The update order is important: agents are first shuffled to randomise
+        move order (this is important only for sequential variants), then they move, harvest sugar
+        from their occupied cells, and finally any agents whose sugar falls
+        to zero or below are removed.
+        """
+        # Randomise ordering for movement decisions when required by the
+        # implementation (e.g. sequential update uses this shuffle).
         self.shuffle(inplace=True)
+        # Movement policy implemented by subclasses.
         self.move()
+        # Agents harvest sugar on their occupied cells.
         self.eat()
+        # Remove agents that starved after eating.
         self._remove_starved()
 
     def move(self) -> None:  # pragma: no cover
+        """Abstract movement method.
+
+        Subclasses must override this method to update agent positions on the
+        grid. Implementations should use :meth:`mesa_frames.Grid.move_agents`
+        or similar helpers provided by the space API.
+        """
         raise NotImplementedError
 
     def eat(self) -> None:
+        """Agents harvest sugar from the cells they currently occupy.
+
+        Behaviour:
+        - Look up the set of occupied cells (cells that reference an agent
+          id).
+        - For each occupied cell, add the cell sugar to the agent's sugar
+          stock and subtract the agent's metabolism cost.
+        - After agents harvest, set the sugar on those cells to zero (they
+          were consumed).
+        """
+        # Map of currently occupied agent ids on the grid.
         occupied_ids = self.index
         occupied_cells = self.space.cells.filter(pl.col("agent_id").is_in(occupied_ids))
         if occupied_cells.is_empty():
             return
+        # The agent ordering here uses the agent_id values stored in the
+        # occupied cells frame; indexing the agent set with that vector updates
+        # the matching agents' sugar values in one vectorised write.
         agent_ids = occupied_cells["agent_id"]
         self[agent_ids, "sugar"] = (
             self[agent_ids, "sugar"] + occupied_cells["sugar"] - self[agent_ids, "metabolism"]
         )
+        # After harvesting, occupied cells have zero sugar.
         self.space.set_cells(
             occupied_cells.select(["dim_0", "dim_1"]),
             {"sugar": pl.Series(np.zeros(len(occupied_cells), dtype=np.int64))},
         )
 
     def _remove_starved(self) -> None:
+        """Discard agents whose sugar stock has fallen to zero or below.
+
+        This method performs a vectorised filter on the agent frame and
+        removes any matching rows from the set.
+        """
         starved = self.df.filter(pl.col("sugar") <= 0)
         if not starved.is_empty():
+            # ``discard`` accepts a DataFrame of agents to remove.
             self.discard(starved)
 
     def _current_sugar_map(self) -> dict[tuple[int, int], int]:
+        """Return a mapping from grid coordinates to the current sugar value.
+
+        Returns
+        -------
+        dict
+            Keys are ``(x, y)`` tuples and values are the integer sugar amount
+            on that cell (zero if missing/None).
+        """
         cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
+        # Build a plain Python dict for fast lookups in the movement code.
         return {
             (int(x), int(y)): 0 if sugar is None else int(sugar)
             for x, y, sugar in cells.iter_rows()
@@ -354,12 +429,44 @@ class SugarscapeAgentsBase(AgentSet):
 
     @staticmethod
     def _manhattan(a: tuple[int, int], b: tuple[int, int]) -> int:
+        """Compute the Manhattan (L1) distance between two grid cells.
+
+        Parameters
+        ----------
+        a, b : tuple[int, int]
+            Coordinate pairs ``(x, y)``.
+
+        Returns
+        -------
+        int
+            The Manhattan distance between ``a`` and ``b``.
+        """
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
     def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
+        """List cells visible from an origin along the four cardinal axes.
+
+        The visibility set includes the origin cell itself and cells at
+        Manhattan distances 1..vision along the four cardinal directions
+        (up, down, left, right), clipped to the grid bounds.
+
+        Parameters
+        ----------
+        origin : tuple[int, int]
+            The agent's current coordinate ``(x, y)``.
+        vision : int
+            Maximum Manhattan radius to consider along each axis.
+
+        Returns
+        -------
+        list[tuple[int, int]]
+            Ordered list of visible cells (origin first, then increasing
+            step distance along each axis).
+        """
         x0, y0 = origin
         width, height = self.space.dimensions
         cells: list[tuple[int, int]] = [origin]
+        # Look outward one step at a time in the four cardinal directions.
         for step in range(1, vision + 1):
             if x0 + step < width:
                 cells.append((x0 + step, y0))
@@ -378,20 +485,52 @@ class SugarscapeAgentsBase(AgentSet):
         sugar_map: dict[tuple[int, int], int],
         blocked: set[tuple[int, int]] | None,
     ) -> tuple[int, int]:
+        """Select the best visible cell according to the movement rules.
+
+        Tie-break rules (in order):
+        1. Prefer cells with strictly greater sugar.
+        2. If equal sugar, prefer the cell with smaller Manhattan distance
+           from the origin.
+        3. If still tied, prefer the cell with smaller coordinates (lexicographic
+           ordering of the ``(x, y)`` tuple).
+
+        Parameters
+        ----------
+        origin : tuple[int, int]
+            Agent's current coordinate.
+        vision : int
+            Maximum vision radius along cardinal axes.
+        sugar_map : dict
+            Mapping from ``(x, y)`` to sugar amount.
+        blocked : set or None
+            Optional set of coordinates that should be considered occupied and
+            therefore skipped (except the origin which is always allowed).
+
+        Returns
+        -------
+        tuple[int, int]
+            Chosen target coordinate (may be the origin if no better cell is
+            available).
+        """
         best_cell = origin
         best_sugar = sugar_map.get(origin, 0)
         best_distance = 0
         for candidate in self._visible_cells(origin, vision):
+            # Skip blocked cells (occupied by other agents) unless it's the
+            # agent's current cell which we always consider.
             if blocked and candidate != origin and candidate in blocked:
                 continue
             sugar_here = sugar_map.get(candidate, 0)
             distance = self._manhattan(origin, candidate)
             better = False
+            # Primary criterion: strictly more sugar.
             if sugar_here > best_sugar:
                 better = True
             elif sugar_here == best_sugar:
+                # Secondary: closer distance.
                 if distance < best_distance:
                     better = True
+                # Tertiary: lexicographic tie-break on coordinates.
                 elif distance == best_distance and candidate < best_cell:
                     better = True
             if better:
@@ -420,11 +559,34 @@ def _numba_should_replace(
     candidate_x: int,
     candidate_y: int,
 ) -> bool:
+    """Numba helper: decide whether a candidate cell should replace the
+    current best cell according to the movement tie-break rules.
+
+    This implements the same ordering used in :meth:`_choose_best_cell` but
+    in a tightly-typed, compiled form suitable for Numba loops.
+
+    Parameters
+    ----------
+    best_sugar, candidate_sugar : int
+        Sugar at the current best cell and the candidate cell.
+    best_distance, candidate_distance : int
+        Manhattan distances from the origin to the best and candidate cells.
+    best_x, best_y, candidate_x, candidate_y : int
+        Coordinates used for the final lexicographic tie-break.
+
+    Returns
+    -------
+    bool
+        True if the candidate should replace the current best cell.
+    """
+    # Primary criterion: prefer strictly greater sugar.
     if candidate_sugar > best_sugar:
         return True
+    # If sugar ties, prefer the closer cell.
     if candidate_sugar == best_sugar:
         if candidate_distance < best_distance:
             return True
+        # If distance ties as well, compare coordinates lexicographically.
         if candidate_distance == best_distance:
             if candidate_x < best_x:
                 return True
@@ -447,6 +609,10 @@ def _numba_find_best_cell(
     best_sugar = sugar_array[x0, y0]
     best_distance = 0
 
+    # Examine visible cells along the four cardinal directions, increasing
+    # step by step. The 'occupied' array marks cells that are currently
+    # unavailable (True = occupied). The origin cell is allowed as the
+    # default; callers typically clear the origin before searching.
     for step in range(1, vision + 1):
         nx = x0 + step
         if nx < width and not occupied[nx, y0]:
@@ -502,22 +668,55 @@ def sequential_move_numba(
     vision: np.ndarray,
     sugar_array: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Numba-accelerated sequential movement helper.
+
+    This function emulates the traditional asynchronous (sequential) update
+    where agents move one at a time in the current ordering. It accepts
+    numpy arrays describing agent positions and vision ranges, and a 2D
+    sugar array for lookup.
+
+    Parameters
+    ----------
+    dim0, dim1 : np.ndarray
+        1D integer arrays of length n_agents containing the x and y
+        coordinates for each agent.
+    vision : np.ndarray
+        1D integer array of vision radii for each agent.
+    sugar_array : np.ndarray
+        2D array shaped (width, height) containing per-cell sugar values.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Updated arrays of x and y coordinates after sequential movement.
+    """
     n_agents = dim0.shape[0]
     width, height = sugar_array.shape
+    # Copy inputs to avoid mutating caller arrays in-place.
     new_dim0 = dim0.copy()
     new_dim1 = dim1.copy()
+    # Occupancy grid: True when a cell is currently occupied by an agent.
     occupied = np.zeros((width, height), dtype=np.bool_)
 
+    # Mark initial occupancy.
     for i in range(n_agents):
         occupied[new_dim0[i], new_dim1[i]] = True
 
+    # Process agents in order. For each agent we clear its current cell in
+    # the occupancy grid (so it can consider moving into it), search for the
+    # best unoccupied visible cell, and mark the chosen destination as
+    # occupied. This models agents moving one-by-one.
     for i in range(n_agents):
         x0 = new_dim0[i]
         y0 = new_dim1[i]
+        # Free the agent's current cell so it is considered available during
+        # the search (agents may choose to stay, in which case we'll re-mark
+        # it below).
         occupied[x0, y0] = False
         best_x, best_y = _numba_find_best_cell(
             x0, y0, int(vision[i]), sugar_array, occupied
         )
+        # Claim the chosen destination.
         occupied[best_x, best_y] = True
         new_dim0[i] = best_x
         new_dim1[i] = best_y
@@ -578,8 +777,7 @@ class SugarscapeNumbaAgents(SugarscapeAgentsBase):
         state = self.df.join(self.pos, on="unique_id", how="left")
         if state.is_empty():
             return
-
-        agent_ids = state["unique_id"].to_list()
+        agent_ids = state["unique_id"]
         dim0 = state["dim_0"].to_numpy().astype(np.int64)
         dim1 = state["dim_1"].to_numpy().astype(np.int64)
         vision = state["vision"].to_numpy().astype(np.int64)
@@ -604,6 +802,10 @@ class SugarscapeNumbaAgents(SugarscapeAgentsBase):
 
 class SugarscapeParallelAgents(SugarscapeAgentsBase):
     def move(self) -> None:
+        # Parallel movement: each agent proposes a ranked list of visible
+        # cells (including its own). We resolve conflicts in rounds using
+        # DataFrame operations so winners can be chosen per-cell at random
+        # and losers are promoted to their next-ranked choice.
         if len(self.df) == 0:
             return
         sugar_map = self._current_sugar_map()
@@ -611,81 +813,195 @@ class SugarscapeParallelAgents(SugarscapeAgentsBase):
         if state.is_empty():
             return
 
-        origins: dict[int, tuple[int, int]] = {}
-        choices: dict[int, list[tuple[int, int]]] = {}
-        choice_idx: dict[int, int] = {}
+        # Map the positional frame to a center lookup used when joining
+        # neighbourhoods produced by the space helper.
+        center_lookup = self.pos.rename(
+            {
+                "unique_id": "agent_id",
+                "dim_0": "dim_0_center",
+                "dim_1": "dim_1_center",
+            }
+        )
 
-        for row in state.iter_rows(named=True):
-            agent_id = int(row["unique_id"])
-            origin = (int(row["dim_0"]), int(row["dim_1"]))
-            vision = int(row["vision"])
-            origins[agent_id] = origin
-            candidate_cells: list[tuple[int, int]] = []
-            seen: set[tuple[int, int]] = set()
-            for cell in self._visible_cells(origin, vision):
-                if cell not in seen:
-                    seen.add(cell)
-                    candidate_cells.append(cell)
-            candidate_cells.sort(
-                key=lambda cell: (
-                    -sugar_map.get(cell, 0),
-                    self._manhattan(origin, cell),
-                    cell,
-                )
+        # Build a neighbourhood frame: for each agent and visible cell we
+        # attach the cell sugar and the agent_id of the occupant (if any).
+        neighborhood = (
+            self.space.get_neighborhood(
+                radius=self["vision"], agents=self, include_center=True
             )
-            if origin not in seen:
-                candidate_cells.append(origin)
-            choices[agent_id] = candidate_cells
-            choice_idx[agent_id] = 0
+            .join(
+                self.space.cells.select(["dim_0", "dim_1", "sugar"]),
+                on=["dim_0", "dim_1"],
+                how="left",
+            )
+            .join(center_lookup, on=["dim_0_center", "dim_1_center"], how="left")
+            .with_columns(pl.col("sugar").fill_null(0))
+        )
 
-        assigned: dict[int, tuple[int, int]] = {}
-        taken: set[tuple[int, int]] = set()
-        unresolved: set[int] = set(choices.keys())
+        # Normalise occupant column name if present.
+        if "agent_id" in neighborhood.columns:
+            neighborhood = neighborhood.rename({"agent_id": "occupant_id"})
 
-        while unresolved:
-            cell_to_agents: defaultdict[tuple[int, int], list[int]] = defaultdict(list)
-            for agent in list(unresolved):
-                ranked = choices[agent]
-                idx = choice_idx[agent]
-                while idx < len(ranked) and ranked[idx] in taken:
-                    idx += 1
-                if idx >= len(ranked):
-                    idx = len(ranked) - 1
-                choice_idx[agent] = idx
-                cell_to_agents[ranked[idx]].append(agent)
+        # Create ranked choices per agent: sort by sugar (desc), radius
+        # (asc), then coordinates. Keep the first unique entry per cell.
+        choices = (
+            neighborhood.select(
+                [
+                    "agent_id",
+                    "dim_0",
+                    "dim_1",
+                    "sugar",
+                    "radius",
+                    "dim_0_center",
+                    "dim_1_center",
+                ]
+            )
+            .with_columns(pl.col("radius").cast(pl.Int64))
+            .sort(
+                ["agent_id", "sugar", "radius", "dim_0", "dim_1"],
+                descending=[False, True, False, False, False],
+            )
+            .unique(
+                subset=["agent_id", "dim_0", "dim_1"],
+                keep="first",
+                maintain_order=True,
+            )
+            .with_columns(pl.cum_count().over("agent_id").cast(pl.Int64).alias("rank"))
+        )
 
-            progress = False
-            for cell, agents in cell_to_agents.items():
-                if len(agents) == 1:
-                    winner = agents[0]
-                else:
-                    winner = agents[int(self.random.integers(0, len(agents)))]
-                assigned[winner] = cell
-                taken.add(cell)
-                unresolved.remove(winner)
-                progress = True
-                for agent in agents:
-                    if agent != winner:
-                        idx = choice_idx[agent] + 1
-                        if idx >= len(choices[agent]):
-                            idx = len(choices[agent]) - 1
-                        choice_idx[agent] = idx
+        if choices.is_empty():
+            return
 
-            if not progress:
-                for agent in list(unresolved):
-                    assigned[agent] = origins[agent]
-                    unresolved.remove(agent)
+        # Origins for fallback (if an agent exhausts candidates it stays put).
+        origins = center_lookup.select(
+            [
+                "agent_id",
+                pl.col("dim_0_center").alias("dim_0"),
+                pl.col("dim_1_center").alias("dim_1"),
+            ]
+        )
+
+        # Track the maximum available rank per agent to clamp promotions.
+        max_rank = choices.group_by("agent_id").agg(pl.col("rank").max().alias("max_rank"))
+
+        # Prepare unresolved agents and working tables.
+        agent_ids = choices["agent_id"].unique(maintain_order=True)
+        unresolved = pl.DataFrame(
+            {
+                "agent_id": agent_ids,
+                "current_rank": pl.Series(np.zeros(agent_ids.len(), dtype=np.int64)),
+            }
+        )
+
+        assigned = pl.DataFrame(
+            {
+                "agent_id": pl.Series(name="agent_id", values=[], dtype=agent_ids.dtype),
+                "dim_0": pl.Series(name="dim_0", values=[], dtype=pl.Int64),
+                "dim_1": pl.Series(name="dim_1", values=[], dtype=pl.Int64),
+            }
+        )
+
+        taken = pl.DataFrame(
+            {
+                "dim_0": pl.Series(name="dim_0", values=[], dtype=pl.Int64),
+                "dim_1": pl.Series(name="dim_1", values=[], dtype=pl.Int64),
+            }
+        )
+
+        # Resolve in rounds: each unresolved agent proposes its current-ranked
+        # candidate; winners per-cell are selected at random and losers are
+        # promoted to their next choice.
+        while unresolved.height > 0:
+            candidate_pool = choices.join(unresolved, on="agent_id")
+            candidate_pool = candidate_pool.filter(pl.col("rank") >= pl.col("current_rank"))
+            if not taken.is_empty():
+                candidate_pool = candidate_pool.join(taken, on=["dim_0", "dim_1"], how="anti")
+
+            if candidate_pool.is_empty():
+                # No available candidates — everyone falls back to origin.
+                fallback = unresolved.join(origins, on="agent_id", how="left")
+                assigned = pl.concat(
+                    [assigned, fallback.select(["agent_id", "dim_0", "dim_1"])],
+                    how="vertical",
+                )
+                break
+
+            best_candidates = (
+                candidate_pool.sort(["agent_id", "rank"]) .group_by("agent_id", maintain_order=True).first()
+            )
+
+            # Agents that had no candidate this round fall back to origin.
+            missing = unresolved.join(best_candidates.select("agent_id"), on="agent_id", how="anti")
+            if not missing.is_empty():
+                fallback = missing.join(origins, on="agent_id", how="left")
+                assigned = pl.concat(
+                    [assigned, fallback.select(["agent_id", "dim_0", "dim_1"])],
+                    how="vertical",
+                )
+                taken = pl.concat([taken, fallback.select(["dim_0", "dim_1"])], how="vertical")
+                unresolved = unresolved.join(missing.select("agent_id"), on="agent_id", how="anti")
+                best_candidates = best_candidates.join(missing.select("agent_id"), on="agent_id", how="anti")
+                if unresolved.is_empty() or best_candidates.is_empty():
+                    continue
+
+            # Add a small random lottery to break ties deterministically for
+            # each candidate set.
+            lottery = pl.Series("lottery", self.random.random(best_candidates.height))
+            best_candidates = best_candidates.with_columns(lottery)
+
+            winners = (
+                best_candidates.sort(["dim_0", "dim_1", "lottery"]) .group_by(["dim_0", "dim_1"], maintain_order=True).first()
+            )
+
+            assigned = pl.concat(
+                [assigned, winners.select(["agent_id", "dim_0", "dim_1"])],
+                how="vertical",
+            )
+            taken = pl.concat([taken, winners.select(["dim_0", "dim_1"])], how="vertical")
+
+            winner_ids = winners.select("agent_id")
+            unresolved = unresolved.join(winner_ids, on="agent_id", how="anti")
+            if unresolved.is_empty():
+                break
+
+            losers = best_candidates.join(winner_ids, on="agent_id", how="anti")
+            if losers.is_empty():
+                continue
+
+            loser_updates = (
+                losers.select(
+                    "agent_id",
+                    (pl.col("rank") + 1).cast(pl.Int64).alias("next_rank"),
+                )
+                .join(max_rank, on="agent_id", how="left")
+                .with_columns(
+                    pl.min_horizontal(pl.col("next_rank"), pl.col("max_rank")).alias("next_rank")
+                )
+                .select(["agent_id", "next_rank"])
+            )
+
+            # Promote losers' current_rank (if any) and continue.
+            unresolved = unresolved.join(loser_updates, on="agent_id", how="left").with_columns(
+                pl.when(pl.col("next_rank").is_not_null())
+                .then(pl.col("next_rank"))
+                .otherwise(pl.col("current_rank"))
+                .alias("current_rank")
+            ).drop("next_rank")
+
+        if assigned.is_empty():
+            return
 
         move_df = pl.DataFrame(
             {
-                "unique_id": list(assigned.keys()),
-                "dim_0": [cell[0] for cell in assigned.values()],
-                "dim_1": [cell[1] for cell in assigned.values()],
+                "unique_id": assigned["agent_id"],
+                "dim_0": assigned["dim_0"],
+                "dim_1": assigned["dim_1"],
             }
         )
-        self.space.move_agents(
-            move_df["unique_id"].to_list(), move_df.select(["dim_0", "dim_1"])
-        )
+        # `move_agents` accepts IdsLike and SpaceCoordinates (Polars Series/DataFrame),
+        # so pass Series/DataFrame directly rather than converting to Python lists.
+        self.space.move_agents(move_df["unique_id"], move_df.select(["dim_0", "dim_1"]))
+        
 def run_variant(
     agent_cls: type[SugarscapeAgentsBase],
     *,
