@@ -327,17 +327,17 @@ class SugarscapeAgentsBase(AgentSet):
         raise NotImplementedError
 
     def eat(self) -> None:
-        occupied_ids = self.index.to_list()
-        occupied = self.space.cells.filter(pl.col("agent_id").is_in(occupied_ids))
-        if occupied.is_empty():
+        occupied_ids = self.index
+        occupied_cells = self.space.cells.filter(pl.col("agent_id").is_in(occupied_ids))
+        if occupied_cells.is_empty():
             return
-        ids = occupied["agent_id"]
-        self[ids, "sugar"] = (
-            self[ids, "sugar"] + occupied["sugar"] - self[ids, "metabolism"]
+        agent_ids = occupied_cells["agent_id"]
+        self[agent_ids, "sugar"] = (
+            self[agent_ids, "sugar"] + occupied_cells["sugar"] - self[agent_ids, "metabolism"]
         )
         self.space.set_cells(
-            occupied.select(["dim_0", "dim_1"]),
-            {"sugar": pl.Series(np.zeros(len(occupied), dtype=np.int64))},
+            occupied_cells.select(["dim_0", "dim_1"]),
+            {"sugar": pl.Series(np.zeros(len(occupied_cells), dtype=np.int64))},
         )
 
     def _remove_starved(self) -> None:
@@ -399,14 +399,6 @@ class SugarscapeAgentsBase(AgentSet):
                 best_sugar = sugar_here
                 best_distance = distance
         return best_cell
-
-
-
-
-
-
-
-
 
 
 
