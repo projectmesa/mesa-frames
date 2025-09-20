@@ -68,9 +68,7 @@ of emergent macro regularities in agent-based models.
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
 from time import perf_counter
-from typing import Iterable
 
 import numpy as np
 import polars as pl
@@ -81,21 +79,27 @@ from mesa_frames import AgentSet, DataCollector, Grid, Model
 # %% [markdown]
 """## 2. Model definition
 
-In this section we define the model class that wires together the grid and the agents.
-Note that we define agent_type as flexible so we can plug in different movement policies later.
-Also sugar_grid, initial_sugar, metabolism, vision, and positions are optional parameters so we can reuse the same initial conditions across variants.
+In this section we define some helpers and the model class that wires
+together the grid and the agents. The `agent_type` parameter stays flexible so
+we can plug in different movement policies later, but the model now owns the
+logic that generates the sugar field and the initial agent frame. Because both
+helpers use `self.random`, instantiating each variant with the same seed keeps
+the initial conditions identical across the sequential, Numba, and parallel
+implementations.
 
-The space is a von Neumann grid (which means agents can only move up, down, left, or right) with capacity 1, meaning each cell can host at most one agent. 
-The sugar field is stored as part of the cell data frame, with columns for current sugar and maximum sugar (for regrowth). The model also sets up a data collector to track aggregate statistics and agent traits over time.
+The space is a von Neumann grid (which means agents can only move up, down, left,
+or right) with capacity 1, meaning each cell can host at most one agent. The sugar
+field is stored as part of the cell data frame, with columns for current sugar
+and maximum sugar (for regrowth). The model also sets up a data collector to
+track aggregate statistics and agent traits over time.
 
-
+The `step` method advances the sugar field, triggers the agent set's step
 """
 
 
 # %%
 
-
-class SugarscapeTutorialModel(Model):
+class Sugarscape(Model):
     """Minimal Sugarscape model used throughout the tutorial."""
 
     def __init__(
@@ -103,128 +107,81 @@ class SugarscapeTutorialModel(Model):
         agent_type: type["SugarscapeAgentsBase"],
         n_agents: int,
         *,
-        sugar_grid: np.ndarray | None = None,
-        initial_sugar: np.ndarray | None = None,
-        metabolism: np.ndarray | None = None,
-        vision: np.ndarray | None = None,
-        positions: pl.DataFrame | None = None,
-        seed: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
+        width: int,
+        height: int,
         max_sugar: int = 4,
+        seed: int | None = None,
     ) -> None:
+        if n_agents > width * height:
+            raise ValueError(
+                "Cannot place more agents than grid cells when capacity is 1."
+            )
         super().__init__(seed)
-        rng = self.random
         
-        
+        # 1. Let's create the sugar grid and set up the space
 
-        if sugar_grid is None:
-            if width is None or height is None:
-                raise ValueError(
-                    "When `sugar_grid` is omitted you must provide `width` and `height`."
-                )
-            sugar_grid = self._generate_sugar_grid(rng, width, height, max_sugar)
-        else:
-            width, height = sugar_grid.shape
-
+        sugar_grid_df = self._generate_sugar_grid(width, height, max_sugar)
         self.space = Grid(
             self, [width, height], neighborhood_type="von_neumann", capacity=1
         )
-        dim_0 = pl.Series("dim_0", pl.arange(width, eager=True)).to_frame()
-        dim_1 = pl.Series("dim_1", pl.arange(height, eager=True)).to_frame()
-        sugar_df = dim_0.join(dim_1, how="cross").with_columns(
-            sugar=sugar_grid.flatten(), max_sugar=sugar_grid.flatten()
-        )
-        self.space.set_cells(sugar_df)
-        self._max_sugar = sugar_df.select(["dim_0", "dim_1", "max_sugar"])
+        self.space.set_cells(sugar_grid_df)
+        self._max_sugar = sugar_grid_df.select(["dim_0", "dim_1", "max_sugar"])
+        
+        # 2. Now we create the agents and place them on the grid
 
-        if initial_sugar is None:
-            initial_sugar = rng.integers(6, 25, size=n_agents, dtype=np.int64)
-        else:
-            n_agents = len(initial_sugar)
-        if metabolism is None:
-            metabolism = rng.integers(2, 5, size=n_agents, dtype=np.int64)
-        if vision is None:
-            vision = rng.integers(1, 6, size=n_agents, dtype=np.int64)
-
-        main_set = agent_type(
-            self,
-            n_agents,
-            initial_sugar=initial_sugar,
-            metabolism=metabolism,
-            vision=vision,
-        )
+        agent_frame = self._generate_agent_frame(n_agents)
+        main_set = agent_type(self, agent_frame)
         self.sets += main_set
-        self.population = main_set
+        self.space.place_to_empty(self.sets)
 
-        if positions is None:
-            positions = self._generate_initial_positions(rng, n_agents, width, height)
-        self.space.place_agents(self.sets, positions.select(["dim_0", "dim_1"]))
-
+        # 3. Finally we set up the data collector
         self.datacollector = DataCollector(
             model=self,
             model_reporters={
                 "mean_sugar": lambda m: 0.0
-                if len(m.population) == 0
-                else float(m.population.df["sugar"].mean()),
-                "total_sugar": lambda m: float(m.population.df["sugar"].sum())
-                if len(m.population)
+                if len(m.sets[0]) == 0
+                else float(m.sets[0].df["sugar"].mean()),
+                "total_sugar": lambda m: float(m.sets[0].df["sugar"].sum())
+                if len(m.sets[0])
                 else 0.0,
-                "living_agents": lambda m: len(m.population),
+                "living_agents": lambda m: len(m.sets[0]),
             },
             agent_reporters={"traits": ["sugar", "metabolism", "vision"]},
         )
         self.datacollector.collect()
 
-    @staticmethod
     def _generate_sugar_grid(
-        rng: np.random.Generator, width: int, height: int, max_sugar: int
-    ) -> np.ndarray:
-        """Generate a random sugar grid with values between 0 and max_sugar (inclusive).
-        
-        Parameters
-        ----------
-        rng : np.random.Generator
-            Random number generator for reproducibility.
-        width : int
-            Width of the grid.
-        height : int
-            Height of the grid.
-        max_sugar : int
-            Maximum sugar level for any cell.
-            
-        Returns
-        -------
-        np.ndarray
-            A 2D array representing the sugar levels on the grid.
-        """
-        return rng.integers(0, max_sugar + 1, size=(width, height), dtype=np.int64)
-
-    @staticmethod
-    def _generate_initial_positions(
-        rng: np.random.Generator, n_agents: int, width: int, height: int
+        self, width: int, height: int, max_sugar: int
     ) -> pl.DataFrame:
-        total_cells = width * height
-        if n_agents > total_cells:
-            raise ValueError(
-                "Cannot place more agents than grid cells when capacity is 1."
-            )
-        indices = rng.choice(total_cells, size=n_agents, replace=False)
+        """Generate a random sugar grid using the model RNG."""
+        sugar_vals = self.random.integers(
+            0, max_sugar + 1, size=(width, height), dtype=np.int64
+        )
+        dim_0 = pl.Series("dim_0", pl.arange(width, eager=True)).to_frame()
+        dim_1 = pl.Series("dim_1", pl.arange(height, eager=True)).to_frame()
+        return dim_0.join(dim_1, how="cross").with_columns(
+            sugar=sugar_vals.flatten(), max_sugar=sugar_vals.flatten()
+        )
+
+    def _generate_agent_frame(self, n_agents: int) -> pl.DataFrame:
+        """Create the initial agent frame populated with traits."""
+        rng = self.random
         return pl.DataFrame(
             {
-                "dim_0": (indices // height).astype(np.int64),
-                "dim_1": (indices % height).astype(np.int64),
+                "sugar": rng.integers(6, 25, size=n_agents, dtype=np.int64),
+                "metabolism": rng.integers(2, 5, size=n_agents, dtype=np.int64),
+                "vision": rng.integers(1, 6, size=n_agents, dtype=np.int64),
             }
         )
 
     def step(self) -> None:
-        if len(self.population) == 0:
+        if len(self.sets[0]) == 0:
             self.running = False
             return
         self._advance_sugar_field()
-        self.population.step()
+        self.sets[0].step()
         self.datacollector.collect()
-        if len(self.population) == 0:
+        if len(self.sets[0]) == 0:
             self.running = False
 
     def run(self, steps: int) -> None:
@@ -245,14 +202,12 @@ class SugarscapeTutorialModel(Model):
 
 
 
-
-
-
 # %% 
 GRID_WIDTH = 50
 GRID_HEIGHT = 50
 NUM_AGENTS = 400
 MODEL_STEPS = 60
+MAX_SUGAR = 4
 
 @njit(cache=True)
 def _numba_should_replace(
@@ -383,32 +338,15 @@ traits and implements eating/starvation; concrete subclasses only override
 
 
 class SugarscapeAgentsBase(AgentSet):
-    def __init__(
-        self,
-        model: Model,
-        n_agents: int,
-        *,
-        initial_sugar: np.ndarray | None = None,
-        metabolism: np.ndarray | None = None,
-        vision: np.ndarray | None = None,
-    ) -> None:
+    def __init__(self, model: Model, agent_frame: pl.DataFrame) -> None:
         super().__init__(model)
-        rng = model.random
-        if initial_sugar is None:
-            initial_sugar = rng.integers(6, 25, size=n_agents, dtype=np.int64)
-        if metabolism is None:
-            metabolism = rng.integers(2, 5, size=n_agents, dtype=np.int64)
-        if vision is None:
-            vision = rng.integers(1, 6, size=n_agents, dtype=np.int64)
-        self.add(
-            pl.DataFrame(
-                {
-                    "sugar": initial_sugar,
-                    "metabolism": metabolism,
-                    "vision": vision,
-                }
+        required = {"sugar", "metabolism", "vision"}
+        missing = required.difference(agent_frame.columns)
+        if missing:
+            raise ValueError(
+                f"Initial agent frame must include columns {sorted(required)}; missing {sorted(missing)}."
             )
-        )
+        self.add(agent_frame.clone())
 
     def step(self) -> None:
         self.shuffle(inplace=True)
@@ -641,57 +579,18 @@ class SugarscapeParallelAgents(SugarscapeAgentsBase):
         self.space.move_agents(
             move_df["unique_id"].to_list(), move_df.select(["dim_0", "dim_1"])
         )
-@dataclass(slots=True)
-class InitialConditions:
-    sugar_grid: np.ndarray
-    initial_sugar: np.ndarray
-    metabolism: np.ndarray
-    vision: np.ndarray
-    positions: pl.DataFrame
-
-
-def build_initial_conditions(
-    width: int,
-    height: int,
-    n_agents: int,
-    *,
-    seed: int = 7,
-    peak_height: int = 4,
-) -> InitialConditions:
-    rng = np.random.default_rng(seed)
-    sugar_grid = SugarscapeTutorialModel._generate_sugar_grid(
-        rng, width, height, peak_height
-    )
-    initial_sugar = rng.integers(6, 25, size=n_agents, dtype=np.int64)
-    metabolism = rng.integers(2, 5, size=n_agents, dtype=np.int64)
-    vision = rng.integers(1, 6, size=n_agents, dtype=np.int64)
-    positions = SugarscapeTutorialModel._generate_initial_positions(
-        rng, n_agents, width, height
-    )
-    return InitialConditions(
-        sugar_grid=sugar_grid,
-        initial_sugar=initial_sugar,
-        metabolism=metabolism,
-        vision=vision,
-        positions=positions,
-    )
-
-
 def run_variant(
     agent_cls: type[SugarscapeAgentsBase],
-    conditions: InitialConditions,
     *,
     steps: int,
     seed: int,
-) -> tuple[SugarscapeTutorialModel, float]:
-    model = SugarscapeTutorialModel(
+) -> tuple[Sugarscape, float]:
+    model = Sugarscape(
         agent_type=agent_cls,
-        n_agents=len(conditions.initial_sugar),
-        sugar_grid=conditions.sugar_grid.copy(),
-        initial_sugar=conditions.initial_sugar.copy(),
-        metabolism=conditions.metabolism.copy(),
-        vision=conditions.vision.copy(),
-        positions=conditions.positions.clone(),
+        n_agents=NUM_AGENTS,
+        width=GRID_WIDTH,
+        height=GRID_HEIGHT,
+        max_sugar=MAX_SUGAR,
         seed=seed,
     )
     start = perf_counter()
@@ -777,16 +676,16 @@ def summarise_inequality(model: Model) -> dict[str, float]:
 ## 7. Run the Sequential Model (Python loop)
 
 With the scaffolding in place we can simulate the sequential version and inspect
-its aggregate behaviour.
+its aggregate behaviour. Because all random draws flow through the model's RNG,
+constructing each variant with the same seed reproduces identical initial
+conditions across the different movement rules.
 """
 
 # %%
-conditions = build_initial_conditions(
-    width=GRID_WIDTH, height=GRID_HEIGHT, n_agents=NUM_AGENTS, seed=11
-)
+sequential_seed = 11
 
 sequential_model, sequential_time = run_variant(
-    SugarscapeSequentialAgents, conditions, steps=MODEL_STEPS, seed=11
+    SugarscapeSequentialAgents, steps=MODEL_STEPS, seed=sequential_seed
 )
 
 seq_model_frame = sequential_model.datacollector.data["model"]
@@ -800,14 +699,14 @@ print(f"Sequential runtime: {sequential_time:.3f} s")
 """
 ## 8. Run the Numba-Accelerated Model
 
-We reuse the same initial conditions so the only difference is the compiled
-movement helper. The trajectory matches the pure Python loop (up to floating-
-point noise) while running much faster on larger grids.
+We reuse the same seed so the only difference is the compiled movement helper.
+The trajectory matches the pure Python loop (up to floating-point noise) while
+running much faster on larger grids.
 """
 
 # %%
 numba_model, numba_time = run_variant(
-    SugarscapeNumbaAgents, conditions, steps=MODEL_STEPS, seed=11
+    SugarscapeNumbaAgents, steps=MODEL_STEPS, seed=sequential_seed
 )
 
 numba_model_frame = numba_model.datacollector.data["model"]
@@ -821,13 +720,13 @@ print(f"Numba sequential runtime: {numba_time:.3f} s")
 """
 ## 9. Run the Simultaneous Model
 
-Next we reuse the **same** initial conditions so that both variants start from a
-common state. The only change is the movement policy.
+Next we instantiate the parallel variant with the same seed so every run starts
+from the common state generated by the helper methods.
 """
 
 # %%
 parallel_model, parallel_time = run_variant(
-    SugarscapeParallelAgents, conditions, steps=MODEL_STEPS, seed=11
+    SugarscapeParallelAgents, steps=MODEL_STEPS, seed=sequential_seed
 )
 
 par_model_frame = parallel_model.datacollector.data["model"]
