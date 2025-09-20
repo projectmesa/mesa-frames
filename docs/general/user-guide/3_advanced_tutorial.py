@@ -414,22 +414,6 @@ class SugarscapeAgentsBase(AgentSet):
             # ``discard`` accepts a DataFrame of agents to remove.
             self.discard(starved)
 
-    @staticmethod
-    def _manhattan(a: tuple[int, int], b: tuple[int, int]) -> int:
-        """Compute the Manhattan (L1) distance between two grid cells.
-
-        Parameters
-        ----------
-        a, b : tuple[int, int]
-            Coordinate pairs ``(x, y)``.
-
-        Returns
-        -------
-        int
-            The Manhattan distance between ``a`` and ``b``.
-        """
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
     def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
         """List cells visible from an origin along the four cardinal axes.
 
@@ -476,8 +460,9 @@ class SugarscapeAgentsBase(AgentSet):
 
         Tie-break rules (in order):
         1. Prefer cells with strictly greater sugar.
-        2. If equal sugar, prefer the cell with smaller Manhattan distance
-           from the origin.
+        2. If equal sugar, prefer the cell with smaller distance from the
+           origin (measured with the Frobenius norm returned by
+           ``space.get_distances``).
         3. If still tied, prefer the cell with smaller coordinates (lexicographic
            ordering of the ``(x, y)`` tuple).
 
@@ -508,7 +493,7 @@ class SugarscapeAgentsBase(AgentSet):
             if blocked and candidate != origin and candidate in blocked:
                 continue
             sugar_here = sugar_map.get(candidate, 0)
-            distance = self._manhattan(origin, candidate)
+            distance = self.model.space.get_distances(origin, candidate)["distance"].item()
             better = False
             # Primary criterion: strictly more sugar.
             if sugar_here > best_sugar:
