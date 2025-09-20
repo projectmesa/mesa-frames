@@ -922,9 +922,12 @@ This implementation is a tad slower but still efficient and easier to read (for 
 
 class AntsParallel(AntsBase):
     def move(self) -> None:
-        """
-        Parallel movement: each agent proposes a ranked list of visible cells (including its own).
-        We resolve conflicts in rounds using DataFrame operations so winners can be chosen per-cell at random and losers are promoted to their next-ranked choice.
+        """Move agents in parallel by ranking visible cells and resolving conflicts.
+
+        Returns
+        -------
+        None
+            Movement updates happen in-place on the underlying space.
         """
         # Early exit if there are no agents.
         if len(self.df) == 0:
@@ -944,6 +947,33 @@ class AntsParallel(AntsBase):
             ]
         )
 
+        neighborhood = self._build_neighborhood_frame(current_pos)
+        choices, origins, max_rank = self._rank_candidates(neighborhood, current_pos)
+        if choices.is_empty():
+            return
+
+        assigned = self._resolve_conflicts_in_rounds(choices, origins, max_rank)
+        if assigned.is_empty():
+            return
+
+        # move_df columns:
+        # ┌────────────┬────────────┬────────────┐
+        # │ unique_id  ┆ dim_0      ┆ dim_1      │
+        # │ ---        ┆ ---        ┆ ---        │
+        # │ u64        ┆ i64        ┆ i64        │
+        # ╞════════════╪════════════╪════════════╡
+        move_df = pl.DataFrame(
+            {
+                "unique_id": assigned["agent_id"],
+                "dim_0": assigned["dim_0"],
+                "dim_1": assigned["dim_1"],
+            }
+        )
+        # `move_agents` accepts IdsLike and SpaceCoordinates (Polars Series/DataFrame),
+        # so pass Series/DataFrame directly rather than converting to Python lists.
+        self.space.move_agents(move_df["unique_id"], move_df.select(["dim_0", "dim_1"]))
+
+    def _build_neighborhood_frame(self, current_pos: pl.DataFrame) -> pl.DataFrame:
         # Build a neighbourhood frame: for each agent and visible cell we
         # attach the cell sugar. The raw offsets contain the candidate
         # cell coordinates and the center coordinates for the sensing agent.
@@ -984,7 +1014,13 @@ class AntsParallel(AntsBase):
         # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            ┆ ---    ┆ ---      │
         # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            ┆ i64    ┆ u64      │
         # ╞════════════╪════════════╪════════╪════════════════╪════════════════╪════════╪══════════╡
+        return neighborhood
 
+    def _rank_candidates(
+        self,
+        neighborhood: pl.DataFrame,
+        current_pos: pl.DataFrame,
+    ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
         # Create ranked choices per agent: sort by sugar (desc), radius
         # (asc), then coordinates. Keep the first unique entry per cell.
         # choices columns (after select):
@@ -1024,9 +1060,6 @@ class AntsParallel(AntsBase):
             )
         )
 
-        if choices.is_empty():
-            return
-
         # Origins for fallback (if an agent exhausts candidates it stays put).
         # origins columns:
         # ┌──────────┬────────────┬────────────┐
@@ -1050,7 +1083,14 @@ class AntsParallel(AntsBase):
         # │ u64      ┆ i64       │
         # ╞══════════╪═══════════╡
         max_rank = choices.group_by("agent_id").agg(pl.col("rank").max().alias("max_rank"))
+        return choices, origins, max_rank
 
+    def _resolve_conflicts_in_rounds(
+        self,
+        choices: pl.DataFrame,
+        origins: pl.DataFrame,
+        max_rank: pl.DataFrame,
+    ) -> pl.DataFrame:
         # Prepare unresolved agents and working tables.
         agent_ids = choices["agent_id"].unique(maintain_order=True)
         # unresolved columns:
@@ -1130,7 +1170,10 @@ class AntsParallel(AntsBase):
             # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            ┆ i64          │
             # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╪══════════════╡
             best_candidates = (
-                candidate_pool.sort(["agent_id", "rank"]) .group_by("agent_id", maintain_order=True).first()
+                candidate_pool
+                .sort(["agent_id", "rank"])
+                .group_by("agent_id", maintain_order=True)
+                .first()
             )
 
             # Agents that had no candidate this round fall back to origin.
@@ -1166,7 +1209,10 @@ class AntsParallel(AntsBase):
             # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64    ┆ i64            ┆ i64            ┆ i64          ┆ f64     │
             # ╞══════════╪════════════╪════════════╪════════╪════════╪════════════════╪════════════════╪══════════════╪═════════╡
             winners = (
-                best_candidates.sort(["dim_0", "dim_1", "lottery"]) .group_by(["dim_0", "dim_1"], maintain_order=True).first()
+                best_candidates
+                .sort(["dim_0", "dim_1", "lottery"])
+                .group_by(["dim_0", "dim_1"], maintain_order=True)
+                .first()
             )
 
             assigned = pl.concat(
@@ -1212,25 +1258,7 @@ class AntsParallel(AntsBase):
                 .alias("current_rank")
             ).drop("next_rank")
 
-        if assigned.is_empty():
-            return
-
-        # move_df columns:
-        # ┌────────────┬────────────┬────────────┐
-        # │ unique_id  ┆ dim_0      ┆ dim_1      │
-        # │ ---        ┆ ---        ┆ ---        │
-        # │ u64        ┆ i64        ┆ i64        │
-        # ╞════════════╪════════════╪════════════╡
-        move_df = pl.DataFrame(
-            {
-                "unique_id": assigned["agent_id"],
-                "dim_0": assigned["dim_0"],
-                "dim_1": assigned["dim_1"],
-            }
-        )
-        # `move_agents` accepts IdsLike and SpaceCoordinates (Polars Series/DataFrame),
-        # so pass Series/DataFrame directly rather than converting to Python lists.
-        self.space.move_agents(move_df["unique_id"], move_df.select(["dim_0", "dim_1"]))
+        return assigned
         
 
 
