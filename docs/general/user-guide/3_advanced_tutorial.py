@@ -320,12 +320,10 @@ class Sugarscape(Model):
                 "total_sugar": lambda m: float(m.sets[0].df["sugar"].sum())
                 if len(m.sets[0])
                 else 0.0,
-                "living_agents": lambda m: len(m.sets[0]),
-                # Inequality metrics recorded individually.
+                "agents_alive": lambda m: float(len(m.sets[0])) if len(m.sets) else 0.0,
                 "gini": gini,
                 "corr_sugar_metabolism": corr_sugar_metabolism,
                 "corr_sugar_vision": corr_sugar_vision,
-                "agents_alive": lambda m: float(len(m.sets[0])) if len(m.sets) else 0.0,
             },
             agent_reporters={"traits": ["sugar", "metabolism", "vision"]},
         )
