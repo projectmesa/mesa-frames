@@ -290,6 +290,123 @@ class Sugarscape(Model):
             zeros = pl.Series(np.zeros(len(full_cells), dtype=np.int64))
             self.space.set_cells(full_cells, {"sugar": zeros})
 
+# %% [markdown]
+
+"""
+## 3. Agent definition
+
+### Base agent class
+
+Now let's define the agent class (the ant class). We start with a base class which implements the common logic for eating and starvation, while leaving the `move` method abstract. 
+The base class also provides helper methods for sensing visible cells and choosing the best cell based on sugar, distance, and coordinates.
+This will allow us to define different movement policies (sequential, Numba-accelerated, and parallel) as subclasses that only need to implement the `move` method.
+
+"""
+
+# %%
+
+class SugarscapeAgentsBase(AgentSet):
+    def __init__(self, model: Model, agent_frame: pl.DataFrame) -> None:
+        super().__init__(model)
+        required = {"sugar", "metabolism", "vision"}
+        missing = required.difference(agent_frame.columns)
+        if missing:
+            raise ValueError(
+                f"Initial agent frame must include columns {sorted(required)}; missing {sorted(missing)}."
+            )
+        self.add(agent_frame.clone())
+
+    def step(self) -> None:
+        self.shuffle(inplace=True)
+        self.move()
+        self.eat()
+        self._remove_starved()
+
+    def move(self) -> None:  # pragma: no cover
+        raise NotImplementedError
+
+    def eat(self) -> None:
+        occupied_ids = self.index.to_list()
+        occupied = self.space.cells.filter(pl.col("agent_id").is_in(occupied_ids))
+        if occupied.is_empty():
+            return
+        ids = occupied["agent_id"]
+        self[ids, "sugar"] = (
+            self[ids, "sugar"] + occupied["sugar"] - self[ids, "metabolism"]
+        )
+        self.space.set_cells(
+            occupied.select(["dim_0", "dim_1"]),
+            {"sugar": pl.Series(np.zeros(len(occupied), dtype=np.int64))},
+        )
+
+    def _remove_starved(self) -> None:
+        starved = self.df.filter(pl.col("sugar") <= 0)
+        if not starved.is_empty():
+            self.discard(starved)
+
+    def _current_sugar_map(self) -> dict[tuple[int, int], int]:
+        cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
+        return {
+            (int(x), int(y)): 0 if sugar is None else int(sugar)
+            for x, y, sugar in cells.iter_rows()
+        }
+
+    @staticmethod
+    def _manhattan(a: tuple[int, int], b: tuple[int, int]) -> int:
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
+        x0, y0 = origin
+        width, height = self.space.dimensions
+        cells: list[tuple[int, int]] = [origin]
+        for step in range(1, vision + 1):
+            if x0 + step < width:
+                cells.append((x0 + step, y0))
+            if x0 - step >= 0:
+                cells.append((x0 - step, y0))
+            if y0 + step < height:
+                cells.append((x0, y0 + step))
+            if y0 - step >= 0:
+                cells.append((x0, y0 - step))
+        return cells
+
+    def _choose_best_cell(
+        self,
+        origin: tuple[int, int],
+        vision: int,
+        sugar_map: dict[tuple[int, int], int],
+        blocked: set[tuple[int, int]] | None,
+    ) -> tuple[int, int]:
+        best_cell = origin
+        best_sugar = sugar_map.get(origin, 0)
+        best_distance = 0
+        for candidate in self._visible_cells(origin, vision):
+            if blocked and candidate != origin and candidate in blocked:
+                continue
+            sugar_here = sugar_map.get(candidate, 0)
+            distance = self._manhattan(origin, candidate)
+            better = False
+            if sugar_here > best_sugar:
+                better = True
+            elif sugar_here == best_sugar:
+                if distance < best_distance:
+                    better = True
+                elif distance == best_distance and candidate < best_cell:
+                    better = True
+            if better:
+                best_cell = candidate
+                best_sugar = sugar_here
+                best_distance = distance
+        return best_cell
+
+
+
+
+
+
+
+
+
 
 
 # %% 
@@ -427,99 +544,6 @@ traits and implements eating/starvation; concrete subclasses only override
 """
 
 
-class SugarscapeAgentsBase(AgentSet):
-    def __init__(self, model: Model, agent_frame: pl.DataFrame) -> None:
-        super().__init__(model)
-        required = {"sugar", "metabolism", "vision"}
-        missing = required.difference(agent_frame.columns)
-        if missing:
-            raise ValueError(
-                f"Initial agent frame must include columns {sorted(required)}; missing {sorted(missing)}."
-            )
-        self.add(agent_frame.clone())
-
-    def step(self) -> None:
-        self.shuffle(inplace=True)
-        self.move()
-        self.eat()
-        self._remove_starved()
-
-    def move(self) -> None:  # pragma: no cover
-        raise NotImplementedError
-
-    def eat(self) -> None:
-        occupied_ids = self.index.to_list()
-        occupied = self.space.cells.filter(pl.col("agent_id").is_in(occupied_ids))
-        if occupied.is_empty():
-            return
-        ids = occupied["agent_id"]
-        self[ids, "sugar"] = (
-            self[ids, "sugar"] + occupied["sugar"] - self[ids, "metabolism"]
-        )
-        self.space.set_cells(
-            occupied.select(["dim_0", "dim_1"]),
-            {"sugar": pl.Series(np.zeros(len(occupied), dtype=np.int64))},
-        )
-
-    def _remove_starved(self) -> None:
-        starved = self.df.filter(pl.col("sugar") <= 0)
-        if not starved.is_empty():
-            self.discard(starved)
-
-    def _current_sugar_map(self) -> dict[tuple[int, int], int]:
-        cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
-        return {
-            (int(x), int(y)): 0 if sugar is None else int(sugar)
-            for x, y, sugar in cells.iter_rows()
-        }
-
-    @staticmethod
-    def _manhattan(a: tuple[int, int], b: tuple[int, int]) -> int:
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
-    def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
-        x0, y0 = origin
-        width, height = self.space.dimensions
-        cells: list[tuple[int, int]] = [origin]
-        for step in range(1, vision + 1):
-            if x0 + step < width:
-                cells.append((x0 + step, y0))
-            if x0 - step >= 0:
-                cells.append((x0 - step, y0))
-            if y0 + step < height:
-                cells.append((x0, y0 + step))
-            if y0 - step >= 0:
-                cells.append((x0, y0 - step))
-        return cells
-
-    def _choose_best_cell(
-        self,
-        origin: tuple[int, int],
-        vision: int,
-        sugar_map: dict[tuple[int, int], int],
-        blocked: set[tuple[int, int]] | None,
-    ) -> tuple[int, int]:
-        best_cell = origin
-        best_sugar = sugar_map.get(origin, 0)
-        best_distance = 0
-        for candidate in self._visible_cells(origin, vision):
-            if blocked and candidate != origin and candidate in blocked:
-                continue
-            sugar_here = sugar_map.get(candidate, 0)
-            distance = self._manhattan(origin, candidate)
-            better = False
-            if sugar_here > best_sugar:
-                better = True
-            elif sugar_here == best_sugar:
-                if distance < best_distance:
-                    better = True
-                elif distance == best_distance and candidate < best_cell:
-                    better = True
-            if better:
-                best_cell = candidate
-                best_sugar = sugar_here
-                best_distance = distance
-        return best_cell
 
 
 # %% [markdown]
