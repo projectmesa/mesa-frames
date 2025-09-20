@@ -911,7 +911,7 @@ class AntsNumba(AntsBase):
 
 # %% [markdown]
 """
-### 3.5. Simultaneous Movement with Conflict Resolution (the Polars mesa-frames idiomatic way)
+### 3.5 Simultaneous Movement with Conflict Resolution (the Polars mesa-frames idiomatic way)
 
 The previous implementation is optimal speed-wise but it's a bit low-level. It requires mantaining an occupancy grid and imperative loops and it might become tricky to extend with more complex movement rules or models.
 To stay in mesa-frames idiom, we can implement a parallel movement policy that uses Polars DataFrame operations to resolve conflicts when multiple agents target the same cell.
@@ -1403,11 +1403,18 @@ class AntsParallel(AntsBase):
 
 # %% [markdown]
 """
-## 6. Shared Model Infrastructure
+## 4. Run the Model Variants
 
-`SugarscapeTutorialModel` wires the grid, agent set, regrowth logic, and data
-collection. Each variant simply plugs in a different agent class.
+We iterate over each movement policy with a shared helper so all runs reuse the same seed. Set `MESA_FRAMES_RUN_SEQUENTIAL=1` to include the slower pure-Python baseline.
+
 """
+
+GRID_WIDTH = 40
+GRID_HEIGHT = 40
+NUM_AGENTS = 400
+MODEL_STEPS = 60
+MAX_SUGAR = 4
+SEED = 42
 
 def run_variant(
     agent_cls: type[AntsBase],
@@ -1427,20 +1434,6 @@ def run_variant(
     model.run(steps)
     return model, perf_counter() - start
 
-# %% [markdown]
-"""
-## 7. Run the Model Variants
-
-We iterate over each movement policy with a shared helper so all runs reuse the same seed. Set `MESA_FRAMES_RUN_SEQUENTIAL=1` to include the slower pure-Python baseline.
-"""
-
-# %%
-GRID_WIDTH = 40
-GRID_HEIGHT = 40
-NUM_AGENTS = 400
-MODEL_STEPS = 60
-MAX_SUGAR = 4
-
 # Allow quick testing by skipping the slow pure-Python sequential baseline.
 # Set the environment variable ``MESA_FRAMES_RUN_SEQUENTIAL=0`` (or "false")
 # to disable the baseline when running this script.
@@ -1451,7 +1444,6 @@ RUN_SEQUENTIAL = os.getenv("MESA_FRAMES_RUN_SEQUENTIAL", "0").lower() not in {
     "off",
 }
 
-sequential_seed = 11
 
 variant_specs: dict[str, tuple[type[AntsBase], bool]] = {
     "Sequential (Python loop)": (AntsSequential, RUN_SEQUENTIAL),
@@ -1471,7 +1463,7 @@ for variant_name, (agent_cls, enabled) in variant_specs.items():
         runtimes[variant_name] = float("nan")
         continue
 
-    model, runtime = run_variant(agent_cls, steps=MODEL_STEPS, seed=sequential_seed)
+    model, runtime = run_variant(agent_cls, steps=MODEL_STEPS, seed=SEED)
     models[variant_name] = model
     frames[variant_name] = model.datacollector.data["model"]
     runtimes[variant_name] = runtime
@@ -1506,18 +1498,10 @@ print(runtime_table)
 numba_model_frame = frames.get("Sequential (Numba)", pl.DataFrame())
 par_model_frame = frames.get("Parallel (Polars)", pl.DataFrame())
 
-# %% [markdown]
-"""
-Polars gives us that performance without any bespoke compiled kernels—the move
-logic reads like ordinary DataFrame code. The Numba version is a touch faster,
-but only after writing and maintaining `_numba_find_best_cell` and friends. In
-practice we get near-identical runtimes, so you can pick the implementation that
-is simplest for your team.
-"""
 
 # %% [markdown]
 """
-## 8. Comparing the Update Rules
+## 5. Comparing the Update Rules
 
 Even though the micro rules differ, the aggregate trajectories keep the same
 overall shape: sugar holdings trend upward while the population tapers off. By
@@ -1609,22 +1593,11 @@ if metrics_table.height >= 2:
 
 # %% [markdown]
 """
-## 9. Where to Go Next?
+## 6. Where to Go Next?
 
-* **Polars + LazyFrames roadmap** – future mesa-frames releases will expose
-  LazyFrame-powered schedulers (with GPU offloading hooks), so the same Polars
+Currently, the Polars implementation spends most of the time in join operations.
+
+**Polars + LazyFrames roadmap** – future mesa-frames releases will expose
+  LazyFrame-powered sets and spaces (which can also use a GPU cuda accelerated backend which greatly accelerates joins), so the same Polars
   code you wrote here will scale even further without touching Numba.
-* **Production reference** – the `examples/sugarscape_ig/ss_polars` package
-  shows how to take this pattern further with additional vectorisation tricks.
-* **Alternative conflict rules** – it is straightforward to swap in other
-  tie-breakers, such as letting losing agents search for the next-best empty
-  cell rather than staying put.
-* **Macro validation** – wrap the metric collection in a loop over seeds to
-  quantify how small the Gini gap remains across independent replications.
-* **Statistical physics meets ABM** – for a modern take on the macro behaviour
-  of Sugarscape-like economies, see Axtell (2000) or subsequent statistical
-  physics treatments of wealth exchange models.
-
-Because this script doubles as the notebook source, any edits you make here can
-be synchronised with a `.ipynb` representation via Jupytext.
 """
