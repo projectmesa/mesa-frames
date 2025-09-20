@@ -1,15 +1,5 @@
 from __future__ import annotations
 
-# ---
-# jupyter:
-#   jupytext:
-#     formats: py:percent,ipynb
-#   kernelspec:
-#     display_name: Python 3 (uv)
-#     language: python
-#     name: python3
-# ---
-
 # %% [markdown]
 """
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/projectmesa/mesa-frames/blob/main/docs/general/user-guide/3_advanced_tutorial.ipynb)
@@ -711,7 +701,7 @@ As we will see later, the previous sequential implementation is slow for large p
 Numba compiles numerical Python code to fast machine code at runtime. To use Numba, we need to rewrite the movement logic in a way that is compatible with Numba's restrictions (using tightly typed numpy arrays and accessing data indexes directly).
 """
 
-
+# %% 
 @njit(cache=True)
 def _numba_should_replace(
     best_sugar: int,
@@ -919,6 +909,7 @@ These conflicts are resolved in rounds: in each round, each agent proposes its c
 This implementation is a tad slower but still efficient and easier to read (for a Polars user).
 """
 
+# %%
 
 class AntsParallel(AntsBase):
     def move(self) -> None:
@@ -1408,6 +1399,8 @@ class AntsParallel(AntsBase):
 We iterate over each movement policy with a shared helper so all runs reuse the same seed. Set `MESA_FRAMES_RUN_SEQUENTIAL=1` to include the slower pure-Python baseline.
 
 """
+
+# %%
 
 GRID_WIDTH = 40
 GRID_HEIGHT = 40
