@@ -26,11 +26,20 @@ jobs:
           uv pip install --system .
           uv pip install --group docs --system
 
+      - name: Convert tutorial .py scripts to notebooks
+        run: |
+          set -euxo pipefail
+          for nb in docs/general/*.ipynb; do
+            echo "Executing $nb"
+            uv run jupyter nbconvert --to notebook --execute --inplace "$nb"
+          done
+
+
       - name: Build MkDocs site (general documentation)
-        run: mkdocs build --config-file mkdocs.yml --site-dir ./site
+        run: uv run mkdocs build --config-file mkdocs.yml --site-dir ./site
 
       - name: Build Sphinx docs (API documentation)
-        run: sphinx-build -b html docs/api site/api
+        run: uv run sphinx-build -b html docs/api site/api
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
