@@ -384,7 +384,10 @@ class SugarscapeAgentsBase(AgentSet):
         """
         # Map of currently occupied agent ids on the grid.
         occupied_ids = self.index
-        occupied_cells = self.space.cells.filter(pl.col("agent_id").is_in(occupied_ids))
+        # `occupied_ids` is a Polars Series; calling `is_in` with a Series
+        # of the same datatype is ambiguous in newer Polars. Use `implode`
+        # to collapse the Series into a list-like value for membership checks.
+        occupied_cells = self.space.cells.filter(pl.col("agent_id").is_in(occupied_ids.implode()))
         if occupied_cells.is_empty():
             return
         # The agent ordering here uses the agent_id values stored in the
