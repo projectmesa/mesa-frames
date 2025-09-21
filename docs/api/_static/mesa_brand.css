@@ -1,0 +1,128 @@
+/* Mesa Frames branding overrides for pydata_sphinx_theme
+	 - Defines CSS variables for light/dark modes
+	 - Hero gradient, navbar contrast, CTA, code/table, badges, admonition styles
+*/
+:root{
+	/* Brand colors */
+	--mesa-primary: #a6c1dd; /* primary actions */
+	--mesa-surface: #c7d9ec; /* background panels */
+	--mesa-dark: #060808; /* text / dark accents */
+
+	/* Derived tokens */
+	--mesa-primary-text: var(--mesa-dark);
+	--mesa-surface-contrast: rgba(6,8,8,0.9);
+	--mesa-shadow: rgba(6,8,8,0.12);
+}
+
+/* Dark mode variables - applied when document has data-mode="dark" or .theme-dark */
+:root[data-mode="dark"], .theme-dark {
+	--mesa-background: var(--mesa-dark);
+	--mesa-surface: #0d1213; /* desaturated charcoal for surfaces in dark mode */
+	--mesa-primary: #a6c1dd; /* keep accent */
+	--mesa-primary-text: #ffffff;
+	--mesa-surface-contrast: rgba(166,193,221,0.12);
+	--mesa-shadow: rgba(0,0,0,0.6);
+}
+
+/* Hero gradient behind top-of-page header */
+.pydata-header {
+	background: linear-gradient(135deg, var(--mesa-surface) 0%, var(--mesa-primary) 100%);
+	color: var(--mesa-dark);
+}
+
+/* Navbar contrast and hover states */
+.pydata-navbar, .navbar {
+	background-color: var(--mesa-dark) !important;
+	color: var(--mesa-primary) !important;
+}
+.pydata-navbar a.nav-link, .navbar a.nav-link, .pydata-navbar .navbar-brand {
+	color: var(--mesa-primary) !important;
+}
+.pydata-navbar a.nav-link:hover, .navbar a.nav-link:hover {
+	background-color: rgba(199,217,236,0.07);
+	color: var(--mesa-surface-contrast) !important;
+}
+
+/* Transparent overlay for nav items on hover */
+.pydata-navbar .nav-link:hover::after, .navbar .nav-link:hover::after{
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: rgba(6,8,8,0.15);
+	border-radius: 6px;
+}
+
+/* CTA buttons using sphinx-design components */
+.sd-button, .sd-button .sd-button--primary, .sd-btn, .sphinx-button {
+	border-radius: 10px;
+	box-shadow: 0 6px 18px var(--mesa-shadow);
+}
+
+/* Primary CTA: dark text on surface */
+.btn-mesa-primary, .sd-button--mesa-primary {
+	background: var(--mesa-surface) !important;
+	color: var(--mesa-primary-text) !important;
+	border: 1px solid rgba(6,8,8,0.06);
+}
+/* Secondary CTA: inverted */
+.btn-mesa-secondary, .sd-button--mesa-secondary {
+	background: var(--mesa-dark) !important;
+	color: #fff !important;
+	border: 1px solid rgba(166,193,221,0.06);
+}
+
+/* Add small white SVG icon space inside CTA */
+.btn-mesa-primary svg, .btn-mesa-secondary svg {
+	width: 18px; height: 18px; vertical-align: middle; margin-right: 8px; fill: #fff;
+}
+
+/* Cards and tiles */
+.sd-card, .card, .sphinx-design-card {
+	border-radius: 12px;
+	background: var(--mesa-surface);
+	color: var(--mesa-dark);
+	box-shadow: 0 8px 20px var(--mesa-shadow);
+}
+
+/* Code block and table legibility */
+.highlight, .literal-block, pre, .py, code {
+	background-color: rgba(199,217,236,0.18); /* light tint */
+	border-radius: 8px;
+	padding: 0.6rem 0.9rem;
+	color: var(--mesa-dark);
+}
+:root[data-mode="dark"] .highlight, .theme-dark .highlight, :root[data-mode="dark"] pre, .theme-dark pre {
+	background-color: #111516; /* desaturated charcoal */
+	color: #e6eef6;
+}
+
+/* Highlight keywords with medium blue to align syntax */
+.highlight .k, .highlight .kn, .highlight .c1, .highlight .gp { color: var(--mesa-primary) !important; }
+
+/* Badges and pill links */
+.mesa-badge {
+	display: inline-block;
+	padding: 0.15rem 0.6rem;
+	border-radius: 999px;
+	background: var(--mesa-dark);
+	color: var(--mesa-primary);
+	font-weight: 600;
+	box-shadow: 0 4px 10px rgba(6,8,8,0.12);
+}
+
+/* Admonitions / callouts */
+.admonition {
+	border-left: 4px solid rgba(6,8,8,0.12);
+	background: linear-gradient(180deg, rgba(199,217,236,0.06), rgba(166,193,221,0.02));
+	border-radius: 8px;
+	padding: 0.8rem 1rem;
+}
+.admonition.note { background-color: rgba(199,217,236,0.06); }
+.admonition.tip { background-color: rgba(166,193,221,0.04); }
+.admonition.warning { background-color: rgba(255,230,120,0.04); border-left-color: rgba(255,170,0,0.8); }
+
+/* Small responsive tweaks */
+@media (max-width: 720px){
+	.pydata-header { padding: 1rem 0; }
+	.sd-card, .card { margin-bottom: 0.75rem; }
+}

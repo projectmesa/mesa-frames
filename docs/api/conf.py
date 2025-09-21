@@ -35,6 +35,15 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_show_sourcelink = False
 
+# Add custom branding CSS/JS (mesa_brand) to static files
+html_css_files = [
+    "mesa_brand.css",
+]
+
+html_js_files = [
+    "mesa_brand.js",
+]
+
 # -- Extension settings ------------------------------------------------------
 # intersphinx mapping
 intersphinx_mapping = {
