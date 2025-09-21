@@ -28,7 +28,7 @@ unfolds as follows:
 
 The update schedule matters for micro-behaviour, so we study three variants:
 
-1. **Sequential loop (asynchronous):** This is the traditional definition. Ants move one at a time in random order. 
+1. **Sequential loop (asynchronous):** This is the traditional definition. Ants move one at a time in random order.
 This cannnot be vectorised easily as the best move for an ant might depend on the moves of earlier ants (for example, if they target the same cell).
 2. **Sequential with Numba:** matches the first variant but relies on a compiled
    helper for speed.
@@ -92,6 +92,7 @@ We also define some useful functions to compute metrics like the Gini coefficien
 
 # Model-level reporters
 
+
 def gini(model: Model) -> float:
     """Compute the Gini coefficient of agent sugar holdings.
 
@@ -135,6 +136,7 @@ def gini(model: Model) -> float:
     index = np.arange(1, n + 1, dtype=np.float64)
     return float((2.0 * np.dot(index, sorted_vals) / (n * total)) - (n + 1) / n)
 
+
 def corr_sugar_metabolism(model: Model) -> float:
     """Pearson correlation between agent sugar and metabolism.
 
@@ -169,6 +171,7 @@ def corr_sugar_metabolism(model: Model) -> float:
     metabolism = agent_df["metabolism"].to_numpy().astype(np.float64)
     return _safe_corr(sugar, metabolism)
 
+
 def corr_sugar_vision(model: Model) -> float:
     """Pearson correlation between agent sugar and vision.
 
@@ -202,6 +205,7 @@ def corr_sugar_vision(model: Model) -> float:
     vision = agent_df["vision"].to_numpy().astype(np.float64)
     return _safe_corr(sugar, vision)
 
+
 def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
     """Safely compute Pearson correlation between two 1-D arrays.
 
@@ -228,6 +232,7 @@ def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
     if np.allclose(x, x[0]) or np.allclose(y, y[0]):
         return float("nan")
     return float(np.corrcoef(x, y)[0, 1])
+
 
 class Sugarscape(Model):
     """Minimal Sugarscape model used throughout the tutorial.
@@ -269,7 +274,7 @@ class Sugarscape(Model):
 
     def __init__(
         self,
-        agent_type: type["AntsBase"],
+        agent_type: type[AntsBase],
         n_agents: int,
         *,
         width: int,
@@ -282,7 +287,7 @@ class Sugarscape(Model):
                 "Cannot place more agents than grid cells when capacity is 1."
             )
         super().__init__(seed)
-        
+
         # 1. Let's create the sugar grid and set up the space
 
         sugar_grid_df = self._generate_sugar_grid(width, height, max_sugar)
@@ -291,7 +296,7 @@ class Sugarscape(Model):
         )
         self.space.set_cells(sugar_grid_df)
         self._max_sugar = sugar_grid_df.select(["dim_0", "dim_1", "max_sugar"])
-        
+
         # 2. Now we create the agents and place them on the grid
 
         agent_frame = self._generate_agent_frame(n_agents)
@@ -415,13 +420,16 @@ class Sugarscape(Model):
         empty_cells = self.space.empty_cells
         if not empty_cells.is_empty():
             # Look up the maximum sugar for each empty cell and restore it.
-            refresh = empty_cells.join(self._max_sugar, on=["dim_0", "dim_1"], how="left")
+            refresh = empty_cells.join(
+                self._max_sugar, on=["dim_0", "dim_1"], how="left"
+            )
             self.space.set_cells(empty_cells, {"sugar": refresh["max_sugar"]})
         full_cells = self.space.full_cells
         if not full_cells.is_empty():
             # Occupied cells have just been harvested; set their sugar to 0.
             zeros = pl.Series(np.zeros(len(full_cells), dtype=np.int64))
             self.space.set_cells(full_cells, {"sugar": zeros})
+
 
 # %% [markdown]
 
@@ -430,12 +438,13 @@ class Sugarscape(Model):
 
 ### 3.1 Base agent class
 
-Now let's define the agent class (the ant class). We start with a base class which implements the common logic for eating and starvation, while leaving the `move` method abstract. 
+Now let's define the agent class (the ant class). We start with a base class which implements the common logic for eating and starvation, while leaving the `move` method abstract.
 The base class also provides helper methods for sensing visible cells and choosing the best cell based on sugar, distance, and coordinates.
 This will allow us to define different movement policies (sequential, Numba-accelerated, and parallel) as subclasses that only need to implement the `move` method.
 """
 
 # %%
+
 
 class AntsBase(AgentSet):
     """Base agent set for the Sugarscape tutorial.
@@ -450,6 +459,7 @@ class AntsBase(AgentSet):
     - Subclasses must implement :meth:`move` which changes agent positions
       on the grid (via :meth:`mesa_frames.Grid` helpers).
     """
+
     def __init__(self, model: Model, agent_frame: pl.DataFrame) -> None:
         """Initialise the agent set and validate required trait columns.
 
@@ -518,7 +528,9 @@ class AntsBase(AgentSet):
         # `occupied_ids` is a Polars Series; calling `is_in` with a Series
         # of the same datatype is ambiguous in newer Polars. Use `implode`
         # to collapse the Series into a list-like value for membership checks.
-        occupied_cells = self.space.cells.filter(pl.col("agent_id").is_in(occupied_ids.implode()))
+        occupied_cells = self.space.cells.filter(
+            pl.col("agent_id").is_in(occupied_ids.implode())
+        )
         if occupied_cells.is_empty():
             return
         # The agent ordering here uses the agent_id values stored in the
@@ -526,7 +538,9 @@ class AntsBase(AgentSet):
         # the matching agents' sugar values in one vectorised write.
         agent_ids = occupied_cells["agent_id"]
         self[agent_ids, "sugar"] = (
-            self[agent_ids, "sugar"] + occupied_cells["sugar"] - self[agent_ids, "metabolism"]
+            self[agent_ids, "sugar"]
+            + occupied_cells["sugar"]
+            - self[agent_ids, "metabolism"]
         )
         # After harvesting, occupied cells have zero sugar.
         self.space.set_cells(
@@ -557,8 +571,11 @@ This implementation uses plain Python loops as the logic cannot be easily vector
 
 # %%
 
+
 class AntsSequential(AntsBase):
-    def _visible_cells(self, origin: tuple[int, int], vision: int) -> list[tuple[int, int]]:
+    def _visible_cells(
+        self, origin: tuple[int, int], vision: int
+    ) -> list[tuple[int, int]]:
         """List cells visible from an origin along the four cardinal axes.
 
         The visibility set includes the origin cell itself and cells at
@@ -637,7 +654,9 @@ class AntsSequential(AntsBase):
             if blocked and candidate != origin and candidate in blocked:
                 continue
             sugar_here = sugar_map.get(candidate, 0)
-            distance = self.model.space.get_distances(origin, candidate)["distance"].item()
+            distance = self.model.space.get_distances(origin, candidate)[
+                "distance"
+            ].item()
             better = False
             # Primary criterion: strictly more sugar.
             if sugar_here > best_sugar:
@@ -670,7 +689,7 @@ class AntsSequential(AntsBase):
             (int(x), int(y)): 0 if sugar is None else int(sugar)
             for x, y, sugar in cells.iter_rows()
         }
-        
+
     def move(self) -> None:
         sugar_map = self._current_sugar_map()
         state = self.df.join(self.pos, on="unique_id", how="left")
@@ -691,6 +710,7 @@ class AntsSequential(AntsBase):
             if target != current:
                 self.space.move_agents(agent_id, target)
 
+
 # %% [markdown]
 """
 ### 3.3 Speeding Up the Loop with Numba
@@ -700,7 +720,8 @@ As we will see later, the previous sequential implementation is slow for large p
 Numba compiles numerical Python code to fast machine code at runtime. To use Numba, we need to rewrite the movement logic in a way that is compatible with Numba's restrictions (using tightly typed numpy arrays and accessing data indexes directly).
 """
 
-# %% 
+
+# %%
 @njit(cache=True)
 def _numba_should_replace(
     best_sugar: int,
@@ -876,6 +897,7 @@ def sequential_move_numba(
 
     return new_dim0, new_dim1
 
+
 class AntsNumba(AntsBase):
     def move(self) -> None:
         state = self.df.join(self.pos, on="unique_id", how="left")
@@ -888,8 +910,8 @@ class AntsNumba(AntsBase):
 
         sugar_array = (
             self.space.cells.sort(["dim_0", "dim_1"])
-            .with_columns(pl.col("sugar").fill_null(0))
-            ["sugar"].to_numpy()
+            .with_columns(pl.col("sugar").fill_null(0))["sugar"]
+            .to_numpy()
             .reshape(self.space.dimensions)
         )
 
@@ -909,6 +931,7 @@ This implementation is a tad slower but still efficient and easier to read (for 
 """
 
 # %%
+
 
 class AntsParallel(AntsBase):
     def move(self) -> None:
@@ -1002,8 +1025,7 @@ class AntsParallel(AntsBase):
         sugar_cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
 
         neighborhood_cells = (
-            neighborhood_cells
-            .join(sugar_cells, on=["dim_0", "dim_1"], how="left")
+            neighborhood_cells.join(sugar_cells, on=["dim_0", "dim_1"], how="left")
             .with_columns(pl.col("sugar").fill_null(0))
             .rename({"dim_0": "dim_0_candidate", "dim_1": "dim_1_candidate"})
         )
@@ -1021,11 +1043,9 @@ class AntsParallel(AntsBase):
         # │ ---      ┆ ---    ┆ ---              ┆ ---              ┆ ---    │
         # │ u64      ┆ i64    ┆ i64              ┆ i64              ┆ i64    │
         # ╞══════════╪════════╪══════════════════╪══════════════════╪════════╡
-        neighborhood_cells = (
-            neighborhood_cells
-            .drop(["dim_0_center", "dim_1_center"])
-            .select(["agent_id", "radius", "dim_0_candidate", "dim_1_candidate", "sugar"])
-        )
+        neighborhood_cells = neighborhood_cells.drop(
+            ["dim_0_center", "dim_1_center"]
+        ).select(["agent_id", "radius", "dim_0_candidate", "dim_1_candidate", "sugar"])
 
         return neighborhood_cells
 
@@ -1087,12 +1107,7 @@ class AntsParallel(AntsBase):
                 keep="first",
                 maintain_order=True,
             )
-            .with_columns(
-                pl.col("agent_id")
-                .cum_count()
-                .over("agent_id")
-                .alias("rank")
-            )
+            .with_columns(pl.col("agent_id").cum_count().over("agent_id").alias("rank"))
         )
 
         # Precompute per‑agent candidate rank once so conflict resolution can
@@ -1127,7 +1142,9 @@ class AntsParallel(AntsBase):
         # │ ---      ┆ ---       │
         # │ u64      ┆ u32       │
         # ╞══════════╪═══════════╡
-        max_rank = choices.group_by("agent_id").agg(pl.col("rank").max().alias("max_rank"))
+        max_rank = choices.group_by("agent_id").agg(
+            pl.col("rank").max().alias("max_rank")
+        )
         return choices, origins, max_rank
 
     def _resolve_conflicts_in_rounds(
@@ -1159,7 +1176,7 @@ class AntsParallel(AntsBase):
         """
         # Prepare unresolved agents and working tables.
         agent_ids = choices["agent_id"].unique(maintain_order=True)
-        
+
         # unresolved columns:
         # ┌──────────┬────────────────┐
         # │ agent_id ┆ current_rank  │
@@ -1181,7 +1198,9 @@ class AntsParallel(AntsBase):
         # ╞══════════╪══════════════════╪══════════════════╡
         assigned = pl.DataFrame(
             {
-                "agent_id": pl.Series(name="agent_id", values=[], dtype=agent_ids.dtype),
+                "agent_id": pl.Series(
+                    name="agent_id", values=[], dtype=agent_ids.dtype
+                ),
                 "dim_0_candidate": pl.Series(
                     name="dim_0_candidate", values=[], dtype=pl.Int64
                 ),
@@ -1223,7 +1242,9 @@ class AntsParallel(AntsBase):
             # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ u32  ┆ i64          │
             # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════╪══════════════╡
             candidate_pool = choices.join(unresolved, on="agent_id")
-            candidate_pool = candidate_pool.filter(pl.col("rank") >= pl.col("current_rank"))
+            candidate_pool = candidate_pool.filter(
+                pl.col("rank") >= pl.col("current_rank")
+            )
             if not taken.is_empty():
                 candidate_pool = candidate_pool.join(
                     taken,
@@ -1264,8 +1285,7 @@ class AntsParallel(AntsBase):
             # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ u32  ┆ i64          │
             # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════╪══════════════╡
             best_candidates = (
-                candidate_pool
-                .sort(["agent_id", "rank"])
+                candidate_pool.sort(["agent_id", "rank"])
                 .group_by("agent_id", maintain_order=True)
                 .first()
             )
@@ -1277,7 +1297,9 @@ class AntsParallel(AntsBase):
             # │ ---      ┆ ---          │
             # │ u64      ┆ i64          │
             # ╞══════════╪══════════════╡
-            missing = unresolved.join(best_candidates.select("agent_id"), on="agent_id", how="anti")
+            missing = unresolved.join(
+                best_candidates.select("agent_id"), on="agent_id", how="anti"
+            )
             if not missing.is_empty():
                 # fallback (missing) columns match fallback table above.
                 fallback = missing.join(origins, on="agent_id", how="left")
@@ -1306,8 +1328,12 @@ class AntsParallel(AntsBase):
                     ],
                     how="vertical",
                 )
-                unresolved = unresolved.join(missing.select("agent_id"), on="agent_id", how="anti")
-                best_candidates = best_candidates.join(missing.select("agent_id"), on="agent_id", how="anti")
+                unresolved = unresolved.join(
+                    missing.select("agent_id"), on="agent_id", how="anti"
+                )
+                best_candidates = best_candidates.join(
+                    missing.select("agent_id"), on="agent_id", how="anti"
+                )
                 if unresolved.is_empty() or best_candidates.is_empty():
                     continue
 
@@ -1323,8 +1349,7 @@ class AntsParallel(AntsBase):
             # │ u64      ┆ i64              ┆ i64              ┆ i64    ┆ i64    ┆ u32  ┆ i64          ┆ f64     │
             # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════╪══════════════╪═════════╡
             winners = (
-                best_candidates
-                .sort(["dim_0_candidate", "dim_1_candidate", "lottery"])
+                best_candidates.sort(["dim_0_candidate", "dim_1_candidate", "lottery"])
                 .group_by(["dim_0_candidate", "dim_1_candidate"], maintain_order=True)
                 .first()
             )
@@ -1373,22 +1398,27 @@ class AntsParallel(AntsBase):
                 )
                 .join(max_rank, on="agent_id", how="left")
                 .with_columns(
-                    pl.min_horizontal(pl.col("next_rank"), pl.col("max_rank")).alias("next_rank")
+                    pl.min_horizontal(pl.col("next_rank"), pl.col("max_rank")).alias(
+                        "next_rank"
+                    )
                 )
                 .select(["agent_id", "next_rank"])
             )
 
             # Promote losers' current_rank (if any) and continue.
             # unresolved (updated) retains columns agent_id/current_rank.
-            unresolved = unresolved.join(loser_updates, on="agent_id", how="left").with_columns(
-                pl.when(pl.col("next_rank").is_not_null())
-                .then(pl.col("next_rank"))
-                .otherwise(pl.col("current_rank"))
-                .alias("current_rank")
-            ).drop("next_rank")
+            unresolved = (
+                unresolved.join(loser_updates, on="agent_id", how="left")
+                .with_columns(
+                    pl.when(pl.col("next_rank").is_not_null())
+                    .then(pl.col("next_rank"))
+                    .otherwise(pl.col("current_rank"))
+                    .alias("current_rank")
+                )
+                .drop("next_rank")
+            )
 
         return assigned
-        
 
 
 # %% [markdown]
@@ -1408,6 +1438,7 @@ MODEL_STEPS = 60
 MAX_SUGAR = 4
 SEED = 42
 
+
 def run_variant(
     agent_cls: type[AntsBase],
     *,
@@ -1425,6 +1456,7 @@ def run_variant(
     start = perf_counter()
     model.run(steps)
     return model, perf_counter() - start
+
 
 variant_specs: dict[str, type[AntsBase]] = {
     "Sequential (Python loop)": AntsSequential,
@@ -1477,13 +1509,15 @@ par_model_frame = frames.get("Parallel (Polars)", pl.DataFrame())
 """
 ## 5. Comparing the Update Rules
 
-Even though micro rules differ, aggregate trajectories remain qualitatively similar (sugar trends up while population gradually declines). 
-When we join the traces step-by-step, we see small but noticeable deviations introduced by synchronous conflict resolution (e.g., a few more retirements when conflicts cluster). 
-In our run (seed=42), the final-step Gini differs by ≈0.005, and wealth–trait correlations match within ~1e-3. 
+Even though micro rules differ, aggregate trajectories remain qualitatively similar (sugar trends up while population gradually declines).
+When we join the traces step-by-step, we see small but noticeable deviations introduced by synchronous conflict resolution (e.g., a few more retirements when conflicts cluster).
+In our run (seed=42), the final-step Gini differs by ≈0.005, and wealth–trait correlations match within ~1e-3.
 These gaps vary by seed and grid size, but they consistently stay modest, supporting the relaxed parallel update as a faithful macro-level approximation."""
 
 # %%
-comparison = numba_model_frame.select(["step", "mean_sugar", "total_sugar", "agents_alive"]).join(
+comparison = numba_model_frame.select(
+    ["step", "mean_sugar", "total_sugar", "agents_alive"]
+).join(
     par_model_frame.select(["step", "mean_sugar", "total_sugar", "agents_alive"]),
     on="step",
     how="inner",
@@ -1492,10 +1526,13 @@ comparison = numba_model_frame.select(["step", "mean_sugar", "total_sugar", "age
 comparison = comparison.with_columns(
     (pl.col("mean_sugar") - pl.col("mean_sugar_parallel")).abs().alias("mean_diff"),
     (pl.col("total_sugar") - pl.col("total_sugar_parallel")).abs().alias("total_diff"),
-    (pl.col("agents_alive") - pl.col("agents_alive_parallel")).abs().alias("count_diff"),
+    (pl.col("agents_alive") - pl.col("agents_alive_parallel"))
+    .abs()
+    .alias("count_diff"),
 )
 print("Step-level absolute differences (first 10 steps):")
 print(comparison.select(["step", "mean_diff", "total_diff", "count_diff"]).head(10))
+
 
 # Build the steady‑state metrics table from the DataCollector output rather than
 # recomputing reporters directly on the model objects. The collector already
@@ -1505,6 +1542,7 @@ def _last_row(df: pl.DataFrame) -> pl.DataFrame:
         return df
     # Ensure we take the final time step in case steps < MODEL_STEPS due to extinction.
     return df.sort("step").tail(1)
+
 
 numba_last = _last_row(frames.get("Sequential (Numba)", pl.DataFrame()))
 parallel_last = _last_row(frames.get("Parallel (Polars)", pl.DataFrame()))
@@ -1535,7 +1573,9 @@ if not parallel_last.is_empty():
         )
     )
 
-metrics_table = pl.concat(metrics_pieces, how="vertical") if metrics_pieces else pl.DataFrame()
+metrics_table = (
+    pl.concat(metrics_pieces, how="vertical") if metrics_pieces else pl.DataFrame()
+)
 
 print("\nSteady-state inequality metrics:")
 print(
@@ -1551,8 +1591,12 @@ print(
 )
 
 if metrics_table.height >= 2:
-    numba_gini = metrics_table.filter(pl.col("update_rule") == "Sequential (Numba)")["gini"][0]
-    par_gini = metrics_table.filter(pl.col("update_rule") == "Parallel (random tie-break)")["gini"][0]
+    numba_gini = metrics_table.filter(pl.col("update_rule") == "Sequential (Numba)")[
+        "gini"
+    ][0]
+    par_gini = metrics_table.filter(
+        pl.col("update_rule") == "Parallel (random tie-break)"
+    )["gini"][0]
     print(f"Absolute Gini gap (numba vs parallel): {abs(numba_gini - par_gini):.4f}")
 
 # %% [markdown]
