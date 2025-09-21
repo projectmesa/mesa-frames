@@ -21,6 +21,10 @@ Minimal example
     import polars as pl
 
     class MySet(AgentSet):
+        def __init__(self, model):
+            super().__init__(model)
+            self.add(pl.DataFrame({"age": [0, 5, 10]}))
+
         def step(self):
             # vectorised update: increase age for all agents
             self.df = self.df.with_columns((pl.col("age") + 1).alias("age"))
@@ -32,7 +36,6 @@ Minimal example
             self.sets += MySet(self)
 
     m = MyModel()
-    m.sets["MySet"].add(pl.DataFrame({"age": [0, 5, 10]}))
     # step all registered sets (delegates to each AgentSet.step)
     m.sets.do("step")
 
