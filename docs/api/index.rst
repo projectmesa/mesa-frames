@@ -29,7 +29,7 @@ Mini usage flow
         :link-type: doc
 
         ``Model`` API for registering sets, stepping the simulation, and integrating with datacollectors/reporters.
-    
+
     .. grid-item-card:: Spatial support
         :link: reference/space/index
         :link-type: doc
