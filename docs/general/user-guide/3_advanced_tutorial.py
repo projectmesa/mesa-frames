@@ -35,8 +35,8 @@ This cannnot be vectorised easily as the best move for an ant might depend on th
 3. **Parallel (synchronous):** all ants propose moves; conflicts are resolved at
    random before applying the winners simultaneously (and the losers get to their second-best cell, etc).
 
-The first variant (pure Python loops) is a natural starting point, but it is **not** the mesa-frames philosophy.  
-The latter two are: we aim to **write rules declaratively** and let the dataframe engine worry about performance.  
+The first variant (pure Python loops) is a natural starting point, but it is **not** the mesa-frames philosophy.
+The latter two are: we aim to **write rules declaratively** and let the dataframe engine worry about performance.
 Our guiding principle is to **focus on modelling first and performance second**. Only when a rule is truly
 inherently sequential do we fall back to a compiled kernel (Numba or JAX).
 
@@ -383,12 +383,12 @@ class Sugarscape(Model):
     def step(self) -> None:
         """Advance the model by one step.
 
-    Notes
-    -----
-    The per-step ordering is important and this tutorial implements the
-    classic Sugarscape "instant growback": agents move and eat first,
-    and then empty cells are refilled immediately (move -> eat -> regrow
-    -> collect).
+        Notes
+        -----
+        The per-step ordering is important and this tutorial implements the
+        classic Sugarscape "instant growback": agents move and eat first,
+        and then empty cells are refilled immediately (move -> eat -> regrow
+        -> collect).
         """
         if len(self.sets[0]) == 0:
             self.running = False
