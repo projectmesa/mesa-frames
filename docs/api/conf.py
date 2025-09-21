@@ -40,10 +40,6 @@ html_css_files = [
     "mesa_brand.css",
 ]
 
-html_js_files = [
-    "mesa_brand.js",
-]
-
 # -- Extension settings ------------------------------------------------------
 # intersphinx mapping
 intersphinx_mapping = {
@@ -83,5 +79,5 @@ html_theme_options = {
             "icon": "fa-brands fa-github",
         },
     ],
-    "navbar_end": ["navbar-icon-links"],
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
 }
