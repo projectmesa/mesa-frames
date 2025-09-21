@@ -6,9 +6,9 @@ Agents
 Quick intro
 -----------
 
-- ``AgentSet`` stores agents as rows in a Polars-backed table and provides vectorised operations for high-performance updates. 
+- ``AgentSet`` stores agents as rows in a Polars-backed table and provides vectorised operations for high-performance updates.
 
-- ``AgentSetRegistry`` (available at ``model.sets``) is the container that holds all ``AgentSet`` instances for a model and provides convenience operations (add/remove sets, step all sets, rename). 
+- ``AgentSetRegistry`` (available at ``model.sets``) is the container that holds all ``AgentSet`` instances for a model and provides convenience operations (add/remove sets, step all sets, rename).
 
 - Keep agent logic column-oriented and prefer Polars expressions for updates.
 
