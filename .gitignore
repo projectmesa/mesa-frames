@@ -156,3 +156,5 @@ llm_rules.md
 .python-version
 docs/site
 docs/api/_build
+docs/general/user-guide/data_csv
+docs/general/user-guide/data_parquet
