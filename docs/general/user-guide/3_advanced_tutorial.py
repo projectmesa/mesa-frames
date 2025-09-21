@@ -648,15 +648,18 @@ class AntsSequential(AntsBase):
         best_cell = origin
         best_sugar = sugar_map.get(origin, 0)
         best_distance = 0
+        ox, oy = origin
         for candidate in self._visible_cells(origin, vision):
             # Skip blocked cells (occupied by other agents) unless it's the
             # agent's current cell which we always consider.
             if blocked and candidate != origin and candidate in blocked:
                 continue
             sugar_here = sugar_map.get(candidate, 0)
-            distance = self.model.space.get_distances(origin, candidate)[
-                "distance"
-            ].item()
+            # Use step-based Manhattan distance (number of steps along cardinal
+            # axes) which is the same metric used by the Numba path. This avoids
+            # calling the heavier `space.get_distances` per candidate.
+            cx, cy = candidate
+            distance = abs(cx - ox) + abs(cy - oy)
             better = False
             # Primary criterion: strictly more sugar.
             if sugar_here > best_sugar:
