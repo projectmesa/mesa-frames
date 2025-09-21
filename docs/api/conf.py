@@ -81,5 +81,9 @@ html_theme_options = {
             "icon": "fa-brands fa-github",
         },
     ],
+        "navbar_start": ["navbar-logo"]
+                         
+                         ,
+
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
 }

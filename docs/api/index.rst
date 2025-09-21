@@ -1,6 +1,18 @@
 mesa-frames API
 ===============
 
+.. toctree::
+   :caption: Shortcuts
+   :maxdepth: 1
+   :hidden:
+
+   reference/agents/index
+   reference/model
+   reference/space/index
+   reference/datacollector
+
+
+
 Overview
 --------
 
