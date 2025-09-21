@@ -37,7 +37,9 @@ html_show_sourcelink = False
 
 # Add custom branding CSS/JS (mesa_brand) to static files
 html_css_files = [
-    "mesa_brand.css",
+    # Shared brand variables then theme adapter for pydata
+    "brand-core.css",
+    "brand-pydata.css",
 ]
 
 # -- Extension settings ------------------------------------------------------

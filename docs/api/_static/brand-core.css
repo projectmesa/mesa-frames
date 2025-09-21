@@ -1,0 +1,9 @@
+/* Mesa-Frames shared brand variables (core) */
+:root{
+  /* Brand palette */
+  --mf-primary:  #A6C1DD;
+  --mf-surface:  #C7D9EC;
+  --mf-dark:     #060808;
+  --mf-fg-dark:  #0F1113;
+  --mf-fg-light: #E8EEF6;
+}

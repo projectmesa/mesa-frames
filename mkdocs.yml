@@ -96,6 +96,11 @@ extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
+# Custom CSS for branding (brand-core then material adapter)
+extra_css:
+  - stylesheets/brand-core.css
+  - stylesheets/brand-material.css
+
 # Customization
 extra:
   social:
