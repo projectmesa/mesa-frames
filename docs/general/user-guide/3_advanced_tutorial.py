@@ -940,6 +940,10 @@ class AntsParallel(AntsBase):
     def move(self) -> None:
         """Move agents in parallel by ranking visible cells and resolving conflicts.
 
+        Declarative mental model: express *what* each agent wants (ranked candidates),
+        then use dataframe ops to *allocate* (joins, group_by with a lottery).
+        Performance is handled by Polars/LazyFrames; avoid premature micro-optimisations.
+
         Returns
         -------
         None
