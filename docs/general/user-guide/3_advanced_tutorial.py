@@ -35,6 +35,11 @@ This cannnot be vectorised easily as the best move for an ant might depend on th
 3. **Parallel (synchronous):** all ants propose moves; conflicts are resolved at
    random before applying the winners simultaneously (and the losers get to their second-best cell, etc).
 
+The first variant (pure Python loops) is a natural starting point, but it is **not** the mesa-frames philosophy.  
+The latter two are: we aim to **write rules declaratively** and let the dataframe engine worry about performance.  
+Our guiding principle is to **focus on modelling first and performance second**. Only when a rule is truly
+inherently sequential do we fall back to a compiled kernel (Numba or JAX).
+
 Our goal is to show that, under instantaneous growback and uniform resources,
 the model converges to the *same* macroscopic inequality pattern regardless of
 whether agents act sequentially or in parallel and that As long as the random draws do
