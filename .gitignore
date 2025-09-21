@@ -154,3 +154,4 @@ cython_debug/
 *.code-workspace
 llm_rules.md
 .python-version
+docs/site
