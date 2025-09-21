@@ -378,18 +378,18 @@ class Sugarscape(Model):
     def step(self) -> None:
         """Advance the model by one step.
 
-        Notes
-        -----
-        The per-step ordering is important: regrowth happens first (so empty
-        cells are refilled), then agents move and eat, and finally metrics are
-        collected. If the agent set becomes empty at any point the model is
-        marked as not running.
+    Notes
+    -----
+    The per-step ordering is important and this tutorial implements the
+    classic Sugarscape "instant growback": agents move and eat first,
+    and then empty cells are refilled immediately (move -> eat -> regrow
+    -> collect).
         """
         if len(self.sets[0]) == 0:
             self.running = False
             return
-        self._advance_sugar_field()
         self.sets[0].step()
+        self._advance_sugar_field()
         self.datacollector.collect()
         if len(self.sets[0]) == 0:
             self.running = False
