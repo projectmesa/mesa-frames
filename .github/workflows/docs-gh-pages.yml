@@ -32,10 +32,22 @@ jobs:
       - name: Convert jupytext .py notebooks to .ipynb
         run: |
           set -euxo pipefail
-          for nb in docs/general/*.ipynb; do
-            echo "Executing $nb"
-            uv run jupyter nbconvert --to notebook --execute --inplace "$nb"
-          done
+          # Convert any jupytext .py files to .ipynb without executing them.
+          # Enable nullglob so the pattern expands to empty when there are no matches
+          # and globstar so we recurse into subdirectories (e.g., user-guide/).
+          shopt -s nullglob globstar || true
+          files=(docs/general/**/*.py)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No jupytext .py files found under docs/general"
+          else
+            for src in "${files[@]}"; do
+              [ -e "$src" ] || continue
+              dest="${src%.py}.ipynb"
+              echo "Converting $src -> $dest"
+              # jupytext will write the .ipynb alongside the source file
+              uv run jupytext --to notebook "$src"
+            done
+          fi
 
       - name: Build MkDocs site
         run: uv run mkdocs build --config-file mkdocs.yml --site-dir ./site
