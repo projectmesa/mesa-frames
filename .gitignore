@@ -158,3 +158,4 @@ docs/site
 docs/api/_build
 docs/general/user-guide/data_csv
 docs/general/user-guide/data_parquet
+docs/api/reference/**/mesa_frames.*.rst
