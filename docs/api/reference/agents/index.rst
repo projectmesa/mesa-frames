@@ -111,6 +111,8 @@ API reference
          .. tab-item:: Full API
 
             .. autoclass:: AgentSet
+                :autosummary:
+                :autosummary-nosignatures:
 
    .. tab-item:: AgentSetRegistry
 
@@ -180,3 +182,5 @@ API reference
          .. tab-item:: Full API
 
             .. autoclass:: AgentSetRegistry
+                :autosummary:
+                :autosummary-nosignatures:

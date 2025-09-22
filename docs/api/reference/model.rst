@@ -36,8 +36,34 @@ Minimal example
 API reference
 -------------
 
-.. autoclass:: Model
-    :members:
-    :inherited-members:
-    :autosummary:
-    :autosummary-nosignatures:
+.. tab-set::
+
+    .. tab-item:: Overview
+
+        .. rubric:: Lifecycle / Core
+
+        .. autosummary::
+            :nosignatures:
+            :toctree:
+
+            Model.__init__
+            Model.step
+            Model.run_model
+            Model.reset_randomizer
+
+        .. rubric:: Accessors / Properties
+
+        .. autosummary::
+            :nosignatures:
+            :toctree:
+
+            Model.steps
+            Model.sets
+            Model.space
+            Model.seed
+
+    .. tab-item:: Full API
+
+        .. autoclass:: Model
+            :autosummary:
+            :autosummary-nosignatures:

@@ -37,8 +37,32 @@ Minimal example
 API reference
 -------------
 
-.. autoclass:: DataCollector
-    :members:
-    :inherited-members:
-    :autosummary:
-    :autosummary-nosignatures:
+.. tab-set::
+
+    .. tab-item:: Overview
+
+        .. rubric:: Lifecycle / Core
+
+        .. autosummary::
+            :nosignatures:
+            :toctree:
+
+            DataCollector.__init__
+            DataCollector.collect
+            DataCollector.conditional_collect
+            DataCollector.flush
+            DataCollector.data
+
+        .. rubric:: Reporting / Internals
+
+        .. autosummary::
+            :nosignatures:
+            :toctree:
+
+            DataCollector.seed
+
+    .. tab-item:: Full API
+
+        .. autoclass:: DataCollector
+            :autosummary:
+            :autosummary-nosignatures:

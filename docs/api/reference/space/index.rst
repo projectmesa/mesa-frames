@@ -39,8 +39,28 @@ Minimal example
 API reference
 -------------
 
-.. autoclass:: Grid
-    :members:
-    :inherited-members:
-    :autosummary:
-    :autosummary-nosignatures:
+.. tab-set::
+
+    .. tab-item:: Overview
+
+        .. rubric:: Lifecycle / Core
+
+        .. autosummary::
+            :nosignatures:
+            :toctree:
+
+            Grid.__init__
+
+        .. rubric:: Sampling & Queries
+
+        .. autosummary::
+            :nosignatures:
+            :toctree:
+
+            Grid.remaining_capacity
+
+    .. tab-item:: Full API
+
+        .. autoclass:: Grid
+            :autosummary:
+            :autosummary-nosignatures:
