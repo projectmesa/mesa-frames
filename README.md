@@ -1,35 +1,40 @@
-# mesa-frames 🚀
+<p align="center">
+  <img src="https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png" alt="Mesa logo" width="96">
+</p>
+
+<h1 align="center">mesa-frames</h1>
 
 |         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CI/CD   | [![CI Checks](https://github.com/projectmesa/mesa-frames/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/projectmesa/mesa-frames/actions/workflows/build.yml) [![codecov](https://codecov.io/gh/projectmesa/mesa-frames/branch/main/graph/badge.svg)](https://app.codecov.io/gh/projectmesa/mesa-frames)                                                                                                                     |
 | Package | [![PyPI - Version](https://img.shields.io/pypi/v/mesa-frames.svg?logo=pypi&label=PyPI&logoColor=gold)](https://pypi.org/project/mesa-frames/) [![PyPI - Downloads](https://img.shields.io/pypi/dm/mesa-frames.svg?color=blue&label=Downloads&logo=pypi&logoColor=gold)](https://pypi.org/project/mesa-frames/) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mesa-frames.svg?logo=python&label=Python&logoColor=gold)](https://pypi.org/project/mesa-frames/) |
 | Meta    | [![linting - Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/) [![formatter - Ruff](https://img.shields.io/badge/formatter-Ruff-0f172a?logo=ruff&logoColor=white)](https://docs.astral.sh/ruff/formatter/) [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://github.com/pypa/hatch) [![Managed with uv](https://img.shields.io/badge/managed%20with-uv-5a4fcf?logo=uv&logoColor=white)](https://github.com/astral-sh/uv) |
-| Chat    | [![chat](https://img.shields.io/matrix/project-mesa:matrix.org?label=chat&logo=Matrix)](https://matrix.to/#/#project-mesa:matrix.org)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Chat    | [![chat](https://img.shields.io/matrix/project-mesa:matrix.org?label=chat&logo=Matrix)](https://matrix.to/#/#project-mesa:matrix.org)                                                                                                                                                                                                                                                                                                                                                      |
 
-mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax. mesa-frames allows for the use of [vectorized functions](https://stackoverflow.com/a/1422198) which significantly speeds up operations whenever simultaneous activation of agents is possible.
+---
 
-## Why DataFrames? 📊
+## Scale Mesa beyond its limits
 
-DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). At the moment, mesa-frames supports the use of Polars library.
+Classic [Mesa](https://github.com/projectmesa/mesa) stores each agent as a Python object, which quickly becomes a bottleneck at scale.  
+**mesa-frames** reimagines agent storage using **Polars DataFrames**, so agents live in a columnar store rather than the Python heap.  
 
-- [Polars](https://pola.rs/) is a new DataFrame library with a syntax similar to pandas but with several innovations, including a backend implemented in Rust, the Apache Arrow memory format, query optimization, and support for larger-than-memory DataFrames.
+You keep the Mesa-style `Model` / `AgentSet` structure, but updates are vectorized and memory-efficient.
 
-The following is a performance graph showing execution time using mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
+### Why it matters
+- ⚡ **10× faster** bulk updates on 10k+ agents (see benchmarks)  
+- 📊 **Columnar execution** via [Polars](https://docs.pola.rs/): [SIMD](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data) ops, multi-core support  
+- 🔄 **Declarative logic**: agent rules as transformations, not Python loops  
+- 🚀 **Roadmap**: Lazy queries and GPU support for even faster models
 
-![Performance Graph with Mesa](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
+---
 
-![Performance Graph without Mesa](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
+## Who is it for?
 
-([You can check the script used to generate the graph here](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
+- Researchers needing to scale to **tens or hundreds of thousands of agents**  
+- Users whose agent logic can be written as **vectorized, set-based operations**  
 
-## Installation
+❌ **Not a good fit if:** your model depends on strict per-agent sequencing, complex non-vectorizable methods, or fine-grained identity tracking.
 
-### Install from PyPI
-
-```bash
-pip install mesa-frames
-```
 
 ### Install from Source (development)
 
