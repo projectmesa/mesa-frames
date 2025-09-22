@@ -38,8 +38,8 @@ toc_object_entries = False                         # NEW: stop adding class/meth
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_show_sourcelink = False
-html_logo = "_static/mesa_logo.png"
-html_favicon = "_static/mesa_logo.png"
+html_logo = "https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png"
+html_favicon = "https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.ico"
 
 # Add custom branding CSS/JS (mesa_brand) to static files
 html_css_files = [

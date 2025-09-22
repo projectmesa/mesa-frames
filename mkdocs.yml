@@ -40,6 +40,10 @@ theme:
     code: Roboto Mono
   icon:
     repo: fontawesome/brands/github
+  # Logo (PNG)
+  logo: https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png
+  # Favicon (ICO)
+  favicon: https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.ico
 
 # Plugins
 plugins:
