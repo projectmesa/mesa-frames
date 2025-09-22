@@ -95,6 +95,11 @@ html_theme_options = {
             "url": github_root,
             "icon": "fa-brands fa-github",
         },
+        {
+            "name": "Matrix",
+            "url": "https://matrix.to/#/#project-mesa:matrix.org",
+            "icon": "fa-solid fa-comments",
+        },
     ],
     "navbar_start": ["navbar-logo"],
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
