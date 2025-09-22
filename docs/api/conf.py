@@ -31,6 +31,10 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- Options for HTML output -------------------------------------------------
+# Hide objects (classes/methods) from the page Table of Contents
+toc_object_entries = False                         # NEW: stop adding class/method entries to the TOC
+
+
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_show_sourcelink = False
@@ -59,9 +63,18 @@ copybutton_prompt_text = r">>> |\.\.\. "
 copybutton_prompt_is_regexp = True
 
 # -- Custom configurations ---------------------------------------------------
+add_module_names = False
 autoclass_content = "class"
 autodoc_member_order = "bysource"
-autodoc_default_options = {"special-members": True, "exclude-members": "__weakref__"}
+autodoc_default_options = {
+    "members": True,
+    "inherited-members": True,
+    "undoc-members": True,
+    "member-order": "bysource",
+    "special-members": True,
+    "exclude-members": "__weakref__,__dict__,__module__,__annotations__",
+}
+
 
 # -- GitHub link and user guide settings -------------------------------------
 github_root = "https://github.com/projectmesa/mesa-frames"
