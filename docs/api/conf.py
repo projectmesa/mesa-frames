@@ -72,7 +72,7 @@ autodoc_default_options = {
     "undoc-members": True,
     "member-order": "bysource",
     "special-members": True,
-    "exclude-members": "__weakref__,__dict__,__module__,__annotations__",
+    "exclude-members": "__weakref__,__dict__,__module__,__annotations__,__firstlineno__,__static_attributes__,__abstractmethods__,__slots__"
 }
 
 
