@@ -40,16 +40,143 @@ Minimal example
     m.sets.do("step")
 
 API reference
---------------------------------
+---------------------------------
 
-.. autoclass:: AgentSet
-    :members:
-    :inherited-members:
-    :autosummary:
-    :autosummary-nosignatures:
+.. tab-set::
 
-.. autoclass:: AgentSetRegistry
-    :members:
-    :inherited-members:
-    :autosummary:
-    :autosummary-nosignatures:
+   .. tab-item:: AgentSet
+
+      .. tab-set::
+
+         .. tab-item:: Overview
+
+            .. rubric:: Lifecycle / Core
+
+            .. autosummary::
+               :nosignatures:
+               :toctree: _autosummary
+
+               AgentSet.__init__
+               AgentSet.step
+               AgentSet.rename
+               AgentSet.copy
+
+            .. rubric:: Accessors & Views
+
+            .. autosummary::
+               :nosignatures:
+               :toctree: _autosummary
+
+               AgentSet.df
+               AgentSet.active_agents
+               AgentSet.inactive_agents
+               AgentSet.index
+               AgentSet.pos
+               AgentSet.name
+               AgentSet.get
+               AgentSet.contains
+               AgentSet.__len__
+               AgentSet.__iter__
+               AgentSet.__getitem__
+               AgentSet.__contains__
+
+            .. rubric:: Mutators
+
+            .. autosummary::
+               :nosignatures:
+               :toctree: _autosummary
+
+               AgentSet.add
+               AgentSet.remove
+               AgentSet.discard
+               AgentSet.set
+               AgentSet.select
+               AgentSet.shuffle
+               AgentSet.sort
+               AgentSet.do
+
+            .. rubric:: Operators / Internal helpers
+
+            .. autosummary::
+               :nosignatures:
+               :toctree: _autosummary
+
+               AgentSet.__add__
+               AgentSet.__iadd__
+               AgentSet.__sub__
+               AgentSet.__isub__
+               AgentSet.__repr__
+               AgentSet.__reversed__
+
+         .. tab-item:: Full API
+
+            .. autoclass:: AgentSet
+
+   .. tab-item:: AgentSetRegistry
+
+      .. tab-set::
+
+         .. tab-item:: Overview
+
+            .. rubric:: Lifecycle / Core
+
+            .. autosummary::
+               :nosignatures:
+               :toctree: _autosummary
+
+               AgentSetRegistry.__init__
+               AgentSetRegistry.copy
+               AgentSetRegistry.rename
+
+            .. rubric:: Accessors & Queries
+
+            .. autosummary::
+               :nosignatures:
+               :toctree: _autosummary
+
+               AgentSetRegistry.get
+               AgentSetRegistry.contains
+               AgentSetRegistry.ids
+               AgentSetRegistry.keys
+               AgentSetRegistry.items
+               AgentSetRegistry.values
+               AgentSetRegistry.model
+               AgentSetRegistry.random
+               AgentSetRegistry.space
+               AgentSetRegistry.__len__
+               AgentSetRegistry.__iter__
+               AgentSetRegistry.__getitem__
+               AgentSetRegistry.__contains__
+
+            .. rubric:: Mutators / Coordination
+
+            .. autosummary::
+               :nosignatures:
+               :toctree: _autosummary
+
+               AgentSetRegistry.add
+               AgentSetRegistry.remove
+               AgentSetRegistry.discard
+               AgentSetRegistry.replace
+               AgentSetRegistry.shuffle
+               AgentSetRegistry.sort
+               AgentSetRegistry.do
+               AgentSetRegistry.__setitem__
+               AgentSetRegistry.__add__
+               AgentSetRegistry.__iadd__
+               AgentSetRegistry.__sub__
+               AgentSetRegistry.__isub__
+
+            .. rubric:: Representation
+
+            .. autosummary::
+               :nosignatures:
+               :toctree: _autosummary
+
+               AgentSetRegistry.__repr__
+               AgentSetRegistry.__str__
+               AgentSetRegistry.__reversed__
+
+         .. tab-item:: Full API
+
+            .. autoclass:: AgentSetRegistry
