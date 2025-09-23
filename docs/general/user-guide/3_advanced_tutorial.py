@@ -221,9 +221,12 @@ def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
 
     Parameters
     ----------
-    x, y : np.ndarray
-        One-dimensional numeric arrays of the same length containing the two
-        variables to correlate.
+    x : np.ndarray
+        One-dimensional numeric array containing the first variable to
+        correlate.
+    y : np.ndarray
+        One-dimensional numeric array containing the second variable to
+        correlate.
 
     Returns
     -------
@@ -254,7 +257,7 @@ class Sugarscape(Model):
 
     Parameters
     ----------
-    agent_type : type
+    agent_type : type[AntsBase]
         The :class:`AgentSet` subclass implementing the movement rules
         (sequential, numba-accelerated, or parallel).
     n_agents : int
@@ -266,7 +269,7 @@ class Sugarscape(Model):
     max_sugar : int, optional
         Upper bound for the randomly initialised sugar values on the grid,
         by default 4.
-    seed : int or None, optional
+    seed : int | None, optional
         RNG seed to make runs reproducible across variants, by default None.
 
     Notes
@@ -638,9 +641,9 @@ class AntsSequential(AntsBase):
             Agent's current coordinate.
         vision : int
             Maximum vision radius along cardinal axes.
-        sugar_map : dict
+        sugar_map : dict[tuple[int, int], int]
             Mapping from ``(x, y)`` to sugar amount.
-        blocked : set or None
+        blocked : set[tuple[int, int]] | None
             Optional set of coordinates that should be considered occupied and
             therefore skipped (except the origin which is always allowed).
 
@@ -687,7 +690,7 @@ class AntsSequential(AntsBase):
 
         Returns
         -------
-        dict
+        dict[tuple[int, int], int]
             Keys are ``(x, y)`` tuples and values are the integer sugar amount
             on that cell (zero if missing/None).
         """
@@ -749,12 +752,22 @@ def _numba_should_replace(
 
     Parameters
     ----------
-    best_sugar, candidate_sugar : int
-        Sugar at the current best cell and the candidate cell.
-    best_distance, candidate_distance : int
-        Manhattan distances from the origin to the best and candidate cells.
-    best_x, best_y, candidate_x, candidate_y : int
-        Coordinates used for the final lexicographic tie-break.
+    best_sugar : int
+        Sugar at the current best cell.
+    best_distance : int
+        Manhattan distance from the origin to the current best cell.
+    best_x : int
+        X coordinate of the current best cell.
+    best_y : int
+        Y coordinate of the current best cell.
+    candidate_sugar : int
+        Sugar at the candidate cell.
+    candidate_distance : int
+        Manhattan distance from the origin to the candidate cell.
+    candidate_x : int
+        X coordinate of the candidate cell.
+    candidate_y : int
+        Y coordinate of the candidate cell.
 
     Returns
     -------
@@ -859,9 +872,12 @@ def sequential_move_numba(
 
     Parameters
     ----------
-    dim0, dim1 : np.ndarray
-        1D integer arrays of length n_agents containing the x and y
-        coordinates for each agent.
+    dim0 : np.ndarray
+        1D integer array of length n_agents containing the x coordinates
+        for each agent.
+    dim1 : np.ndarray
+        1D integer array of length n_agents containing the y coordinates
+        for each agent.
     vision : np.ndarray
         1D integer array of vision radii for each agent.
     sugar_array : np.ndarray
