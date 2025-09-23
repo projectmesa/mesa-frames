@@ -54,7 +54,7 @@ API reference
 
             .. autosummary::
                :nosignatures:
-               :toctree: 
+               :toctree:
 
                AgentSet.__init__
                AgentSet.step
@@ -65,7 +65,7 @@ API reference
 
             .. autosummary::
                :nosignatures:
-               :toctree: 
+               :toctree:
 
                AgentSet.df
                AgentSet.active_agents
@@ -84,7 +84,7 @@ API reference
 
             .. autosummary::
                :nosignatures:
-               :toctree: 
+               :toctree:
 
                AgentSet.add
                AgentSet.remove
@@ -99,7 +99,7 @@ API reference
 
             .. autosummary::
                :nosignatures:
-               :toctree: 
+               :toctree:
 
                AgentSet.__add__
                AgentSet.__iadd__
@@ -124,7 +124,7 @@ API reference
 
             .. autosummary::
                :nosignatures:
-               :toctree: 
+               :toctree:
 
                AgentSetRegistry.__init__
                AgentSetRegistry.copy
@@ -134,7 +134,7 @@ API reference
 
             .. autosummary::
                :nosignatures:
-               :toctree: 
+               :toctree:
 
                AgentSetRegistry.get
                AgentSetRegistry.contains
@@ -154,7 +154,7 @@ API reference
 
             .. autosummary::
                :nosignatures:
-               :toctree: 
+               :toctree:
 
                AgentSetRegistry.add
                AgentSetRegistry.remove
@@ -173,7 +173,7 @@ API reference
 
             .. autosummary::
                :nosignatures:
-               :toctree: 
+               :toctree:
 
                AgentSetRegistry.__repr__
                AgentSetRegistry.__str__
