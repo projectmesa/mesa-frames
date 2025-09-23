@@ -29,7 +29,7 @@ unfolds as follows:
 The update schedule matters for micro-behaviour, so we study three variants:
 
 1. **Sequential loop (asynchronous):** This is the traditional definition. Ants move one at a time in random order.
-This cannnot be vectorised easily as the best move for an ant might depend on the moves of earlier ants (for example, if they target the same cell).
+This cannot be vectorised easily as the best move for an ant might depend on the moves of earlier ants (for example, if they target the same cell).
 2. **Sequential with Numba:** matches the first variant but relies on a compiled
    helper for speed.
 3. **Parallel (synchronous):** all ants propose moves; conflicts are resolved at
@@ -932,7 +932,7 @@ class AntsNumba(AntsBase):
 """
 ### 3.5 Simultaneous Movement with Conflict Resolution (the Polars mesa-frames idiomatic way)
 
-The previous implementation is optimal speed-wise but it's a bit low-level. It requires mantaining an occupancy grid and imperative loops and it might become tricky to extend with more complex movement rules or models.
+The previous implementation is optimal speed-wise but it's a bit low-level. It requires maintaining an occupancy grid and imperative loops and it might become tricky to extend with more complex movement rules or models.
 To stay in mesa-frames idiom, we can implement a parallel movement policy that uses Polars DataFrame operations to resolve conflicts when multiple agents target the same cell.
 These conflicts are resolved in rounds: in each round, each agent proposes its current best candidate cell; winners per cell are chosen at random, and losers are promoted to their next-ranked choice. This continues until all agents have moved.
 This implementation is a tad slower but still efficient and easier to read (for a Polars user).
