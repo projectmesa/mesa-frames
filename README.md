@@ -21,7 +21,7 @@ Classic [Mesa](https://github.com/projectmesa/mesa) stores each agent as a Pytho
 You keep the Mesa-style `Model` / `AgentSet` structure, but updates are vectorized and memory-efficient.
 
 ### Why it matters
-- ⚡ **10× faster** bulk updates on 10k+ agents (see benchmarks)  
+- ⚡ **10× faster** bulk updates on 10k+ agents ([see Benchmarks](#benchmarks))
 - 📊 **Columnar execution** via [Polars](https://docs.pola.rs/): [SIMD](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data) ops, multi-core support  
 - 🔄 **Declarative logic**: agent rules as transformations, not Python loops  
 - 🚀 **Roadmap**: Lazy queries and GPU support for even faster models
@@ -35,10 +35,57 @@ You keep the Mesa-style `Model` / `AgentSet` structure, but updates are vectoriz
 
 ❌ **Not a good fit if:** your model depends on strict per-agent sequencing, complex non-vectorizable methods, or fine-grained identity tracking.
 
+---
 
-### Install from Source (development)
+## Why DataFrames?
 
-Clone the repository and install dependencies with [uv](https://docs.astral.sh/uv/):
+DataFrames enable SIMD and columnar operations that are far more efficient than Python loops.  
+mesa-frames currently uses **Polars** as its backend.
+
+| Feature                | mesa (classic) | mesa-frames |
+| ---------------------- | -------------- | ----------- |
+| Storage                | Python objects | Polars DataFrame |
+| Updates                | Loops          | Vectorized ops |
+| Memory overhead        | High           | Low |
+| Max agents (practical) | ~10^3           | ~10^6+ |
+
+---
+
+## Benchmarks
+
+<p align="left">
+  <a href="https://projectmesa.github.io/mesa-frames/general/benchmarks/">
+    <img alt="Reproduce Benchmarks" src="https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge">
+  </a>
+</p>
+
+
+mesa-frames delivers consistent speedups across both toy and canonical ABMs.  
+At 10k agents, it runs **~10× faster** than classic Mesa, and the gap grows with scale.
+
+<p align="center">
+  <img src="examples/boltzmann_wealth/boltzmann_benchmark.png" width="45%" alt="Benchmark: Boltzmann Wealth">
+  <img src="examples/sugarscape/sugarscape_benchmark.png" width="45%" alt="Benchmark: Sugarscape IG">
+</p>
+
+
+---
+
+## Quick Start
+
+<p align="left">
+  <a href="https://projectmesa.github.io/mesa-frames/general/user-guide/">
+    <img alt="Explore the Tutorials" src="https://img.shields.io/badge/Explore%20the%20Tutorials-📚-blue?style=for-the-badge">
+  </a>
+</p>
+
+1. **Install** 
+
+```bash
+   pip install mesa-frames
+```
+
+Or for development:
 
 ```bash
 git clone https://github.com/projectmesa/mesa-frames.git
@@ -46,104 +93,51 @@ cd mesa-frames
 uv sync --all-extras
 ```
 
-`uv sync` creates a local `.venv/` with mesa-frames and its development extras. Run tooling through uv to keep the virtual environment isolated:
+2. **Create a model**
 
-```bash
-uv run pytest -q --cov=mesa_frames --cov-report=term-missing
-uv run ruff check . --fix
-uv run pre-commit run -a
-```
+   ```python
+   from mesa_frames import AgentSet, Model
+   import polars as pl
 
-## Usage
+   class MoneyAgents(AgentSet):
+       def __init__(self, n: int, model: Model):
+           super().__init__(model)
+           self += pl.DataFrame({"wealth": pl.ones(n, eager=True)})
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/projectmesa/mesa-frames/blob/main/docs/general/user-guide/2_introductory-tutorial.ipynb)
+       def give_money(self):
+           self.select(self.wealth > 0)
+           other_agents = self.df.sample(n=len(self.active_agents), with_replacement=True)
+           self["active", "wealth"] -= 1
+           new_wealth = other_agents.group_by("unique_id").len()
+           self[new_wealth, "wealth"] += new_wealth["len"]
 
-**Note:** mesa-frames is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
+       def step(self):
+           self.do("give_money")
 
-[You can find the API documentation here](https://projectmesa.github.io/mesa-frames/api).
+   class MoneyModelDF(Model):
+       def __init__(self, N: int):
+           super().__init__()
+           self.sets += MoneyAgents(N, self)
 
-### Creation of an Agent
+       def step(self):
+           self.sets.do("step")
+   ```
 
-The agent implementation differs from base mesa. Agents are only defined at the AgentSet level. You can import `AgentSet`. As in mesa, you subclass and make sure to call `super().__init__(model)`. You can use the `add` method or the `+=` operator to add agents to the AgentSet. Most methods mirror the functionality of `mesa.AgentSet`. Additionally, `mesa-frames.AgentSet` implements many dunder methods such as `AgentSet[mask, attr]` to get and set items intuitively. All operations are by default inplace, but if you'd like to use functional programming, mesa-frames implements a fast copy method which aims to reduce memory usage, relying on reference-only and native copy methods.
+---
 
-```python
-from mesa-frames import AgentSet
+## Roadmap
 
-class MoneyAgents(AgentSet):
-    def __init__(self, n: int, model: Model):
-        super().__init__(model)
-        # Adding the agents to the agent set
-        self += pl.DataFrame(
-            {"wealth": pl.ones(n, eager=True)}
-        )
+> Community contributions welcome — see the [full roadmap](https://projectmesa.github.io/mesa-frames/general/roadmap)
 
-    def step(self) -> None:
-        # The give_money method is called
-        self.do("give_money")
+* Transition to LazyFrames for optimization and GPU support
+* Auto-vectorize existing Mesa models via decorator
+* Increase possible Spaces
+* Refine the API to align to Mesa
 
-    def give_money(self):
-        # Active agents are changed to wealthy agents
-        self.select(self.wealth > 0)
-
-        # Receiving agents are sampled (only native expressions currently supported)
-        other_agents = self.df.sample(
-            n=len(self.active_agents), with_replacement=True
-        )
-
-        # Wealth of wealthy is decreased by 1
-        self["active", "wealth"] -= 1
-
-        # Compute the income of the other agents (only native expressions currently supported)
-        new_wealth = other_agents.group_by("unique_id").len()
-
-        # Add the income to the other agents
-        self[new_wealth, "wealth"] += new_wealth["len"]
-```
-
-### Creation of the Model
-
-Creation of the model is fairly similar to the process in mesa. You subclass `Model` and call `super().__init__()`. The `model.sets` attribute has the same interface as `mesa-frames.AgentSet`. You can use `+=` or `self.sets.add` with a `mesa-frames.AgentSet` (or a list of `AgentSet`) to add agents to the model.
-
-```python
-from mesa-frames import Model
-
-class MoneyModelDF(Model):
-    def __init__(self, N: int, agents_cls):
-        super().__init__()
-        self.n_agents = N
-        self.sets += MoneyAgents(N, self)
-
-    def step(self):
-        # Executes the step method for every agentset in self.sets
-        self.sets.do("step")
-
-    def run_model(self, n):
-        for _ in range(n):
-            self.step()
-```
-
-## What's Next? 🔮
-
-- Refine the API to make it more understandable for someone who is already familiar with the mesa package. The goal is to provide a seamless experience for users transitioning to or incorporating mesa-frames.
-- Adding support for default mesa functions to ensure that the standard mesa functionality is preserved.
-- Adding GPU functionality (cuDF and Dask-cuDF).
-- Creating a decorator that will automatically vectorize an existing mesa model. This feature will allow users to easily tap into the performance enhancements that mesa-frames offers without significant code alterations.
-- Creating a unique class for AgentSet, independent of the backend implementation.
+---
 
 ## License
 
-Copyright 2024 Adam Amer, Project Mesa team and contributors
+Copyright © 2025 Adam Amer, Project Mesa team and contributors
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-For the full license text, see the [LICENSE](https://github.com/projectmesa/mesa-frames/blob/main/LICENSE) file in the GitHub repository.
+Licensed under the [Apache License, Version 2.0](https://raw.githubusercontent.com/projectmesa/mesa-frames/refs/heads/main/LICENSE).
