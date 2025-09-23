@@ -75,14 +75,14 @@ model.run(10)
 model.dc.data  # peek in-memory dataframes
 
 # %% [markdown]
-"""## Saving the data for later use  
+"""## Saving the data for later use
 
-`DataCollector` supports multiple storage backends.  
-Files are saved with **step number** and **batch number** (e.g., `model_step10_batch2.csv`) so multiple collects at the same step don’t overwrite.  
-  
-- **CSV:** `storage="csv"` → writes `model_step{n}_batch{k}.csv`, easy to open anywhere.  
-- **Parquet:** `storage="parquet"` → compressed, efficient for large datasets.  
-- **S3:** `storage="S3-csv"`/`storage="S3-parquet"` → saves CSV/Parquet directly to Amazon S3.  
+`DataCollector` supports multiple storage backends.
+Files are saved with **step number** and **batch number** (e.g., `model_step10_batch2.csv`) so multiple collects at the same step don’t overwrite.
+
+- **CSV:** `storage="csv"` → writes `model_step{n}_batch{k}.csv`, easy to open anywhere.
+- **Parquet:** `storage="parquet"` → compressed, efficient for large datasets.
+- **S3:** `storage="S3-csv"`/`storage="S3-parquet"` → saves CSV/Parquet directly to Amazon S3.
 - **PostgreSQL:** `storage="postgresql"` → inserts results into `model_data` and `agent_data` tables for querying."""
 
 # %% [markdown]
