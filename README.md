@@ -1,8 +1,10 @@
+<!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img src="https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png" alt="Mesa logo" width="96">
+    <img src="https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png" alt="Mesa logo" width="96">
 </p>
 
 <h1 align="center">mesa-frames</h1>
+<!-- markdownlint-enable MD033 -->
 
 |         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -54,29 +56,20 @@ mesa-frames currently uses **Polars** as its backend.
 
 ## Benchmarks
 
-<p align="left">
-  <a href="https://projectmesa.github.io/mesa-frames/general/benchmarks/">
-    <img alt="Reproduce Benchmarks" src="https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge">
-  </a>
-</p>
+[![Reproduce Benchmarks](https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge)](https://projectmesa.github.io/mesa-frames/general/benchmarks/)
 
 mesa-frames delivers consistent speedups across both toy and canonical ABMs.
 At 10k agents, it runs **~10× faster** than classic Mesa, and the gap grows with scale.
 
-<p align="center">
-  <img src="examples/boltzmann_wealth/boltzmann_benchmark.png" width="45%" alt="Benchmark: Boltzmann Wealth">
-  <img src="examples/sugarscape/sugarscape_benchmark.png" width="45%" alt="Benchmark: Sugarscape IG">
-</p>
+![Benchmark: Boltzmann Wealth](examples/boltzmann_wealth/boltzmann_benchmark.png)
+
+![Benchmark: Sugarscape IG](examples/sugarscape/sugarscape_benchmark.png)
 
 ---
 
 ## Quick Start
 
-<p align="left">
-  <a href="https://projectmesa.github.io/mesa-frames/general/user-guide/">
-    <img alt="Explore the Tutorials" src="https://img.shields.io/badge/Explore%20the%20Tutorials-📚-blue?style=for-the-badge">
-  </a>
-</p>
+[![Explore the Tutorials](https://img.shields.io/badge/Explore%20the%20Tutorials-📚-blue?style=for-the-badge)](https://projectmesa.github.io/mesa-frames/general/user-guide/)
 
 1. **Install**
 
@@ -92,7 +85,7 @@ cd mesa-frames
 uv sync --all-extras
 ```
 
-2. **Create a model**
+1. **Create a model**
 
    ```python
    from mesa_frames import AgentSet, Model
