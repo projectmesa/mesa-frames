@@ -15,23 +15,24 @@
 
 ## Scale Mesa beyond its limits
 
-Classic [Mesa](https://github.com/projectmesa/mesa) stores each agent as a Python object, which quickly becomes a bottleneck at scale.  
-**mesa-frames** reimagines agent storage using **Polars DataFrames**, so agents live in a columnar store rather than the Python heap.  
+Classic [Mesa](https://github.com/projectmesa/mesa) stores each agent as a Python object, which quickly becomes a bottleneck at scale.
+**mesa-frames** reimagines agent storage using **Polars DataFrames**, so agents live in a columnar store rather than the Python heap.
 
 You keep the Mesa-style `Model` / `AgentSet` structure, but updates are vectorized and memory-efficient.
 
 ### Why it matters
+
 - ⚡ **10× faster** bulk updates on 10k+ agents ([see Benchmarks](#benchmarks))
-- 📊 **Columnar execution** via [Polars](https://docs.pola.rs/): [SIMD](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data) ops, multi-core support  
-- 🔄 **Declarative logic**: agent rules as transformations, not Python loops  
+- 📊 **Columnar execution** via [Polars](https://docs.pola.rs/): [SIMD](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data) ops, multi-core support
+- 🔄 **Declarative logic**: agent rules as transformations, not Python loops
 - 🚀 **Roadmap**: Lazy queries and GPU support for even faster models
 
 ---
 
 ## Who is it for?
 
-- Researchers needing to scale to **tens or hundreds of thousands of agents**  
-- Users whose agent logic can be written as **vectorized, set-based operations**  
+- Researchers needing to scale to **tens or hundreds of thousands of agents**
+- Users whose agent logic can be written as **vectorized, set-based operations**
 
 ❌ **Not a good fit if:** your model depends on strict per-agent sequencing, complex non-vectorizable methods, or fine-grained identity tracking.
 
@@ -39,7 +40,7 @@ You keep the Mesa-style `Model` / `AgentSet` structure, but updates are vectoriz
 
 ## Why DataFrames?
 
-DataFrames enable SIMD and columnar operations that are far more efficient than Python loops.  
+DataFrames enable SIMD and columnar operations that are far more efficient than Python loops.
 mesa-frames currently uses **Polars** as its backend.
 
 | Feature                | mesa (classic) | mesa-frames |
@@ -59,15 +60,13 @@ mesa-frames currently uses **Polars** as its backend.
   </a>
 </p>
 
-
-mesa-frames delivers consistent speedups across both toy and canonical ABMs.  
+mesa-frames delivers consistent speedups across both toy and canonical ABMs.
 At 10k agents, it runs **~10× faster** than classic Mesa, and the gap grows with scale.
 
 <p align="center">
   <img src="examples/boltzmann_wealth/boltzmann_benchmark.png" width="45%" alt="Benchmark: Boltzmann Wealth">
   <img src="examples/sugarscape/sugarscape_benchmark.png" width="45%" alt="Benchmark: Sugarscape IG">
 </p>
-
 
 ---
 
@@ -79,7 +78,7 @@ At 10k agents, it runs **~10× faster** than classic Mesa, and the gap grows wit
   </a>
 </p>
 
-1. **Install** 
+1. **Install**
 
 ```bash
    pip install mesa-frames
@@ -129,10 +128,10 @@ uv sync --all-extras
 
 > Community contributions welcome — see the [full roadmap](https://projectmesa.github.io/mesa-frames/general/roadmap)
 
-* Transition to LazyFrames for optimization and GPU support
-* Auto-vectorize existing Mesa models via decorator
-* Increase possible Spaces
-* Refine the API to align to Mesa
+- Transition to LazyFrames for optimization and GPU support
+- Auto-vectorize existing Mesa models via decorator
+- Increase possible Spaces
+- Refine the API to align to Mesa
 
 ---
 
