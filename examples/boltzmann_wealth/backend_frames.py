@@ -12,9 +12,8 @@ import typer
 from time import perf_counter
 
 from mesa_frames import AgentSet, DataCollector, Model
-
-
-from examples.utils import SimulationResult, plot_model_metrics
+from examples.utils import SimulationResult
+from examples.plotting import plot_model_metrics
 
 
 # Note: by default we create a timestamped results directory under `results/`.
@@ -55,7 +54,9 @@ class MoneyAgents(AgentSet):
             return
         # Use the model RNG to seed Polars sampling so results are reproducible
         recipients = self.df.sample(
-            n=len(self.active_agents), with_replacement=True, seed=self.random.integers(np.iinfo(np.int32).max)
+            n=len(self.active_agents),
+            with_replacement=True,
+            seed=self.random.integers(np.iinfo(np.int32).max),
         )
         # donors lose one unit
         self["active", "wealth"] -= 1
@@ -102,8 +103,8 @@ def simulate(
     return SimulationResult(datacollector=model.datacollector)
 
 
-
 app = typer.Typer(add_completion=False)
+
 
 @app.command()
 def run(
@@ -112,16 +113,24 @@ def run(
     seed: Annotated[int | None, typer.Option(help="Optional RNG seed.")] = None,
     plot: Annotated[bool, typer.Option(help="Render Seaborn plots.")] = True,
     save_results: Annotated[bool, typer.Option(help="Persist metrics as CSV.")] = True,
-    results_dir: Annotated[Path | None, typer.Option(help="Directory to write CSV results and plots into. If omitted a timestamped subdir under `results/` is used.")] = None,
+    results_dir: Annotated[
+        Path | None,
+        typer.Option(
+            help="Directory to write CSV results and plots into. If omitted a timestamped subdir under `results/` is used."
+        ),
+    ] = None,
 ) -> None:
-    typer.echo(f"Running Boltzmann wealth model (mesa-frames) with {agents} agents for {steps} steps")
+    typer.echo(
+        f"Running Boltzmann wealth model (mesa-frames) with {agents} agents for {steps} steps"
+    )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     if results_dir is None:
-        results_dir = (Path(__file__).resolve().parent / "results" / timestamp).resolve()
+        results_dir = (
+            Path(__file__).resolve().parent / "results" / timestamp
+        ).resolve()
     results_dir.mkdir(parents=True, exist_ok=True)
     start_time = perf_counter()
     result = simulate(agents=agents, steps=steps, seed=seed, results_dir=results_dir)
-
 
     typer.echo(f"Simulation complete in {perf_counter() - start_time:.2f} seconds")
 
