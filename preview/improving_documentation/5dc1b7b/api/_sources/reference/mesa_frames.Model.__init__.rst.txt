@@ -1,0 +1,6 @@
+﻿mesa\_frames.Model.\_\_init\_\_
+===============================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Model.__init__

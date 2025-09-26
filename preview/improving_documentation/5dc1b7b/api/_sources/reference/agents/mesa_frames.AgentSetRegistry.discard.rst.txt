@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.discard
+=====================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSetRegistry.discard
