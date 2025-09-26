@@ -12,7 +12,7 @@ import typer
 from time import perf_counter
 
 from mesa_frames import AgentSet, DataCollector, Model
-from examples.utils import SimulationResult
+from examples.utils import FramesSimulationResult
 from examples.plotting import plot_model_metrics
 
 
@@ -96,11 +96,11 @@ def simulate(
     steps: int,
     seed: int | None = None,
     results_dir: Path | None = None,
-) -> SimulationResult:
+) -> FramesSimulationResult:
     model = MoneyModel(agents, seed=seed, results_dir=results_dir)
     model.run(steps)
     # collect data from datacollector into memory first
-    return SimulationResult(datacollector=model.datacollector)
+    return FramesSimulationResult(datacollector=model.datacollector)
 
 
 app = typer.Typer(add_completion=False)
@@ -136,7 +136,7 @@ def run(
 
     model_metrics = result.datacollector.data["model"].select("step", "gini")
 
-    typer.echo(f"Metrics in the final 5 steps: {model_metrics[-5:]}")
+    typer.echo(f"Metrics in the final 5 steps: {model_metrics.tail(5)}")
 
     if save_results:
         result.datacollector.flush()
