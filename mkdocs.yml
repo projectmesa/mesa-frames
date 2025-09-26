@@ -1,5 +1,5 @@
 # Project information
-site_name: mesa-frames
+site_name: mesa-frames documentation
 site_url: https://projectmesa.github.io/mesa-frames
 repo_url: https://github.com/projectmesa/mesa-frames
 repo_name: projectmesa/mesa-frames
@@ -40,6 +40,10 @@ theme:
     code: Roboto Mono
   icon:
     repo: fontawesome/brands/github
+  # Logo (PNG)
+  logo: https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png
+  # Favicon (ICO)
+  favicon: https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.ico
 
 # Plugins
 plugins:
@@ -96,6 +100,11 @@ extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
+# Custom CSS for branding (brand-core then material adapter)
+extra_css:
+  - stylesheets/brand-core.css
+  - stylesheets/brand-material.css
+
 # Customization
 extra:
   social:
@@ -112,8 +121,8 @@ nav:
       - Classes: user-guide/1_classes.md
       - Introductory Tutorial: user-guide/2_introductory-tutorial.ipynb
       - Data Collector Tutorial: user-guide/4_datacollector.ipynb
-      - Advanced Tutorial: user-guide/3_advanced-tutorial.md
-      - Benchmarks: user-guide/4_benchmarks.md
+      - Advanced Tutorial: user-guide/3_advanced-tutorial.ipynb
+      - Benchmarks: user-guide/5_benchmarks.md
   - API Reference: api/index.html
   - Contributing:
       - Contribution Guide: contributing.md

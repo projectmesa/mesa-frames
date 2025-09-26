@@ -58,28 +58,13 @@ Before you begin contributing, ensure that you have the necessary tools installe
 
 #### **Step 3: Install Dependencies** 📦
 
-It is recommended to set up a virtual environment before installing dependencies.
+We manage the development environment with [uv](https://docs.astral.sh/uv/):
 
-- **Using UV**:
+```sh
+uv sync --all-extras
+```
 
-  ```sh
-  uv add --dev .[dev]
-  ```
-
-- **Using Hatch**:
-
-  ```sh
-  hatch env create dev
-  ```
-
-- **Using Standard Python**:
-
-  ```sh
-  python3 -m venv myenv
-  source myenv/bin/activate  # macOS/Linux
-  myenv\Scripts\activate    # Windows
-  pip install -e ".[dev]"
-  ```
+This creates `.venv/` and installs mesa-frames with the development extras.
 
 #### **Step 4: Make and Commit Changes** ✨
 
@@ -99,21 +84,19 @@ It is recommended to set up a virtual environment before installing dependencies
 - **Run pre-commit hooks** to enforce code quality standards:
 
   ```sh
-  pre-commit run
+  uv run pre-commit run -a
   ```
 
 - **Run tests** to ensure your contribution does not break functionality:
 
   ```sh
-  pytest --cov
+  uv run pytest -q --cov=mesa_frames --cov-report=term-missing
   ```
-
-  - If using UV: `uv run pytest --cov`
 
 - **Optional: Enable runtime type checking** during development for enhanced type safety:
 
   ```sh
-  MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest --cov
+  MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest -q --cov=mesa_frames --cov-report=term-missing
   ```
 
   !!! tip "Automatically Enabled"
@@ -135,8 +118,7 @@ It is recommended to set up a virtual environment before installing dependencies
   - Preview your changes by running:
 
     ```sh
-    mkdocs serve
-    uv run mkdocs serve #If using uv
+    uv run mkdocs serve
     ```
 
   - Open `http://127.0.0.1:8000` in your browser to verify documentation updates.
