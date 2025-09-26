@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import mesa_frames
 import mesa
 
+
 @dataclass
 class FramesSimulationResult:
     """Container for example simulation outputs.
@@ -11,6 +12,7 @@ class FramesSimulationResult:
     """
 
     datacollector: mesa_frames.DataCollector
+
 
 @dataclass
 class MesaSimulationResult:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Sequence
 import re
 
 import polars as pl
@@ -27,16 +27,16 @@ _THEMES = {
         rc={
             # real dark background + readable foreground
             "figure.facecolor": "#0b1021",
-            "axes.facecolor":   "#0b1021",
-            "axes.edgecolor":   "#d6d6d7",
-            "axes.labelcolor":  "#e8e8ea",
-            "text.color":       "#e8e8ea",
-            "xtick.color":      "#c9c9cb",
-            "ytick.color":      "#c9c9cb",
-            "grid.color":       "#2a2f4a",
-            "grid.alpha":       0.35,
-            "axes.spines.top":  False,
-            "axes.spines.right":False,
+            "axes.facecolor": "#0b1021",
+            "axes.edgecolor": "#d6d6d7",
+            "axes.labelcolor": "#e8e8ea",
+            "text.color": "#e8e8ea",
+            "xtick.color": "#c9c9cb",
+            "ytick.color": "#c9c9cb",
+            "grid.color": "#2a2f4a",
+            "grid.alpha": 0.35,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
             "legend.facecolor": "#121734",
             "legend.edgecolor": "#3b3f5a",
         },
@@ -76,6 +76,7 @@ def _finalize_and_save(fig: Figure, output_dir: Path, stem: str, theme: str) -> 
 
 
 # -------------------------- Public: model metrics ----------------------------
+
 
 def plot_model_metrics(
     metrics: pl.DataFrame,
@@ -118,7 +119,9 @@ def plot_model_metrics(
 
     long = (
         metrics.select(["step", *value_cols])
-        .unpivot(index="step", on=value_cols, variable_name="metric", value_name="value")
+        .unpivot(
+            index="step", on=value_cols, variable_name="metric", value_name="value"
+        )
         .to_pandas()
     )
 
@@ -170,6 +173,7 @@ def plot_model_metrics(
 
 # -------------------------- Public: agent metrics ----------------------------
 
+
 def plot_agent_metrics(
     agent_metrics: pl.DataFrame,
     output_dir: Path,
@@ -189,19 +193,18 @@ def plot_agent_metrics(
         return
 
     preferred = ["step", "seed", "batch"]
-    id_vars = [c for c in preferred if c in agent_metrics.columns] or [agent_metrics.columns[0]]
+    id_vars = [c for c in preferred if c in agent_metrics.columns] or [
+        agent_metrics.columns[0]
+    ]
 
     # Determine which columns to unpivot (all columns except the id vars).
     value_cols = [c for c in agent_metrics.columns if c not in id_vars]
     if not value_cols:
         return
 
-    melted = (
-        agent_metrics.unpivot(
-            index=id_vars, on=value_cols, variable_name="metric", value_name="value"
-        )
-        .to_pandas()
-    )
+    melted = agent_metrics.unpivot(
+        index=id_vars, on=value_cols, variable_name="metric", value_name="value"
+    ).to_pandas()
 
     xcol = id_vars[0]
 
@@ -226,6 +229,7 @@ def plot_agent_metrics(
 
 
 # -------------------------- Public: performance ------------------------------
+
 
 def plot_performance(
     df: pl.DataFrame,
