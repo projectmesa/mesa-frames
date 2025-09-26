@@ -1162,19 +1162,6 @@ wheels = [
 ]
 
 [[package]]
-name = "matplotx"
-version = "0.3.10"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "matplotlib" },
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c3/01/0e6938bb717fa7722d6d81336c62de71b815ce73e382aa1873a1e68ccc93/matplotx-0.3.10.tar.gz", hash = "sha256:b6926ce5274cf5da966cb46b90a8c7fefb761478c6c85c8f7ed3ee8ec90e86e5", size = 24041, upload-time = "2022-08-22T14:22:56.374Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/95/ef/e8a30503ae0c26681a9610c7f0be58646bea8119b98cc65c47661abc27a3/matplotx-0.3.10-py3-none-any.whl", hash = "sha256:4d7adafdb001c771d66d9362bb8ca99fcaed15319259223a714f36793dfabbb8", size = 25099, upload-time = "2022-08-22T14:22:54.733Z" },
-]
-
-[[package]]
 name = "mdit-py-plugins"
 version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1243,7 +1230,6 @@ dev = [
     { name = "mkdocs-minify-plugin" },
     { name = "numba" },
     { name = "numpydoc" },
-    { name = "perfplot" },
     { name = "pre-commit" },
     { name = "pydata-sphinx-theme" },
     { name = "pytest" },
@@ -1268,7 +1254,6 @@ docs = [
     { name = "mkdocs-material" },
     { name = "mkdocs-minify-plugin" },
     { name = "numpydoc" },
-    { name = "perfplot" },
     { name = "pydata-sphinx-theme" },
     { name = "seaborn" },
     { name = "sphinx" },
@@ -1309,7 +1294,6 @@ dev = [
     { name = "mkdocs-minify-plugin", specifier = ">=0.8.0" },
     { name = "numba", specifier = ">=0.60.0" },
     { name = "numpydoc", specifier = ">=1.8.0" },
-    { name = "perfplot", specifier = ">=0.10.2" },
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pydata-sphinx-theme", specifier = ">=0.16.1" },
     { name = "pytest", specifier = ">=8.3.5" },
@@ -1334,7 +1318,6 @@ docs = [
     { name = "mkdocs-material", specifier = ">=9.6.14" },
     { name = "mkdocs-minify-plugin", specifier = ">=0.8.0" },
     { name = "numpydoc", specifier = ">=1.8.0" },
-    { name = "perfplot", specifier = ">=0.10.2" },
     { name = "pydata-sphinx-theme", specifier = ">=0.16.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "sphinx", specifier = ">=7.4.7" },
@@ -1734,21 +1717,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ca/bc/f35b8446f4531a7cb215605d100cd88b7ac6f44ab3fc94870c120ab3adbf/pathspec-0.12.1.tar.gz", hash = "sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712", size = 51043, upload-time = "2023-12-10T22:30:45Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cc/20/ff623b09d963f88bfde16306a54e12ee5ea43e9b597108672ff3a408aad6/pathspec-0.12.1-py3-none-any.whl", hash = "sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08", size = 31191, upload-time = "2023-12-10T22:30:43.14Z" },
-]
-
-[[package]]
-name = "perfplot"
-version = "0.10.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "matplotlib" },
-    { name = "matplotx" },
-    { name = "numpy" },
-    { name = "rich" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/97/41/51d8b9caa150a050de16a229f627e4b37515dbff0075259e4e75aff7218b/perfplot-0.10.2.tar.gz", hash = "sha256:d76daa72334564b5c8825663f24d15db55ea33e938b34595a146e5e44ed87e41", size = 25044, upload-time = "2022-03-03T15:56:37.392Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/85/ffaf2c1f92d17916c089a5c860d23b3117398f19f467fd1de1026d03aebc/perfplot-0.10.2-py3-none-any.whl", hash = "sha256:545ce0f7f22509ad00092d79a794cdc6e9805383e6cedab2bfed3519a7ef4e19", size = 21198, upload-time = "2022-03-03T15:56:35.388Z" },
 ]
 
 [[package]]
