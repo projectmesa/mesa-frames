@@ -267,7 +267,7 @@ def run(
                 single_pl,
                 plots_dir,
                 stem,
-                title=f"Sugarscape IG  {col.capitalize()}",
+                title=f"Sugarscape IG - {col.capitalize()}",
                 subtitle="mesa backend",
                 agents=agents,
                 steps=steps,
