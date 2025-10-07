@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
 from typing import Literal, Annotated, Protocol, Optional
@@ -149,7 +149,7 @@ def run(
         help="Models to benchmark: boltzmann, sugarscape, or all",
         callback=_parse_models
     )] = "all",
-    agents: Annotated[list[int], typer.Option(
+    agents: Annotated[str, typer.Option(
         help="Agent count or range (start:stop:step)",
         callback=_parse_agents
     )] = "1000:5000:1000",
@@ -170,7 +170,7 @@ def run(
 ) -> None:
     """Run performance benchmarks for the models models."""
     rows: list[dict[str, object]] = []
-    timestamp = datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     for model in models:
         config = MODELS[model]
         typer.echo(f"Benchmarking {model} with agents {agents}")
