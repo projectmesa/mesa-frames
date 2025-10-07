@@ -250,19 +250,25 @@ def run(
         plots_dir.mkdir(parents=True, exist_ok=True)
 
         # Determine which columns to plot (preserve 'step' if present).
-        value_cols = [c for c in model_pd.columns if c != "step"]
+        # Exclude 'seed' from plots so we don't create a chart for a constant
+        # model reporter; keep 'seed' in the CSV/dataframe for reproducibility.
+        value_cols = [c for c in model_pd.columns if c not in {"step", "seed"}]
         for col in value_cols:
             stem = f"{col}_{timestamp}"
             single = model_pd[["step", col]] if "step" in model_pd.columns else model_pd[[col]]
             # Convert the single-column pandas DataFrame to Polars for the
             # shared plotting helper.
             single_pl = pl.from_pandas(single)
+            # Omit seed from subtitle/plot metadata to avoid leaking a constant
+            # value into the figure (it remains in the saved CSV). If you want
+            # to include the seed in filenames or external metadata, prefer
+            # annotating the output folder or README instead.
             plot_model_metrics(
                 single_pl,
                 plots_dir,
                 stem,
-                title=f"Sugarscape IG — {col.capitalize()}",
-                subtitle=f"mesa backend; seed={seed_val}",
+                title=f"Sugarscape IG  {col.capitalize()}",
+                subtitle="mesa backend",
                 agents=agents,
                 steps=steps,
             )
