@@ -194,34 +194,47 @@ def run(
 
     # Extract metrics using DataCollector API
     model_pd = dc.get_model_vars_dataframe().reset_index().rename(columns={"index": "step"})
-    seed_val = model_pd["seed"].iloc[0]
-    model_pd = model_pd[["step", "gini"]]
+    # Keep the full model metrics (step + any model reporters)
+    seed_val = None
+    if "seed" in model_pd.columns and not model_pd.empty:
+        seed_val = model_pd["seed"].iloc[0]
 
-    # Show tail for quick inspection
-    typer.echo(f"Metrics in the final 5 steps:\n{model_pd.tail(5).to_string(index=False)}")
+    # Show tail for quick inspection (exclude seed column from display)
+    display_pd = model_pd.drop(columns=["seed"]) if "seed" in model_pd.columns else model_pd
+    typer.echo(f"Metrics in the final 5 steps:\n{display_pd.tail(5).to_string(index=False)}")
 
-    # Save CSV
+    # Save CSV (full model metrics)
     if save_results:
         csv_path = results_dir / "model.csv"
         model_pd.to_csv(csv_path, index=False)
 
-    # Plot (convert to Polars to reuse example plotting helper)
+    # Plot per-metric similar to the backend_frames example: create a
+    # `plots/` subdirectory and generate one figure per model metric column
     if plot and not model_pd.empty:
-        model_pl = pl.from_pandas(model_pd)
-        stem = f"gini_{timestamp}"
-        plot_model_metrics(
-            model_pl,
-            results_dir,
-            stem,
-            title="Sugarscape IG — Gini",
-            subtitle=f"mesa backend; seed={seed_val}",
-            agents=agents,
-            steps=steps,
-        )
-        typer.echo(f"Saved plots under {results_dir}")
+        plots_dir = results_dir / "plots"
+        plots_dir.mkdir(parents=True, exist_ok=True)
 
-    if save_results:
-        typer.echo(f"Saved CSV results under {results_dir}")
+        # Determine which columns to plot (preserve 'step' if present).
+        value_cols = [c for c in model_pd.columns if c != "step"]
+        for col in value_cols:
+            stem = f"{col}_{timestamp}"
+            single = model_pd[["step", col]] if "step" in model_pd.columns else model_pd[[col]]
+            # Convert the single-column pandas DataFrame to Polars for the
+            # shared plotting helper.
+            single_pl = pl.from_pandas(single)
+            plot_model_metrics(
+                single_pl,
+                plots_dir,
+                stem,
+                title=f"Sugarscape IG — {col.capitalize()}",
+                subtitle=f"mesa backend; seed={seed_val}",
+                agents=agents,
+                steps=steps,
+            )
+
+        typer.echo(f"Saved plots under {plots_dir}")
+
+    typer.echo(f"Saved CSV results under {results_dir}")
 
 
 if __name__ == "__main__":
