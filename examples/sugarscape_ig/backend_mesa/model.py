@@ -26,6 +26,31 @@ from examples.plotting import plot_model_metrics
 
 from examples.sugarscape_ig.backend_mesa.agents import AntAgent
 
+def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
+    """Safely compute Pearson correlation between two 1-D arrays.
+
+    Mirrors the Frames helper: returns nan for degenerate inputs.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    if x.size < 2 or y.size < 2:
+        return float("nan")
+    if np.allclose(x, x[0]) or np.allclose(y, y[0]):
+        return float("nan")
+    return float(np.corrcoef(x, y)[0, 1])
+
+
+def corr_sugar_metabolism(model: "Sugarscape") -> float:
+    sugars = np.fromiter((a.sugar for a in model.agent_list), dtype=float)
+    mets = np.fromiter((a.metabolism for a in model.agent_list), dtype=float)
+    return _safe_corr(sugars, mets)
+
+
+def corr_sugar_vision(model: "Sugarscape") -> float:
+    sugars = np.fromiter((a.sugar for a in model.agent_list), dtype=float)
+    vision = np.fromiter((a.vision for a in model.agent_list), dtype=float)
+    return _safe_corr(sugars, vision)
+
 
 def gini(values: Iterable[float]) -> float:
     array = np.fromiter(values, dtype=float)
@@ -88,11 +113,21 @@ class Sugarscape(mesa.Model):
                 self.agent_list.append(a)
                 placed += 1
 
+        # Model-level reporters mirroring the Frames implementation so CSVs
+        # are comparable across backends.
         self.datacollector = DataCollector(
             model_reporters={
+                "mean_sugar": lambda m: float(np.mean([a.sugar for a in m.agent_list])) if m.agent_list else 0.0,
+                "total_sugar": lambda m: float(sum(a.sugar for a in m.agent_list)) if m.agent_list else 0.0,
+                "agents_alive": lambda m: float(len(m.agent_list)),
                 "gini": lambda m: gini(a.sugar for a in m.agent_list),
+                "corr_sugar_metabolism": lambda m: corr_sugar_metabolism(m),
+                "corr_sugar_vision": lambda m: corr_sugar_vision(m),
                 "seed": lambda m: seed,
-            }
+            },
+            agent_reporters={
+                "traits": lambda a: {"sugar": a.sugar, "metabolism": a.metabolism, "vision": a.vision}
+            },
         )
         self.datacollector.collect(self)
 
