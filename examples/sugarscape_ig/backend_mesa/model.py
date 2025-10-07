@@ -1,0 +1,229 @@
+"""Mesa implementation of Sugarscape IG with Typer CLI (sequential update).
+
+Follows the same structure as the Boltzmann Mesa example: `simulate()` and a
+`run` CLI command that saves CSV results and plots the Gini trajectory. The
+model updates in the order move -> eat -> regrow -> collect, matching the
+tutorial schedule.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Iterable, Annotated
+from time import perf_counter
+
+import mesa
+from mesa.datacollection import DataCollector
+from mesa.space import SingleGrid
+import numpy as np
+import pandas as pd
+import polars as pl
+import typer
+
+from examples.utils import MesaSimulationResult
+from examples.plotting import plot_model_metrics
+
+from examples.sugarscape_ig.backend_mesa.agents import AntAgent
+
+
+def gini(values: Iterable[float]) -> float:
+    array = np.fromiter(values, dtype=float)
+    if array.size == 0:
+        return float("nan")
+    if np.allclose(array, 0.0):
+        return 0.0
+    if np.allclose(array, array[0]):
+        return 0.0
+    sorted_vals = np.sort(array)
+    n = sorted_vals.size
+    cumulative = np.cumsum(sorted_vals)
+    total = cumulative[-1]
+    if total == 0:
+        return 0.0
+    index = np.arange(1, n + 1, dtype=float)
+    return float((2.0 * np.dot(index, sorted_vals) / (n * total)) - (n + 1) / n)
+
+
+class Sugarscape(mesa.Model):
+    def __init__(
+        self,
+        agents: int,
+        *,
+        width: int,
+        height: int,
+        max_sugar: int = 4,
+        seed: int | None = None,
+    ) -> None:
+        super().__init__()
+        if seed is None:
+            seed = self.random.randint(0, np.iinfo(np.int32).max)
+        self.reset_randomizer(seed)
+        self.width = int(width)
+        self.height = int(height)
+
+        # Sugar field (current and max) as 2D arrays shaped (width, height)
+        numpy_rng = np.random.default_rng(seed)
+        self.sugar_max = numpy_rng.integers(0, max_sugar + 1, size=(width, height), dtype=np.int64)
+        self.sugar_current = self.sugar_max.copy()
+
+        # Grid with capacity 1 per cell
+        self.grid = SingleGrid(width, height, torus=False)
+
+        # Agents (Python list, manually shuffled/iterated for speed)
+        self.agent_list: list[AntAgent] = []
+        # Place all agents on empty cells; also draw initial traits from model RNG
+        placed = 0
+        while placed < agents:
+            x = int(self.random.randrange(0, width))
+            y = int(self.random.randrange(0, height))
+            if self.grid.is_cell_empty((x, y)):
+                a = AntAgent(
+                    self,
+                    sugar=int(self.random.randint(6, 25)),
+                    metabolism=int(self.random.randint(2, 5)),
+                    vision=int(self.random.randint(1, 6)),
+                )
+                self.grid.place_agent(a, (x, y))
+                self.agent_list.append(a)
+                placed += 1
+
+        self.datacollector = DataCollector(
+            model_reporters={
+                "gini": lambda m: gini(a.sugar for a in m.agent_list),
+                "seed": lambda m: seed,
+            }
+        )
+        self.datacollector.collect(self)
+
+    # --- Scheduling ---
+
+    def _harvest_and_survive(self) -> None:
+        survivors: list[AntAgent] = []
+        for a in self.agent_list:
+            x, y = a.pos
+            a.sugar += int(self.sugar_current[x, y])
+            a.sugar -= a.metabolism
+            # Harvested cells are emptied now; they wil\l be refilled if empty.
+            self.sugar_current[x, y] = 0
+            if a.sugar > 0:
+                survivors.append(a)
+            else:
+                # Remove dead agent from grid
+                self.grid.remove_agent(a)
+        self.agent_list = survivors
+
+    def _regrow(self) -> None:
+        # Empty cells regrow to max; occupied cells set to 0 (already zeroed on harvest)
+        for x in range(self.width):
+            for y in range(self.height):
+                if self.grid.is_cell_empty((x, y)):
+                    self.sugar_current[x, y] = self.sugar_max[x, y]
+                else:
+                    self.sugar_current[x, y] = 0
+
+    def step(self) -> None:
+        # Randomise order, move sequentially, then eat/starve, regrow, collect
+        self.random.shuffle(self.agent_list)
+        for a in self.agent_list:
+            a.move()
+        self._harvest_and_survive()
+        self._regrow()
+        self.datacollector.collect(self)
+        if not self.agent_list:
+            self.running = False
+
+    def run(self, steps: int) -> None:
+        for _ in range(steps):
+            if not getattr(self, "running", True):
+                break
+            self.step()
+
+
+def simulate(
+    *,
+    agents: int,
+    steps: int,
+    width: int,
+    height: int,
+    max_sugar: int = 4,
+    seed: int | None = None,
+) -> MesaSimulationResult:
+    model = Sugarscape(agents, width=width, height=height, max_sugar=max_sugar, seed=seed)
+    model.run(steps)
+    return MesaSimulationResult(datacollector=model.datacollector)
+
+
+app = typer.Typer(add_completion=False)
+
+
+@app.command()
+def run(
+    agents: Annotated[int, typer.Option(help="Number of agents to simulate.")] = 400,
+    width: Annotated[int, typer.Option(help="Grid width (columns).")] = 40,
+    height: Annotated[int, typer.Option(help="Grid height (rows).")] = 40,
+    steps: Annotated[int, typer.Option(help="Number of model steps to run.")] = 60,
+    max_sugar: Annotated[int, typer.Option(help="Maximum sugar per cell.")] = 4,
+    seed: Annotated[int | None, typer.Option(help="Optional RNG seed.")] = None,
+    plot: Annotated[bool, typer.Option(help="Render plots.")] = True,
+    save_results: Annotated[bool, typer.Option(help="Persist metrics as CSV.")] = True,
+    results_dir: Annotated[
+        Path | None,
+        typer.Option(
+            help=(
+                "Directory to write CSV results and plots into. If omitted a "
+                "timestamped subdir under `results/` is used."
+            )
+        ),
+    ] = None,
+) -> None:
+    typer.echo(
+        f"Running Sugarscape IG (mesa, sequential) with {agents} agents on {width}x{height} for {steps} steps"
+    )
+
+    # Resolve output folder
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    if results_dir is None:
+        results_dir = (Path(__file__).resolve().parent / "results" / timestamp).resolve()
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    start_time = perf_counter()
+    result = simulate(agents=agents, steps=steps, width=width, height=height, max_sugar=max_sugar, seed=seed)
+    typer.echo(f"Simulation completed in {perf_counter() - start_time:.3f} seconds")
+    dc = result.datacollector
+
+    # Extract metrics using DataCollector API
+    model_pd = dc.get_model_vars_dataframe().reset_index().rename(columns={"index": "step"})
+    seed_val = model_pd["seed"].iloc[0]
+    model_pd = model_pd[["step", "gini"]]
+
+    # Show tail for quick inspection
+    typer.echo(f"Metrics in the final 5 steps:\n{model_pd.tail(5).to_string(index=False)}")
+
+    # Save CSV
+    if save_results:
+        csv_path = results_dir / "model.csv"
+        model_pd.to_csv(csv_path, index=False)
+
+    # Plot (convert to Polars to reuse example plotting helper)
+    if plot and not model_pd.empty:
+        model_pl = pl.from_pandas(model_pd)
+        stem = f"gini_{timestamp}"
+        plot_model_metrics(
+            model_pl,
+            results_dir,
+            stem,
+            title="Sugarscape IG — Gini",
+            subtitle=f"mesa backend; seed={seed_val}",
+            agents=agents,
+            steps=steps,
+        )
+        typer.echo(f"Saved plots under {results_dir}")
+
+    if save_results:
+        typer.echo(f"Saved CSV results under {results_dir}")
+
+
+if __name__ == "__main__":
+    app()
+
