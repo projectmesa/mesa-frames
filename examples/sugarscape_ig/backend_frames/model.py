@@ -242,7 +242,14 @@ class Sugarscape(Model):
         self.space.place_to_empty(self.sets)
 
         # 3. Finally we set up the data collector
-        storage_uri = str(results_dir) if results_dir is not None else None
+        # Benchmarks may run without providing a results_dir; in that case avoid forcing
+        # a CSV storage backend (which requires a storage_uri) and keep data in memory.
+        if results_dir is None:
+            storage = "memory"
+            storage_uri = None
+        else:
+            storage = "csv"
+            storage_uri = str(results_dir)
         self.datacollector = DataCollector(
             model=self,
             model_reporters={
@@ -258,7 +265,7 @@ class Sugarscape(Model):
                 "corr_sugar_vision": corr_sugar_vision,
             },
             agent_reporters={"traits": ["sugar", "metabolism", "vision"]},
-            storage="csv",
+            storage=storage,
             storage_uri=storage_uri,
         )
         self.datacollector.collect()

@@ -8,6 +8,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import Literal, Annotated, Protocol, Optional
 
+import math
 import matplotlib.pyplot as plt
 import polars as pl
 import seaborn as sns
@@ -49,11 +50,25 @@ MODELS: dict[str, ModelConfig] = {
         backends=[
             Backend(
                 name="mesa",
-                runner=sugarscape_mesa.simulate,
+                runner=lambda agents, steps, seed=None: sugarscape_mesa.simulate(
+                    agents=agents,
+                    steps=steps,
+                    width=int(max(20, math.ceil((agents) ** 0.5) * 2)),
+                    height=int(max(20, math.ceil((agents) ** 0.5) * 2)),
+                    seed=seed,
+                ),
             ),
             Backend(
                 name="frames",
-                runner=sugarscape_frames.simulate,
+                # Benchmarks expect a runner signature (agents:int, steps:int, seed:int|None)
+                # Sugarscape frames simulate requires width/height; choose square close to agent count.
+                runner=lambda agents, steps, seed=None: sugarscape_frames.simulate(
+                    agents=agents,
+                    steps=steps,
+                    width=int(max(20, math.ceil((agents) ** 0.5) * 2)),
+                    height=int(max(20, math.ceil((agents) ** 0.5) * 2)),
+                    seed=seed,
+                ),
             ),
         ],
     ),

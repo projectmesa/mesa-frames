@@ -72,13 +72,22 @@ class MoneyModel(Model):
     ) -> None:
         super().__init__(seed)
         self.sets += MoneyAgents(self, agents)
-        storage_uri = str(results_dir) if results_dir is not None else None
+        # For benchmarks we frequently call simulate() without providing a results_dir.
+        # Persisting to disk would add unnecessary IO overhead and a missing storage_uri
+        # currently raises in DataCollector validation. Fallback to in-memory collection
+        # when no results_dir is supplied; otherwise write CSV files under results_dir.
+        if results_dir is None:
+            storage = "memory"
+            storage_uri = None
+        else:
+            storage = "csv"
+            storage_uri = str(results_dir)
         self.datacollector = DataCollector(
             model=self,
             model_reporters={
                 "gini": lambda m: gini(m.sets[0].df),
             },
-            storage="csv",
+            storage=storage,
             storage_uri=storage_uri,
         )
 
