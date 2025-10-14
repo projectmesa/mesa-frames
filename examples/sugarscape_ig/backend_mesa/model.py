@@ -10,7 +10,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Annotated
+from typing import Annotated
+from collections.abc import Iterable
 from time import perf_counter
 
 import mesa
@@ -26,6 +27,7 @@ from examples.plotting import plot_model_metrics
 
 from examples.sugarscape_ig.backend_mesa.agents import AntAgent
 
+
 def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
     """Safely compute Pearson correlation between two 1-D arrays.
 
@@ -40,13 +42,13 @@ def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
     return float(np.corrcoef(x, y)[0, 1])
 
 
-def corr_sugar_metabolism(model: "Sugarscape") -> float:
+def corr_sugar_metabolism(model: Sugarscape) -> float:
     sugars = np.fromiter((a.sugar for a in model.agent_list), dtype=float)
     mets = np.fromiter((a.metabolism for a in model.agent_list), dtype=float)
     return _safe_corr(sugars, mets)
 
 
-def corr_sugar_vision(model: "Sugarscape") -> float:
+def corr_sugar_vision(model: Sugarscape) -> float:
     sugars = np.fromiter((a.sugar for a in model.agent_list), dtype=float)
     vision = np.fromiter((a.vision for a in model.agent_list), dtype=float)
     return _safe_corr(sugars, vision)
@@ -89,7 +91,9 @@ class Sugarscape(mesa.Model):
 
         # Sugar field (current and max) as 2D arrays shaped (width, height)
         numpy_rng = np.random.default_rng(seed)
-        self.sugar_max = numpy_rng.integers(0, max_sugar + 1, size=(width, height), dtype=np.int64)
+        self.sugar_max = numpy_rng.integers(
+            0, max_sugar + 1, size=(width, height), dtype=np.int64
+        )
         self.sugar_current = self.sugar_max.copy()
 
         # Grid with capacity 1 per cell
@@ -117,8 +121,12 @@ class Sugarscape(mesa.Model):
         # are comparable across backends.
         self.datacollector = DataCollector(
             model_reporters={
-                "mean_sugar": lambda m: float(np.mean([a.sugar for a in m.agent_list])) if m.agent_list else 0.0,
-                "total_sugar": lambda m: float(sum(a.sugar for a in m.agent_list)) if m.agent_list else 0.0,
+                "mean_sugar": lambda m: float(np.mean([a.sugar for a in m.agent_list]))
+                if m.agent_list
+                else 0.0,
+                "total_sugar": lambda m: float(sum(a.sugar for a in m.agent_list))
+                if m.agent_list
+                else 0.0,
                 "agents_alive": lambda m: float(len(m.agent_list)),
                 "gini": lambda m: gini(a.sugar for a in m.agent_list),
                 "corr_sugar_metabolism": lambda m: corr_sugar_metabolism(m),
@@ -126,7 +134,11 @@ class Sugarscape(mesa.Model):
                 "seed": lambda m: seed,
             },
             agent_reporters={
-                "traits": lambda a: {"sugar": a.sugar, "metabolism": a.metabolism, "vision": a.vision}
+                "traits": lambda a: {
+                    "sugar": a.sugar,
+                    "metabolism": a.metabolism,
+                    "vision": a.vision,
+                }
             },
         )
         self.datacollector.collect(self)
@@ -139,7 +151,7 @@ class Sugarscape(mesa.Model):
             x, y = a.pos
             a.sugar += int(self.sugar_current[x, y])
             a.sugar -= a.metabolism
-            # Harvested cells are emptied now; they wil\l be refilled if empty.
+                # Harvested cells are emptied now; they will be refilled if empty.
             self.sugar_current[x, y] = 0
             if a.sugar > 0:
                 survivors.append(a)
@@ -184,7 +196,9 @@ def simulate(
     max_sugar: int = 4,
     seed: int | None = None,
 ) -> MesaSimulationResult:
-    model = Sugarscape(agents, width=width, height=height, max_sugar=max_sugar, seed=seed)
+    model = Sugarscape(
+        agents, width=width, height=height, max_sugar=max_sugar, seed=seed
+    )
     model.run(steps)
     return MesaSimulationResult(datacollector=model.datacollector)
 
@@ -219,24 +233,39 @@ def run(
     # Resolve output folder
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     if results_dir is None:
-        results_dir = (Path(__file__).resolve().parent / "results" / timestamp).resolve()
+        results_dir = (
+            Path(__file__).resolve().parent / "results" / timestamp
+        ).resolve()
     results_dir.mkdir(parents=True, exist_ok=True)
 
     start_time = perf_counter()
-    result = simulate(agents=agents, steps=steps, width=width, height=height, max_sugar=max_sugar, seed=seed)
+    result = simulate(
+        agents=agents,
+        steps=steps,
+        width=width,
+        height=height,
+        max_sugar=max_sugar,
+        seed=seed,
+    )
     typer.echo(f"Simulation completed in {perf_counter() - start_time:.3f} seconds")
     dc = result.datacollector
 
     # Extract metrics using DataCollector API
-    model_pd = dc.get_model_vars_dataframe().reset_index().rename(columns={"index": "step"})
+    model_pd = (
+        dc.get_model_vars_dataframe().reset_index().rename(columns={"index": "step"})
+    )
     # Keep the full model metrics (step + any model reporters)
     seed_val = None
     if "seed" in model_pd.columns and not model_pd.empty:
         seed_val = model_pd["seed"].iloc[0]
 
     # Show tail for quick inspection (exclude seed column from display)
-    display_pd = model_pd.drop(columns=["seed"]) if "seed" in model_pd.columns else model_pd
-    typer.echo(f"Metrics in the final 5 steps:\n{display_pd.tail(5).to_string(index=False)}")
+    display_pd = (
+        model_pd.drop(columns=["seed"]) if "seed" in model_pd.columns else model_pd
+    )
+    typer.echo(
+        f"Metrics in the final 5 steps:\n{display_pd.tail(5).to_string(index=False)}"
+    )
 
     # Save CSV (full model metrics)
     if save_results:
@@ -255,7 +284,11 @@ def run(
         value_cols = [c for c in model_pd.columns if c not in {"step", "seed"}]
         for col in value_cols:
             stem = f"{col}_{timestamp}"
-            single = model_pd[["step", col]] if "step" in model_pd.columns else model_pd[[col]]
+            single = (
+                model_pd[["step", col]]
+                if "step" in model_pd.columns
+                else model_pd[[col]]
+            )
             # Convert the single-column pandas DataFrame to Polars for the
             # shared plotting helper.
             single_pl = pl.from_pandas(single)
@@ -280,4 +313,3 @@ def run(
 
 if __name__ == "__main__":
     app()
-

@@ -21,13 +21,14 @@ from examples.sugarscape_ig.backend_mesa import model as sugarscape_mesa
 
 app = typer.Typer(add_completion=False)
 
+
 class RunnerP(Protocol):
-    def __call__(self, agents: int, steps: int, seed: Optional[int] = None) -> None: ...
+    def __call__(self, agents: int, steps: int, seed: int | None = None) -> None: ...
 
 
 @dataclass(slots=True)
 class Backend:
-    name: Literal['mesa', 'frames']
+    name: Literal["mesa", "frames"]
     runner: RunnerP
 
 
@@ -74,6 +75,7 @@ MODELS: dict[str, ModelConfig] = {
     ),
 }
 
+
 def _parse_agents(value: str) -> list[int]:
     value = value.strip()
     if ":" in value:
@@ -82,7 +84,7 @@ def _parse_agents(value: str) -> list[int]:
             raise typer.BadParameter("Ranges must use start:stop:step format")
         try:
             start, stop, step = (int(part) for part in parts)
-        except ValueError as exc:  
+        except ValueError as exc:
             raise typer.BadParameter("Range values must be integers") from exc
         if step <= 0:
             raise typer.BadParameter("Step must be positive")
@@ -101,6 +103,7 @@ def _parse_agents(value: str) -> list[int]:
     if agents <= 0:
         raise typer.BadParameter("Agent count must be positive")
     return [agents]
+
 
 def _parse_models(value: str) -> list[str]:
     """Parse models option into a list of model keys.
@@ -130,6 +133,7 @@ def _parse_models(value: str) -> list[str]:
             seen.add(p)
             result.append(p)
     return result
+
 
 def _plot_performance(
     df: pl.DataFrame, model_name: str, output_dir: Path, timestamp: str
@@ -176,12 +180,18 @@ def run(
     seed: Annotated[int, typer.Option(help="Optional RNG seed.")] = 42,
     save: Annotated[bool, typer.Option(help="Persist benchmark CSV results.")] = True,
     plot: Annotated[bool, typer.Option(help="Render performance plots.")] = True,
-    results_dir: Annotated[Path, typer.Option(
-        help="Directory for benchmark CSV results.",
-    )] = Path(__file__).resolve().parent / "results",
-    plots_dir: Annotated[Path, typer.Option(
-        help="Directory for benchmark plots.",
-    )] = Path(__file__).resolve().parent / "plots",
+    results_dir: Annotated[
+        Path,
+        typer.Option(
+            help="Directory for benchmark CSV results.",
+        ),
+    ] = Path(__file__).resolve().parent / "results",
+    plots_dir: Annotated[
+        Path,
+        typer.Option(
+            help="Directory for benchmark plots.",
+        ),
+    ] = Path(__file__).resolve().parent / "plots",
 ) -> None:
     """Run performance benchmarks for the models models."""
     rows: list[dict[str, object]] = []

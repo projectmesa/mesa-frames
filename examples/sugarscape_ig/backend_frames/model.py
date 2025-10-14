@@ -199,6 +199,9 @@ class Sugarscape(Model):
         by default 4.
     seed : int | None, optional
         RNG seed to make runs reproducible across variants, by default None.
+    results_dir : Path | None, optional
+        Optional directory where CSV/plot outputs will be written. If ``None``
+        the model runs without persisting CSVs to disk (in-memory storage).
 
     Notes
     -----
@@ -443,7 +446,7 @@ def run(
     )
     typer.echo(f"Simulation complete in {perf_counter() - start_time:.2f} seconds")
 
-    model_metrics = result.datacollector.data["model"].drop(['seed', 'batch'])
+    model_metrics = result.datacollector.data["model"].drop(["seed", "batch"])
     typer.echo(f"Metrics in the final 5 steps: {model_metrics.tail(5)}")
 
     if save_results:
@@ -461,7 +464,11 @@ def run(
         value_cols = [c for c in model_metrics.columns if c != "step"]
         for col in value_cols:
             stem = f"{col}_{timestamp}"
-            single = model_metrics.select(["step", col]) if "step" in model_metrics.columns else model_metrics.select([col])
+            single = (
+                model_metrics.select(["step", col])
+                if "step" in model_metrics.columns
+                else model_metrics.select([col])
+            )
             plot_model_metrics(
                 single,
                 plots_dir,
@@ -479,4 +486,3 @@ def run(
 
 if __name__ == "__main__":
     app()
-

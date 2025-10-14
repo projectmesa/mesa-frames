@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Annotated
+from typing import Annotated
+from collections.abc import Iterable
 import pandas as pd
 
 import matplotlib.pyplot as plt
@@ -42,7 +43,7 @@ def gini(values: Iterable[float]) -> float:
 class MoneyAgent(mesa.Agent):
     """Agent that passes one unit of wealth to a random neighbour."""
 
-    def __init__(self, model: "MoneyModel") -> None:
+    def __init__(self, model: MoneyModel) -> None:
         super().__init__(model)
         self.wealth = 1
 
@@ -98,6 +99,7 @@ def simulate(agents: int, steps: int, seed: int | None = None) -> MesaSimulation
 
 app = typer.Typer(add_completion=False)
 
+
 @app.command()
 def run(
     agents: Annotated[int, typer.Option(help="Number of agents to simulate.")] = 5000,
@@ -127,7 +129,9 @@ def run(
     # Resolve output folder
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     if results_dir is None:
-        results_dir = (Path(__file__).resolve().parent / "results" / timestamp).resolve()
+        results_dir = (
+            Path(__file__).resolve().parent / "results" / timestamp
+        ).resolve()
     results_dir.mkdir(parents=True, exist_ok=True)
 
     start_time = perf_counter()
@@ -143,12 +147,11 @@ def run(
     # The first column is the step index; normalize name to "step".
     model_pd = model_pd.rename(columns={model_pd.columns[0]: "step"})
     seed = model_pd["seed"].iloc[0]
-    model_pd = model_pd[['step', 'gini']]
+    model_pd = model_pd[["step", "gini"]]
 
     # Show a short tail in console for quick inspection
     tail_str = model_pd.tail(5).to_string(index=False)
     typer.echo(f"Metrics in the final 5 steps:\n{tail_str}")
-
 
     # ---- Save CSV (same filename/layout as frames backend expects)
     if save_results:

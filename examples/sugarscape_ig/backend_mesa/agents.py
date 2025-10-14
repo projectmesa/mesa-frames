@@ -18,7 +18,7 @@ class AntAgent(mesa.Agent):
 
     def __init__(
         self,
-        model: "Sugarscape",
+        model: Sugarscape,
         *,
         sugar: int,
         metabolism: int,
@@ -31,10 +31,10 @@ class AntAgent(mesa.Agent):
 
     # --- Movement helpers (sequential/asynchronous) ---
 
-    def _visible_cells(self, origin: Tuple[int, int]) -> list[Tuple[int, int]]:
+    def _visible_cells(self, origin: tuple[int, int]) -> list[tuple[int, int]]:
         x0, y0 = origin
         width, height = self.model.width, self.model.height
-        cells: list[Tuple[int, int]] = [origin]
+        cells: list[tuple[int, int]] = [origin]
         for step in range(1, self.vision + 1):
             if x0 + step < width:
                 cells.append((x0 + step, y0))
@@ -46,7 +46,7 @@ class AntAgent(mesa.Agent):
                 cells.append((x0, y0 - step))
         return cells
 
-    def _choose_best_cell(self, origin: Tuple[int, int]) -> Tuple[int, int]:
+    def _choose_best_cell(self, origin: tuple[int, int]) -> tuple[int, int]:
         # Highest sugar; tie-break by Manhattan distance from origin; then coords.
         best_cell = origin
         best_sugar = int(self.model.sugar_current[origin[0], origin[1]])
@@ -79,4 +79,3 @@ class AntAgent(mesa.Agent):
 
 
 __all__ = ["AntAgent"]
-

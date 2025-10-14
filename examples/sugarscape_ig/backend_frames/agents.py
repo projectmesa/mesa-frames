@@ -622,4 +622,3 @@ __all__ = [
     "AntsBase",
     "AntsParallel",
 ]
-
