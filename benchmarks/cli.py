@@ -164,18 +164,26 @@ def _plot_performance(
 
 @app.command()
 def run(
-    models: Annotated[str, typer.Option(
-        help="Models to benchmark: boltzmann, sugarscape, or all",
-        callback=_parse_models
-    )] = "all",
-    agents: Annotated[str, typer.Option(
-        help="Agent count or range (start:stop:step)",
-        callback=_parse_agents
-    )] = "1000:5000:1000",
-    steps: Annotated[int, typer.Option(
-        min=0,
-        help="Number of steps per run.",
-    )] = 100,
+    models: Annotated[
+        str,
+        typer.Option(
+            help="Models to benchmark: boltzmann, sugarscape, or all",
+            callback=_parse_models,
+        ),
+    ] = "all",
+    agents: Annotated[
+        str,
+        typer.Option(
+            help="Agent count or range (start:stop:step)", callback=_parse_agents
+        ),
+    ] = "1000:5000:1000",
+    steps: Annotated[
+        int,
+        typer.Option(
+            min=0,
+            help="Number of steps per run.",
+        ),
+    ] = 100,
     repeats: Annotated[int, typer.Option(help="Repeats per configuration.", min=1)] = 1,
     seed: Annotated[int, typer.Option(help="Optional RNG seed.")] = 42,
     save: Annotated[bool, typer.Option(help="Persist benchmark CSV results.")] = True,
