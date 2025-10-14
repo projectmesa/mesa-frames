@@ -151,7 +151,7 @@ class Sugarscape(mesa.Model):
             x, y = a.pos
             a.sugar += int(self.sugar_current[x, y])
             a.sugar -= a.metabolism
-                # Harvested cells are emptied now; they will be refilled if empty.
+            # Harvested cells are emptied now; they will be refilled if empty.
             self.sugar_current[x, y] = 0
             if a.sugar > 0:
                 survivors.append(a)
