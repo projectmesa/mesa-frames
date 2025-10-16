@@ -59,12 +59,21 @@ class MoneyAgents(AgentSet):
             with_replacement=True,
             seed=self.random.integers(np.iinfo(np.int32).max),
         )
-        # donors lose one unit
-        self.df = self.df.with_columns(pl.when(pl.col("wealth") > 0).then(pl.col("wealth") - 1).otherwise(pl.col("wealth")).alias("wealth"))
+        # Combine donor loss (1 per active agent) and recipient gains in a single adjustment.
         gains = recipients.group_by("unique_id").len()
-        self.df = self.df.join(gains, on="unique_id", how="left").with_columns(
-            (pl.col("wealth") + pl.col("len").fill_null(0)).alias("wealth")
-        ).drop("len")
+        self.df = (
+            self.df.join(gains, on="unique_id", how="left")
+            .with_columns(
+                (
+                    pl.col("wealth")
+                    # each active agent loses 1 unit of wealth
+                    + pl.when(pl.col("wealth") > 0).then(- 1).otherwise(0)
+                    # each agent gains 1 unit of wealth for each time they were selected as a recipient
+                    + pl.col("len").fill_null(0)
+                ).alias("wealth")
+            )
+            .drop("len")
+        )
 
 
 class MoneyModel(Model):
