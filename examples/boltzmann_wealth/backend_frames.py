@@ -60,9 +60,11 @@ class MoneyAgents(AgentSet):
             seed=self.random.integers(np.iinfo(np.int32).max),
         )
         # donors lose one unit
-        self["active", "wealth"] -= 1
+        self.df = self.df.with_columns(pl.when(pl.col("wealth") > 0).then(pl.col("wealth") - 1).otherwise(pl.col("wealth")).alias("wealth"))
         gains = recipients.group_by("unique_id").len()
-        self[gains, "wealth"] += gains["len"]
+        self.df = self.df.join(gains, on="unique_id", how="left").with_columns(
+            (pl.col("wealth") + pl.col("len").fill_null(0)).alias("wealth")
+        ).drop("len")
 
 
 class MoneyModel(Model):
