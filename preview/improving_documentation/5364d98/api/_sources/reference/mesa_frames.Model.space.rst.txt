@@ -1,0 +1,6 @@
+﻿mesa\_frames.Model.space
+========================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: Model.space

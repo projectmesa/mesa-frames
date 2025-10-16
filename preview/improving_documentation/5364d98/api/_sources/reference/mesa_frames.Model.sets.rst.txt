@@ -1,0 +1,6 @@
+﻿mesa\_frames.Model.sets
+=======================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: Model.sets
