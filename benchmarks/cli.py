@@ -228,6 +228,13 @@ def run(
                             "timestamp": timestamp,
                         }
                     )
+                    # Report completion of this run to the CLI
+                    typer.echo(
+                        f"Completed {backend.name} for model={model} agents={agents_count} steps={steps} seed={run_seed} repeat={repeat_idx} in {runtime:.3f}s"
+                    )
+        # Finished all runs for this model
+        typer.echo(f"Finished benchmarking model {model}")
+
     if not rows:
         typer.echo("No benchmark data collected.")
         return
