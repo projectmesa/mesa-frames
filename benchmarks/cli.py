@@ -90,7 +90,7 @@ def _parse_agents(value: str) -> list[int]:
             raise typer.BadParameter("Range values must be integers") from exc
         if step <= 0:
             raise typer.BadParameter("Step must be positive")
-        if start <= 0 or stop <= 0:
+        if start < 0 or stop <= 0:
             raise typer.BadParameter("Range endpoints must be positive")
         if start > stop:
             raise typer.BadParameter("Range start must be <= stop")
