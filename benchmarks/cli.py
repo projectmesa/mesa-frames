@@ -137,7 +137,9 @@ def _parse_models(value: str) -> list[str]:
     return result
 
 
-def _plot_performance(df: pl.DataFrame, model_name: str, output_dir: Path, timestamp: str) -> None:
+def _plot_performance(
+    df: pl.DataFrame, model_name: str, output_dir: Path, timestamp: str
+) -> None:
     """Wrap examples.plotting.plot_performance to ensure consistent theming.
 
     The original benchmark implementation used simple seaborn styles (whitegrid / darkgrid).

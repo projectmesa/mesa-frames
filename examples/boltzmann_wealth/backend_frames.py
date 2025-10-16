@@ -67,7 +67,7 @@ class MoneyAgents(AgentSet):
                 (
                     pl.col("wealth")
                     # each active agent loses 1 unit of wealth
-                    + pl.when(pl.col("wealth") > 0).then(- 1).otherwise(0)
+                    + pl.when(pl.col("wealth") > 0).then(-1).otherwise(0)
                     # each agent gains 1 unit of wealth for each time they were selected as a recipient
                     + pl.col("len").fill_null(0)
                 ).alias("wealth")
