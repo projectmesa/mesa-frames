@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import os
 from pathlib import Path
 from time import perf_counter
 from typing import Literal, Annotated, Protocol, Optional
@@ -202,6 +203,12 @@ def run(
     ] = Path(__file__).resolve().parent / "plots",
 ) -> None:
     """Run performance benchmarks for the models models."""
+    runtime_typechecking = os.environ.get("MESA_FRAMES_RUNTIME_TYPECHECKING", "")
+    if runtime_typechecking and runtime_typechecking.lower() not in {"0", "false"}:
+        typer.secho(
+            "Warning: MESA_FRAMES_RUNTIME_TYPECHECKING is enabled; benchmarks may run significantly slower.",
+            fg=typer.colors.YELLOW,
+        )
     rows: list[dict[str, object]] = []
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     for model in models:

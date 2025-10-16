@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Annotated
 
 import numpy as np
+import os
 import polars as pl
 import typer
 from time import perf_counter
@@ -129,6 +130,12 @@ def run(
         ),
     ] = None,
 ) -> None:
+    runtime_typechecking = os.environ.get("MESA_FRAMES_RUNTIME_TYPECHECKING", "")
+    if runtime_typechecking and runtime_typechecking.lower() not in {"0", "false"}:
+        typer.secho(
+            "Warning: MESA_FRAMES_RUNTIME_TYPECHECKING is enabled; this run will be slower.",
+            fg=typer.colors.YELLOW,
+        )
     typer.echo(
         f"Running Boltzmann wealth model (mesa-frames) with {agents} agents for {steps} steps"
     )
