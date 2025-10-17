@@ -188,15 +188,22 @@ def run(
     results_dir: Annotated[
         Path,
         typer.Option(
-            help="Directory for benchmark CSV results.",
+            help=(
+                "Base directory for benchmark outputs. A timestamped subdirectory "
+                "(e.g. results/20250101_120000) is created with CSV files at the root "
+                "and a 'plots/' subfolder for images."
+            ),
         ),
     ] = Path(__file__).resolve().parent / "results",
     plots_dir: Annotated[
-        Path,
+        Optional[Path],
         typer.Option(
-            help="Directory for benchmark plots.",
+            help=(
+                "(Deprecated) Explicit plots directory. If provided, overrides the default "
+                "'results/<timestamp>/plots'. Prefer leaving unset to use the unified layout."
+            ),
         ),
-    ] = Path(__file__).resolve().parent / "plots",
+    ] = None,
 ) -> None:
     """Run performance benchmarks for the models models."""
     runtime_typechecking = os.environ.get("MESA_FRAMES_RUNTIME_TYPECHECKING", "")
@@ -206,7 +213,20 @@ def run(
             fg=typer.colors.YELLOW,
         )
     rows: list[dict[str, object]] = []
+    # Single timestamp per CLI invocation so all model results are co-located.
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    # Create unified output layout: <results_dir>/<timestamp>/{CSV files, plots/}
+    base_results_dir = results_dir
+    timestamp_dir = (base_results_dir / timestamp).resolve()
+    plots_subdir: Path
+    if plots_dir is not None:
+        # Backwards compatibility path – user wants a custom plots directory.
+        plots_subdir = plots_dir.resolve()
+        if plots_subdir.is_relative_to(timestamp_dir):  # Python 3.11 method
+            # ensure parent timestamp dir exists too
+            timestamp_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        plots_subdir = timestamp_dir / "plots"
     for model in models:
         config = MODELS[model]
         typer.echo(f"Benchmarking {model} with agents {agents}")
@@ -241,18 +261,22 @@ def run(
         return
     df = pl.DataFrame(rows)
     if save:
-        results_dir.mkdir(parents=True, exist_ok=True)
+        timestamp_dir.mkdir(parents=True, exist_ok=True)
         for model in models:
             model_df = df.filter(pl.col("model") == model)
-            csv_path = results_dir / f"{model}_perf_{timestamp}.csv"
+            csv_path = timestamp_dir / f"{model}_perf_{timestamp}.csv"
             model_df.write_csv(csv_path)
             typer.echo(f"Saved {model} results to {csv_path}")
     if plot:
-        plots_dir.mkdir(parents=True, exist_ok=True)
+        plots_subdir.mkdir(parents=True, exist_ok=True)
         for model in models:
             model_df = df.filter(pl.col("model") == model)
-            _plot_performance(model_df, model, plots_dir, timestamp)
-            typer.echo(f"Saved {model} plots under {plots_dir}")
+            _plot_performance(model_df, model, plots_subdir, timestamp)
+            typer.echo(f"Saved {model} plots under {plots_subdir}")
+
+    typer.echo(
+        f"Unified benchmark outputs written under {timestamp_dir} (CSV files) and {plots_subdir} (plots)"
+    )
 
 
 if __name__ == "__main__":
