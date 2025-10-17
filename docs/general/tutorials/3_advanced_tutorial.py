@@ -56,7 +56,7 @@ of emergent macro regularities in agent-based models.
 # uncomment the cell below to install the required dependencies.
 
 # %%
-# !pip install git+https://github.com/projectmesa/mesa-frames polars numba numpy
+# #!pip install git+https://github.com/projectmesa/mesa-frames polars numba numpy
 
 # %% [markdown]
 """## 1. Imports"""

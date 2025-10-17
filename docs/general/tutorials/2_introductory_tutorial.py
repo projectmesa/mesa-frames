@@ -9,7 +9,7 @@ from __future__ import annotations
 Run the following cell to install `mesa-frames` if you are using Google Colab."""
 
 # %%
-# !pip install git+https://github.com/projectmesa/mesa-frames mesa
+# #!pip install git+https://github.com/projectmesa/mesa-frames mesa
 
 # %% [markdown]
 """ # Introductory Tutorial: Boltzmann Wealth Model with mesa-frames 💰🚀
