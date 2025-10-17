@@ -81,6 +81,8 @@ autodoc_default_options = {
     "exclude-members": "__weakref__,__dict__,__module__,__annotations__,__firstlineno__,__static_attributes__,__abstractmethods__,__slots__",
 }
 
+autosummary_generate_overwrite = True
+
 
 # -- GitHub link and user guide settings -------------------------------------
 github_root = "https://github.com/projectmesa/mesa-frames"

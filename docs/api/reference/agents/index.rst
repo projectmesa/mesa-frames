@@ -68,6 +68,9 @@ API reference
                :toctree:
 
                AgentSet.df
+               AgentSet.model
+               AgentSet.random
+               AgentSet.space
                AgentSet.active_agents
                AgentSet.inactive_agents
                AgentSet.index
