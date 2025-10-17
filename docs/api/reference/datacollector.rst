@@ -1,5 +1,5 @@
 Data Collection
-=====
+===============
 
 .. currentmodule:: mesa_frames
 
