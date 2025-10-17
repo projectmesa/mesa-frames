@@ -64,6 +64,7 @@ test = [
 
 docs = [
   { include-group = "typechecking" },
+  "typer>=0.9.0",
   "mkdocs-material>=9.6.14",
   "mkdocs-jupyter>=0.25.1",
   "mkdocs-git-revision-date-localized-plugin>=1.4.7",
@@ -76,10 +77,10 @@ docs = [
   "sphinx-copybutton>=0.5.2",
   "sphinx-design>=0.6.1",
   "autodocsumm>=0.2.14",
-  "perfplot>=0.10.2",
   "seaborn>=0.13.2",
   "sphinx-autobuild>=2025.8.25",
   "mesa>=3.2.0",
+  "jupytext>=1.17.3",
 ]
 
 # dev = test ∪ docs ∪ extra tooling

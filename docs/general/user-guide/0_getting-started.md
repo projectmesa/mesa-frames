@@ -15,20 +15,20 @@ Objects can be easily subclassed to respect mesa's object-oriented philosophy.
 
 ### Vectorized Operations ⚡
 
-mesa-frames leverages the power of vectorized operations provided by DataFrame libraries:
+`mesa-frames` leverages **Polars** to replace Python loops with **column-wise expressions** executed in native Rust.
+This allows you to update all agents simultaneously, the main source of `mesa-frames`' performance advantage.
 
-- Operations are performed on entire columns of data at once
-- This approach is significantly faster than iterating over individual agents
-- Complex behaviors can be expressed in fewer lines of code
+Unlike traditional `mesa` models, where the **activation order** of agents can affect results (see [Comer, 2014](http://mars.gmu.edu/bitstream/handle/1920/9070/Comer_gmu_0883E_10539.pdf)),
+`mesa-frames` processes all agents **in parallel by default**.
+This removes order-dependent effects, though you should handle conflicts explicitly when sequential logic is required.
 
-You should never use loops to iterate through your agents. Instead, use vectorized operations and implemented methods. If you need to loop, loop through vectorized operations (see the advanced tutorial SugarScape IG for more information).
+!!! tip "Best practice"
+    Always start by expressing agent logic in a vectorized form.
+    Fall back to loops only when ordering or conflict resolution is essential.
 
-It's important to note that in traditional `mesa` models, the order in which agents are activated can significantly impact the results of the model (see [Comer, 2014](http://mars.gmu.edu/bitstream/handle/1920/9070/Comer_gmu_0883E_10539.pdf)). `mesa-frames`, by default, doesn't have this issue as all agents are processed simultaneously. However, this comes with the trade-off of needing to carefully implement conflict resolution mechanisms when sequential processing is required. We'll discuss how to handle these situations later in this guide.
+For a deeper understanding of vectorization and why it accelerates computation, see:
 
-Check out these resources to understand vectorization and why it speeds up the code:
-
-- [What is vectorization?](https://stackoverflow.com/a/1422181)
-- [Vectorization Explained, Step by Step](https://machinelearningcompass.com/machine_learning_math/vectorization/)
+- [How vectorization speeds up your Python code — PythonSpeed](https://pythonspeed.com/articles/vectorization-python)
 
 Here's a comparison between mesa-frames and mesa:
 
@@ -42,7 +42,7 @@ Here's a comparison between mesa-frames and mesa:
             self.select(self.wealth > 0)
 
             # Receiving agents are sampled (only native expressions currently supported)
-            other_agents = self.sets.sample(
+            other_agents = self.df.sample(
                 n=len(self.active_agents), with_replacement=True
             )
 
@@ -92,10 +92,10 @@ If you're familiar with mesa, this guide will help you understand the key differ
                 })
         def step(self):
             givers = self.wealth > 0
-            receivers = self.sets.sample(n=len(self.active_agents))
+            receivers = self.df.sample(n=len(self.active_agents), with_replacement=True)
             self[givers, "wealth"] -= 1
-            new_wealth = receivers.groupby("unique_id").count()
-            self[new_wealth["unique_id"], "wealth"] += new_wealth["count"]
+            new_wealth = receivers.group_by("unique_id").len()
+            self[new_wealth["unique_id"], "wealth"] += new_wealth["len"]
     ```
 
 === "mesa"
@@ -163,4 +163,4 @@ When simultaneous activation is not possible, you need to handle race conditions
 
 2. **Looping Mechanism 🔁**: Implement a looping mechanism on vectorized operations.
 
-For a more detailed implementation of handling race conditions, please refer to the `examples/sugarscape-ig` in the mesa-frames repository. This example demonstrates how to implement the Sugarscape model with instantaneous growback, which requires careful handling of sequential agent actions.
+For a more detailed implementation of handling race conditions, see the [Advanced Tutorial](../tutorials/3_advanced_tutorial.ipynb). It walks through the Sugarscape model with instantaneous growback and shows practical patterns for staged vectorization and conflict resolution.

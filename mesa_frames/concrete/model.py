@@ -113,6 +113,28 @@ class Model:
         self._seed = seed
         self.random = np.random.default_rng(seed=self._seed)
 
+    @property
+    def seed(self) -> int | Sequence[int]:
+        """Return the current seed used by the model's random generator.
+
+        Returns
+        -------
+        int | Sequence[int]
+            The seed that initialized the underlying RNG.
+        """
+        return self._seed
+
+    @seed.setter
+    def seed(self, seed: int | Sequence[int] | None) -> None:
+        """Reset the model random generator using a new seed.
+
+        Parameters
+        ----------
+        seed : int | Sequence[int] | None
+            A new seed value; falls back to system entropy when ``None``.
+        """
+        self.reset_randomizer(seed)
+
     def run_model(self) -> None:
         """Run the model until the end condition is reached.
 
