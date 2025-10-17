@@ -195,15 +195,6 @@ def run(
             ),
         ),
     ] = Path(__file__).resolve().parent / "results",
-    plots_dir: Annotated[
-        Optional[Path],
-        typer.Option(
-            help=(
-                "(Deprecated) Explicit plots directory. If provided, overrides the default "
-                "'results/<timestamp>/plots'. Prefer leaving unset to use the unified layout."
-            ),
-        ),
-    ] = None,
 ) -> None:
     """Run performance benchmarks for the models models."""
     runtime_typechecking = os.environ.get("MESA_FRAMES_RUNTIME_TYPECHECKING", "")
@@ -218,15 +209,7 @@ def run(
     # Create unified output layout: <results_dir>/<timestamp>/{CSV files, plots/}
     base_results_dir = results_dir
     timestamp_dir = (base_results_dir / timestamp).resolve()
-    plots_subdir: Path
-    if plots_dir is not None:
-        # Backwards compatibility path – user wants a custom plots directory.
-        plots_subdir = plots_dir.resolve()
-        if plots_subdir.is_relative_to(timestamp_dir):  # Python 3.11 method
-            # ensure parent timestamp dir exists too
-            timestamp_dir.mkdir(parents=True, exist_ok=True)
-    else:
-        plots_subdir = timestamp_dir / "plots"
+    plots_subdir: Path = timestamp_dir / "plots"
     for model in models:
         config = MODELS[model]
         typer.echo(f"Benchmarking {model} with agents {agents}")
