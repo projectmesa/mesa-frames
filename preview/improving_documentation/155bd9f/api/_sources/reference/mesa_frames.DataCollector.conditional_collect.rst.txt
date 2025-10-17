@@ -1,0 +1,6 @@
+﻿mesa\_frames.DataCollector.conditional\_collect
+===============================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: DataCollector.conditional_collect

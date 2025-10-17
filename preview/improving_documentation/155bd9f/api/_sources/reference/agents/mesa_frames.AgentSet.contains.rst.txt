@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSet.contains
+==============================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSet.contains
