@@ -268,12 +268,17 @@ def plot_performance(
         _apply_titles(fig, ax, title, subtitle)
         ax.set_xlabel("Agents")
         ax.set_ylabel("Runtime (seconds)")
-
-        if theme == "dark":
-            leg = ax.get_legend()
-            if leg is not None:
-                leg.set_title(None)
-                leg.get_frame().set_alpha(0.8)
+        leg = ax.get_legend()
+        if leg is not None:
+            # Remove redundant legend title (backend) for both themes – label colors already distinguish.
+            leg.set_title(None)
+            frame = leg.get_frame()
+            if theme == "dark":
+                frame.set_alpha(0.8)
+            else:  # light theme: subtle boxed legend for readability on white grid
+                frame.set_alpha(0.9)
+                frame.set_edgecolor("#d0d0d0")
+                frame.set_linewidth(0.8)
 
         _finalize_and_save(fig, output_dir, stem, theme)
 

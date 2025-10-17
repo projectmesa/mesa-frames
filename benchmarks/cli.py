@@ -154,7 +154,8 @@ def _plot_performance(
         df.select(["agents", "runtime_seconds", "backend"]),
         output_dir=output_dir,
         stem=stem,
-        title=f"{model_name.title()} runtime vs agents",
+        # Prefer more concise, publication-style wording
+        title=f"{model_name.title()} runtime scaling",
     )
 
 
