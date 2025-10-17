@@ -108,12 +108,14 @@ This creates `.venv/` and installs mesa-frames with the development extras.
   ```
 
   Quick facts:
-  - Automatically enabled in: Hatch dev env (`hatch shell dev`), VS Code debugger, and VS Code test runs.
-  - Enable manually by exporting `MESA_FRAMES_RUNTIME_TYPECHECKING=1` (any of 1/true/yes).
-  - Use only for development/debugging; adds overhead—disable for performance measurements or large simulations.
-  - Unset with your shell (e.g. `unset`/`Remove-Item Env:` depending on shell) to turn it off.
+
+- Automatically enabled in: Hatch dev env (`hatch shell dev`), VS Code debugger, and VS Code test runs.
+- Enable manually by exporting `MESA_FRAMES_RUNTIME_TYPECHECKING=1` (any of 1/true/yes).
+- Use only for development/debugging; adds overhead—disable for performance measurements or large simulations.
+- Unset with your shell (e.g. `unset`/`Remove-Item Env:` depending on shell) to turn it off.
 
   Example for a one-off test run:
+
   ```sh
   MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest -q
   ```
