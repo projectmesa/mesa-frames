@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Annotated
 
 import numpy as np
+import os
 import polars as pl
 import typer
 from time import perf_counter
@@ -58,10 +59,21 @@ class MoneyAgents(AgentSet):
             with_replacement=True,
             seed=self.random.integers(np.iinfo(np.int32).max),
         )
-        # donors lose one unit
-        self["active", "wealth"] -= 1
+        # Combine donor loss (1 per active agent) and recipient gains in a single adjustment.
         gains = recipients.group_by("unique_id").len()
-        self[gains, "wealth"] += gains["len"]
+        self.df = (
+            self.df.join(gains, on="unique_id", how="left")
+            .with_columns(
+                (
+                    pl.col("wealth")
+                    # each active agent loses 1 unit of wealth
+                    + pl.when(pl.col("wealth") > 0).then(-1).otherwise(0)
+                    # each agent gains 1 unit of wealth for each time they were selected as a recipient
+                    + pl.col("len").fill_null(0)
+                ).alias("wealth")
+            )
+            .drop("len")
+        )
 
 
 class MoneyModel(Model):
@@ -129,6 +141,12 @@ def run(
         ),
     ] = None,
 ) -> None:
+    runtime_typechecking = os.environ.get("MESA_FRAMES_RUNTIME_TYPECHECKING", "")
+    if runtime_typechecking and runtime_typechecking.lower() not in {"0", "false"}:
+        typer.secho(
+            "Warning: MESA_FRAMES_RUNTIME_TYPECHECKING is enabled; this run will be slower.",
+            fg=typer.colors.YELLOW,
+        )
     typer.echo(
         f"Running Boltzmann wealth model (mesa-frames) with {agents} agents for {steps} steps"
     )

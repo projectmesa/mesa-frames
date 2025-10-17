@@ -8,6 +8,7 @@ the Gini trajectory.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import os
 from pathlib import Path
 from typing import Annotated
 from time import perf_counter
@@ -427,6 +428,12 @@ def run(
     typer.echo(
         f"Running Sugarscape IG (mesa-frames, parallel) with {agents} agents on {width}x{height} for {steps} steps"
     )
+    runtime_typechecking = os.environ.get("MESA_FRAMES_RUNTIME_TYPECHECKING", "")
+    if runtime_typechecking and runtime_typechecking.lower() not in {"0", "false"}:
+        typer.secho(
+            "Warning: MESA_FRAMES_RUNTIME_TYPECHECKING is enabled; this run will be slower.",
+            fg=typer.colors.YELLOW,
+        )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     if results_dir is None:
         results_dir = (

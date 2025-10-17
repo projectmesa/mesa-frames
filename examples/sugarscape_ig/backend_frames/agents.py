@@ -546,7 +546,9 @@ class AntsParallel(AntsBase):
             # │ ---      ┆ ---              ┆ ---              ┆ ---    ┆ ---    ┆ ---  ┆ ---          ┆ f64     │
             # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════╪══════════════╪═════════╡
             winners = (
-                best_candidates.sort(["dim_0_candidate", "dim_1_candidate", "lottery"])
+                best_candidates.sort(
+                    ["dim_0_candidate", "dim_1_candidate", "radius", "lottery"],
+                )
                 .group_by(["dim_0_candidate", "dim_1_candidate"], maintain_order=True)
                 .first()
             )
