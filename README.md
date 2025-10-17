@@ -58,8 +58,13 @@ mesa-frames currently uses **Polars** as its backend.
 
 [![Reproduce Benchmarks](https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge)](https://github.com/projectmesa/mesa-frames/blob/main/benchmarks/README.md)
 
-mesa-frames delivers consistent speedups across both toy and canonical ABMs.
-At 10k agents, it runs **~10× faster** than classic Mesa, and the gap grows with scale.
+**mesa-frames consistently outperforms classic Mesa across both toy and canonical ABMs.** 
+
+In the Boltzmann model, it maintains near-constant runtimes even as agent count rises, achieving **up to 10× faster execution** at scale. 
+
+In the more computation-intensive Sugarscape model, **mesa-frames roughly halves total runtime**.
+
+We still have room to optimize performance further (see [Roadmap](#roadmap)).
 
 ![Benchmark: Boltzmann Wealth](docs/general/plots/boltzmann.svg)
 
@@ -123,7 +128,7 @@ uv sync --all-extras
 
 - Transition to LazyFrames for optimization and GPU support
 - Auto-vectorize existing Mesa models via decorator
-- Increase possible Spaces
+- Increase possible Spaces (Network, Continous...)
 - Refine the API to align to Mesa
 
 ---
