@@ -50,7 +50,7 @@ plugins:
   - search
   - mkdocs-jupyter:
       execute: true # Ensures the notebooks run and generate output
-      include: "**/*.ipynb" # Restrict processing to notebooks only (avoid executing raw .py tutorial files)
+      include: ["*.ipynb"] # Restrict processing to notebooks only (avoid executing raw .py tutorial files)
   - git-revision-date-localized:
       enable_creation_date: true
   - minify:
