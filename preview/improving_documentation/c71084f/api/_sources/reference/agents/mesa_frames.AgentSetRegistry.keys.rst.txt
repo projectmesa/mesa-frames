@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.keys
+==================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSetRegistry.keys

@@ -1,0 +1,6 @@
+﻿mesa\_frames.Model.reset\_randomizer
+====================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Model.reset_randomizer
