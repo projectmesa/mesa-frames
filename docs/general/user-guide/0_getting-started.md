@@ -95,7 +95,7 @@ If you're familiar with mesa, this guide will help you understand the key differ
             receivers = self.df.sample(n=len(self.active_agents), with_replacement=True)
             self[givers, "wealth"] -= 1
             new_wealth = receivers.group_by("unique_id").len()
-            self[new_wealth["unique_id"], "wealth"] += new_wealth["count"]
+            self[new_wealth["unique_id"], "wealth"] += new_wealth["len"]
     ```
 
 === "mesa"
