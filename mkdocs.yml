@@ -115,8 +115,8 @@ nav:
       - Getting Started: user-guide/0_getting-started.md
       - Classes: user-guide/1_classes.md
   - Tutorials:
-      - Introductory Tutorial: tutorials/2_introductory-tutorial.ipynb
-      - Advanced Tutorial: tutorials/3_advanced-tutorial.ipynb
+      - Introductory Tutorial: tutorials/2_introductory_tutorial.ipynb
+      - Advanced Tutorial: tutorials/3_advanced_tutorial.ipynb
       - Data Collector Tutorial: tutorials/4_datacollector.ipynb
   - API Reference: api/index.html
   - Contributing:
