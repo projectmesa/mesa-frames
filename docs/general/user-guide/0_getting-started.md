@@ -42,7 +42,7 @@ Here's a comparison between mesa-frames and mesa:
             self.select(self.wealth > 0)
 
             # Receiving agents are sampled (only native expressions currently supported)
-            other_agents = self.model.sets.sample(
+            other_agents = self.df.sample(
                 n=len(self.active_agents), with_replacement=True
             )
 
@@ -92,9 +92,9 @@ If you're familiar with mesa, this guide will help you understand the key differ
                 })
         def step(self):
             givers = self.wealth > 0
-            receivers = self.model.sets.sample(n=len(self.active_agents))
+            receivers = self.df.sample(n=len(self.active_agents), with_replacement=True)
             self[givers, "wealth"] -= 1
-            new_wealth = receivers.groupby("unique_id").count()
+            new_wealth = receivers.group_by("unique_id").len()
             self[new_wealth["unique_id"], "wealth"] += new_wealth["count"]
     ```
 
@@ -163,4 +163,4 @@ When simultaneous activation is not possible, you need to handle race conditions
 
 2. **Looping Mechanism 🔁**: Implement a looping mechanism on vectorized operations.
 
-For a more detailed implementation of handling race conditions, please refer to the `examples/sugarscape-ig` in the mesa-frames repository. This example demonstrates how to implement the Sugarscape model with instantaneous growback, which requires careful handling of sequential agent actions.
+For a more detailed implementation of handling race conditions, please refer to the `examples/sugarscape_ig` in the mesa-frames repository. This example demonstrates how to implement the Sugarscape model with instantaneous growback, which requires careful handling of sequential agent actions.

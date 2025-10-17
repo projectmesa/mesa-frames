@@ -331,7 +331,7 @@ class Sugarscape(Model):
                 "sugar": "sugar",
                 "metabolism": "metabolism",
                 "vision": "vision",
-            }
+            },
         )
         self.datacollector.collect()
 
