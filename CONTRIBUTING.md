@@ -18,19 +18,19 @@ Before you begin contributing, ensure that you have the necessary tools installe
 
 - We recommend using a virtual environment manager like:
 
-    - [Astral's UV](https://docs.astral.sh/uv/#installation) 🌟
-    - [Hatch](https://hatch.pypa.io/latest/install/) 🏗️
+  - [Astral's UV](https://docs.astral.sh/uv/#installation) 🌟
+  - [Hatch](https://hatch.pypa.io/latest/install/) 🏗️
 
 - Install **pre-commit** to enforce code quality standards before pushing changes:
 
-    - [Pre-commit installation guide](https://pre-commit.com/#install) ✅
-    - [More about pre-commit hooks](https://stackoverflow.com/collectives/articles/71270196/how-to-use-pre-commit-to-automatically-correct-commits-and-merge-requests-with-g)
+  - [Pre-commit installation guide](https://pre-commit.com/#install) ✅
+  - [More about pre-commit hooks](https://stackoverflow.com/collectives/articles/71270196/how-to-use-pre-commit-to-automatically-correct-commits-and-merge-requests-with-g)
 
 - If using **VS Code**, consider installing these extensions to automatically enforce formatting:
 
-    - [Ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) – Python linting & formatting 🐾
-    - [Markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) – Markdown linting (for documentation) ✍️
-    - [Git Hooks](https://marketplace.visualstudio.com/items?itemName=lakshmikanthayyadevara.githooks) – Automatically runs & visualizes pre-commit hooks 🔗
+  - [Ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) – Python linting & formatting 🐾
+  - [Markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) – Markdown linting (for documentation) ✍️
+  - [Git Hooks](https://marketplace.visualstudio.com/items?itemName=lakshmikanthayyadevara.githooks) – Automatically runs & visualizes pre-commit hooks 🔗
 
 ---
 
