@@ -1,5 +1,7 @@
 # Sugarscape IG (Instant Growback)
 
+## Overview
+
 This directory contains a minimal Instant Growback Sugarscape implementation in
 both backends:
 
@@ -10,7 +12,7 @@ The Instant Growback (IG) rule sequence is: move -> eat -> regrow -> collect.
 Agents harvest sugar, pay metabolism costs, possibly die (starve), and empty
 cells instantly regrow to their `max_sugar` value.
 
-## Core Dynamics
+## Concept
 
 Each agent has integer traits:
 
@@ -32,7 +34,7 @@ agent iteration.
 After moving, agents harvest sugar on their cell, pay metabolism, and starved
 agents are removed. Empty cells regrow to their `max_sugar` value immediately.
 
-## Metrics Collected
+## Reported Metrics
 
 Both backends record population-level reporters each step:
 
@@ -43,14 +45,14 @@ Both backends record population-level reporters each step:
 - `corr_sugar_metabolism` Pearson correlation (do high-metabolism agents retain sugar?).
 - `corr_sugar_vision` Pearson correlation (does greater vision correlate with sugar?).
 
-Interpretation guidelines:
+Notes on interpretation:
 
 - `agents_alive` typically decreases until a quasi steady state (metabolism vs regrowth) or total collapse.
 - `mean_sugar` and `total_sugar` may stabilise if regrowth balances metabolism.
 - Rising `gini` indicates emerging inequality; sustained high values suggest strong positional advantages.
 - Correlations near 0 imply weak linear relationships; positive `corr_sugar_vision` suggests high vision aids resource gathering. Negative `corr_sugar_metabolism` can emerge if high metabolism accelerates starvation.
 
-## Running Examples
+## Running
 
 From project root using `uv`:
 
@@ -59,7 +61,7 @@ uv run examples/sugarscape_ig/backend_frames/model.py --agents 400 --width 40 --
 uv run examples/sugarscape_ig/backend_mesa/model.py --agents 400 --width 40 --height 40 --steps 60 --seed 123 --plot --save-results
 ```
 
-Shared CLI options:
+## CLI options
 
 - `--agents` Number of agents (default 400)
 - `--width`, `--height` Grid dimensions (default 40x40)

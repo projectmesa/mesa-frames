@@ -1,5 +1,7 @@
 # Boltzmann Wealth Exchange Model
 
+## Overview
+
 This example implements a simple wealth exchange ("Boltzmann money") model in two
 backends:
 
@@ -29,7 +31,7 @@ level below 1 (due to conservation and continued mixing).
 The model records per-step population Gini (`gini`). You can extend reporters by
 adding lambdas to `model_reporters` in either backend's constructor.
 
-Interpretation of `gini` trajectory:
+Notes on interpretation:
 
 - Early steps: Gini ~ 0 (uniform initial wealth).
 - Mid phase: Increasing Gini as random exchanges concentrate wealth.
@@ -45,7 +47,7 @@ uv run examples/boltzmann_wealth/backend_frames.py --agents 5000 --steps 200 --s
 uv run examples/boltzmann_wealth/backend_mesa.py --agents 5000 --steps 200 --seed 123 --plot --save-results
 ```
 
-CLI options (shared):
+## CLI options
 
 - `--agents` Number of agents (default 5000)
 - `--steps` Simulation steps (default 100)
