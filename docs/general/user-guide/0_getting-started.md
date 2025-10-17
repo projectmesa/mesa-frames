@@ -163,4 +163,4 @@ When simultaneous activation is not possible, you need to handle race conditions
 
 2. **Looping Mechanism 🔁**: Implement a looping mechanism on vectorized operations.
 
-For a more detailed implementation of handling race conditions, please refer to the `examples/sugarscape_ig` in the mesa-frames repository. This example demonstrates how to implement the Sugarscape model with instantaneous growback, which requires careful handling of sequential agent actions.
+For a more detailed implementation of handling race conditions, see the [Advanced Tutorial](../tutorials/3_advanced_tutorial.ipynb). It walks through the Sugarscape model with instantaneous growback and shows practical patterns for staged vectorization and conflict resolution.
