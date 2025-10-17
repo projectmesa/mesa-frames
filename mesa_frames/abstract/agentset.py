@@ -424,6 +424,13 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
 
     @property
     def df(self) -> DataFrame:
+        """Return the full backing DataFrame for this agent set.
+
+        Returns
+        -------
+        DataFrame
+            Table containing every agent, including inactive records.
+        """
         return self._df
 
     @df.setter
@@ -439,18 +446,54 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
 
     @property
     @abstractmethod
-    def active_agents(self) -> DataFrame: ...
+    def active_agents(self) -> DataFrame:
+        """Return the subset of agents currently marked as active.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame view containing only active agents.
+        """
+        ...
 
     @property
     @abstractmethod
-    def inactive_agents(self) -> DataFrame: ...
+    def inactive_agents(self) -> DataFrame:
+        """Return the subset of agents currently marked as inactive.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame view containing only inactive agents.
+        """
+        ...
 
     @property
     @abstractmethod
-    def index(self) -> Index: ...
+    def index(self) -> Index:
+        """Return the unique identifier index for agents in this set.
+
+        Returns
+        -------
+        Index
+            Collection of unique agent identifiers.
+        """
+        ...
 
     @property
     def pos(self) -> DataFrame:
+        """Return positional data for agents from the attached space.
+
+        Returns
+        -------
+        DataFrame
+            Position records aligned with each agent's ``unique_id``.
+
+        Raises
+        ------
+        AttributeError
+            If the model has no space attached.
+        """
         if self.space is None:
             raise AttributeError(
                 "Attempted to access `pos`, but the model has no space attached."
