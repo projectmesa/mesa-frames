@@ -536,7 +536,7 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
 
         Returns
         -------
-        numpy.random.Generator
+        Generator
             Generator used for stochastic operations.
         """
         return self.model.random
