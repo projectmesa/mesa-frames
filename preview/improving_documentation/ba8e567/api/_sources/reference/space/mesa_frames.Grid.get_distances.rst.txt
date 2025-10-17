@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.get\_distances
+================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Grid.get_distances

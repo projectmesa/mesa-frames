@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.place\_to\_empty
+==================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Grid.place_to_empty

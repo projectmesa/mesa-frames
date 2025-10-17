@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.get\_neighbors
+================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Grid.get_neighbors

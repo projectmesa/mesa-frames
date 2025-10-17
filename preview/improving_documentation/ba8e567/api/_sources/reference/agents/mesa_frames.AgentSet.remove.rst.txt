@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSet.remove
+============================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSet.remove
