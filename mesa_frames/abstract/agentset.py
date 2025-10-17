@@ -21,7 +21,9 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Collection, Iterable, Iterator
 from contextlib import suppress
-from typing import Any, Callable, Literal, Self, Sequence, overload
+from typing import Any, Literal, Self, overload
+
+from collections.abc import Callable, Sequence
 
 from numpy.random import Generator
 

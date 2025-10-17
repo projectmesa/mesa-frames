@@ -15,15 +15,15 @@ Objects can be easily subclassed to respect mesa's object-oriented philosophy.
 
 ### Vectorized Operations ⚡
 
-`mesa-frames` leverages **Polars** to replace Python loops with **column-wise expressions** executed in native Rust.  
+`mesa-frames` leverages **Polars** to replace Python loops with **column-wise expressions** executed in native Rust.
 This allows you to update all agents simultaneously, the main source of `mesa-frames`' performance advantage.
 
-Unlike traditional `mesa` models, where the **activation order** of agents can affect results (see [Comer, 2014](http://mars.gmu.edu/bitstream/handle/1920/9070/Comer_gmu_0883E_10539.pdf)),  
-`mesa-frames` processes all agents **in parallel by default**.  
+Unlike traditional `mesa` models, where the **activation order** of agents can affect results (see [Comer, 2014](http://mars.gmu.edu/bitstream/handle/1920/9070/Comer_gmu_0883E_10539.pdf)),
+`mesa-frames` processes all agents **in parallel by default**.
 This removes order-dependent effects, though you should handle conflicts explicitly when sequential logic is required.
 
 !!! tip "Best practice"
-    Always start by expressing agent logic in a vectorized form.  
+    Always start by expressing agent logic in a vectorized form.
     Fall back to loops only when ordering or conflict resolution is essential.
 
 For a deeper understanding of vectorization and why it accelerates computation, see:
