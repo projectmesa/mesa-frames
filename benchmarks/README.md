@@ -11,7 +11,7 @@ Currently included models:
 
 ## Quick start
 
-```
+```bash
 uv run benchmarks/cli.py
 ```
 
@@ -44,7 +44,7 @@ Range parsing: `A:B:S` includes `A, A+S, ... <= B`. Final value > B is dropped.
 
 Each invocation uses a single UTC timestamp, e.g. `20251016_173702`:
 
-```
+```text
 benchmarks/
   results/
     20251016_173702/

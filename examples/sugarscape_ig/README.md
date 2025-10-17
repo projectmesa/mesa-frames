@@ -78,7 +78,7 @@ Frames backend warns if `MESA_FRAMES_RUNTIME_TYPECHECKING` is enabled (disable f
 
 Example output directory (frames):
 
-```
+```text
 examples/sugarscape_ig/backend_frames/results/20251016_173702/
   model.csv
   plots/

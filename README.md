@@ -128,7 +128,7 @@ uv sync --all-extras
 
 - Transition to LazyFrames for optimization and GPU support
 - Auto-vectorize existing Mesa models via decorator
-- Increase possible Spaces (Network, Continous...)
+- Increase possible Spaces (Network, Continuous...)
 - Refine the API to align to Mesa
 
 ---

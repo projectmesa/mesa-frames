@@ -10,7 +10,7 @@ They expose a consistent Typer CLI so you can compare outputs and timings.
 
 ## Contents
 
-```
+```text
 examples/
   boltzmann_wealth/
     backend_mesa.py       # Mesa implementation + CLI (simulate() + run)
@@ -27,7 +27,7 @@ examples/
 Always run via `uv` from the project root. The simplest way to run an example
 backend is to execute the module:
 
-```
+```bash
 uv run examples/boltzmann_wealth/backend_frames.py
 ```
 

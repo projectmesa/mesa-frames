@@ -64,7 +64,7 @@ performance comparisons.
 
 Each run creates (or uses) a results directory like:
 
-```
+```text
 examples/boltzmann_wealth/results/20251016_173702/
   model.csv            # step,gini
   gini_<timestamp>_dark.png (and possibly other theme variants)
@@ -72,7 +72,7 @@ examples/boltzmann_wealth/results/20251016_173702/
 
 Tail metrics are printed to console for quick inspection:
 
-```
+```text
 Metrics in the final 5 steps: shape: (5, 2)
 ┌──────┬───────┐
 │ step ┆ gini  │
