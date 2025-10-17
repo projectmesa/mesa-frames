@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+	"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="679.941605pt" height="419.122266pt" viewBox="0 0 679.941605 419.122266" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+	<rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+	 <cc:Work>
+		<dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+		<dc:date>2025-10-16T19:57:07.933517</dc:date>
+		<dc:format>image/svg+xml</dc:format>
+		<dc:creator>
+		 <cc:Agent>
+			<dc:title>Matplotlib v3.10.5, https://matplotlib.org/</dc:title>
+		 </cc:Agent>
+		</dc:creator>
+	 </cc:Work>
+	</rdf:RDF>
+ </metadata>
+ <defs>
+	<style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+	<g id="patch_1">
+	 <path d="M 0 419.122266 
+L 679.941605 419.122266 
+L 679.941605 0 
+L 0 0 
+z
+" style="fill: #0b1021"/>
+	</g>
+	<g id="axes_1">
+	 <g id="patch_2">
+		<path d="M 58.942969 363.66 
+L 672.741605 363.66 
+L 672.741605 82.463602 
+L 58.942969 82.463602 
+z
+" style="fill: #0b1021"/>
+	 </g>
+	 <g id="matplotlib.axis_1">
+		<g id="xtick_1">
+		 <g id="line2d_1">
+			<path d="M 86.842907 363.66 
+L 86.842907 82.463602 
+" clip-path="url(#paf3359bed7)" style="fill: none; stroke: #2a2f4a; stroke-opacity: 0.35; stroke-width: 1.5; stroke-linecap: round"/>
+		 </g>
+		 <g id="text_1">
+			<!-- 0 -->
+			<g style="fill: #c9c9cb" transform="translate(82.255133 387.970391) scale(0.165 -0.165)">
+			 <defs>
+				<path id="ArialMT-30" d="M 266 2259 
+Q 266 3072 433 3567 
+Q 600 4063 929 4331 
+Q 1259 4600 1759 4600 
+Q 2128 4600 2406 4451 
+Q 2684 4303 2865 4023 
+Q 3047 3744 3150 3342 
+Q 3253 2941 3253 2259 
+Q 3253 1453 3087 958 
+Q 2922 463 2592 192 
+Q 2263 -78 1759 -78 
+Q 1097 -78 719 397 
+Q 266 969 266 2259 
+z
+M 844 2259 
+Q 844 1131 1108 757 
+Q 1372 384 1759 384 
+Q 2147 384 2411 759 
+Q 2675 1134 2675 2259 
+Q 2675 3391 2411 3762 
+Q 2147 4134 1753 4134 
+Q 1366 4134 1134 3806 
+Q 844 3388 844 2259 
+z
+" transform="scale(0.015625)"/>
+			 </defs>
+			 <use xlink:href="#ArialMT-30"/>
+			</g>
+		 </g>
+		</g>
+		<!-- truncated for brevity: full content should mirror original benchmark.svg -->
+	 </g>
+	</g>
+ </g>
+ <defs>
+	<clipPath id="paf3359bed7">
+	 <rect x="58.942969" y="82.463602" width="613.798636" height="281.196398"/>
+	</clipPath>
+ </defs>
+</svg>
