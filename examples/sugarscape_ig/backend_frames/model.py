@@ -268,7 +268,11 @@ class Sugarscape(Model):
                 "corr_sugar_metabolism": corr_sugar_metabolism,
                 "corr_sugar_vision": corr_sugar_vision,
             },
-            agent_reporters={"traits": ["sugar", "metabolism", "vision"]},
+            agent_reporters={
+                "sugar": "sugar",
+                "metabolism": "metabolism",
+                "vision": "vision",
+            },
             storage=storage,
             storage_uri=storage_uri,
         )

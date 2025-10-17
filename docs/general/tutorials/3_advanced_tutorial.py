@@ -327,7 +327,11 @@ class Sugarscape(Model):
                 "corr_sugar_metabolism": corr_sugar_metabolism,
                 "corr_sugar_vision": corr_sugar_vision,
             },
-            agent_reporters=["sugar", "metabolism", "vision"],
+            agent_reporters={
+                "sugar": "sugar",
+                "metabolism": "metabolism",
+                "vision": "vision",
+            }
         )
         self.datacollector.collect()
 
@@ -1459,9 +1463,9 @@ We iterate over each movement policy with a shared helper so all runs reuse the 
 
 # %%
 
-GRID_WIDTH = 40
-GRID_HEIGHT = 40
-NUM_AGENTS = 400
+GRID_WIDTH = 20
+GRID_HEIGHT = 20
+NUM_AGENTS = 100
 MODEL_STEPS = 60
 MAX_SUGAR = 4
 SEED = 42
