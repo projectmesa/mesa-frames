@@ -122,5 +122,4 @@ nav:
   - API Reference: api/index.html
   - Contributing:
       - Contribution Guide: contributing.md
-      - Development Guidelines: development/index.md
       - Roadmap: roadmap.md

@@ -99,22 +99,24 @@ This creates `.venv/` and installs mesa-frames with the development extras.
   uv run pytest -q --cov=mesa_frames --cov-report=term-missing
   ```
 
-- **Optional: Enable runtime type checking** during development for enhanced type safety:
+-- **Optional: Runtime Type Checking (beartype)** 🔍
+
+  You can enable stricter runtime validation of function arguments/returns with `beartype` during local development:
 
   ```sh
   MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest -q --cov=mesa_frames --cov-report=term-missing
   ```
 
-  !!! tip "Automatically Enabled"
-      Runtime type checking is automatically enabled in these scenarios:
+  Quick facts:
+  - Automatically enabled in: Hatch dev env (`hatch shell dev`), VS Code debugger, and VS Code test runs.
+  - Enable manually by exporting `MESA_FRAMES_RUNTIME_TYPECHECKING=1` (any of 1/true/yes).
+  - Use only for development/debugging; adds overhead—disable for performance measurements or large simulations.
+  - Unset with your shell (e.g. `unset`/`Remove-Item Env:` depending on shell) to turn it off.
 
-      - **Hatch development environment** (`hatch shell dev`)
-      - **VS Code debugging** (when using the debugger)
-      - **VS Code testing** (when running tests through VS Code's testing interface)
-
-      No manual setup needed in these environments!
-
-  For more details on runtime type checking, see the [Development Guidelines](https://projectmesa.github.io/mesa-frames/development/).
+  Example for a one-off test run:
+  ```sh
+  MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest -q
+  ```
 
 #### **Step 6: Documentation Updates (If Needed)** 📖
 
