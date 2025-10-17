@@ -58,9 +58,9 @@ mesa-frames currently uses **Polars** as its backend.
 
 [![Reproduce Benchmarks](https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge)](https://github.com/projectmesa/mesa-frames/blob/main/benchmarks/README.md)
 
-**mesa-frames consistently outperforms classic Mesa across both toy and canonical ABMs.** 
+**mesa-frames consistently outperforms classic Mesa across both toy and canonical ABMs.**
 
-In the Boltzmann model, it maintains near-constant runtimes even as agent count rises, achieving **up to 10× faster execution** at scale. 
+In the Boltzmann model, it maintains near-constant runtimes even as agent count rises, achieving **up to 10× faster execution** at scale.
 
 In the more computation-intensive Sugarscape model, **mesa-frames roughly halves total runtime**.
 
