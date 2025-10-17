@@ -45,7 +45,7 @@ Both backends accept similar options:
 
 - `--agents` (population size)
 - `--steps` (number of simulated steps)
-- `--seed` (optional RNG seed; Mesa backend resets model RNG) 
+- `--seed` (optional RNG seed; Mesa backend resets model RNG)
 - `--plot / --no-plot` (toggle plot generation)
 - `--save-results / --no-save-results` (persist CSV outputs)
 - `--results-dir` (override auto-created timestamped folder)
@@ -58,7 +58,7 @@ look identical.
 ## Data and metrics
 
 The saved CSV layout (Frames) places `model.csv` in the results directory with
-columns like: `step, gini, <other reporters...>`. 
+columns like: `step, gini, <other reporters...>`.
 The Mesa implementations write
 compatible CSVs.
 
