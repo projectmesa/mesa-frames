@@ -50,6 +50,20 @@ API reference
             :toctree:
 
             Grid.__init__
+            Grid.copy
+
+        .. rubric:: Placement & Movement
+
+        .. autosummary::
+            :nosignatures:
+            :toctree:
+
+            Grid.place_agents
+            Grid.move_agents
+            Grid.place_to_empty
+            Grid.place_to_available
+            Grid.move_to_empty
+            Grid.move_to_available
 
         .. rubric:: Sampling & Queries
 
@@ -57,7 +71,28 @@ API reference
             :nosignatures:
             :toctree:
 
+            Grid.get_neighbors
+            Grid.get_directions
+            Grid.get_distances
+            Grid.sample_cells
+            Grid.random_pos
+            Grid.is_empty
+            Grid.is_available
+            Grid.is_full
+
+        .. rubric:: Accessors & Metadata
+
+        .. autosummary::
+            :nosignatures:
+            :toctree:
+
+            Grid.dimensions
+            Grid.neighborhood_type
+            Grid.torus
             Grid.remaining_capacity
+            Grid.agents
+            Grid.model
+            Grid.random
 
     .. tab-item:: Full API
 
