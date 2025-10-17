@@ -15,20 +15,20 @@ Objects can be easily subclassed to respect mesa's object-oriented philosophy.
 
 ### Vectorized Operations ⚡
 
-mesa-frames leverages the power of vectorized operations provided by DataFrame libraries:
+`mesa-frames` leverages **Polars** to replace Python loops with **column-wise expressions** executed in native Rust.  
+This allows you to update all agents simultaneously, the main source of `mesa-frames`' performance advantage.
 
-- Operations are performed on entire columns of data at once
-- This approach is significantly faster than iterating over individual agents
-- Complex behaviors can be expressed in fewer lines of code
+Unlike traditional `mesa` models, where the **activation order** of agents can affect results (see [Comer, 2014](http://mars.gmu.edu/bitstream/handle/1920/9070/Comer_gmu_0883E_10539.pdf)),  
+`mesa-frames` processes all agents **in parallel by default**.  
+This removes order-dependent effects, though you should handle conflicts explicitly when sequential logic is required.
 
-Default to vectorized operations when expressing agent behaviour; that's where mesa-frames gains most of its speed-ups. If your agents must act sequentially (for example, to resolve conflicts or enforce ordering), fall back to loops or staged vectorized passes—mesa-frames will behave more like base mesa in those situations. We'll unpack these trade-offs in the SugarScape advanced tutorial.
+!!! tip "Best practice"
+    Always start by expressing agent logic in a vectorized form.  
+    Fall back to loops only when ordering or conflict resolution is essential.
 
-It's important to note that in traditional `mesa` models, the order in which agents are activated can significantly impact the results of the model (see [Comer, 2014](http://mars.gmu.edu/bitstream/handle/1920/9070/Comer_gmu_0883E_10539.pdf)). `mesa-frames`, by default, doesn't have this issue as all agents are processed simultaneously. However, this comes with the trade-off of needing to carefully implement conflict resolution mechanisms when sequential processing is required. We'll discuss how to handle these situations later in this guide.
+For a deeper understanding of vectorization and why it accelerates computation, see:
 
-Check out these resources to understand vectorization and why it speeds up the code:
-
-- [What is vectorization?](https://stackoverflow.com/a/1422181)
-- [Vectorization Explained, Step by Step](https://machinelearningcompass.com/machine_learning_math/vectorization/)
+- [How vectorization speeds up your Python code — PythonSpeed](https://pythonspeed.com/articles/vectorization-python)
 
 Here's a comparison between mesa-frames and mesa:
 
