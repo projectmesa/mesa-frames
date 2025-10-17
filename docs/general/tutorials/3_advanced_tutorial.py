@@ -327,7 +327,7 @@ class Sugarscape(Model):
                 "corr_sugar_metabolism": corr_sugar_metabolism,
                 "corr_sugar_vision": corr_sugar_vision,
             },
-            agent_reporters={"traits": ["sugar", "metabolism", "vision"]},
+            agent_reporters=["sugar", "metabolism", "vision"],
         )
         self.datacollector.collect()
 
