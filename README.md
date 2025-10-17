@@ -56,14 +56,14 @@ mesa-frames currently uses **Polars** as its backend.
 
 ## Benchmarks
 
-[![Reproduce Benchmarks](https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge)](https://projectmesa.github.io/mesa-frames/general/benchmarks/)
+[![Reproduce Benchmarks](https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge)](https://github.com/projectmesa/mesa-frames/blob/main/benchmarks/README.md)
 
 mesa-frames delivers consistent speedups across both toy and canonical ABMs.
 At 10k agents, it runs **~10× faster** than classic Mesa, and the gap grows with scale.
 
-![Benchmark: Boltzmann Wealth](examples/boltzmann_wealth/boltzmann_benchmark.png)
+![Benchmark: Boltzmann Wealth](examples/boltzmann_wealth/benchmark.svg)
 
-![Benchmark: Sugarscape IG](examples/sugarscape/sugarscape_benchmark.png)
+![Benchmark: Sugarscape IG](examples/sugarscape_ig/benchmark.svg)
 
 ---
 
