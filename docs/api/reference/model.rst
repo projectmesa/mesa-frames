@@ -6,7 +6,7 @@ Model
 Quick intro
 -----------
 
-``Model`` orchestrates the simulation lifecycle: creating and registering ``AgentSet``s, stepping the simulation, and integrating with ``DataCollector`` and spatial ``Grid``s. Typical usage:
+The ``Model`` orchestrates the simulation lifecycle: creating and registering ``AgentSet``s, stepping the simulation, and integrating with ``DataCollector`` and spatial ``Grid``s. Typical usage:
 
 - Instantiate ``Model``, add ``AgentSet`` instances to ``model.sets``.
 - Call ``model.sets.do('step')`` inside your model loop to trigger set-level updates.
