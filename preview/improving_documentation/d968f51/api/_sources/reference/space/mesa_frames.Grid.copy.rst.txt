@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.copy
+======================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Grid.copy
