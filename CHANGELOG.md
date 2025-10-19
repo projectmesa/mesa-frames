@@ -1,3 +1,5 @@
+## Version 0.1.0-alpha — 2024-08-28
+
 ## What's Changed
 * Refactoring mesa.Agent, mesa.AgentSet, mesa.Model -> AgentSetDF, AgentsDF, ModelDF by @adamamer20 in https://github.com/adamamer20/mesa-frames/pull/8
 * setup: Migrate from setup.py to pyproject.toml by @rht in https://github.com/adamamer20/mesa-frames/pull/13
