@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.torus
+=======================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: Grid.torus

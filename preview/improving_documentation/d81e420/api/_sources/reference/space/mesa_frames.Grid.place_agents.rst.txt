@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.place\_agents
+===============================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Grid.place_agents

@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.dimensions
+============================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: Grid.dimensions

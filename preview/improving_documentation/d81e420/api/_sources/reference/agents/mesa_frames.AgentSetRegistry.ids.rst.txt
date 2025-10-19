@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.ids
+=================================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: AgentSetRegistry.ids
