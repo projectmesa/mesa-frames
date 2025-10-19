@@ -146,12 +146,85 @@ If you're familiar with mesa, this guide will help you understand the key differ
             self.schedule.step()
     ```
 
-### Transition Tips 💡
+### From Imperative Code to Behavioral Rules 💭
 
-1. **Think in Sets 🎭**: Instead of individual agents, think about operations on groups of agents.
-2. **Leverage DataFrame Operations 🛠️**: Familiarize yourself with Polars operations for efficient agent manipulation.
-3. **Vectorize Logic 🚅**: Convert loops and conditionals to vectorized operations where possible.
-4. **Use AgentSets 📦**: Group similar agents into AgentSets instead of creating many individual agent classes.
+When scientists describe an ABM-like process they typically write a **system of state-transition functions**:
+
+$$
+x_i(t+1) = f_i\big(x_i(t),\; \mathcal{N}(i,t),\; E(t)\big)
+$$
+
+Here, $x_i(t)$ is the agent’s state, $\mathcal{N}(i,t)$ its neighborhood or local environment, and $E(t)$ a global environment; $f_i$ is the behavioral law.
+
+In classic `mesa`, agent behavior is implemented through explicit loops: each agent individually gathers information from its neighbors, computes its next state, and often stores this in a buffer to ensure synchronous updates. The behavioral law $f_i$ is distributed across multiple steps: neighbor iteration, temporary buffers, and scheduling logic, resulting in procedural, step-by-step control flow.
+
+In `mesa-frames`, these stages are unified into a single vectorized transformation. Agent interactions, state transitions, and updates are expressed as DataFrame operations (such as joins, group-bys, and column expressions) allowing all agents to process perceptions and commit actions simultaneously. This approach centralizes the behavioral law $f_i$ into concise, declarative rules, improving clarity and performance.
+
+#### Example: Network contagion (Linear Threshold)
+
+Behavioral rule: a node activates if the number of active neighbors ≥ its threshold.
+
+=== "mesa-frames"
+
+    Single vectorized transformation. A join brings in source activity, a group-by aggregates exposures per destination, and a column expression applies the activation equation and commits in one pass, no explicit loops or staging structure needed.
+
+    ```python
+    class Nodes(AgentSet):
+        # self.df columns: agent_id, active (bool), theta (int)
+        # self.model.space.edges: DataFrame[src, dst]
+        def step(self):
+            E = self.model.space.edges  # [src, dst]
+            # Exposure: active neighbors per dst (vectorized join + groupby)
+            exposures = (
+                E.join(
+                    self.df.select(pl.col("agent_id").alias("src"),
+                                   pl.col("active").alias("src_active")),
+                    on="src", how="left"
+                )
+                .with_columns(pl.col("src_active").fill_null(False))
+                .group_by("dst")
+                .agg(pl.col("src_active").sum().alias("k_active"))
+            )
+            # Behavioral equation applied to all agents, committed in-place
+            self.df = (
+                self.df
+                .join(exposures, left_on="agent_id", right_on="dst", how="left")
+                .with_columns(pl.col("k_active").fill_null(0))
+                .with_columns(
+                    (pl.col("active") | (pl.col("k_active") >= pl.col("theta")))
+                    .alias("active")
+                )
+                .drop(["k_active", "dst"])
+            )
+    ```
+
+=== "mesa"
+
+    Two-phase imperative procedure. Each agent loops over its neighbors to count active ones (exposure), stores a provisional next state to avoid premature mutation, then a separate pass commits all buffered states for synchronicity.
+
+    ```python
+    class Node(mesa.Agent):
+        def step(self):
+            # (1) Gather exposure: count active neighbors right now
+            k_active = sum(
+                1 for j in self.model.G.neighbors(self.unique_id)
+                if self.model.id2agent[j].active
+            )
+            # (2) Compute next state (don't mutate yet to stay synchronous)
+            self.next_active = self.active or (k_active >= self.theta)
+
+    # Second pass (outside the agent method) performs the commit:
+    for a in model.agents:
+        a.active = a.next_active
+    ```
+
+!!! tip "Transition tips — quick summary"
+    1. Think in sets: operate on AgentSets/DataFrames, not per-agent objects.
+    2. Write transitions as Polars column expressions; avoid Python loops.
+    3. Use joins + group-bys to compute interactions/exposure across relations.
+    4. Commit state synchronously in one vectorized pass.
+    5. Group similar agents into one AgentSet with typed columns.
+    6. Use UDFs or staged/iterative patterns only for true race/conflict cases.
 
 ### Handling Race Conditions 🏁
 
