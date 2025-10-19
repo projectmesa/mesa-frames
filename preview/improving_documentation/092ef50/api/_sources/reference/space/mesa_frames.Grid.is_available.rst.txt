@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.is\_available
+===============================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Grid.is_available

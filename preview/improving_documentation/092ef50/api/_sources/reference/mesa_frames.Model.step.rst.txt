@@ -1,0 +1,6 @@
+﻿mesa\_frames.Model.step
+=======================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Model.step
