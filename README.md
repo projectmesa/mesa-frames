@@ -124,7 +124,7 @@ uv sync --all-extras
 
 ## Roadmap
 
-> Community contributions welcome — see the [full roadmap](https://projectmesa.github.io/mesa-frames/roadmap)
+> Community contributions welcome — see the [full roadmap](mesa-frames/roadmap)
 
 - Transition to LazyFrames for optimization and GPU support
 - Auto-vectorize existing Mesa models via decorator
