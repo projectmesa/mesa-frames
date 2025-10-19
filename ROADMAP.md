@@ -60,4 +60,4 @@ Related items:
 
 ---
 
-See [our contribution guide](/mesa-frames/contributing/) and browse all open items at https://github.com/projectmesa/mesa-frames/issues
+See [our contribution guide](/mesa-frames/contributing/) and browse all open items at <https://github.com/projectmesa/mesa-frames/issues>
