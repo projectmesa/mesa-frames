@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSet.random
+============================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: AgentSet.random

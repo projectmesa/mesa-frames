@@ -1,0 +1,6 @@
+﻿mesa\_frames.DataCollector.data
+===============================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: DataCollector.data
