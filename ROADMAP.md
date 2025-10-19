@@ -17,6 +17,7 @@ Related issues:
 - [#122: Deprecate DataFrameMixin (remove during LazyFrames refactor)](https://github.com/projectmesa/mesa-frames/issues/122)
 
 Progress and next steps:
+
 - Land [#144](https://github.com/projectmesa/mesa-frames/pull/144) and convert remaining eager paths to lazy.
 
 - Validate GPU execution paths and benchmark improvements.
@@ -32,6 +33,7 @@ Progress and next steps:
 Expose movement methods from `AgentContainer` and provide optimized utilities for "move to optimal" workflows.
 
 Related issues:
+
 - [#108: Adding abstraction of optimal agent movement](https://github.com/projectmesa/mesa-frames/issues/108)
 
 - [#118: Adds move_to_optimal in DiscreteSpaceDF (PR)](https://github.com/projectmesa/mesa-frames/pull/118)
@@ -39,6 +41,7 @@ Related issues:
 - [#82: Add movement methods to AgentContainer](https://github.com/projectmesa/mesa-frames/issues/82)
 
 Next steps:
+
 - Consolidate movement APIs under `AgentContainer`.
 
 - Keep conflict resolution simple, vectorized, and well-documented.
