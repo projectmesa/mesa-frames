@@ -37,7 +37,7 @@ class AntDFBase(AgentSet):
     def eat(self):
         # Only consider cells currently occupied by agents of this set
         cells = self.space.cells.filter(pl.col("agent_id").is_not_null())
-        mask_in_set = cells["agent_id"].is_in(self.index)
+        mask_in_set = cells["agent_id"].is_in(self.index.implode())
         if mask_in_set.any():
             cells = cells.filter(mask_in_set)
             ids = cells["agent_id"]
@@ -201,7 +201,7 @@ class AntPolarsLoopDF(AntDFBase):
             )
             if len(best_moves) > 0:
                 condition = condition | pl.col("blocking_agent_id").is_in(
-                    best_moves["agent_id_center"]
+                    best_moves["agent_id_center"].implode()
                 )
 
             condition = condition & (pl.col("priority") == 1)
@@ -212,7 +212,9 @@ class AntPolarsLoopDF(AntDFBase):
 
             # Remove agents that have already moved
             neighborhood = neighborhood.filter(
-                ~pl.col("agent_id_center").is_in(best_moves["agent_id_center"])
+                ~pl.col("agent_id_center").is_in(
+                    best_moves["agent_id_center"].implode()
+                )
             )
 
             # Remove cells that have been already selected

@@ -232,9 +232,11 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         agents: PolarsIdsLike,
     ) -> bool | pl.Series:
         if isinstance(agents, pl.Series):
-            return agents.is_in(self._df["unique_id"])
+            return agents.is_in(self._df["unique_id"].implode())
         elif isinstance(agents, Collection) and not isinstance(agents, str):
-            return pl.Series(agents, dtype=pl.UInt64).is_in(self._df["unique_id"])
+            return pl.Series(agents, dtype=pl.UInt64).is_in(
+                self._df["unique_id"].implode()
+            )
         else:
             return agents in self._df["unique_id"]
 
@@ -322,7 +324,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         # Normalize to Series of unique_ids
         ids = obj._df_index(obj._get_masked_df(agents), "unique_id")
         # Validate presence
-        if not ids.is_in(obj._df["unique_id"]).all():
+        if not ids.is_in(obj._df["unique_id"].implode()).all():
             raise KeyError("Some 'unique_id' of mask are not present in this AgentSet.")
         # Remove by ids
         return obj._discard(ids)
@@ -396,8 +398,8 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         if filter_func:
             mask = mask & filter_func(obj)
         if n is not None:
-            mask = (obj._df["unique_id"]).is_in(
-                obj._df.filter(mask).sample(n)["unique_id"]
+            mask = obj._df["unique_id"].is_in(
+                obj._df.filter(mask).sample(n)["unique_id"].implode()
             )
         if negate:
             mask = mask.not_()
@@ -456,7 +458,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
             for obj in iter(agentsets):
                 # Remove agents that are already in the final DataFrame
                 final_dfs.append(
-                    obj._df.filter(pl.col("unique_id").is_in(final_indices).not_())
+                    obj._df.filter(
+                        pl.col("unique_id").is_in(final_indices.implode()).not_()
+                    )
                 )
                 # Add the indices of the active agents of current AgentSet
                 final_active_indices.append(obj._df.filter(obj._mask)["unique_id"])
@@ -476,13 +480,13 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
             final_active_index = pl.concat(
                 [obj._df.filter(obj._mask)["unique_id"] for obj in agentsets]
             )
-        final_mask = final_df["unique_id"].is_in(final_active_index)
+        final_mask = final_df["unique_id"].is_in(final_active_index.implode())
         self._df = final_df
         self._mask = final_mask
         # If some ids were removed in the do-method, we need to remove them also from final_df
         if not isinstance(original_masked_index, type(None)):
             ids_to_remove = original_masked_index.filter(
-                original_masked_index.is_in(self._df["unique_id"]).not_()
+                original_masked_index.is_in(self._df["unique_id"].implode()).not_()
             )
             if not ids_to_remove.is_empty():
                 self.remove(ids_to_remove, inplace=True)
@@ -499,7 +503,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
                 and len(mask) == len(self._df)
             ):
                 return mask
-            return self._df["unique_id"].is_in(mask)
+            return self._df["unique_id"].is_in(mask.implode())
 
         if isinstance(mask, pl.Expr):
             return mask
@@ -532,13 +536,13 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         ):
             return self._df.filter(mask)
         elif isinstance(mask, pl.DataFrame):
-            if not mask["unique_id"].is_in(self._df["unique_id"]).all():
+            if not mask["unique_id"].is_in(self._df["unique_id"].implode()).all():
                 raise KeyError(
                     "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
                 )
             return mask.select("unique_id").join(self._df, on="unique_id", how="left")
         elif isinstance(mask, pl.Series):
-            if not mask.is_in(self._df["unique_id"]).all():
+            if not mask.is_in(self._df["unique_id"].implode()).all():
                 raise KeyError(
                     "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
                 )
@@ -553,7 +557,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
                 mask_series = pl.Series(mask, dtype=pl.UInt64)
             else:
                 mask_series = pl.Series([mask], dtype=pl.UInt64)
-            if not mask_series.is_in(self._df["unique_id"]).all():
+            if not mask_series.is_in(self._df["unique_id"].implode()).all():
                 raise KeyError(
                     "Some 'unique_id' of mask are not present in DataFrame 'unique_id'."
                 )
@@ -585,12 +589,13 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     def _update_mask(
         self, original_active_indices: pl.Series, new_indices: pl.Series | None = None
     ) -> None:
+        original_active = original_active_indices.implode()
         if new_indices is not None:
-            self._mask = self._df["unique_id"].is_in(
-                original_active_indices
-            ) | self._df["unique_id"].is_in(new_indices)
+            self._mask = self._df["unique_id"].is_in(original_active) | self._df[
+                "unique_id"
+            ].is_in(new_indices.implode())
         else:
-            self._mask = self._df["unique_id"].is_in(original_active_indices)
+            self._mask = self._df["unique_id"].is_in(original_active)
 
     def __getattr__(self, key: str) -> Any:
         if key == "name":

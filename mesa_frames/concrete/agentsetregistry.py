@@ -575,7 +575,7 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
                 [
                     presence_df,
                     (
-                        new_ids.is_in(presence_df["unique_id"])
+                        new_ids.is_in(presence_df["unique_id"].implode())
                         .to_frame("present")
                         .with_columns(unique_id=new_ids)
                         .select(["unique_id", "present"])
