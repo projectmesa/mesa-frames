@@ -1,67 +1,59 @@
-# Roadmap 🗺️
+# Roadmap
 
-This document outlines the development roadmap for the mesa-frames project. It provides insights into our current priorities, upcoming features, and long-term vision.
+This document outlines the near-term roadmap for mesa-frames as of October 2025.
 
-## 0.1.0 Stable Release Goals 🎯
+### 1) LazyFrames for Polars + GPU
 
-### 1. Transitioning polars implementation from eager API to lazy API
+Switch Polars usage from eager to `LazyFrame` to enable better query optimization and GPU acceleration.
 
-One of our major priorities was to move from pandas to polars as the primary dataframe backend. This transition was motivated by performance considerations.
-Now we should transition to using the lazily evaluated version of polars.
+Related issues:
 
-**Related issues:** [#10: GPU integration: Dask, cuda (cudf) and RAPIDS (Polars)](https://github.com/projectmesa/mesa-frames/issues/10), [#89: Investigate using Ibis for the common interface library to any DF backend](https://github.com/projectmesa/mesa-frames/issues/89), [#52: Use of LazyFrames for Polars implementation](https://github.com/projectmesa/mesa-frames/issues/52)
+- [#52: Use of LazyFrames for Polars implementation](https://github.com/projectmesa/mesa-frames/issues/52)
 
-#### Progress and Next Steps
+- [#144: Switch to LazyFrame for Polars implementation (PR)](https://github.com/projectmesa/mesa-frames/pull/144)
 
-- We are exploring [Ibis](https://ibis-project.org/) or [narwhals](https://github.com/narwhals-dev/narwhals) as a common interface library that could support multiple backends (Polars, DuckDB, Spark etc.), but since most of the development is currently in polars, we will currently continue using Polars.
-- We're transitioning to the lazy API, mainly in order to use GPU acceleration
+- [#89: Investigate Ibis or Narwhals for backend flexibility](https://github.com/projectmesa/mesa-frames/issues/89)
 
-### 2. Handling Concurrency Management
+- [#122: Deprecate DataFrameMixin (remove during LazyFrames refactor)](https://github.com/projectmesa/mesa-frames/issues/122)
 
-A critical aspect of agent-based models is efficiently managing concurrent agent movements, especially when multiple agents attempt to move to the same location simultaneously. We aim to implement abstractions that handle these concurrency conditions automatically.
+Progress and next steps:
+- Land [#144](https://github.com/projectmesa/mesa-frames/pull/144) and convert remaining eager paths to lazy.
 
-**Related issues:** [#108: Adding abstraction of optimal agent movement](https://github.com/projectmesa/mesa-frames/issues/108), [#48: Emulate RandomActivation with DataFrame.rolling](https://github.com/projectmesa/mesa-frames/issues/48)
+- Validate GPU execution paths and benchmark improvements.
 
-#### Sugarscape Example of Concurrency Issues
+- Revisit Ibis/Narwhals after LazyFrame stabilization.
 
-Testing with many potential collisions revealed a specific issue:
+- Fold DataFrameMixin removal into the LazyFrames transition ([#122](https://github.com/projectmesa/mesa-frames/issues/122)).
 
-**Problem scenario:**
+---
 
-- Consider two agents targeting the same cell:
-  - A mid-priority agent (higher in the agent order)
-  - A low-priority agent (lower in the agent order)
-- The mid-priority agent has low preference for the cell
-- The low-priority agent has high preference for the cell
-- Without accounting for priority:
-  - The mid-priority agent's best moves kept getting "stolen" by higher priority agents
-  - This forced it to resort to lower preference target cells
-  - However, these lower preference cells were often already taken by lower priority agents in previous iterations
+### 2) AgentSet Enhancements
 
-**Solution approach:**
+Expose movement methods from `AgentContainer` and provide optimized utilities for "move to optimal" workflows.
 
-- Implement a "priority" count to ensure that each action is "legal"
-- This prevents race conditions but requires recomputing the priority at each iteration
-- Current implementation may be slower than Numba due to this overhead
-- After the Ibis refactoring, we can investigate if lazy evaluation can help mitigate this performance issue
+Related issues:
+- [#108: Adding abstraction of optimal agent movement](https://github.com/projectmesa/mesa-frames/issues/108)
 
-The Sugarscape example demonstrates the need for this abstraction, as multiple agents often attempt to move to the same cell simultaneously. By generalizing this functionality, we can eliminate the need for users to implement complex conflict resolution logic repeatedly.
+- [#118: Adds move_to_optimal in DiscreteSpaceDF (PR)](https://github.com/projectmesa/mesa-frames/pull/118)
 
-#### Progress and Next Steps
+- [#82: Add movement methods to AgentContainer](https://github.com/projectmesa/mesa-frames/issues/82)
 
-- Create utility functions in `DiscreteSpace` and `AgentSetRegistry` to move agents optimally based on specified attributes
-- Provide built-in resolution strategies for common concurrency scenarios
-- Ensure the implementation works efficiently with the vectorized approach of mesa-frames
+Next steps:
+- Consolidate movement APIs under `AgentContainer`.
 
-### Additional 0.1.0 Goals
+- Keep conflict resolution simple, vectorized, and well-documented.
 
-- Complete core API stabilization
-- Completely mirror mesa's functionality
-- Improve documentation and examples
-- Address outstanding bugs and performance issues
+---
 
-## Beyond 0.1.0
+### 3) Research & Publication
 
-Future roadmap items will be added as the project evolves and new priorities emerge.
+JOSS paper preparation and submission.
 
-We welcome community feedback on our roadmap! Please open an issue if you have suggestions or would like to contribute to any of these initiatives.
+Related items:
+- [#90: JOSS paper for the package](https://github.com/projectmesa/mesa-frames/issues/90)
+
+- [#107: paper - Adding Statement of Need (PR)](https://github.com/projectmesa/mesa-frames/pull/107)
+
+---
+
+See [our contribution guide](/mesa-frames/contributing/) and browse all open items at https://github.com/projectmesa/mesa-frames/issues
