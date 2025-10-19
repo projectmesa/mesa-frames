@@ -17,33 +17,27 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.VERSION_PUSH_TOKEN }}
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install hatch
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v3
     - name: Set release version
       run: |
         # Get the tag from the GitHub release
         TAG=${GITHUB_REF#refs/tags/}
         # Remove 'v' prefix if present
         VERSION=${TAG#v}
-        hatch version $VERSION
+        uvx hatch version $VERSION
     - name: Build package
-      run: hatch build
+      run: uvx hatch build
     - name: Run tests
-      run: hatch run test:pytest
+      run: uvx hatch run test:pytest
     - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
     - name: Verify PyPI Release
       run: |
         # Verify PyPI release
         PACKAGE_NAME="mesa_frames"
-        CURRENT_VERSION=$(hatch version)
-        pip install $PACKAGE_NAME==$CURRENT_VERSION
+        CURRENT_VERSION=$(uvx hatch version)
+        uv pip install --system $PACKAGE_NAME==$CURRENT_VERSION
         python -c "import mesa_frames; print(mesa_frames.__version__)"
     - name: Update GitHub Release
       uses: softprops/action-gh-release@v1
@@ -94,7 +88,7 @@ jobs:
         git push origin main || true
     - name: Create or recreate version branch
       run: |
-        CURRENT_VERSION=$(hatch version)
+        CURRENT_VERSION=$(uvx hatch version)
         BRANCH_NAME="v$CURRENT_VERSION"
 
         git config user.name github-actions
@@ -113,11 +107,11 @@ jobs:
     - name: Update to Next Version
       run: |
         # Bump to next development version
-        hatch version patch
-        hatch version dev
+        uvx hatch version patch
+        uvx hatch version dev
 
         # Get the new version
-        NEW_VERSION=$(hatch version)
+        NEW_VERSION=$(uvx hatch version)
 
         # Commit and push the version bump
         git config user.name github-actions
