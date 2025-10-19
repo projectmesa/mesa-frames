@@ -51,6 +51,47 @@ jobs:
       with:
         files: |
           dist/*
+    - name: Generate changelog from release notes
+      id: notes
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const tag = (context.payload.release && context.payload.release.tag_name)
+            ? context.payload.release.tag_name
+            : (process.env.GITHUB_REF || '').replace('refs/tags/', '');
+
+          const body = (context.payload.release && context.payload.release.body) ? context.payload.release.body : '';
+          if (!body || body.trim().length === 0) {
+            core.setFailed('Release body is empty. Ensure the GitHub Release is created with auto-generated notes configured by .github/release.yml or supply a body.');
+          }
+
+          fs.writeFileSync('RELEASE_BODY.md', body, 'utf8');
+          core.setOutput('tag', tag);
+    - name: Prepend notes to CHANGELOG.md
+      env:
+        TAG: ${{ steps.notes.outputs.tag }}
+      run: |
+        VERSION_NO_V=${TAG#v}
+        DATE_UTC=$(date -u +%Y-%m-%d)
+        echo "## Version ${VERSION_NO_V} — ${DATE_UTC}" > RELEASE_HEADER.md
+        echo "" >> RELEASE_HEADER.md
+        if [ -f CHANGELOG.md ]; then
+          cat RELEASE_HEADER.md RELEASE_BODY.md CHANGELOG.md > CHANGELOG.new
+        else
+          cat RELEASE_HEADER.md RELEASE_BODY.md > CHANGELOG.new
+        fi
+        mv CHANGELOG.new CHANGELOG.md
+    - name: Commit and push CHANGELOG update
+      env:
+        TAG: ${{ steps.notes.outputs.tag }}
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add CHANGELOG.md
+        # Avoid CI cycles
+        git commit -m "Changelog: add notes for ${TAG} [skip ci]" || echo "No changelog changes to commit"
+        git push origin main || true
     - name: Create or recreate version branch
       run: |
         CURRENT_VERSION=$(hatch version)
@@ -81,6 +122,6 @@ jobs:
         # Commit and push the version bump
         git config user.name github-actions
         git config user.email github-actions@github.com
-        git add mesa_frames/__init__.py
+        git add mesa_frames/__init__.py CHANGELOG.md
         git commit -m "Bump version to $NEW_VERSION [skip ci]"
         git push origin main
