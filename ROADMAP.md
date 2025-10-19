@@ -53,6 +53,7 @@ Next steps:
 JOSS paper preparation and submission.
 
 Related items:
+
 - [#90: JOSS paper for the package](https://github.com/projectmesa/mesa-frames/issues/90)
 
 - [#107: paper - Adding Statement of Need (PR)](https://github.com/projectmesa/mesa-frames/pull/107)
