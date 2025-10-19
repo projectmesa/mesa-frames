@@ -74,7 +74,7 @@ We still have room to optimize performance further (see [Roadmap](#roadmap)).
 
 ## Quick Start
 
-[![Explore the Tutorials](https://img.shields.io/badge/Explore%20the%20Tutorials-📚-blue?style=for-the-badge)](https://projectmesa.github.io/mesa-frames/general/user-guide/)
+[![Explore the Tutorials](https://img.shields.io/badge/Explore%20the%20Tutorials-📚-blue?style=for-the-badge)](/mesa-frames/tutorials/2_introductory_tutorial/)
 
 1. **Install**
 
@@ -124,7 +124,7 @@ uv sync --all-extras
 
 ## Roadmap
 
-> Community contributions welcome — see the [full roadmap](https://projectmesa.github.io/mesa-frames/general/roadmap)
+> Community contributions welcome — see the [full roadmap](https://projectmesa.github.io/mesa-frames/roadmap)
 
 - Transition to LazyFrames for optimization and GPU support
 - Auto-vectorize existing Mesa models via decorator
