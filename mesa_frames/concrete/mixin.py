@@ -206,7 +206,7 @@ class PolarsMixin(DataFrameMixin):
         column: str,
         values: Collection[Any],
     ) -> pl.Series:
-        return pl.Series("contains", values).is_in(df[column].implode())
+        return pl.Series("contains", values).is_in(df[column])
 
     def _df_div(
         self,
@@ -290,7 +290,7 @@ class PolarsMixin(DataFrameMixin):
             ):
                 return mask
             assert isinstance(index_cols, str)
-            return df[index_cols].is_in(mask.implode())
+            return df[index_cols].is_in(mask)
 
         def bool_mask_from_df(mask: pl.DataFrame) -> pl.Series:
             assert index_cols, list[str]
@@ -632,7 +632,7 @@ class PolarsMixin(DataFrameMixin):
     ) -> pl.Series:
         if not isinstance(values, Collection):
             values = [values]
-        return pl.Series(values).is_in(pl.Series(srs).implode())
+        return pl.Series(values).is_in(pl.Series(srs))
 
     def _srs_range(
         self,

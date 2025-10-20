@@ -984,7 +984,7 @@ class AbstractDiscreteSpace(Space):
 
         if __debug__:
             # Check ids presence in model using public API
-            b_contained = agents.is_in(self.model.sets.ids.implode())
+            b_contained = agents.is_in(self.model.sets.ids)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
@@ -1610,7 +1610,7 @@ class AbstractGrid(AbstractDiscreteSpace):
 
         if __debug__:
             # Check ids presence in model via public ids
-            b_contained = agents.is_in(obj.model.sets.ids.implode())
+            b_contained = agents.is_in(obj.model.sets.ids)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):
@@ -1792,7 +1792,7 @@ class AbstractGrid(AbstractDiscreteSpace):
             if agents is not None:
                 agents = self._get_ids_srs(agents)
                 # Check ids presence in model
-                b_contained = agents.is_in(self.model.sets.ids.implode())
+                b_contained = agents.is_in(self.model.sets.ids)
                 if (isinstance(b_contained, Series) and not b_contained.all()) or (
                     isinstance(b_contained, bool) and not b_contained
                 ):
@@ -1872,7 +1872,7 @@ class AbstractGrid(AbstractDiscreteSpace):
                     warn("Some agents are already present in the grid", RuntimeWarning)
 
             # Check if agents are present in the model using the public ids
-            b_contained = agents.is_in(self.model.sets.ids.implode())
+            b_contained = agents.is_in(self.model.sets.ids)
             if (isinstance(b_contained, Series) and not b_contained.all()) or (
                 isinstance(b_contained, bool) and not b_contained
             ):

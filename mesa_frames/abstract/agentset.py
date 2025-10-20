@@ -23,6 +23,8 @@ from collections.abc import Collection, Iterable, Iterator
 from contextlib import suppress
 from typing import Any, Literal, Self, overload
 
+from collections.abc import Callable, Sequence
+
 from numpy.random import Generator
 
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
@@ -222,7 +224,25 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
-    ) -> Series | DataFrame: ...
+    ) -> Series | DataFrame:
+        """Retrieve agent attributes as a Series or DataFrame.
+
+        Parameters
+        ----------
+        attr_names : str | Collection[str] | None, optional
+            Column name or collection of names to fetch. When ``None``, return
+            all agent attributes (excluding any internal identifiers).
+        mask : AgentMask | None, optional
+            Subset selector limiting which agents are included. ``None`` means
+            operate on the full set.
+
+        Returns
+        -------
+        Series | DataFrame
+            A Series when selecting a single attribute, otherwise a DataFrame
+            containing the requested columns.
+        """
+        ...
 
     @abstractmethod
     def step(self) -> None:
@@ -406,6 +426,13 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
 
     @property
     def df(self) -> DataFrame:
+        """Return the full backing DataFrame for this agent set.
+
+        Returns
+        -------
+        DataFrame
+            Table containing every agent, including inactive records.
+        """
         return self._df
 
     @df.setter
@@ -421,18 +448,54 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
 
     @property
     @abstractmethod
-    def active_agents(self) -> DataFrame: ...
+    def active_agents(self) -> DataFrame:
+        """Return the subset of agents currently marked as active.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame view containing only active agents.
+        """
+        ...
 
     @property
     @abstractmethod
-    def inactive_agents(self) -> DataFrame: ...
+    def inactive_agents(self) -> DataFrame:
+        """Return the subset of agents currently marked as inactive.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame view containing only inactive agents.
+        """
+        ...
 
     @property
     @abstractmethod
-    def index(self) -> Index: ...
+    def index(self) -> Index:
+        """Return the unique identifier index for agents in this set.
+
+        Returns
+        -------
+        Index
+            Collection of unique agent identifiers.
+        """
+        ...
 
     @property
     def pos(self) -> DataFrame:
+        """Return positional data for agents from the attached space.
+
+        Returns
+        -------
+        DataFrame
+            Position records aligned with each agent's ``unique_id``.
+
+        Raises
+        ------
+        AttributeError
+            If the model has no space attached.
+        """
         if self.space is None:
             raise AttributeError(
                 "Attempted to access `pos`, but the model has no space attached."
@@ -458,14 +521,35 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
 
     @property
     def model(self) -> mesa_frames.concrete.model.Model:
+        """Return the parent model for this agent set.
+
+        Returns
+        -------
+        mesa_frames.concrete.model.Model
+            The model instance that owns this agent set.
+        """
         return self._model
 
     @property
     def random(self) -> Generator:
+        """Return the random number generator shared with the model.
+
+        Returns
+        -------
+        Generator
+            Generator used for stochastic operations.
+        """
         return self.model.random
 
     @property
     def space(self) -> mesa_frames.abstract.space.Space | None:
+        """Return the space attached to the parent model, if any.
+
+        Returns
+        -------
+        mesa_frames.abstract.space.Space | None
+            Spatial structure registered on the model, or ``None`` when absent.
+        """
         return self.model.space
 
     @abstractmethod
@@ -518,6 +602,81 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         -------
         Self
             The updated AgentSet (or a modified copy when ``inplace=False``).
+        """
+        ...
+
+    @abstractmethod
+    def select(
+        self,
+        mask: AgentMask | None = None,
+        filter_func: Callable[[Self], BoolSeries] | None = None,
+        n: int | None = None,
+        negate: bool = False,
+        inplace: bool = True,
+    ) -> Self:
+        """Update the active-agent mask using selection criteria.
+
+        Parameters
+        ----------
+        mask : AgentMask | None, optional
+            Pre-computed mask identifying agents to activate.
+        filter_func : Callable[[Self], BoolSeries] | None, optional
+            Callable evaluated on the agent set to produce an additional mask.
+        n : int | None, optional
+            Randomly sample ``n`` agents from the selected mask when provided.
+        negate : bool, optional
+            Invert the effective mask, by default False.
+        inplace : bool, optional
+            Whether to mutate in place or return an updated copy, by default True.
+
+        Returns
+        -------
+        Self
+            The updated AgentSet (or a modified copy when ``inplace=False``).
+        """
+        ...
+
+    @abstractmethod
+    def shuffle(self, inplace: bool = True) -> Self:
+        """Randomly permute agent order.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Whether to mutate in place or return a shuffled copy, by default True.
+
+        Returns
+        -------
+        Self
+            The shuffled AgentSet (or a shuffled copy when ``inplace=False``).
+        """
+        ...
+
+    @abstractmethod
+    def sort(
+        self,
+        by: str | Sequence[str],
+        ascending: bool | Sequence[bool] = True,
+        inplace: bool = True,
+        **kwargs: Any,
+    ) -> Self:
+        """Sort agents by one or more columns.
+
+        Parameters
+        ----------
+        by : str | Sequence[str]
+            Column name(s) to sort on.
+        ascending : bool | Sequence[bool], optional
+            Sort order per column, by default True.
+        inplace : bool, optional
+            Whether to mutate in place or return a sorted copy, by default True.
+        **kwargs : Any
+            Backend-specific keyword arguments forwarded to the concrete sorter.
+
+        Returns
+        -------
+        Self
+            The sorted AgentSet (or a sorted copy when ``inplace=False``).
         """
         ...
 

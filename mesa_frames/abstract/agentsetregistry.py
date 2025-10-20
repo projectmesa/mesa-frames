@@ -350,7 +350,6 @@ class AbstractAgentSetRegistry(CopyMixin):
         """
         ...
 
-    # select() intentionally removed from the abstract API.
 
     @abstractmethod
     def replace(

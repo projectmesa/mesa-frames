@@ -121,8 +121,8 @@ class AbstractDataCollector(ABC):
 
         This method calls _collect() to perform actual data collection.
 
-        Example
-        -------
+        Examples
+        --------
         >>> datacollector.collect()
         """
         self._collect()
@@ -133,8 +133,8 @@ class AbstractDataCollector(ABC):
 
         This method calls _collect() to perform actual data collection only if trigger returns True
 
-        Example
-        -------
+        Examples
+        --------
         >>> datacollector.conditional_collect()
         """
         if self._should_collect():
@@ -166,8 +166,8 @@ class AbstractDataCollector(ABC):
         """
         Returns collected data currently in memory as a dataframe.
 
-        Example:
-        -------
+        Examples
+        --------
         >>> df = datacollector.data
         >>> print(df)
         """
@@ -183,8 +183,8 @@ class AbstractDataCollector(ABC):
         use this method to save collected data.
 
 
-        Example
-        -------
+        Examples
+        --------
         >>> datacollector.flush()
         >>> # Data is saved externally and in-memory buffers are cleared if configured
         """
@@ -219,7 +219,7 @@ class AbstractDataCollector(ABC):
         """
         Function to get the model seed.
 
-        Example:
+        Examples
         --------
         >>> seed = datacollector.seed
         """
