@@ -548,11 +548,7 @@ class AbstractAgentSetRegistry(CopyMixin):
                 if existing.name == key:
                     self.replace({key: value}, inplace=True, atomic=True)
                     return
-            try:
-                value.rename(key, inplace=True)
-            except Exception:
-                if hasattr(value, "_name"):
-                    value._name = key  # type: ignore[attr-defined]
+            value.rename(key, inplace=True)
             self.add(value, inplace=True)
             return
         raise TypeError("Key must be int index or str name")
