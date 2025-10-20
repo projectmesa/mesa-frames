@@ -132,19 +132,12 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         # Check if we have a model and can find the AgentSetRegistry that contains this set
         try:
             if self in self.model.sets:
-                # Save index to locate the copy on non-inplace path
-                try:
-                    idx = list(self.model.sets).index(self)  # type: ignore[arg-type]
-                except Exception:
-                    idx = None
                 reg = self.model.sets.rename(self, new_name, inplace=inplace)
                 if inplace:
                     return self
-                if idx is not None:
-                    return reg[idx]
-                return reg.get(new_name)  # type: ignore[return-value]
-        except Exception:
-            # Fall back to local rename if delegation fails
+                return reg[new_name]
+        except KeyError:
+            # Fall back to local rename if isn't found in a an AgentSetRegistry
             obj._name = new_name
             return obj
 
