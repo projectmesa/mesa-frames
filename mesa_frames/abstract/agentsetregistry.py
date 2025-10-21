@@ -350,7 +350,6 @@ class AbstractAgentSetRegistry(CopyMixin):
         """
         ...
 
-
     @abstractmethod
     def replace(
         self,
