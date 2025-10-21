@@ -154,3 +154,10 @@ cython_debug/
 *.code-workspace
 llm_rules.md
 .python-version
+
+benchmarks/results/*
+docs/api/_build/*
+docs/api/reference/*
+examples/**/results/*
+docs/general/**/data_*
+docs/site/*
