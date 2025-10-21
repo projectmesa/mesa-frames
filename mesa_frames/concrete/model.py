@@ -64,7 +64,7 @@ class Model:
     running: bool
     _seed: int | Sequence[int]
     _sets: AgentSetRegistry  # Where the agent sets are stored
-    _space: Space | None  # This will be a MultiSpaceDF object
+    _space: Space | None  # This will be a Space object
 
     def __init__(self, seed: int | Sequence[int] | None = None) -> None:
         """Create a new model.
@@ -99,24 +99,6 @@ class Model:
         """Get the current step count."""
         return self._steps
 
-    def get_sets_of_type(self, agent_type: type) -> AgentSet:
-        """Retrieve the AgentSet of a specified type.
-
-        Parameters
-        ----------
-        agent_type : type
-            The type of AgentSet to retrieve.
-
-        Returns
-        -------
-        AgentSet
-            The AgentSet of the specified type.
-        """
-        for agentset in self._sets._agentsets:
-            if isinstance(agentset, agent_type):
-                return agentset
-        raise ValueError(f"No agent sets of type {agent_type} found in the model.")
-
     def reset_randomizer(self, seed: int | Sequence[int] | None) -> None:
         """Reset the model random number generator.
 
@@ -131,6 +113,28 @@ class Model:
         self._seed = seed
         self.random = np.random.default_rng(seed=self._seed)
 
+    @property
+    def seed(self) -> int | Sequence[int]:
+        """Return the current seed used by the model's random generator.
+
+        Returns
+        -------
+        int | Sequence[int]
+            The seed that initialized the underlying RNG.
+        """
+        return self._seed
+
+    @seed.setter
+    def seed(self, seed: int | Sequence[int] | None) -> None:
+        """Reset the model random generator using a new seed.
+
+        Parameters
+        ----------
+        seed : int | Sequence[int] | None
+            A new seed value; falls back to system entropy when ``None``.
+        """
+        self.reset_randomizer(seed)
+
     def run_model(self) -> None:
         """Run the model until the end condition is reached.
 
@@ -144,7 +148,8 @@ class Model:
 
         The default method calls the step() method of all agents. Overload as needed.
         """
-        self.sets.step()
+        # Invoke step on all contained AgentSets via the public registry API
+        self.sets.do("step")
 
     @property
     def steps(self) -> int:
@@ -186,17 +191,6 @@ class Model:
                 raise TypeError("sets must be an instance of AgentSetRegistry")
 
         self._sets = sets
-
-    @property
-    def set_types(self) -> list[type]:
-        """Get a list of different agent set types present in the model.
-
-        Returns
-        -------
-        list[type]
-            A list of the different agent set types present in the model.
-        """
-        return [agent.__class__ for agent in self._sets._agentsets]
 
     @property
     def space(self) -> Space:
