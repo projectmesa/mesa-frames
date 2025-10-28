@@ -90,12 +90,13 @@ from typing_extensions import TypeAliasType
 # Common option types
 KeyBy = Literal["name", "index", "type"]
 
-# Selectors for choosing AgentSets at the registry level
-# We want runtime-enforceable aliases that avoid import cycles. Strategy:
-# - Provide precise types to static type checkers via TYPE_CHECKING.
-# - At runtime, prefer a lazy alias using TypeAliasType with string targets,
-#   so beartype can resolve and enforce without eager imports.
-# - Fall back to Any only when TypeAliasType is unavailable.
+# Selectors for choosing AgentSets at the registry level.
+# Use runtime-enforceable aliases while avoiding import cycles.
+# Strategy:
+# - At runtime, avoid importing agentset modules (which can create import
+#   cycles). Prefer lazy aliases via typing_extensions.TypeAliasType that take
+#   string targets. These allow runtime validators (for example beartype) to
+#   resolve names lazily instead of importing modules eagerly.
 
 AbstractAgentSetSelector = TypeAliasType(
     "AbstractAgentSetSelector",
