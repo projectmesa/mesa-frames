@@ -177,13 +177,94 @@ class DataCollector(AbstractDataCollector):
         Constructs a LazyFrame with one column per reporter and
         includes `step` and `seed` metadata. Appends it to internal storage.
         """
-        agent_data_dict = {}
+
+        def _is_str_collection(x: Any) -> bool:
+            try:
+                from collections.abc import Collection
+
+                if isinstance(x, str):
+                    return False
+                return isinstance(x, Collection) and all(isinstance(i, str) for i in x)
+            except Exception:
+                return False
+
+        agent_data_dict: dict[str, pl.Series] = {}
+
         for col_name, reporter in self._agent_reporters.items():
-            if isinstance(reporter, str):
-                for k, v in self._model.sets[reporter].items():
-                    agent_data_dict[col_name + "_" + str(k.__class__.__name__)] = v
-            else:
-                agent_data_dict[col_name] = reporter(self._model)
+            # 1) String or collection[str]: shorthand to fetch columns
+            if isinstance(reporter, str) or _is_str_collection(reporter):
+                # If a single string, fetch that attribute from each set
+                if isinstance(reporter, str):
+                    values_by_set = getattr(self._model.sets, reporter)
+                    for set_name, series in values_by_set.items():
+                        agent_data_dict[f"{col_name}_{set_name}"] = series
+                else:
+                    # Collection of strings: pull multiple columns from each set via set.get([...])
+                    for set_name, aset in self._model.sets.items():  # type: ignore[attr-defined]
+                        df = aset.get(list(reporter))  # DataFrame of requested attrs
+                        if isinstance(df, pl.Series):
+                            # Defensive, though get(list) should yield DataFrame
+                            agent_data_dict[f"{col_name}_{df.name}_{set_name}"] = df
+                        else:
+                            for subcol in df.columns:
+                                agent_data_dict[f"{col_name}_{subcol}_{set_name}"] = df[
+                                    subcol
+                                ]
+                continue
+
+            # 2) Callables: prefer registry-level; then set-level
+            if callable(reporter):
+                called = False
+                # Try registry-level callable: reporter(AgentSetRegistry)
+                try:
+                    reg_result = reporter(self._model.sets)
+                    # Accept Series | DataFrame | dict[str, Series|DataFrame]
+                    if isinstance(reg_result, pl.Series):
+                        agent_data_dict[col_name] = reg_result
+                        called = True
+                    elif isinstance(reg_result, pl.DataFrame):
+                        for subcol in reg_result.columns:
+                            agent_data_dict[f"{col_name}_{subcol}"] = reg_result[subcol]
+                        called = True
+                    elif isinstance(reg_result, dict):
+                        for key, val in reg_result.items():
+                            if isinstance(val, pl.Series):
+                                agent_data_dict[f"{col_name}_{key}"] = val
+                            elif isinstance(val, pl.DataFrame):
+                                for subcol in val.columns:
+                                    agent_data_dict[f"{col_name}_{key}_{subcol}"] = val[
+                                        subcol
+                                    ]
+                            else:
+                                raise TypeError(
+                                    "Registry-level reporter dict values must be Series or DataFrame"
+                                )
+                        called = True
+                except TypeError:
+                    called = False
+
+                if not called:
+                    # Fallback: set-level callable, run once per set and suffix by set name
+                    for set_name, aset in self._model.sets.items():  # type: ignore[attr-defined]
+                        set_result = reporter(aset)
+                        if isinstance(set_result, pl.Series):
+                            agent_data_dict[f"{col_name}_{set_name}"] = set_result
+                        elif isinstance(set_result, pl.DataFrame):
+                            for subcol in set_result.columns:
+                                agent_data_dict[f"{col_name}_{subcol}_{set_name}"] = (
+                                    set_result[subcol]
+                                )
+                        else:
+                            raise TypeError(
+                                "Set-level reporter must return polars Series or DataFrame"
+                            )
+                continue
+
+            # Unknown type
+            raise TypeError(
+                "agent_reporters values must be str, collection[str], or callable"
+            )
+
         agent_lazy_frame = pl.LazyFrame(agent_data_dict)
         agent_lazy_frame = agent_lazy_frame.with_columns(
             [
@@ -441,7 +522,10 @@ class DataCollector(AbstractDataCollector):
             )
 
     def _validate_reporter_table_columns(
-        self, conn: connection, table_name: str, reporter: dict[str, Callable | str]
+        self,
+        conn: connection,
+        table_name: str,
+        reporter: dict[str, Callable | str],
     ):
         """
         Check if the expected columns are present in a given PostgreSQL table.
@@ -460,15 +544,35 @@ class DataCollector(AbstractDataCollector):
         ValueError
             If any expected columns are missing from the table.
         """
-        expected_columns = set()
-        for col_name, required_column in reporter.items():
-            if isinstance(required_column, str):
-                for k, v in self._model.sets[required_column].items():
-                    expected_columns.add(
-                        (col_name + "_" + str(k.__class__.__name__)).lower()
-                    )
-            else:
-                expected_columns.add(col_name.lower())
+
+        def _is_str_collection(x: Any) -> bool:
+            try:
+                from collections.abc import Collection
+
+                if isinstance(x, str):
+                    return False
+                return isinstance(x, Collection) and all(isinstance(i, str) for i in x)
+            except Exception:
+                return False
+
+        expected_columns: set[str] = set()
+        for col_name, req in reporter.items():
+            # Strings → one column per set with suffix
+            if isinstance(req, str):
+                for set_name, _ in self._model.sets.items():  # type: ignore[attr-defined]
+                    expected_columns.add(f"{col_name}_{set_name}".lower())
+                continue
+
+            # Collection[str] → one column per attribute per set
+            if _is_str_collection(req):
+                for set_name, _ in self._model.sets.items():  # type: ignore[attr-defined]
+                    for subcol in req:  # type: ignore[assignment]
+                        expected_columns.add(f"{col_name}_{subcol}_{set_name}".lower())
+                continue
+
+            # Callable: conservative default → require 'col_name' to exist
+            # We cannot know the dynamic column explosion without running model code safely here.
+            expected_columns.add(col_name.lower())
 
         query = f"""
             SELECT column_name
