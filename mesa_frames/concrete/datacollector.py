@@ -54,6 +54,7 @@ Usage:
             self.dc.flush()
 """
 
+from unittest import result
 import polars as pl
 import boto3
 from urllib.parse import urlparse
@@ -172,27 +173,99 @@ class DataCollector(AbstractDataCollector):
 
     def _collect_agent_reporters(self, current_model_step: int, batch_id: int):
         """
-        Collect agent-level data using the agent_reporters.
+        Collect agent-level data using the agent_reporters, including unique agent IDs.
 
-        Constructs a LazyFrame with one column per reporter and
-        includes `step` and `seed` metadata. Appends it to internal storage.
+        Constructs a LazyFrame with one column per reporter and includes:
+        - agent_id : unique identifier for each agent
+        - step, seed, and batch columns for context
+        - Columns for all requested agent reporters
         """
-        agent_data_dict = {}
+        all_agent_frames = []
+
         for col_name, reporter in self._agent_reporters.items():
             if isinstance(reporter, str):
-                for k, v in self._model.sets[reporter].items():
-                    agent_data_dict[col_name + "_" + str(k.__class__.__name__)] = v
+                agent_set = self._model.sets[reporter]
+
+                if hasattr(agent_set, "df"):
+                    df = agent_set.df.select(["id", col_name]).rename(
+                        {"id": "agent_id"}
+                    )
+                elif hasattr(agent_set, "to_polars"):
+                    df = (
+                        agent_set.to_polars()
+                        .select(["id", col_name])
+                        .rename({"id": "agent_id"})
+                    )
+                else:
+                    records = []
+                    for agent in agent_set.values():
+                        agent_id = getattr(
+                            agent, "unique_id", getattr(agent, "id", None)
+                        )
+                        records.append(
+                            {
+                                "agent_id": agent_id,
+                                col_name: getattr(agent, col_name, None),
+                            }
+                        )
+                    df = pl.DataFrame(records)
+
             else:
-                agent_data_dict[col_name] = reporter(self._model)
-        agent_lazy_frame = pl.LazyFrame(agent_data_dict)
-        agent_lazy_frame = agent_lazy_frame.with_columns(
-            [
-                pl.lit(current_model_step).alias("step"),
-                pl.lit(str(self.seed)).alias("seed"),
-                pl.lit(batch_id).alias("batch"),
-            ]
-        )
-        self._frames.append(("agent", current_model_step, batch_id, agent_lazy_frame))
+                result = reporter(self._model)
+
+                ## Case 1: already a DataFrame
+                if isinstance(result, pl.DataFrame):
+                    df = result
+                ## Case 2: dict or list -> convert
+                elif isinstance(result, dict):
+                    df = pl.DataFrame([result])
+                elif isinstance(result, list):
+                    df = pl.DataFrame(result)
+                else:
+                    ## Case 3: scalar or callable reporter
+                    if hasattr(self._model, "agents"):
+                        records = []
+                        for agent in self._model.agents:
+                            agent_id = getattr(
+                                agent, "unique_id", getattr(agent, "id", None)
+                            )
+                            value = getattr(
+                                agent,
+                                col_name,
+                                result if not callable(result) else None,
+                            )
+                            records.append({"agent_id": agent_id, col_name: value})
+                        df = pl.DataFrame(records)
+                    else:
+                        df = pl.DataFrame([{col_name: result}])
+
+                ## Ensure agent_id exists
+                if "agent_id" not in df.columns:
+                    df = df.with_columns(pl.lit(None).alias("agent_id"))
+
+            ## Add meta columns
+            df = df.with_columns(
+                [
+                    pl.lit(current_model_step).alias("step"),
+                    pl.lit(str(self.seed)).alias("seed"),
+                    pl.lit(batch_id).alias("batch"),
+                ]
+            )
+            all_agent_frames.append(df)
+
+        if all_agent_frames:
+            merged_df = all_agent_frames[0]
+            for next_df in all_agent_frames[1:]:
+                if "agent_id" not in next_df.columns:
+                    continue
+                merged_df = merged_df.join(
+                    next_df, on=["agent_id", "step", "seed", "batch"], how="outer"
+                )
+
+            agent_lazy_frame = merged_df.lazy()
+            self._frames.append(
+                ("agent", current_model_step, batch_id, agent_lazy_frame)
+            )
 
     @property
     def data(self) -> dict[str, pl.DataFrame]:

@@ -185,8 +185,9 @@ class TestDataCollector:
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
             collected_data["model"]["max_wealth"]
 
-        assert collected_data["agent"].shape == (4, 7)
+        assert collected_data["agent"].shape == (4, 8)
         assert set(collected_data["agent"].columns) == {
+            "agent_id",
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
@@ -195,6 +196,7 @@ class TestDataCollector:
             "seed",
             "batch",
         }
+        assert collected_data["agent"]["agent_id"].to_list() == [0, 1, 2, 3]
         assert collected_data["agent"]["wealth"].to_list() == [1, 2, 3, 4]
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
             10,
@@ -242,8 +244,9 @@ class TestDataCollector:
         assert collected_data["model"]["step"].to_list() == [5]
         assert collected_data["model"]["total_agents"].to_list() == [12]
 
-        assert collected_data["agent"].shape == (4, 7)
+        assert collected_data["agent"].shape == (4, 8)
         assert set(collected_data["agent"].columns) == {
+            "agent_id",
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
@@ -252,6 +255,7 @@ class TestDataCollector:
             "seed",
             "batch",
         }
+        assert collected_data["agent"]["agent_id"].to_list() == [0, 1, 2, 3]
         assert collected_data["agent"]["wealth"].to_list() == [6, 7, 8, 9]
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
             10,
@@ -297,8 +301,9 @@ class TestDataCollector:
         assert collected_data["model"]["step"].to_list() == [2, 4]
         assert collected_data["model"]["total_agents"].to_list() == [12, 12]
 
-        assert collected_data["agent"].shape == (8, 7)
+        assert collected_data["agent"].shape == (8, 8)
         assert set(collected_data["agent"].columns) == {
+            "agent_id",
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
@@ -308,6 +313,7 @@ class TestDataCollector:
             "batch",
         }
         assert set(collected_data["agent"].columns) == {
+            "agent_id",
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
@@ -399,6 +405,7 @@ class TestDataCollector:
                 schema_overrides={"seed": pl.Utf8},
             )
             assert set(agent_df.columns) == {
+                "agent_id",
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
@@ -580,8 +587,9 @@ class TestDataCollector:
         assert collected_data["model"]["batch"].to_list() == [0, 1, 0, 1]
         assert collected_data["model"]["total_agents"].to_list() == [12, 12, 12, 12]
 
-        assert collected_data["agent"].shape == (16, 7)
+        assert collected_data["agent"].shape == (16, 8)
         assert set(collected_data["agent"].columns) == {
+            "agent_id",
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
@@ -592,6 +600,7 @@ class TestDataCollector:
         }
 
         assert set(collected_data["agent"].columns) == {
+            "agent_id",
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
@@ -779,6 +788,7 @@ class TestDataCollector:
                 schema_overrides={"seed": pl.Utf8},
             )
             assert set(agent_df_step2_batch0.columns) == {
+                "agent_id",
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
@@ -813,6 +823,7 @@ class TestDataCollector:
                 schema_overrides={"seed": pl.Utf8},
             )
             assert set(agent_df_step2_batch1.columns) == {
+                "agent_id",
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
@@ -847,6 +858,7 @@ class TestDataCollector:
                 schema_overrides={"seed": pl.Utf8},
             )
             assert set(agent_df_step4_batch0.columns) == {
+                "agent_id",
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
