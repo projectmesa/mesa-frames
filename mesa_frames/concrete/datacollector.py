@@ -173,13 +173,12 @@ class DataCollector(AbstractDataCollector):
 
     def _collect_agent_reporters(self, current_model_step: int, batch_id: int):
         """
-        Collect agent-level data using the agent_reporters, including unique agent IDs
+        Collect agent-level data using the agent_reporters, including unique agent IDs.
 
-        Constructs a LazyFrame with one column per reporter and
-        includes 
+        Constructs a LazyFrame with one column per reporter and includes:
         - agent_id : unique identifier for each agent
-        - step, seed and batch columns for context.
-        - Columns for all requested agent reporters.
+        - step, seed, and batch columns for context
+        - Columns for all requested agent reporters
         """
         all_agent_frames = []
 
@@ -197,20 +196,20 @@ class DataCollector(AbstractDataCollector):
                         agent_id = getattr(agent, "unique_id", getattr(agent, "id", None))
                         records.append({"agent_id": agent_id, col_name: getattr(agent, col_name, None)})
                     df = pl.DataFrame(records)
+
             else:
                 result = reporter(self._model)
 
-                # Handle Polars DataFrame directly
+                ## Case 1: already a DataFrame
                 if isinstance(result, pl.DataFrame):
                     df = result
-                elif isinstance(result, list):
-                    df = pl.DataFrame(result)
+                ## Case 2: dict or list -> convert
                 elif isinstance(result, dict):
                     df = pl.DataFrame([result])
-
-                # Handle dict, list, scalar reporters
+                elif isinstance(result, list):
+                    df = pl.DataFrame(result)
                 else:
-                    # Try to build per-agent data if possible
+                    ## Case 3: scalar or callable reporter
                     if hasattr(self._model, "agents"):
                         records = []
                         for agent in self._model.agents:
@@ -219,13 +218,13 @@ class DataCollector(AbstractDataCollector):
                             records.append({"agent_id": agent_id, col_name: value})
                         df = pl.DataFrame(records)
                     else:
-                        # Fallback for scalar or model-level reporters
                         df = pl.DataFrame([{col_name: result}])
 
-                # Ensure column consistency
+                ## Ensure agent_id exists
                 if "agent_id" not in df.columns:
                     df = df.with_columns(pl.lit(None).alias("agent_id"))
-                
+
+            ## Add meta columns
             df = df.with_columns([
                 pl.lit(current_model_step).alias("step"),
                 pl.lit(str(self.seed)).alias("seed"),
@@ -242,7 +241,8 @@ class DataCollector(AbstractDataCollector):
 
             agent_lazy_frame = merged_df.lazy()
             self._frames.append(("agent", current_model_step, batch_id, agent_lazy_frame))
-                
+
+
     @property
     def data(self) -> dict[str, pl.DataFrame]:
         """
