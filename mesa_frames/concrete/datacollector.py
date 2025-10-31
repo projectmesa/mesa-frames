@@ -54,6 +54,7 @@ Usage:
             self.dc.flush()
 """
 
+from unittest import result
 import polars as pl
 import boto3
 from urllib.parse import urlparse
@@ -193,18 +194,37 @@ class DataCollector(AbstractDataCollector):
                 else:
                     records = []
                     for agent in agent_set.values():
-                        if hasattr(agent, "unique_id"):
-                            agent_id = agent.unique_id
-                        elif hasattr(agent, "id"):
-                            agent_id = agent.id
-                        else:
-                            agent_id = None
+                        agent_id = getattr(agent, "unique_id", getattr(agent, "id", None))
                         records.append({"agent_id": agent_id, col_name: getattr(agent, col_name, None)})
                     df = pl.DataFrame(records)
             else:
-                df = reporter(self._model)
-                if not isinstance(df, pl.DataFrame):
-                    raise TypeError(f"Agent reporter {col_name} must return a Polars DataFrame")
+                result = reporter(self._model)
+
+                # Handle Polars DataFrame directly
+                if isinstance(result, pl.DataFrame):
+                    df = result
+                elif isinstance(result, list):
+                    df = pl.DataFrame(result)
+                elif isinstance(result, dict):
+                    df = pl.DataFrame([result])
+
+                # Handle dict, list, scalar reporters
+                else:
+                    # Try to build per-agent data if possible
+                    if hasattr(self._model, "agents"):
+                        records = []
+                        for agent in self._model.agents:
+                            agent_id = getattr(agent, "unique_id", getattr(agent, "id", None))
+                            value = getattr(agent, col_name, result if not callable(result) else None)
+                            records.append({"agent_id": agent_id, col_name: value})
+                        df = pl.DataFrame(records)
+                    else:
+                        # Fallback for scalar or model-level reporters
+                        df = pl.DataFrame([{col_name: result}])
+
+                # Ensure column consistency
+                if "agent_id" not in df.columns:
+                    df = df.with_columns(pl.lit(None).alias("agent_id"))
                 
             df = df.with_columns([
                 pl.lit(current_model_step).alias("step"),
