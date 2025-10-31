@@ -187,14 +187,27 @@ class DataCollector(AbstractDataCollector):
                 agent_set = self._model.sets[reporter]
 
                 if hasattr(agent_set, "df"):
-                    df = agent_set.df.select(["id", col_name]).rename({"id": "agent_id"})
+                    df = agent_set.df.select(["id", col_name]).rename(
+                        {"id": "agent_id"}
+                    )
                 elif hasattr(agent_set, "to_polars"):
-                    df = agent_set.to_polars().select(["id", col_name]).rename({"id": "agent_id"})
+                    df = (
+                        agent_set.to_polars()
+                        .select(["id", col_name])
+                        .rename({"id": "agent_id"})
+                    )
                 else:
                     records = []
                     for agent in agent_set.values():
-                        agent_id = getattr(agent, "unique_id", getattr(agent, "id", None))
-                        records.append({"agent_id": agent_id, col_name: getattr(agent, col_name, None)})
+                        agent_id = getattr(
+                            agent, "unique_id", getattr(agent, "id", None)
+                        )
+                        records.append(
+                            {
+                                "agent_id": agent_id,
+                                col_name: getattr(agent, col_name, None),
+                            }
+                        )
                     df = pl.DataFrame(records)
 
             else:
@@ -213,8 +226,14 @@ class DataCollector(AbstractDataCollector):
                     if hasattr(self._model, "agents"):
                         records = []
                         for agent in self._model.agents:
-                            agent_id = getattr(agent, "unique_id", getattr(agent, "id", None))
-                            value = getattr(agent, col_name, result if not callable(result) else None)
+                            agent_id = getattr(
+                                agent, "unique_id", getattr(agent, "id", None)
+                            )
+                            value = getattr(
+                                agent,
+                                col_name,
+                                result if not callable(result) else None,
+                            )
                             records.append({"agent_id": agent_id, col_name: value})
                         df = pl.DataFrame(records)
                     else:
@@ -225,11 +244,13 @@ class DataCollector(AbstractDataCollector):
                     df = df.with_columns(pl.lit(None).alias("agent_id"))
 
             ## Add meta columns
-            df = df.with_columns([
-                pl.lit(current_model_step).alias("step"),
-                pl.lit(str(self.seed)).alias("seed"),
-                pl.lit(batch_id).alias("batch"),
-            ])
+            df = df.with_columns(
+                [
+                    pl.lit(current_model_step).alias("step"),
+                    pl.lit(str(self.seed)).alias("seed"),
+                    pl.lit(batch_id).alias("batch"),
+                ]
+            )
             all_agent_frames.append(df)
 
         if all_agent_frames:
@@ -237,11 +258,14 @@ class DataCollector(AbstractDataCollector):
             for next_df in all_agent_frames[1:]:
                 if "agent_id" not in next_df.columns:
                     continue
-                merged_df = merged_df.join(next_df, on=["agent_id", "step", "seed", "batch"], how="outer")
+                merged_df = merged_df.join(
+                    next_df, on=["agent_id", "step", "seed", "batch"], how="outer"
+                )
 
             agent_lazy_frame = merged_df.lazy()
-            self._frames.append(("agent", current_model_step, batch_id, agent_lazy_frame))
-
+            self._frames.append(
+                ("agent", current_model_step, batch_id, agent_lazy_frame)
+            )
 
     @property
     def data(self) -> dict[str, pl.DataFrame]:
