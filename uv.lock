@@ -1228,6 +1228,7 @@ dependencies = [
     { name = "polars" },
     { name = "psycopg2-binary" },
     { name = "pyarrow" },
+    { name = "typing-extensions" },
 ]
 
 [package.dev-dependencies]
@@ -1290,6 +1291,7 @@ requires-dist = [
     { name = "polars", specifier = ">=1.30.0" },
     { name = "psycopg2-binary", specifier = "==2.9.10" },
     { name = "pyarrow", specifier = ">=20.0.0" },
+    { name = "typing-extensions", specifier = ">=4.15.0" },
 ]
 
 [package.metadata.requires-dev]

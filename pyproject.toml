@@ -38,6 +38,7 @@ dependencies    = [
   "polars>=1.30.0",
   "psycopg2-binary==2.9.10",
   "boto3>=1.35.91",
+  "typing-extensions>=4.15.0",
 ]
 dynamic         = ["version"]
 

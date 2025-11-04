@@ -1,15 +1,17 @@
 """Type aliases for the mesa_frames package."""
 
 from __future__ import annotations
-from collections.abc import Collection, Sequence
-from datetime import date, datetime, time, timedelta
-from typing import Literal, Annotated, Union, Any
-from collections.abc import Mapping
-from beartype.vale import IsEqual
+
 import math
-import polars as pl
-from numpy import ndarray
+from collections.abc import Collection, Mapping, Sequence
+from datetime import date, datetime, time, timedelta
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Union
+
 import numpy as np
+import polars as pl
+from beartype.vale import IsEqual
+from numpy import ndarray
+
 # import geopolars as gpl # TODO: Uncomment when geopolars is available
 
 ###----- Optional Types -----###
@@ -82,6 +84,57 @@ AgentMask = AgentPolarsMask
 IdsLike = AgnosticIds | PolarsIdsLike
 ArrayLike = ndarray | Series | Sequence
 Infinity = Annotated[float, IsEqual[math.inf]]  # Only accepts math.inf
+
+from typing_extensions import TypeAliasType
+
+# Common option types
+KeyBy = Literal["name", "index", "type"]
+
+# Selectors for choosing AgentSets at the registry level.
+# Use runtime-enforceable aliases while avoiding import cycles.
+# Strategy:
+# - At runtime, avoid importing agentset modules (which can create import
+#   cycles). Prefer lazy aliases via typing_extensions.TypeAliasType that take
+#   string targets. These allow runtime validators (for example beartype) to
+#   resolve names lazily instead of importing modules eagerly.
+
+AbstractAgentSetSelector = TypeAliasType(
+    "AbstractAgentSetSelector",
+    (
+        "mesa_frames.abstract.agentset.AbstractAgentSet | "
+        "type[mesa_frames.abstract.agentset.AbstractAgentSet] | "
+        "str | Collection["
+        "mesa_frames.abstract.agentset.AbstractAgentSet | "
+        "type[mesa_frames.abstract.agentset.AbstractAgentSet] | str] | None"
+    ),
+)
+
+AgentSetSelector = TypeAliasType(
+    "AgentSetSelector",
+    (
+        "mesa_frames.concrete.agentset.AgentSet | "
+        "type[mesa_frames.concrete.agentset.AgentSet] | "
+        "str | Collection["
+        "mesa_frames.concrete.agentset.AgentSet | "
+        "type[mesa_frames.concrete.agentset.AgentSet] | str] | None"
+    ),
+)
+
+__all__ = [
+    # common
+    "DataFrame",
+    "Series",
+    "Index",
+    "BoolSeries",
+    "Mask",
+    "AgentMask",
+    "IdsLike",
+    "ArrayLike",
+    "KeyBy",
+    # selectors
+    "AbstractAgentSetSelector",
+    "AgentSetSelector",
+]
 
 ###----- Time ------###
 TimeT = float | int
