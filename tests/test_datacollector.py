@@ -113,17 +113,17 @@ def postgres_uri():
 
 @pytest.fixture
 def fix1_AgentSet() -> ExampleAgentSet1:
-    return ExampleAgentSet1(Model(seed = 1))
+    return ExampleAgentSet1(Model(seed=1))
 
 
 @pytest.fixture
 def fix2_AgentSet() -> ExampleAgentSet2:
-    return ExampleAgentSet2(Model(seed = 1))
+    return ExampleAgentSet2(Model(seed=1))
 
 
 @pytest.fixture
 def fix3_AgentSet() -> ExampleAgentSet3:
-    return ExampleAgentSet3(Model(seed = 1))
+    return ExampleAgentSet3(Model(seed=1))
 
 
 @pytest.fixture
@@ -176,8 +176,8 @@ class TestDataCollector:
             match="Agent reporter for 'wealth' must be a string",
         ):
             model.test_dc = DataCollector(
-                model=model, 
-                agent_reporters={"wealth": lambda m: 1} # This is now illegal
+                model=model,
+                agent_reporters={"wealth": lambda m: 1},  # This is now illegal
             )
 
         with pytest.raises(
@@ -225,7 +225,7 @@ class TestDataCollector:
             collected_data["model"]["max_wealth"]
 
         agent_df = collected_data["agent"]
-        
+
         ## 3 agent sets * 4 agents/set = 12 rows
         assert agent_df.shape == (12, 7)
         assert set(agent_df.columns) == {
@@ -237,17 +237,26 @@ class TestDataCollector:
             "seed",
             "batch",
         }
-        
+
         expected_wealth = [1, 2, 3, 4] + [10, 20, 30, 40] + [1, 2, 3, 4]
         expected_age = [10, 20, 30, 40] + [11, 22, 33, 44] + [1, 2, 3, 4]
-        
+
         assert sorted(agent_df["wealth"].to_list()) == sorted(expected_wealth)
         assert sorted(agent_df["age"].to_list()) == sorted(expected_age)
 
         type_counts = agent_df["agent_type"].value_counts(sort=True)
-        assert type_counts.filter(pl.col("agent_type") == "ExampleAgentSet1")["count"][0] == 4
-        assert type_counts.filter(pl.col("agent_type") == "ExampleAgentSet2")["count"][0] == 4
-        assert type_counts.filter(pl.col("agent_type") == "ExampleAgentSet3")["count"][0] == 4
+        assert (
+            type_counts.filter(pl.col("agent_type") == "ExampleAgentSet1")["count"][0]
+            == 4
+        )
+        assert (
+            type_counts.filter(pl.col("agent_type") == "ExampleAgentSet2")["count"][0]
+            == 4
+        )
+        assert (
+            type_counts.filter(pl.col("agent_type") == "ExampleAgentSet3")["count"][0]
+            == 4
+        )
         assert agent_df["step"].to_list() == [0] * 12
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
             collected_data["agent"]["max_wealth"]
@@ -284,12 +293,18 @@ class TestDataCollector:
         agent_df = collected_data["agent"]
         assert agent_df.shape == (12, 7)
         assert set(agent_df.columns) == {
-            "unique_id", "agent_type", "wealth", "age", "step", "seed", "batch"
+            "unique_id",
+            "agent_type",
+            "wealth",
+            "age",
+            "step",
+            "seed",
+            "batch",
         }
 
         expected_wealth = [6, 7, 8, 9] + [20, 30, 40, 50] + [1, 2, 3, 4]
         expected_age = [10, 20, 30, 40] + [11, 22, 33, 44] + [6, 7, 8, 9]
-        
+
         assert sorted(agent_df["wealth"].to_list()) == sorted(expected_wealth)
         assert sorted(agent_df["age"].to_list()) == sorted(expected_age)
         assert agent_df["step"].to_list() == [5] * 12
@@ -324,17 +339,23 @@ class TestDataCollector:
         assert collected_data["model"]["total_agents"].to_list() == [12, 12]
 
         agent_df = collected_data["agent"]
-        
+
         # 12 agents * 2 steps = 24 rows
         assert agent_df.shape == (24, 7)
         assert set(agent_df.columns) == {
-            "unique_id", "agent_type", "wealth", "age", "step", "seed", "batch"
+            "unique_id",
+            "agent_type",
+            "wealth",
+            "age",
+            "step",
+            "seed",
+            "batch",
         }
 
         df_step_2 = agent_df.filter(pl.col("step") == 2)
         expected_wealth_s2 = [3, 4, 5, 6] + [14, 24, 34, 44] + [1, 2, 3, 4]
         expected_age_s2 = [10, 20, 30, 40] + [11, 22, 33, 44] + [3, 4, 5, 6]
-        
+
         assert df_step_2.shape == (12, 7)
         assert sorted(df_step_2["wealth"].to_list()) == sorted(expected_wealth_s2)
         assert sorted(df_step_2["age"].to_list()) == sorted(expected_age_s2)
@@ -398,12 +419,18 @@ class TestDataCollector:
             )
             assert agent_df.shape == (12, 7)
             assert set(agent_df.columns) == {
-                "unique_id", "agent_type", "wealth", "age", "step", "seed", "batch"
+                "unique_id",
+                "agent_type",
+                "wealth",
+                "age",
+                "step",
+                "seed",
+                "batch",
             }
-            
+
             expected_wealth_s2 = [3, 4, 5, 6] + [14, 24, 34, 44] + [1, 2, 3, 4]
             expected_age_s2 = [10, 20, 30, 40] + [11, 22, 33, 44] + [3, 4, 5, 6]
-            
+
             assert agent_df["step"].to_list() == [2] * 12
             assert sorted(agent_df["wealth"].to_list()) == sorted(expected_wealth_s2)
             assert sorted(agent_df["age"].to_list()) == sorted(expected_age_s2)
@@ -460,9 +487,14 @@ class TestDataCollector:
             # 12 rows. 6 cols: unique_id, agent_type, wealth, step, seed, batch
             assert agent_df.shape == (12, 6)
             assert set(agent_df.columns) == {
-                "unique_id", "agent_type", "wealth", "step", "seed", "batch"
+                "unique_id",
+                "agent_type",
+                "wealth",
+                "step",
+                "seed",
+                "batch",
             }
-            
+
             expected_wealth = [1, 2, 3, 4] + [10, 20, 30, 40] + [1, 2, 3, 4]
             assert agent_df["step"].to_list() == [0] * 12
             assert sorted(agent_df["wealth"].to_list()) == sorted(expected_wealth)
@@ -476,14 +508,14 @@ class TestDataCollector:
 
         # Connect directly and validate data
         import psycopg2
-        
+
         try:
             conn = psycopg2.connect(postgres_uri)
         except psycopg2.OperationalError as e:
             pytest.skip(f"Could not connect to PostgreSQL: {e}")
-            
+
         cur = conn.cursor()
-        
+
         ## Cleaning up tables first
         cur.execute("DROP TABLE IF EXISTS public.model_data, public.agent_data;")
         conn.commit()
@@ -529,7 +561,7 @@ class TestDataCollector:
             storage_uri=postgres_uri,
         )
 
-        model.run_model_with_conditional_collect(4) ## Runs 1,2,3,4. Collects at 2, 4.
+        model.run_model_with_conditional_collect(4)  ## Runs 1,2,3,4. Collects at 2, 4.
         model.dc.flush()
 
         # Connect directly and validate data
@@ -545,17 +577,27 @@ class TestDataCollector:
         model_rows = cur.fetchall()
         assert model_rows == [(2, 12), (4, 12)]
 
-        # MODIFIED: Check agent data 
+        # MODIFIED: Check agent data
         cur.execute(
             "SELECT wealth, age FROM agent_data WHERE step=2 ORDER BY wealth, age"
         )
         agent_rows = cur.fetchall()
 
         expected_rows_s2 = [
-            (1, 3), (2, 4), (3, 5), (3, 10), (4, 6), (4, 20),
-            (5, 30), (6, 40), (14, 11), (24, 22), (34, 33), (44, 44)
+            (1, 3),
+            (2, 4),
+            (3, 5),
+            (3, 10),
+            (4, 6),
+            (4, 20),
+            (5, 30),
+            (6, 40),
+            (14, 11),
+            (24, 22),
+            (34, 33),
+            (44, 44),
         ]
-        
+
         assert sorted(agent_rows) == sorted(expected_rows_s2)
 
         cur.execute("DROP TABLE public.model_data, public.agent_data;")
@@ -573,7 +615,7 @@ class TestDataCollector:
                     len(agentset) for agentset in model.sets._agentsets
                 )
             },
-            agent_reporters={ "wealth": "wealth", "age": "age" },
+            agent_reporters={"wealth": "wealth", "age": "age"},
         )
 
         model.run_model_with_conditional_collect_multiple_batch(5)
@@ -586,7 +628,13 @@ class TestDataCollector:
         agent_df = collected_data["agent"]
         assert agent_df.shape == (48, 7)
         assert set(agent_df.columns) == {
-            "unique_id", "agent_type", "wealth", "age", "step", "seed", "batch"
+            "unique_id",
+            "agent_type",
+            "wealth",
+            "age",
+            "step",
+            "seed",
+            "batch",
         }
 
         df_s2_b0 = agent_df.filter((pl.col("step") == 2) & (pl.col("batch") == 0))
@@ -622,10 +670,10 @@ class TestDataCollector:
 
             model.run_model_with_conditional_collect_multiple_batch(5)
             model.dc.flush()
-            
+
             for _ in range(20):  # wait up to ~2 seconds
                 created_files = os.listdir(tmpdir)
-                if len(created_files) >= 8: # 4 collects * 2 files/collect = 8 files
+                if len(created_files) >= 8:  # 4 collects * 2 files/collect = 8 files
                     break
                 time.sleep(0.1)
 
@@ -654,14 +702,14 @@ class TestDataCollector:
             )
             assert model_df_step2_batch1["step"].to_list() == [2]
             assert model_df_step2_batch1["total_agents"].to_list() == [12]
-            
+
             model_df_step4_batch0 = pl.read_csv(
                 os.path.join(tmpdir, "model_step4_batch0.csv"),
                 schema_overrides={"seed": pl.Utf8},
             )
             assert model_df_step4_batch0["step"].to_list() == [4]
             assert model_df_step4_batch0["total_agents"].to_list() == [12]
-            
+
             # test agent batch reset
             agent_df_step2_batch0 = pl.read_csv(
                 os.path.join(tmpdir, "agent_step2_batch0.csv"),
@@ -669,12 +717,15 @@ class TestDataCollector:
             )
 
             expected_wealth_s2b0 = [2, 3, 4, 5] + [12, 22, 32, 42] + [1, 2, 3, 4]
-            assert sorted(agent_df_step2_batch0["wealth"].to_list()) == sorted(expected_wealth_s2b0)
+            assert sorted(agent_df_step2_batch0["wealth"].to_list()) == sorted(
+                expected_wealth_s2b0
+            )
 
             agent_df_step2_batch1 = pl.read_csv(
                 os.path.join(tmpdir, "agent_step2_batch1.csv"),
                 schema_overrides={"seed": pl.Utf8, "unique_id": pl.UInt64},
             )
             expected_wealth_s2b1 = [3, 4, 5, 6] + [14, 24, 34, 44] + [1, 2, 3, 4]
-            assert sorted(agent_df_step2_batch1["wealth"].to_list()) == sorted(expected_wealth_s2b1)
-            
+            assert sorted(agent_df_step2_batch1["wealth"].to_list()) == sorted(
+                expected_wealth_s2b1
+            )

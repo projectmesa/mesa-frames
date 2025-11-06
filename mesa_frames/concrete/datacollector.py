@@ -113,7 +113,7 @@ class DataCollector(AbstractDataCollector):
                         f"Agent reporter for '{key}' must be a string (the column name), "
                         f"not a {type(value)}. Callable reporters are not supported for agents."
                     )
-        
+
         super().__init__(
             model=model,
             model_reporters=model_reporters,
@@ -223,7 +223,7 @@ class DataCollector(AbstractDataCollector):
                 if source_col in available_cols:
                     ## Add the column, aliasing it if the key is different
                     cols_to_select.append(pl.col(source_col).alias(final_name))
-            
+
             ## Only proceed if we have more than just unique_id
             if len(cols_to_select) > 1:
                 set_frame = agent_df.select(cols_to_select)
@@ -516,7 +516,7 @@ class DataCollector(AbstractDataCollector):
             If any expected columns are missing from the table.
         """
         expected_columns = set()
-        
+
         ## Add columns required for the new long agent format
         if table_name == "agent_data":
             expected_columns.add("unique_id")
@@ -546,11 +546,7 @@ class DataCollector(AbstractDataCollector):
 
         existing_columns = {row[0] for row in result}
         missing_columns = expected_columns - existing_columns
-        required_columns = {
-            "step": "Integer",
-            "seed": "Varchar",
-            "batch": "Integer"
-        }
+        required_columns = {"step": "Integer", "seed": "Varchar", "batch": "Integer"}
 
         missing_required = {
             col: col_type
