@@ -72,7 +72,7 @@ class DataCollector(AbstractDataCollector):
         self,
         model: Model,
         model_reporters: dict[str, Callable] | None = None,
-        agent_reporters: dict[str, str] | None = None,
+        agent_reporters: dict[str, str | Callable] | None = None,  # <-- ALLOWS CALLABLE
         trigger: Callable[[Any], bool] | None = None,
         reset_memory: bool = True,
         storage: Literal[
@@ -92,7 +92,10 @@ class DataCollector(AbstractDataCollector):
         model_reporters : dict[str, Callable] | None
             Functions to collect data at the model level.
         agent_reporters : dict[str, str | Callable] | None
-            Attributes or functions to collect data at the agent level.
+            (MODIFIED) A dictionary mapping new column names to existing 
+            column names (str) or callables. Callables are not currently
+            processed by the agent data collector but are allowed for API compatibility.
+            Example: {"agent_wealth": "wealth", "age_in_years": "age"}
         trigger : Callable[[Any], bool] | None
             A function(model) -> bool that determines whether to collect data.
         reset_memory : bool
@@ -108,10 +111,14 @@ class DataCollector(AbstractDataCollector):
         """
         if agent_reporters:
             for key, value in agent_reporters.items():
-                if not isinstance(value, str):
+                if not isinstance(key, str):
                     raise TypeError(
-                        f"Agent reporter for '{key}' must be a string (the column name), "
-                        f"not a {type(value)}. Callable reporters are not supported for agents."
+                        f"Agent reporter keys must be strings (the final column name), not a {type(key)}."
+                    )
+                if not (isinstance(value, str) or callable(value)):
+                    raise TypeError(
+                        f"Agent reporter for '{key}' must be either a string (the source column name) "
+                        f"or a callable (function taking an agent and returning a value), not a {type(value)}."
                     )
 
         super().__init__(

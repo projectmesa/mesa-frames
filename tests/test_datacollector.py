@@ -171,13 +171,19 @@ class TestDataCollector:
         #         model=model, model_reporters={"total_agents": "sum"}
         #     )
 
+        model.test_dc = DataCollector(
+            model=model, 
+            agent_reporters={"wealth": lambda m: 1}
+        )
+        assert model.test_dc is not None
+
         with pytest.raises(
-            TypeError,
-            match="Agent reporter for 'wealth' must be a string",
+            beartype.roar.BeartypeCallHintParamViolation,
+            match="not instance of str", 
         ):
             model.test_dc = DataCollector(
-                model=model,
-                agent_reporters={"wealth": lambda m: 1},  # This is now illegal
+                model=model, 
+                agent_reporters={123: "wealth"}
             )
 
         with pytest.raises(
@@ -729,3 +735,47 @@ class TestDataCollector:
             assert sorted(agent_df_step2_batch1["wealth"].to_list()) == sorted(
                 expected_wealth_s2b1
             )
+
+    def test_collect_no_agentsets_list(self, fix1_model, caplog):
+        """Tests that the collector logs an error and exits gracefully if _agentsets is missing."""
+        model = fix1_model
+        del model.sets._agentsets
+
+        dc = DataCollector(model=model, agent_reporters={"wealth": "wealth"})
+        dc.collect()
+        
+        assert "could not find '_agentsets'" in caplog.text
+        assert dc.data["agent"].shape == (0, 0)
+
+    def test_collect_agent_set_no_df(self, fix1_model, caplog):
+        """Tests that the collector logs a warning and skips a set if it has no .df attribute."""
+
+        class NoDfSet:
+            def __init__(self):
+                self.__class__ = type("NoDfSet", (object,), {})
+        
+        fix1_model.sets._agentsets.append(NoDfSet())
+        
+        fix1_model.dc = DataCollector(fix1_model, agent_reporters={"wealth": "wealth", "age": "age"})
+        fix1_model.dc.collect()
+        
+        assert "has no 'df' attribute" in caplog.text
+        assert fix1_model.dc.data["agent"].shape == (12, 7) 
+
+    def test_collect_df_no_unique_id(self, fix1_model, caplog):
+        """Tests that the collector logs a warning and skips a set if its df has no unique_id."""
+        bad_set = fix1_model.sets._agentsets[0] 
+        bad_set._df = bad_set._df.drop("unique_id") 
+            
+        fix1_model.dc = DataCollector(fix1_model, agent_reporters={"wealth": "wealth", "age": "age"})
+        fix1_model.dc.collect()
+        
+        assert "has no 'unique_id' column" in caplog.text
+        assert fix1_model.dc.data["agent"].shape == (8, 7)
+
+    def test_collect_no_matching_reporters(self, fix1_model):
+        """Tests that the collector returns an empty frame if no reporters match any columns."""
+        fix1_model.dc = DataCollector(fix1_model, agent_reporters={"baz": "foo", "qux": "bar"})
+        fix1_model.dc.collect()
+
+        assert fix1_model.dc.data["agent"].shape == (0, 0)
