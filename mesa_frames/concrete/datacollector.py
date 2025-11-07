@@ -92,7 +92,7 @@ class DataCollector(AbstractDataCollector):
         model_reporters : dict[str, Callable] | None
             Functions to collect data at the model level.
         agent_reporters : dict[str, str | Callable] | None
-            (MODIFIED) A dictionary mapping new column names to existing 
+            (MODIFIED) A dictionary mapping new column names to existing
             column names (str) or callables. Callables are not currently
             processed by the agent data collector but are allowed for API compatibility.
             Example: {"agent_wealth": "wealth", "age_in_years": "age"}
