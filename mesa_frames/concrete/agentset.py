@@ -69,6 +69,7 @@ from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
+import mesa_frames
 
 
 @copydoc(AbstractAgentSet)
@@ -677,4 +678,4 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     @name.setter
     def name(self, value: str) -> None:
         """Set the name of the AgentSet."""
-        self._name = value
+        self.rename(value)

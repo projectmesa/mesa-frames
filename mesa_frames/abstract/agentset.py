@@ -37,7 +37,7 @@ from mesa_frames.types_ import (
     Index,
     Series,
 )
-
+import mesa_frames
 
 class AbstractAgentSet(CopyMixin, DataFrameMixin):
     """The AbstractAgentSet class is a container for agents of the same type.
