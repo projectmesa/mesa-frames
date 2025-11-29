@@ -48,7 +48,7 @@ from contextlib import suppress
 from typing import Any, Literal, Self, overload
 
 from numpy.random import Generator
-
+import mesa_frames
 from mesa_frames.abstract.mixin import CopyMixin
 from mesa_frames.types_ import (
     AbstractAgentSetSelector as AgentSetSelector,
@@ -125,17 +125,15 @@ class AbstractAgentSetRegistry(CopyMixin):
         mode : Literal["atomic", "best_effort"]
             In "atomic" mode, validate all renames before applying any. In
             "best_effort" mode, apply what can be applied and skip failures.
+        inplace : bool, optional
+            Whether to perform the rename in place. If False, a renamed copy is
+            returned, by default True.
 
         Returns
         -------
         Self
             Updated registry (or a renamed copy when ``inplace=False``).
 
-        Parameters
-        ----------
-        inplace : bool, optional
-            Whether to perform the rename in place. If False, a renamed copy is
-            returned, by default True.
         """
         ...
 
