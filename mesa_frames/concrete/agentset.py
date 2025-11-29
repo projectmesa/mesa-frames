@@ -137,11 +137,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
                     return self
                 return reg[new_name]
         except KeyError:
-            # Fall back to local rename if isn't found in a an AgentSetRegistry
-            obj._name = new_name
-            return obj
+            pass
 
-        # Set name locally if no container found
+        # Fall back to local rename if isn't found in a an AgentSetRegistry
         obj._name = new_name
         return obj
 
