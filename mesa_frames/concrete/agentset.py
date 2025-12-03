@@ -69,6 +69,7 @@ from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
+import mesa_frames
 
 
 @copydoc(AbstractAgentSet)
@@ -137,11 +138,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
                     return self
                 return reg[new_name]
         except KeyError:
-            # Fall back to local rename if isn't found in a an AgentSetRegistry
-            obj._name = new_name
-            return obj
+            pass
 
-        # Set name locally if no container found
+        # Fall back to local rename if isn't found in a an AgentSetRegistry
         obj._name = new_name
         return obj
 
@@ -679,4 +678,4 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     @name.setter
     def name(self, value: str) -> None:
         """Set the name of the AgentSet."""
-        self._name = value
+        self.rename(value)

@@ -37,6 +37,7 @@ from mesa_frames.types_ import (
     Index,
     Series,
 )
+import mesa_frames
 
 
 class AbstractAgentSet(CopyMixin, DataFrameMixin):
