@@ -27,9 +27,9 @@ You can access the underlying DataFrame where agents are stored with `self.df`. 
 
 ## Model 🏗️
 
-To add your AgentSet to your Model, you should also add it to the sets with `+=` or `add`.
+To add your AgentSet to your Model, use the registry `self.sets` with `+=` or `add`.
 
-NOTE: Model.sets are stored in a class which is entirely similar to AgentSet called AgentSetRegistry. The API of the two are the same. If you try accessing AgentSetRegistry.df, you will get a dictionary of `[AgentSet, DataFrame]`.
+Note: All agent sets live inside `AgentSetRegistry` (available as `model.sets`). Access sets through the registry, and access DataFrames from the set itself. For example: `self.sets["Preys"].df`.
 
 Example:
 
@@ -43,7 +43,8 @@ class EcosystemModel(Model):
     def step(self):
         self.sets.do("move")
         self.sets.do("hunt")
-        self.prey.do("reproduce")
+        # Access specific sets via the registry
+        self.sets["Preys"].do("reproduce")
 ```
 
 ## Space: Grid 🌐
@@ -76,18 +77,23 @@ Example:
 class ExampleModel(Model):
     def __init__(self):
         super().__init__()
-        self.sets = MoneyAgent(self)
+        # Add the set to the registry
+        self.sets.add(MoneyAgents(100, self))
+        # Configure reporters: use the registry to locate sets; get df from the set
         self.datacollector = DataCollector(
             model=self,
-            model_reporters={"total_wealth": lambda m: lambda m: list(m.sets.df.values())[0]["wealth"].sum()},
+            model_reporters={
+                "total_wealth": lambda m: m.sets["MoneyAgents"].df["wealth"].sum(),
+            },
             agent_reporters={"wealth": "wealth"},
             storage="csv",
             storage_uri="./data",
-            trigger=lambda m: m.schedule.steps % 2 == 0
+            trigger=lambda m: m.steps % 2 == 0,
         )
 
     def step(self):
-        self.sets.step()
+        # Step all sets via the registry
+        self.sets.do("step")
         self.datacollector.conditional_collect()
         self.datacollector.flush()
 ```
