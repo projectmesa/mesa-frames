@@ -26,17 +26,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows, ubuntu, macos]
-        python-version: ["3.14"]
+        python-version: ["3.13"]
         pip-pre: [""]
         include:
-          - os: ubuntu
-            python-version: "3.13"
           - os: ubuntu
             python-version: "3.12"
           - os: ubuntu
             python-version: "3.11"
           - os: ubuntu
-            python-version: "3.14"
+            python-version: "3.13"
             pip-pre: "--pre"
 
     env:
