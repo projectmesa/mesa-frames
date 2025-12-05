@@ -74,7 +74,9 @@ jobs:
           enable-cache: true
 
       - name: Install mesa-frames and dependencies
-        run: uv pip install --system .[dev] ${{ matrix.pip-pre }}
+        run: |
+          uv pip install --system . ${{ matrix.pip-pre }}
+          uv pip install --group dev --system
 
       - name: Install and Start PostgreSQL (macOS)
         if: matrix.os == 'macos'
