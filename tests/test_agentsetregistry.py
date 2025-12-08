@@ -2,7 +2,7 @@ import polars as pl
 import pytest
 import beartype.roar as bear_roar
 
-from mesa_frames import AgentSet, AgentSetRegistry, Model
+from mesa_frames import AgentSet, AgentSetRegistry, Grid, Model
 
 
 class ExampleAgentSetA(AgentSet):
@@ -171,6 +171,26 @@ class TestAgentSetRegistry:
         reg.remove("nonexistent")
         # ids recomputed and not equal to previous total
         assert reg.ids.len() != total_ids
+
+    def test_remove_clears_space(self, fix_model: Model) -> None:
+        reg = fix_model.sets
+        aset_a = ExampleAgentSetA(fix_model)
+        aset_b = ExampleAgentSetB(fix_model)
+        reg.add([aset_a, aset_b])
+        space = Grid(fix_model, dimensions=[2, 2], capacity=2)
+        fix_model.space = space
+        ids_to_place = list(aset_a["unique_id"][:2]) + list(aset_b["unique_id"][:2])
+        space.place_agents(
+            ids_to_place,
+            pos=[[0, 0], [0, 1], [1, 0], [1, 1]],
+        )
+
+        reg.remove(aset_a)
+
+        remaining_ids = space.agents["agent_id"]
+        assert len(remaining_ids) == 2
+        assert not remaining_ids.is_in(aset_a["unique_id"]).any()
+        assert remaining_ids.is_in(aset_b["unique_id"]).all()
 
     # Public: shuffle
     def test_shuffle(self, fix_registry_with_two: AgentSetRegistry) -> None:
