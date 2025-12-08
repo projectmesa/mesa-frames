@@ -156,8 +156,10 @@ llm_rules.md
 .python-version
 
 benchmarks/results/*
-docs/api/_build/*
-docs/api/reference/*
+docs/api/_build
+docs/api/reference/**/mesa_frames.*.rst
 examples/**/results/*
-docs/general/**/data_*
-docs/site/*
+docs/general/tutorials/data_csv
+docs/general/tutorials/data_parquet
+docs/general/tutorials/*.ipynb
+docs/site

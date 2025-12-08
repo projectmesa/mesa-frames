@@ -15,16 +15,22 @@ Before contributing, we recommend reviewing our [roadmap](https://projectmesa.gi
 Before you begin contributing, ensure that you have the necessary tools installed:
 
 - **Install Python** (at least the version specified in `requires-python` of `pyproject.toml`). 🐍
-- We recommend using a virtual environment manager like:
-  - [Astral's UV](https://docs.astral.sh/uv/#installation) 🌟
-  - [Hatch](https://hatch.pypa.io/latest/install/) 🏗️
+
+-- We recommend using a virtual environment manager like:
+
+    - [Astral's UV](https://docs.astral.sh/uv/#installation) 🌟
+    - [Hatch](https://hatch.pypa.io/latest/install/) 🏗️
+
 - Install **pre-commit** to enforce code quality standards before pushing changes:
+
   - [Pre-commit installation guide](https://pre-commit.com/#install) ✅
   - [More about pre-commit hooks](https://stackoverflow.com/collectives/articles/71270196/how-to-use-pre-commit-to-automatically-correct-commits-and-merge-requests-with-g)
-- If using **VS Code**, consider installing these extensions to automatically enforce formatting:
-  - [Ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) – Python linting & formatting 🐾
-  - [Markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) – Markdown linting (for documentation) ✍️
-  - [Git Hooks](https://marketplace.visualstudio.com/items?itemName=lakshmikanthayyadevara.githooks) – Automatically runs & visualizes pre-commit hooks 🔗
+
+-- If using **VS Code**, consider installing these extensions to automatically enforce formatting:
+
+    - [Ruff](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) – Python linting & formatting 🐾
+    - [Markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint) – Markdown linting (for documentation) ✍️
+    - [Git Hooks](https://marketplace.visualstudio.com/items?itemName=lakshmikanthayyadevara.githooks) – Automatically runs & visualizes pre-commit hooks 🔗
 
 ---
 
@@ -58,28 +64,13 @@ Before you begin contributing, ensure that you have the necessary tools installe
 
 #### **Step 3: Install Dependencies** 📦
 
-It is recommended to set up a virtual environment before installing dependencies.
+We manage the development environment with [uv](https://docs.astral.sh/uv/):
 
-- **Using UV**:
+```sh
+uv sync --all-extras
+```
 
-  ```sh
-  uv add --dev .[dev]
-  ```
-
-- **Using Hatch**:
-
-  ```sh
-  hatch env create dev
-  ```
-
-- **Using Standard Python**:
-
-  ```sh
-  python3 -m venv myenv
-  source myenv/bin/activate  # macOS/Linux
-  myenv\Scripts\activate    # Windows
-  pip install -e ".[dev]"
-  ```
+This creates `.venv/` and installs mesa-frames with the development extras.
 
 #### **Step 4: Make and Commit Changes** ✨
 
@@ -99,33 +90,35 @@ It is recommended to set up a virtual environment before installing dependencies
 - **Run pre-commit hooks** to enforce code quality standards:
 
   ```sh
-  pre-commit run
+  uv run pre-commit run -a
   ```
 
 - **Run tests** to ensure your contribution does not break functionality:
 
   ```sh
-  pytest --cov
+  uv run pytest -q --cov=mesa_frames --cov-report=term-missing
   ```
 
-  - If using UV: `uv run pytest --cov`
+-- **Optional: Runtime Type Checking (beartype)** 🔍
 
-- **Optional: Enable runtime type checking** during development for enhanced type safety:
+  You can enable stricter runtime validation of function arguments/returns with `beartype` during local development:
 
   ```sh
-  MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest --cov
+  MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest -q --cov=mesa_frames --cov-report=term-missing
   ```
 
-  !!! tip "Automatically Enabled"
-      Runtime type checking is automatically enabled in these scenarios:
+  Quick facts:
 
-      - **Hatch development environment** (`hatch shell dev`)
-      - **VS Code debugging** (when using the debugger)
-      - **VS Code testing** (when running tests through VS Code's testing interface)
+- Automatically enabled in: Hatch dev env (`hatch shell dev`), VS Code debugger, and VS Code test runs.
+- Enable manually by exporting `MESA_FRAMES_RUNTIME_TYPECHECKING=1` (any of 1/true/yes).
+- Use only for development/debugging; adds overhead—disable for performance measurements or large simulations.
+- Unset with your shell (e.g. `unset`/`Remove-Item Env:` depending on shell) to turn it off.
 
-      No manual setup needed in these environments!
+  Example for a one-off test run:
 
-  For more details on runtime type checking, see the [Development Guidelines](https://projectmesa.github.io/mesa-frames/development/).
+  ```sh
+  MESA_FRAMES_RUNTIME_TYPECHECKING=1 uv run pytest -q
+  ```
 
 #### **Step 6: Documentation Updates (If Needed)** 📖
 
@@ -135,8 +128,7 @@ It is recommended to set up a virtual environment before installing dependencies
   - Preview your changes by running:
 
     ```sh
-    mkdocs serve
-    uv run mkdocs serve #If using uv
+    uv run mkdocs serve
     ```
 
   - Open `http://127.0.0.1:8000` in your browser to verify documentation updates.
