@@ -35,6 +35,7 @@ from mesa_frames.types_ import (
     DataFrameInput,
     IdsLike,
     Index,
+    AgentMaskLiteral,
     Series,
 )
 import mesa_frames
@@ -616,15 +617,29 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         values: Any,
     ) -> None:
         """Set values using [] syntax, delegating to set()."""
+        mask_literals = AgentMaskLiteral.__args__
         if isinstance(key, tuple):
+            # Tuple keys are (mask, attr_names)
             self.set(mask=key[0], attr_names=key[1], values=values)
-        else:
-            if isinstance(key, str) or (
-                isinstance(key, Collection) and all(isinstance(k, str) for k in key)
-            ):
-                try:
-                    self.set(attr_names=key, values=values)
-                except KeyError:  # key may actually be a mask
-                    self.set(attr_names=None, mask=key, values=values)
-            else:
+            return
+
+        if isinstance(key, str):
+            # Single string keys could be attribute names or mask literals
+            if key in set(mask_literals):
                 self.set(attr_names=None, mask=key, values=values)
+            else:
+                self.set(attr_names=key, values=values)
+            return
+
+        if isinstance(key, Collection) and all(isinstance(k, str) for k in key):
+            # Collection of strings are attribute names
+            key_set = set(key)
+            reserved = key_set & set(mask_literals)
+            if reserved:
+                raise KeyError(
+                    "Mask keywords ('all', 'active') are not valid column names."
+                )
+            self.set(attr_names=key, values=values)
+            return
+
+        self.set(attr_names=None, mask=key, values=values)

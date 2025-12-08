@@ -36,7 +36,8 @@ except ImportError:
 AgnosticMask = (
     Any | Sequence[Any] | None
 )  # Any is a placeholder for any type if it's a single value
-AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
+AgentMaskLiteral = Literal["all", "active"]
+AgnosticAgentMask = Sequence[int] | int | AgentMaskLiteral | None
 AgnosticIds = int | Collection[int]
 
 ###----- Polars Types -----###
@@ -128,6 +129,7 @@ __all__ = [
     "BoolSeries",
     "Mask",
     "AgentMask",
+    "AgentMaskLiteral",
     "IdsLike",
     "ArrayLike",
     "KeyBy",
