@@ -250,9 +250,6 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         """Run a single step of the AbstractAgentSet. This method should be overridden by subclasses."""
         ...
 
-
-
-
     def __add__(self, other: DataFrame | DataFrameInput) -> Self:
         """Add agents to a new AbstractAgentSet through the + operator.
 
