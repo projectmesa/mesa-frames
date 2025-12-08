@@ -25,6 +25,7 @@ Always run tools via uv: `uv run <command>`.
 - Docstrings: NumPy style (validated by Ruff/pydoclint).
 - Formatting/linting: Ruff (formatter + lints). Fix on save if your IDE supports it.
 - Names: `CamelCase` for classes, `snake_case` for functions/attributes, tests as `test_<unit>.py` with `Test<Class>` groups.
+- **Avoid `TYPE_CHECKING` guards for runtime type checking:** In the mesa-frames codebase, avoid using `TYPE_CHECKING` guards for type annotations because the project uses `beartype` for runtime type checking, which requires the actual type objects to be available at runtime. `TYPE_CHECKING` guards would hide these imports from runtime execution, breaking `beartype` compatibility.
 
 ## Testing Guidelines
 

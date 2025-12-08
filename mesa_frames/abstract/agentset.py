@@ -20,10 +20,14 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Collection, Iterable, Iterator
+from contextlib import suppress
 from typing import Any, Literal, Self, overload
 
-from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry
-from mesa_frames.abstract.mixin import DataFrameMixin
+from collections.abc import Callable, Sequence
+
+from numpy.random import Generator
+
+from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
     AgentMask,
     BoolSeries,
@@ -31,11 +35,13 @@ from mesa_frames.types_ import (
     DataFrameInput,
     IdsLike,
     Index,
+    AgentMaskLiteral,
     Series,
 )
+import mesa_frames
 
 
-class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
+class AbstractAgentSet(CopyMixin, DataFrameMixin):
     """The AbstractAgentSet class is a container for agents of the same type.
 
     Parameters
@@ -44,6 +50,7 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         The model that the agent set belongs to.
     """
 
+    _copy_only_reference: list[str] = ["_model"]
     _df: DataFrame  # The agents in the AbstractAgentSet
     _mask: AgentMask  # The underlying mask used for the active agents in the AbstractAgentSet.
     _model: (
@@ -75,7 +82,31 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Returns
         -------
         Self
-            A new AbstractAgentSetRegistry with the added agents.
+            A new AbstractAgentSet with the added agents.
+        """
+        ...
+
+    @overload
+    @abstractmethod
+    def contains(self, agents: int) -> bool: ...
+
+    @overload
+    @abstractmethod
+    def contains(self, agents: IdsLike) -> BoolSeries: ...
+
+    @abstractmethod
+    def contains(self, agents: IdsLike) -> bool | BoolSeries:
+        """Check if agents with the specified IDs are in the AgentSet.
+
+        Parameters
+        ----------
+        agents : IdsLike
+            The ID(s) to check for.
+
+        Returns
+        -------
+        bool | BoolSeries
+            True if the agent is in the AgentSet, False otherwise.
         """
         ...
 
@@ -94,65 +125,85 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Self
             The updated AbstractAgentSet.
         """
-        return super().discard(agents, inplace)
+        with suppress(KeyError, ValueError):
+            return self.remove(agents, inplace=inplace)
+        return self._get_obj(inplace)
+
+    @abstractmethod
+    def remove(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
+        """Remove agents from this AbstractAgentSet.
+
+        Parameters
+        ----------
+        agents : IdsLike | AgentMask
+            The agents or mask to remove.
+        inplace : bool, optional
+            Whether to remove in place, by default True.
+
+        Returns
+        -------
+        Self
+            The updated agent set.
+        """
+        ...
 
     @overload
+    @abstractmethod
     def do(
         self,
         method_name: str,
-        *args,
+        *args: Any,
         mask: AgentMask | None = None,
         return_results: Literal[False] = False,
         inplace: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Self: ...
 
     @overload
+    @abstractmethod
     def do(
         self,
         method_name: str,
-        *args,
+        *args: Any,
         mask: AgentMask | None = None,
         return_results: Literal[True],
         inplace: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Any: ...
 
+    @abstractmethod
     def do(
         self,
         method_name: str,
-        *args,
+        *args: Any,
         mask: AgentMask | None = None,
         return_results: bool = False,
         inplace: bool = True,
-        **kwargs,
+        **kwargs: Any,
     ) -> Self | Any:
-        masked_df = self._get_masked_df(mask)
-        # If the mask is empty, we can use the object as is
-        if len(masked_df) == len(self._df):
-            obj = self._get_obj(inplace)
-            method = getattr(obj, method_name)
-            result = method(*args, **kwargs)
-        else:  # If the mask is not empty, we need to create a new masked AbstractAgentSet and concatenate the AbstractAgentSets at the end
-            obj = self._get_obj(inplace=False)
-            obj._df = masked_df
-            original_masked_index = obj._get_obj_copy(obj.index)
-            method = getattr(obj, method_name)
-            result = method(*args, **kwargs)
-            obj._concatenate_agentsets(
-                [self],
-                duplicates_allowed=True,
-                keep_first_only=True,
-                original_masked_index=original_masked_index,
-            )
-            if inplace:
-                for key, value in obj.__dict__.items():
-                    setattr(self, key, value)
-                obj = self
-        if return_results:
-            return result
-        else:
-            return obj
+        """Invoke a method on the AgentSet.
+
+        Parameters
+        ----------
+        method_name : str
+            The name of the method to invoke.
+        *args : Any
+            Positional arguments to pass to the method
+        mask : AgentMask | None, optional
+            The subset of agents on which to apply the method
+        return_results : bool, optional
+            Whether to return the result of the method, by default False
+        inplace : bool, optional
+            Whether the operation should be done inplace, by default False
+        **kwargs : Any
+            Keyword arguments to pass to the method
+
+        Returns
+        -------
+        Self | Any
+            The updated AgentSet or the result of the method.
+        """
+        ...
 
     @abstractmethod
     @overload
@@ -175,100 +226,30 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         self,
         attr_names: str | Collection[str] | None = None,
         mask: AgentMask | None = None,
-    ) -> Series | DataFrame: ...
+    ) -> Series | DataFrame:
+        """Retrieve agent attributes as a Series or DataFrame.
+
+        Parameters
+        ----------
+        attr_names : str | Collection[str] | None, optional
+            Column name or collection of names to fetch. When ``None``, return
+            all agent attributes (excluding any internal identifiers).
+        mask : AgentMask | None, optional
+            Subset selector limiting which agents are included. ``None`` means
+            operate on the full set.
+
+        Returns
+        -------
+        Series | DataFrame
+            A Series when selecting a single attribute, otherwise a DataFrame
+            containing the requested columns.
+        """
+        ...
 
     @abstractmethod
     def step(self) -> None:
         """Run a single step of the AbstractAgentSet. This method should be overridden by subclasses."""
         ...
-
-    def remove(self, agents: IdsLike | AgentMask, inplace: bool = True) -> Self:
-        if isinstance(agents, str) and agents == "active":
-            agents = self.active_agents
-        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
-            return self._get_obj(inplace)
-        agents = self._df_index(self._get_masked_df(agents), "unique_id")
-        sets = self.model.sets.remove(agents, inplace=inplace)
-        # TODO: Refactor AgentSetRegistry to return dict[str, AbstractAgentSet] instead of dict[AbstractAgentSet, DataFrame]
-        # And assign a name to AbstractAgentSet? This has to be replaced by a nicer API of AgentSetRegistry
-        for agentset in sets.df.keys():
-            if isinstance(agentset, self.__class__):
-                return agentset
-        return self
-
-    @abstractmethod
-    def _concatenate_agentsets(
-        self,
-        objs: Iterable[Self],
-        duplicates_allowed: bool = True,
-        keep_first_only: bool = True,
-        original_masked_index: Index | None = None,
-    ) -> Self: ...
-
-    @abstractmethod
-    def _get_bool_mask(self, mask: AgentMask) -> BoolSeries:
-        """Get the equivalent boolean mask based on the input mask.
-
-        Parameters
-        ----------
-        mask : AgentMask
-
-        Returns
-        -------
-        BoolSeries
-        """
-        ...
-
-    @abstractmethod
-    def _get_masked_df(self, mask: AgentMask) -> DataFrame:
-        """Get the df filtered by the input mask.
-
-        Parameters
-        ----------
-        mask : AgentMask
-
-        Returns
-        -------
-        DataFrame
-        """
-
-    @overload
-    @abstractmethod
-    def _get_obj_copy(self, obj: DataFrame) -> DataFrame: ...
-
-    @overload
-    @abstractmethod
-    def _get_obj_copy(self, obj: Series) -> Series: ...
-
-    @overload
-    @abstractmethod
-    def _get_obj_copy(self, obj: Index) -> Index: ...
-
-    @abstractmethod
-    def _get_obj_copy(
-        self, obj: DataFrame | Series | Index
-    ) -> DataFrame | Series | Index: ...
-
-    @abstractmethod
-    def _discard(self, ids: IdsLike) -> Self:
-        """Remove an agent from the DataFrame of the AbstractAgentSet. Gets called by self.model.sets.remove and self.model.sets.discard.
-
-        Parameters
-        ----------
-        ids : IdsLike
-
-            The ids to remove
-
-        Returns
-        -------
-        Self
-        """
-        ...
-
-    @abstractmethod
-    def _update_mask(
-        self, original_active_indices: Index, new_active_indices: Index | None = None
-    ) -> None: ...
 
     def __add__(self, other: DataFrame | DataFrameInput) -> Self:
         """Add agents to a new AbstractAgentSet through the + operator.
@@ -285,9 +266,9 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Returns
         -------
         Self
-            A new AbstractAgentSetRegistry with the added agents.
+            A new AbstractAgentSet with the added agents.
         """
-        return super().__add__(other)
+        return self.add(other, inplace=False)
 
     def __iadd__(self, other: DataFrame | DataFrameInput) -> Self:
         """
@@ -305,9 +286,17 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
         Returns
         -------
         Self
-            The updated AbstractAgentSetRegistry.
+            The updated AbstractAgentSet.
         """
-        return super().__iadd__(other)
+        return self.add(other, inplace=True)
+
+    def __isub__(self, other: IdsLike | AgentMask | DataFrame) -> Self:
+        """Remove agents via -= operator."""
+        return self.discard(other, inplace=True)
+
+    def __sub__(self, other: IdsLike | AgentMask | DataFrame) -> Self:
+        """Return a new set with agents removed via - operator."""
+        return self.discard(other, inplace=False)
 
     @abstractmethod
     def __getattr__(self, name: str) -> Any:
@@ -336,9 +325,20 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
             | tuple[AgentMask, Collection[str]]
         ),
     ) -> Series | DataFrame:
-        attr = super().__getitem__(key)
-        assert isinstance(attr, (Series, DataFrame, Index))
-        return attr
+        # Mirror registry/old container behavior: delegate to get()
+        if isinstance(key, tuple):
+            return self.get(mask=key[0], attr_names=key[1])
+        else:
+            if isinstance(key, str) or (
+                isinstance(key, Collection) and all(isinstance(k, str) for k in key)
+            ):
+                return self.get(attr_names=key)
+            else:
+                return self.get(mask=key)
+
+    def __contains__(self, agents: int) -> bool:
+        """Membership test for an agent id in this set."""
+        return bool(self.contains(agents))
 
     def __len__(self) -> int:
         return len(self._df)
@@ -354,6 +354,13 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
 
     @property
     def df(self) -> DataFrame:
+        """Return the full backing DataFrame for this agent set.
+
+        Returns
+        -------
+        DataFrame
+            Table containing every agent, including inactive records.
+        """
         return self._df
 
     @df.setter
@@ -369,17 +376,54 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
 
     @property
     @abstractmethod
-    def active_agents(self) -> DataFrame: ...
+    def active_agents(self) -> DataFrame:
+        """Return the subset of agents currently marked as active.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame view containing only active agents.
+        """
+        ...
 
     @property
     @abstractmethod
-    def inactive_agents(self) -> DataFrame: ...
+    def inactive_agents(self) -> DataFrame:
+        """Return the subset of agents currently marked as inactive.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame view containing only inactive agents.
+        """
+        ...
 
     @property
-    def index(self) -> Index: ...
+    @abstractmethod
+    def index(self) -> Index:
+        """Return the unique identifier index for agents in this set.
+
+        Returns
+        -------
+        Index
+            Collection of unique agent identifiers.
+        """
+        ...
 
     @property
     def pos(self) -> DataFrame:
+        """Return positional data for agents from the attached space.
+
+        Returns
+        -------
+        DataFrame
+            Position records aligned with each agent's ``unique_id``.
+
+        Raises
+        ------
+        AttributeError
+            If the model has no space attached.
+        """
         if self.space is None:
             raise AttributeError(
                 "Attempted to access `pos`, but the model has no space attached."
@@ -391,3 +435,211 @@ class AbstractAgentSet(AbstractAgentSetRegistry, DataFrameMixin):
             pos, self.index, new_index_cols="unique_id", original_index_cols="agent_id"
         )
         return pos
+
+    @property
+    def name(self) -> str:
+        """The name of the agent set.
+
+        Returns
+        -------
+        str
+            The name of the agent set
+        """
+        return self._name
+
+    @property
+    def model(self) -> mesa_frames.concrete.model.Model:
+        """Return the parent model for this agent set.
+
+        Returns
+        -------
+        mesa_frames.concrete.model.Model
+            The model instance that owns this agent set.
+        """
+        return self._model
+
+    @property
+    def random(self) -> Generator:
+        """Return the random number generator shared with the model.
+
+        Returns
+        -------
+        Generator
+            Generator used for stochastic operations.
+        """
+        return self.model.random
+
+    @property
+    def space(self) -> mesa_frames.abstract.space.Space | None:
+        """Return the space attached to the parent model, if any.
+
+        Returns
+        -------
+        mesa_frames.abstract.space.Space | None
+            Spatial structure registered on the model, or ``None`` when absent.
+        """
+        return self.model.space
+
+    @abstractmethod
+    def rename(self, new_name: str, inplace: bool = True) -> Self:
+        """Rename this AgentSet.
+
+        Concrete subclasses must implement the mechanics for coordinating with
+        any containing registry and managing ``inplace`` semantics. The method
+        should update the set's name (or return a renamed copy when
+        ``inplace=False``) while preserving registry invariants.
+
+        Parameters
+        ----------
+        new_name : str
+            Desired new name for this AgentSet.
+        inplace : bool, optional
+            Whether to perform the rename in place. If False, a renamed copy is
+            returned, by default True.
+
+        Returns
+        -------
+        Self
+            The updated AgentSet (or a renamed copy when ``inplace=False``).
+        """
+        ...
+
+    @abstractmethod
+    def set(
+        self,
+        attr_names: str | Collection[str] | dict[str, Any] | None = None,
+        values: Any | None = None,
+        mask: AgentMask | None = None,
+        inplace: bool = True,
+    ) -> Self:
+        """Update agent attributes, optionally on a masked subset.
+
+        Parameters
+        ----------
+        attr_names : str | Collection[str] | dict[str, Any] | None, optional
+            Attribute(s) to assign. When ``None``, concrete implementations may
+            derive targets from ``values``.
+        values : Any | None, optional
+            Replacement value(s) aligned with ``attr_names``.
+        mask : AgentMask | None, optional
+            Subset selector limiting which agents are updated.
+        inplace : bool, optional
+            Whether to mutate in place or return an updated copy, by default True.
+
+        Returns
+        -------
+        Self
+            The updated AgentSet (or a modified copy when ``inplace=False``).
+        """
+        ...
+
+    @abstractmethod
+    def select(
+        self,
+        mask: AgentMask | None = None,
+        filter_func: Callable[[Self], BoolSeries] | None = None,
+        n: int | None = None,
+        negate: bool = False,
+        inplace: bool = True,
+    ) -> Self:
+        """Update the active-agent mask using selection criteria.
+
+        Parameters
+        ----------
+        mask : AgentMask | None, optional
+            Pre-computed mask identifying agents to activate.
+        filter_func : Callable[[Self], BoolSeries] | None, optional
+            Callable evaluated on the agent set to produce an additional mask.
+        n : int | None, optional
+            Randomly sample ``n`` agents from the selected mask when provided.
+        negate : bool, optional
+            Invert the effective mask, by default False.
+        inplace : bool, optional
+            Whether to mutate in place or return an updated copy, by default True.
+
+        Returns
+        -------
+        Self
+            The updated AgentSet (or a modified copy when ``inplace=False``).
+        """
+        ...
+
+    @abstractmethod
+    def shuffle(self, inplace: bool = True) -> Self:
+        """Randomly permute agent order.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Whether to mutate in place or return a shuffled copy, by default True.
+
+        Returns
+        -------
+        Self
+            The shuffled AgentSet (or a shuffled copy when ``inplace=False``).
+        """
+        ...
+
+    @abstractmethod
+    def sort(
+        self,
+        by: str | Sequence[str],
+        ascending: bool | Sequence[bool] = True,
+        inplace: bool = True,
+        **kwargs: Any,
+    ) -> Self:
+        """Sort agents by one or more columns.
+
+        Parameters
+        ----------
+        by : str | Sequence[str]
+            Column name(s) to sort on.
+        ascending : bool | Sequence[bool], optional
+            Sort order per column, by default True.
+        inplace : bool, optional
+            Whether to mutate in place or return a sorted copy, by default True.
+        **kwargs : Any
+            Backend-specific keyword arguments forwarded to the concrete sorter.
+
+        Returns
+        -------
+        Self
+            The sorted AgentSet (or a sorted copy when ``inplace=False``).
+        """
+        ...
+
+    def __setitem__(
+        self,
+        key: str
+        | Collection[str]
+        | AgentMask
+        | tuple[AgentMask, str | Collection[str]],
+        values: Any,
+    ) -> None:
+        """Set values using [] syntax, delegating to set()."""
+        mask_literals = AgentMaskLiteral.__args__
+        if isinstance(key, tuple):
+            # Tuple keys are (mask, attr_names)
+            self.set(mask=key[0], attr_names=key[1], values=values)
+            return
+
+        if isinstance(key, str):
+            # Single string keys could be attribute names or mask literals
+            if key in set(mask_literals):
+                self.set(attr_names=None, mask=key, values=values)
+            else:
+                self.set(attr_names=key, values=values)
+            return
+
+        if isinstance(key, Collection) and all(isinstance(k, str) for k in key):
+            # Collection of strings are attribute names
+            key_set = set(key)
+            reserved = key_set & set(mask_literals)
+            if reserved:
+                raise KeyError(
+                    "Mask keywords ('all', 'active') are not valid column names."
+                )
+            self.set(attr_names=key, values=values)
+            return
+
+        self.set(attr_names=None, mask=key, values=values)

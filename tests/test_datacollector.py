@@ -164,7 +164,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+                "wealth": lambda sets: sets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -223,7 +223,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+                "wealth": lambda sets: sets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -279,7 +279,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+                "wealth": lambda sets: sets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -361,7 +361,7 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+                    "wealth": lambda sets: sets[0]["wealth"],
                     "age": "age",
                 },
                 storage="csv",
@@ -437,7 +437,7 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+                    "wealth": lambda sets: sets[0]["wealth"],
                 },
                 storage="parquet",
                 storage_uri=tmpdir,
@@ -513,7 +513,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+                "wealth": lambda sets: sets[0]["wealth"],
                 "age": "age",
             },
             storage="postgresql",
@@ -562,7 +562,7 @@ class TestDataCollector:
                 )
             },
             agent_reporters={
-                "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+                "wealth": lambda sets: sets[0]["wealth"],
                 "age": "age",
             },
         )
@@ -707,7 +707,7 @@ class TestDataCollector:
                     )
                 },
                 agent_reporters={
-                    "wealth": lambda model: model.sets._agentsets[0]["wealth"],
+                    "wealth": lambda sets: sets[0]["wealth"],
                     "age": "age",
                 },
                 storage="csv",
