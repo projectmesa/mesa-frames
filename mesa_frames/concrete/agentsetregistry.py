@@ -524,6 +524,9 @@ class AgentSetRegistry(AbstractAgentSetRegistry):
         obj = self._get_obj(inplace)
         # Normalize to a list of AgentSet instances using _resolve_selector
         selected = obj._resolve_selector(sets)  # type: ignore[arg-type]
+        # Drop agents from space before detaching their sets from the registry
+        if self.model._space is not None:
+            self.model.space.remove_agents(selected)
         # Remove in reverse positional order
         indices = [i for i, s in enumerate(obj._agentsets) if s in selected]
         indices.sort(reverse=True)

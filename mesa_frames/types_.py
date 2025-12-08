@@ -36,7 +36,8 @@ except ImportError:
 AgnosticMask = (
     Any | Sequence[Any] | None
 )  # Any is a placeholder for any type if it's a single value
-AgnosticAgentMask = Sequence[int] | int | Literal["all", "active"] | None
+AgentMaskLiteral = Literal["all", "active"]
+AgnosticAgentMask = Sequence[int] | int | AgentMaskLiteral | None
 AgnosticIds = int | Collection[int]
 
 ###----- Polars Types -----###
@@ -85,29 +86,40 @@ IdsLike = AgnosticIds | PolarsIdsLike
 ArrayLike = ndarray | Series | Sequence
 Infinity = Annotated[float, IsEqual[math.inf]]  # Only accepts math.inf
 
+from typing_extensions import TypeAliasType
+
 # Common option types
 KeyBy = Literal["name", "index", "type"]
 
-# Selectors for choosing AgentSets at the registry level
-# Abstract (for abstract layer APIs)
-if TYPE_CHECKING:
-    from mesa_frames.abstract.agentset import AbstractAgentSet as _AAS
+# Selectors for choosing AgentSets at the registry level.
+# Use runtime-enforceable aliases while avoiding import cycles.
+# Strategy:
+# - At runtime, avoid importing agentset modules (which can create import
+#   cycles). Prefer lazy aliases via typing_extensions.TypeAliasType that take
+#   string targets. These allow runtime validators (for example beartype) to
+#   resolve names lazily instead of importing modules eagerly.
 
-    AbstractAgentSetSelector = (
-        _AAS | type[_AAS] | str | Collection[_AAS | type[_AAS] | str] | None
-    )
-else:
-    AbstractAgentSetSelector = Any  # runtime fallback to avoid import cycles
+AbstractAgentSetSelector = TypeAliasType(
+    "AbstractAgentSetSelector",
+    (
+        "mesa_frames.abstract.agentset.AbstractAgentSet | "
+        "type[mesa_frames.abstract.agentset.AbstractAgentSet] | "
+        "str | Collection["
+        "mesa_frames.abstract.agentset.AbstractAgentSet | "
+        "type[mesa_frames.abstract.agentset.AbstractAgentSet] | str] | None"
+    ),
+)
 
-# Concrete (for concrete layer APIs)
-if TYPE_CHECKING:
-    from mesa_frames.concrete.agentset import AgentSet as _CAS
-
-    AgentSetSelector = (
-        _CAS | type[_CAS] | str | Collection[_CAS | type[_CAS] | str] | None
-    )
-else:
-    AgentSetSelector = Any  # runtime fallback to avoid import cycles
+AgentSetSelector = TypeAliasType(
+    "AgentSetSelector",
+    (
+        "mesa_frames.concrete.agentset.AgentSet | "
+        "type[mesa_frames.concrete.agentset.AgentSet] | "
+        "str | Collection["
+        "mesa_frames.concrete.agentset.AgentSet | "
+        "type[mesa_frames.concrete.agentset.AgentSet] | str] | None"
+    ),
+)
 
 __all__ = [
     # common
@@ -117,6 +129,7 @@ __all__ = [
     "BoolSeries",
     "Mask",
     "AgentMask",
+    "AgentMaskLiteral",
     "IdsLike",
     "ArrayLike",
     "KeyBy",

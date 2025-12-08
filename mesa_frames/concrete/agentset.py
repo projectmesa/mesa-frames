@@ -69,6 +69,7 @@ from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
+import mesa_frames
 
 
 @copydoc(AbstractAgentSet)
@@ -132,16 +133,19 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         # Check if we have a model and can find the AgentSetRegistry that contains this set
         try:
             if self in self.model.sets:
+                # Track the index of this set so we can retrieve the renamed copy even
+                # when the registry canonicalizes the requested name.
+                target_idx = next(
+                    i for i, aset in enumerate(self.model.sets) if aset is self
+                )
                 reg = self.model.sets.rename(self, new_name, inplace=inplace)
                 if inplace:
                     return self
-                return reg[new_name]
+                return reg[target_idx]
         except KeyError:
-            # Fall back to local rename if isn't found in a an AgentSetRegistry
-            obj._name = new_name
-            return obj
+            pass
 
-        # Set name locally if no container found
+        # Fall back to local rename if isn't found in a an AgentSetRegistry
         obj._name = new_name
         return obj
 
@@ -679,4 +683,4 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     @name.setter
     def name(self, value: str) -> None:
         """Set the name of the AgentSet."""
-        self._name = value
+        self.rename(value)

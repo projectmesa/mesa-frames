@@ -35,8 +35,10 @@ from mesa_frames.types_ import (
     DataFrameInput,
     IdsLike,
     Index,
+    AgentMaskLiteral,
     Series,
 )
+import mesa_frames
 
 
 class AbstractAgentSet(CopyMixin, DataFrameMixin):
@@ -248,80 +250,6 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
     def step(self) -> None:
         """Run a single step of the AbstractAgentSet. This method should be overridden by subclasses."""
         ...
-
-    @abstractmethod
-    def _concatenate_agentsets(
-        self,
-        objs: Iterable[Self],
-        duplicates_allowed: bool = True,
-        keep_first_only: bool = True,
-        original_masked_index: Index | None = None,
-    ) -> Self: ...
-
-    @abstractmethod
-    def _get_bool_mask(self, mask: AgentMask) -> BoolSeries:
-        """Get the equivalent boolean mask based on the input mask.
-
-        Parameters
-        ----------
-        mask : AgentMask
-
-        Returns
-        -------
-        BoolSeries
-        """
-        ...
-
-    @abstractmethod
-    def _get_masked_df(self, mask: AgentMask) -> DataFrame:
-        """Get the df filtered by the input mask.
-
-        Parameters
-        ----------
-        mask : AgentMask
-
-        Returns
-        -------
-        DataFrame
-        """
-
-    @overload
-    @abstractmethod
-    def _get_obj_copy(self, obj: DataFrame) -> DataFrame: ...
-
-    @overload
-    @abstractmethod
-    def _get_obj_copy(self, obj: Series) -> Series: ...
-
-    @overload
-    @abstractmethod
-    def _get_obj_copy(self, obj: Index) -> Index: ...
-
-    @abstractmethod
-    def _get_obj_copy(
-        self, obj: DataFrame | Series | Index
-    ) -> DataFrame | Series | Index: ...
-
-    @abstractmethod
-    def _discard(self, ids: IdsLike) -> Self:
-        """Remove an agent from the DataFrame of the AbstractAgentSet. Gets called by self.model.sets.remove and self.model.sets.discard.
-
-        Parameters
-        ----------
-        ids : IdsLike
-
-            The ids to remove
-
-        Returns
-        -------
-        Self
-        """
-        ...
-
-    @abstractmethod
-    def _update_mask(
-        self, original_active_indices: Index, new_active_indices: Index | None = None
-    ) -> None: ...
 
     def __add__(self, other: DataFrame | DataFrameInput) -> Self:
         """Add agents to a new AbstractAgentSet through the + operator.
@@ -689,15 +617,29 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         values: Any,
     ) -> None:
         """Set values using [] syntax, delegating to set()."""
+        mask_literals = AgentMaskLiteral.__args__
         if isinstance(key, tuple):
+            # Tuple keys are (mask, attr_names)
             self.set(mask=key[0], attr_names=key[1], values=values)
-        else:
-            if isinstance(key, str) or (
-                isinstance(key, Collection) and all(isinstance(k, str) for k in key)
-            ):
-                try:
-                    self.set(attr_names=key, values=values)
-                except KeyError:  # key may actually be a mask
-                    self.set(attr_names=None, mask=key, values=values)
-            else:
+            return
+
+        if isinstance(key, str):
+            # Single string keys could be attribute names or mask literals
+            if key in set(mask_literals):
                 self.set(attr_names=None, mask=key, values=values)
+            else:
+                self.set(attr_names=key, values=values)
+            return
+
+        if isinstance(key, Collection) and all(isinstance(k, str) for k in key):
+            # Collection of strings are attribute names
+            key_set = set(key)
+            reserved = key_set & set(mask_literals)
+            if reserved:
+                raise KeyError(
+                    "Mask keywords ('all', 'active') are not valid column names."
+                )
+            self.set(attr_names=key, values=values)
+            return
+
+        self.set(attr_names=None, mask=key, values=values)
