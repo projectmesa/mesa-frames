@@ -17,33 +17,27 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.VERSION_PUSH_TOKEN }}
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install hatch
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v3
     - name: Set release version
       run: |
         # Get the tag from the GitHub release
         TAG=${GITHUB_REF#refs/tags/}
         # Remove 'v' prefix if present
         VERSION=${TAG#v}
-        hatch version $VERSION
+        uvx hatch version $VERSION
     - name: Build package
-      run: hatch build
+      run: uvx hatch build
     - name: Run tests
-      run: hatch run test:pytest
+      run: uvx hatch run test:pytest
     - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
     - name: Verify PyPI Release
       run: |
         # Verify PyPI release
         PACKAGE_NAME="mesa_frames"
-        CURRENT_VERSION=$(hatch version)
-        pip install $PACKAGE_NAME==$CURRENT_VERSION
+        CURRENT_VERSION=$(uvx hatch version)
+        uv pip install --system $PACKAGE_NAME==$CURRENT_VERSION
         python -c "import mesa_frames; print(mesa_frames.__version__)"
     - name: Update GitHub Release
       uses: softprops/action-gh-release@v1
@@ -51,9 +45,50 @@ jobs:
       with:
         files: |
           dist/*
+    - name: Generate changelog from release notes
+      id: notes
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const tag = (context.payload.release && context.payload.release.tag_name)
+            ? context.payload.release.tag_name
+            : (process.env.GITHUB_REF || '').replace('refs/tags/', '');
+
+          const body = (context.payload.release && context.payload.release.body) ? context.payload.release.body : '';
+          if (!body || body.trim().length === 0) {
+            core.setFailed('Release body is empty. Ensure the GitHub Release is created with auto-generated notes configured by .github/release.yml or supply a body.');
+          }
+
+          fs.writeFileSync('RELEASE_BODY.md', body, 'utf8');
+          core.setOutput('tag', tag);
+    - name: Prepend notes to CHANGELOG.md
+      env:
+        TAG: ${{ steps.notes.outputs.tag }}
+      run: |
+        VERSION_NO_V=${TAG#v}
+        DATE_UTC=$(date -u +%Y-%m-%d)
+        echo "## Version ${VERSION_NO_V} — ${DATE_UTC}" > RELEASE_HEADER.md
+        echo "" >> RELEASE_HEADER.md
+        if [ -f CHANGELOG.md ]; then
+          cat RELEASE_HEADER.md RELEASE_BODY.md CHANGELOG.md > CHANGELOG.new
+        else
+          cat RELEASE_HEADER.md RELEASE_BODY.md > CHANGELOG.new
+        fi
+        mv CHANGELOG.new CHANGELOG.md
+    - name: Commit and push CHANGELOG update
+      env:
+        TAG: ${{ steps.notes.outputs.tag }}
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add CHANGELOG.md
+        # Avoid CI cycles
+        git commit -m "Changelog: add notes for ${TAG} [skip ci]" || echo "No changelog changes to commit"
+        git push origin main || true
     - name: Create or recreate version branch
       run: |
-        CURRENT_VERSION=$(hatch version)
+        CURRENT_VERSION=$(uvx hatch version)
         BRANCH_NAME="v$CURRENT_VERSION"
 
         git config user.name github-actions
@@ -72,15 +107,15 @@ jobs:
     - name: Update to Next Version
       run: |
         # Bump to next development version
-        hatch version patch
-        hatch version dev
+        uvx hatch version patch
+        uvx hatch version dev
 
         # Get the new version
-        NEW_VERSION=$(hatch version)
+        NEW_VERSION=$(uvx hatch version)
 
         # Commit and push the version bump
         git config user.name github-actions
         git config user.email github-actions@github.com
-        git add mesa_frames/__init__.py
+        git add mesa_frames/__init__.py CHANGELOG.md
         git commit -m "Bump version to $NEW_VERSION [skip ci]"
         git push origin main
