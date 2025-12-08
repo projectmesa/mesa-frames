@@ -290,6 +290,12 @@ class Test_AgentSet:
         # Original remains unchanged
         assert agents.name not in ("beta", "beta_1")
 
+        # Non-inplace rename to an existing name should canonicalize and return the copy
+        conflict_copy = agents.rename("omega", inplace=False)
+        assert conflict_copy is not agents
+        assert conflict_copy.name.startswith("omega")
+        assert conflict_copy.name != "omega"
+
         # Test with a pl.Series[bool]
         mask = pl.Series("mask", [True, False, True, True], dtype=pl.Boolean)
         selected = agents.select(mask, inplace=False)

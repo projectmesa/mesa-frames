@@ -133,10 +133,15 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         # Check if we have a model and can find the AgentSetRegistry that contains this set
         try:
             if self in self.model.sets:
+                # Track the index of this set so we can retrieve the renamed copy even
+                # when the registry canonicalizes the requested name.
+                target_idx = next(
+                    i for i, aset in enumerate(self.model.sets) if aset is self
+                )
                 reg = self.model.sets.rename(self, new_name, inplace=inplace)
                 if inplace:
                     return self
-                return reg[new_name]
+                return reg[target_idx]
         except KeyError:
             pass
 
