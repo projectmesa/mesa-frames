@@ -82,7 +82,3 @@ To benchmark an additional model:
 2. Register it in `benchmarks/cli.py` inside the `MODELS` dict with two backends (names must be `mesa` and `frames`).
 3. Ensure any extra spatial parameters are derived from `agents` inside the runner lambda (see sugarscape example).
 4. Run the CLI to verify new CSV columns still align.
-
-## Related documentation
-
-See `docs/user-guide/5_benchmarks.md` (user-facing narrative) and the main project `README.md` for overall context.
