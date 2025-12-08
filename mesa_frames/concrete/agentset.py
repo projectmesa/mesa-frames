@@ -67,8 +67,9 @@ import polars as pl
 
 from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete.mixin import PolarsMixin
-from mesa_frames.types_ import AgentPolarsMask, IntoExpr, PolarsIdsLike
+from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
+import mesa_frames
 
 
 @copydoc(AbstractAgentSet)
@@ -82,18 +83,71 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     _copy_only_reference: list[str] = ["_model", "_mask"]
     _mask: pl.Expr | pl.Series
 
-    def __init__(self, model: mesa_frames.concrete.model.Model) -> None:
+    def __init__(
+        self, model: mesa_frames.concrete.model.Model, name: str | None = None
+    ) -> None:
         """Initialize a new AgentSet.
 
         Parameters
         ----------
         model : "mesa_frames.concrete.model.Model"
             The model that the agent set belongs to.
+        name : str | None, optional
+            Name for this agent set. If None, class name is used.
+            Will be converted to snake_case if in camelCase.
         """
+        # Model reference
         self._model = model
+        # Set proposed name (no uniqueness guarantees here)
+        self._name = name if name is not None else self.__class__.__name__
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
+
+    def rename(self, new_name: str, inplace: bool = True) -> Self:
+        """Rename this agent set. If attached to AgentSetRegistry, delegate for uniqueness enforcement.
+
+        Parameters
+        ----------
+        new_name : str
+            Desired new name.
+
+        inplace : bool, optional
+            Whether to perform the rename in place. If False, a renamed copy is
+            returned, by default True.
+
+        Returns
+        -------
+        Self
+            The updated AgentSet (or a renamed copy when ``inplace=False``).
+
+        Raises
+        ------
+        ValueError
+            If name conflicts occur and delegate encounters errors.
+        """
+        # Respect inplace semantics consistently with other mutators
+        obj = self._get_obj(inplace)
+
+        # Always delegate to the container's accessor if available through the model's sets
+        # Check if we have a model and can find the AgentSetRegistry that contains this set
+        try:
+            if self in self.model.sets:
+                # Track the index of this set so we can retrieve the renamed copy even
+                # when the registry canonicalizes the requested name.
+                target_idx = next(
+                    i for i, aset in enumerate(self.model.sets) if aset is self
+                )
+                reg = self.model.sets.rename(self, new_name, inplace=inplace)
+                if inplace:
+                    return self
+                return reg[target_idx]
+        except KeyError:
+            pass
+
+        # Fall back to local rename if isn't found in a an AgentSetRegistry
+        obj._name = new_name
+        return obj
 
     def add(
         self,
@@ -181,6 +235,64 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         else:
             return agents in self._df["unique_id"]
 
+    @overload
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: Literal[False] = False,
+        inplace: bool = True,
+        **kwargs,
+    ) -> Self: ...
+
+    @overload
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: Literal[True],
+        inplace: bool = True,
+        **kwargs,
+    ) -> Any: ...
+
+    def do(
+        self,
+        method_name: str,
+        *args,
+        mask: AgentMask | None = None,
+        return_results: bool = False,
+        inplace: bool = True,
+        **kwargs,
+    ) -> Self | Any:
+        masked_df = self._get_masked_df(mask)
+        # If the mask is empty, we can use the object as is
+        if len(masked_df) == len(self._df):
+            obj = self._get_obj(inplace)
+            method = getattr(obj, method_name)
+            result = method(*args, **kwargs)
+        else:  # If the mask is not empty, we need to create a new masked AbstractAgentSet and concatenate the AbstractAgentSets at the end
+            obj = self._get_obj(inplace=False)
+            obj._df = masked_df
+            original_masked_index = obj._get_obj_copy(obj.index)
+            method = getattr(obj, method_name)
+            result = method(*args, **kwargs)
+            obj._concatenate_agentsets(
+                [self],
+                duplicates_allowed=True,
+                keep_first_only=True,
+                original_masked_index=original_masked_index,
+            )
+            if inplace:
+                for key, value in obj.__dict__.items():
+                    setattr(self, key, value)
+                obj = self
+        if return_results:
+            return result
+        else:
+            return obj
+
     def get(
         self,
         attr_names: IntoExpr | Iterable[IntoExpr] | None,
@@ -197,6 +309,20 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         if masked_df.shape[1] == 1:
             return masked_df[masked_df.columns[0]]
         return masked_df
+
+    def remove(self, agents: PolarsIdsLike | AgentMask, inplace: bool = True) -> Self:
+        if isinstance(agents, str) and agents == "active":
+            agents = self.active_agents
+        if agents is None or (isinstance(agents, Iterable) and len(agents) == 0):
+            return self._get_obj(inplace)
+        obj = self._get_obj(inplace)
+        # Normalize to Series of unique_ids
+        ids = obj._df_index(obj._get_masked_df(agents), "unique_id")
+        # Validate presence
+        if not ids.is_in(obj._df["unique_id"]).all():
+            raise KeyError("Some 'unique_id' of mask are not present in this AgentSet.")
+        # Remove by ids
+        return obj._discard(ids)
 
     def set(
         self,
@@ -463,7 +589,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         else:
             self._mask = self._df["unique_id"].is_in(original_active_indices)
 
-    def __getattr__(self, key: str) -> pl.Series:
+    def __getattr__(self, key: str) -> Any:
+        if key == "name":
+            return self.name
         super().__getattr__(key)
         return self._df[key]
 
@@ -546,3 +674,13 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     @property
     def pos(self) -> pl.DataFrame:
         return super().pos
+
+    @property
+    def name(self) -> str:
+        """Return the name of the AgentSet."""
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        """Set the name of the AgentSet."""
+        self.rename(value)
