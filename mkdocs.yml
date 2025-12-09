@@ -1,8 +1,9 @@
 # Project information
-site_name: mesa-frames
+site_name: mesa-frames documentation
 site_url: https://projectmesa.github.io/mesa-frames
 repo_url: https://github.com/projectmesa/mesa-frames
 repo_name: projectmesa/mesa-frames
+edit_uri: edit/main/docs/general/
 docs_dir: docs/general
 
 # Theme configuration
@@ -40,12 +41,17 @@ theme:
     code: Roboto Mono
   icon:
     repo: fontawesome/brands/github
+  # Logo (PNG)
+  logo: https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png
+  # Favicon (ICO)
+  favicon: https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.ico
 
 # Plugins
 plugins:
   - search
   - mkdocs-jupyter:
-      execute: true # Ensures the notebooks run and generate output
+      execute: false # Ensures the notebooks run and generate output
+      include: ["*.ipynb"] # Restrict processing to notebooks only (avoid executing raw .py tutorial files)
   - git-revision-date-localized:
       enable_creation_date: true
   - minify:
@@ -92,10 +98,9 @@ markdown_extensions:
 
 # Extra JavaScript and CSS for rendering
 extra_javascript:
-  - javascripts/mathjax.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
+# Custom CSS for branding (brand-core then material adapter)
 # Customization
 extra:
   social:
@@ -110,12 +115,12 @@ nav:
   - User Guide:
       - Getting Started: user-guide/0_getting-started.md
       - Classes: user-guide/1_classes.md
-      - Introductory Tutorial: user-guide/2_introductory-tutorial.ipynb
-      - Data Collector Tutorial: user-guide/4_datacollector.ipynb
-      - Advanced Tutorial: user-guide/3_advanced-tutorial.md
-      - Benchmarks: user-guide/4_benchmarks.md
+  - Tutorials:
+      - Introductory Tutorial: tutorials/2_introductory_tutorial.ipynb
+      - Advanced Tutorial: tutorials/3_advanced_tutorial.ipynb
+      - Data Collector Tutorial: tutorials/4_datacollector.ipynb
   - API Reference: api/index.html
   - Contributing:
       - Contribution Guide: contributing.md
-      - Development Guidelines: development/index.md
       - Roadmap: roadmap.md
+      - Changelog: changelog.md
