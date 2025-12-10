@@ -19,7 +19,7 @@ jobs:
       pull-requests: write   # open PR & enable auto‑merge
 
     env:
-      UPSTREAM_RAW_URL: "https://raw.githubusercontent.com/projectmesa/mesa/main/.coderabbit.yaml"
+      UPSTREAM_RAW_URL: "https://raw.githubusercontent.com/mesa/mesa/main/.coderabbit.yaml"
       SYNC_BRANCH: "sync-coderabbit-from-mesa"
 
     steps:
@@ -51,11 +51,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.SYNC_BRANCH }}
-          commit-message: "chore: sync .coderabbit.yaml from projectmesa/mesa@main"
+          commit-message: "chore: sync .coderabbit.yaml from mesa/mesa@main"
           title: "🔄 Sync .coderabbit.yaml from mesa:main"
           body: |
             Automated update of **.coderabbit.yaml** from \
-            [projectmesa/mesa:main](${{ env.UPSTREAM_RAW_URL }}).
+            [mesa/mesa:main](${{ env.UPSTREAM_RAW_URL }}).
 
             This PR will merge automatically once all required checks succeed.
           labels: automated, coderabbit-sync
