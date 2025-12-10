@@ -36,7 +36,7 @@ dependencies    = [
   "pyarrow>=20.0.0",
   # polars._typing added in 1.0.0
   "polars>=1.30.0",
-  "psycopg2-binary==2.9.10",
+  "psycopg2-binary>=2.9.10",
   "boto3>=1.35.91",
   "typing-extensions>=4.15.0",
 ]
@@ -88,7 +88,7 @@ docs = [
 dev = [
   { include-group = "test" },
   { include-group = "docs" },
-  "numba>=0.60.0",
+  "numba>=0.62",
   "ruff>=0.11.12",
   "pre-commit>=4.2.0",
 ]
