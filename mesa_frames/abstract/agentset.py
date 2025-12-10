@@ -470,6 +470,17 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         return self.model.random
 
     @property
+    def seed(self) -> int | Sequence[int]:
+        """Return the seed for the random number generator shared with the model.
+
+        Returns
+        -------
+        int | Sequence[int]
+            The seed that initialized the model's random number generator.
+        """
+        return self.model.seed
+
+    @property
     def space(self) -> mesa_frames.abstract.space.Space | None:
         """Return the space attached to the parent model, if any.
 

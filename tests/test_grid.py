@@ -76,6 +76,7 @@ class TestGrid:
         assert grid1.neighborhood_type == "moore"
         assert grid1.remaining_capacity == float("inf")
         assert grid1.model == model
+        assert grid1.seed == model.seed
 
         # Test with capacity = 10
         grid2 = Grid(model, dimensions=[3, 3], capacity=10)
