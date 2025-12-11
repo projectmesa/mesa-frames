@@ -1,40 +1,89 @@
-name: Build and Deploy Documentation
+name: Docs — Build & Preview
+permissions:
+  contents: read
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]            # regular prod deploy
+    paths:
+      - 'mkdocs.yml'
+      - 'docs/**'
+  pull_request:                    # preview only when docs are touched
+    branches: [ '**' ]
+    paths:
+      - 'mkdocs.yml'
+      - 'docs/**'
 
 jobs:
-  build-and-deploy-docs:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
         with:
-          fetch-depth: 0  # Fetch all history for .git-restore-mtime to work correctly
+          python-version: "3.13"
+          allow-prereleases: true
+          cache: "pip"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+      - uses: astral-sh/setup-uv@v7
 
-      - name: Install uv via GitHub Action
-        uses: astral-sh/setup-uv@v6
-
-      - name: Install mesa-frames + docs dependencies
+      - name: Install mesa-frames + docs deps
         run: |
           uv pip install --system .
           uv pip install --group docs --system
 
-      - name: Build MkDocs site (general documentation)
-        run: mkdocs build --config-file mkdocs.yml --site-dir ./site
+      - name: Convert jupytext .py notebooks to .ipynb
+        run: |
+          set -euxo pipefail
+          # Convert any jupytext .py files to .ipynb without executing them.
+          # Enable nullglob so the pattern expands to empty when there are no matches
+          # and globstar so we recurse into subdirectories (e.g., user-guide/).
+          shopt -s nullglob globstar || true
+          files=(docs/general/**/*.py)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No jupytext .py files found under docs/general"
+          else
+            for src in "${files[@]}"; do
+              [ -e "$src" ] || continue
+              dest="${src%.py}.ipynb"
+              echo "Converting $src -> $dest"
+              # jupytext will write the .ipynb alongside the source file
+              uv run jupytext --to notebook "$src"
+            done
+          fi
 
-      - name: Build Sphinx docs (API documentation)
-        run: sphinx-build -b html docs/api site/api
+      - name: Build MkDocs site
+        run: uv run mkdocs build --config-file mkdocs.yml --site-dir ./site
 
-      - name: Deploy to GitHub Pages
+      - name: Build Sphinx docs (API)
+        run: uv run sphinx-build -b html docs/api site/api
+
+      - name: Upload site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site
+
+  deploy-main:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: site, path: site }
+      - name: Deploy to GitHub Pages (main)
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
           publish_dir: ./site
           force_orphan: true
