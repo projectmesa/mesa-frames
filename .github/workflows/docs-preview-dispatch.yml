@@ -1,0 +1,60 @@
+# Deploys preview artifacts produced by the Docs — Build & Preview workflow for PRs.
+# The build workflow runs with read-only permissions on PRs (including forks) and
+# uploads the built site as an artifact. This workflow runs in the base repo with
+# the permissions needed to publish the preview to the gh-pages branch, but it
+# never checks out or executes untrusted PR code.
+name: Docs — Preview Deploy
+
+on:
+  workflow_run:
+    workflows: ["Docs — Build & Preview"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+  pages: write
+
+jobs:
+  deploy-preview:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.pull_requests || null)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built site artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive preview metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          head_sha="${{ github.event.workflow_run.head_sha }}"
+          head_branch="${{ github.event.workflow_run.head_branch }}"
+          pr_number="${{ github.event.workflow_run.pull_requests[0].number }}"
+          short_sha="$(printf '%s' "$head_sha" | cut -c1-7)"
+          {
+            echo "short_sha=$short_sha"
+            echo "head_branch=$head_branch"
+            echo "pr_number=$pr_number"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Deploy preview under subfolder
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          destination_dir: preview/${{ steps.meta.outputs.head_branch }}/${{ steps.meta.outputs.short_sha }}
+          keep_files: true
+
+      - name: Print preview URL
+        run: |
+          echo "Preview for PR #${{ steps.meta.outputs.pr_number }}:"
+          echo "https://${{ github.repository_owner }}.github.io/$(basename ${{ github.repository }})/preview/${{ steps.meta.outputs.head_branch }}/${{ steps.meta.outputs.short_sha }}/"

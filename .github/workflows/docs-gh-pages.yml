@@ -1,4 +1,6 @@
 name: Docs — Build & Preview
+permissions:
+  contents: read
 
 on:
   push:
@@ -15,8 +17,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      short_sha: ${{ steps.sha.outputs.short }}
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -54,10 +57,6 @@ jobs:
       - name: Build Sphinx docs (API)
         run: uv run sphinx-build -b html docs/api site/api
 
-      - name: Short SHA
-        id: sha
-        run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
       - name: Upload site artifact
         uses: actions/upload-artifact@v4
         with:
@@ -68,6 +67,9 @@ jobs:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
     steps:
       - uses: actions/download-artifact@v4
         with: { name: site, path: site }
@@ -78,23 +80,3 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./site
           force_orphan: true
-
-  deploy-preview:
-    needs: build
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { name: site, path: site }
-      - name: Deploy preview under subfolder
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: ./site
-          destination_dir: preview/${{ github.head_ref || github.ref_name }}/${{ needs.build.outputs.short_sha }}
-          keep_files: true        # keep previous previews
-          # DO NOT set force_orphan here
-      - name: Print preview URL
-        run: |
-          echo "Preview: https://${{ github.repository_owner }}.github.io/$(basename ${{ github.repository }})/preview/${{ github.head_ref || github.ref_name }}/${{ needs.build.outputs.short_sha }}/"
