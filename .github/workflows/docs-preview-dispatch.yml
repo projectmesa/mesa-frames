@@ -7,7 +7,7 @@ name: Docs — Preview Deploy
 
 on:
   workflow_run:
-    workflows: ["Docs — Build & Preview"]
+    workflows: ["Docs — Build & Deploy to Main"]
     types: [completed]
 
 permissions:
