@@ -1,4 +1,4 @@
-name: Docs — Build & Preview
+name: Docs — Build & Deploy to Main
 permissions:
   contents: read
 
