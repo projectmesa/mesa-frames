@@ -82,6 +82,8 @@ jobs:
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
+        # Ensure we are on the main branch before committing so the push lands on main.
+        git checkout main
         git add CHANGELOG.md
         # Avoid CI cycles
         git commit -m "Changelog: add notes for ${TAG} [skip ci]" || echo "No changelog changes to commit"
