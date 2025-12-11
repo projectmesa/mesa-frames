@@ -43,8 +43,8 @@ dependencies    = [
 dynamic         = ["version"]
 
 [project.urls]
-Documentation = "https://projectmesa.github.io/mesa-frames"
-Repository    = "https://github.com/projectmesa/mesa-frames.git"
+Documentation = "https://mesa.github.io/mesa-frames"
+Repository    = "https://github.com/mesa/mesa-frames.git"
 
 
 # ──────────────────────────────────────────────────────────────────────────────

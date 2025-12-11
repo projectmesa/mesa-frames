@@ -1,6 +1,6 @@
 # mesa-frames 🚀
 
-mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax. mesa-frames allows for the use of [vectorized functions](https://stackoverflow.com/a/1422198) which significantly speeds up operations whenever simultaneous activation of agents is possible.
+mesa-frames is an extension of the [mesa](https://github.com/mesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax. mesa-frames allows for the use of [vectorized functions](https://stackoverflow.com/a/1422198) which significantly speeds up operations whenever simultaneous activation of agents is possible.
 
 ## Why DataFrames? 📊
 
@@ -10,11 +10,11 @@ DataFrames are optimized for simultaneous operations through [SIMD processing](h
 
 The following is a performance graph showing execution time using mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html).
 
-![Performance Graph with Mesa](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
+![Performance Graph with Mesa](https://github.com/mesa/mesa-frames/blob/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
 
-![Performance Graph without Mesa](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
+![Performance Graph without Mesa](https://github.com/mesa/mesa-frames/blob/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
 
-([You can check the script used to generate the graph here](https://github.com/projectmesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
+([You can check the script used to generate the graph here](https://github.com/mesa/mesa-frames/blob/main/examples/boltzmann_wealth/performance_plot.py), but if you want to additionally compare vs Mesa, you have to uncomment `mesa_implementation` and its label)
 
 ## Installation
 
@@ -33,7 +33,7 @@ To install the most updated version of mesa-frames, you can clone the repository
 To get started with mesa-frames, first clone the repository from GitHub:
 
 ```bash
-git clone https://github.com/projectmesa/mesa-frames.git
+git clone https://github.com/mesa/mesa-frames.git
 cd mesa_frames
 ```
 
@@ -80,11 +80,11 @@ pip install -e .
 
 ## Usage
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/projectmesa/mesa-frames/blob/main/docs/general/user-guide/2_introductory-tutorial.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mesa/mesa-frames/blob/main/docs/general/user-guide/2_introductory-tutorial.ipynb)
 
 **Note:** mesa-frames is currently in its early stages of development. As such, the usage patterns and API are subject to change. Breaking changes may be introduced. Reports of feedback and issues are encouraged.
 
-[You can find the API documentation here](https://projectmesa.github.io/mesa-frames/api).
+[You can find the API documentation here](https://mesa.github.io/mesa-frames/api).
 
 ### Creation of an Agent
 
@@ -170,4 +170,4 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-For the full license text, see the [LICENSE](https://github.com/projectmesa/mesa-frames/blob/main/LICENSE) file in the GitHub repository.
+For the full license text, see the [LICENSE](https://github.com/mesa/mesa-frames/blob/main/LICENSE) file in the GitHub repository.
