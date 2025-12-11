@@ -9,7 +9,7 @@ This document outlines the development roadmap for the mesa-frames project. It p
 One of our major priorities was to move from pandas to polars as the primary dataframe backend. This transition was motivated by performance considerations.
 Now we should transition to using the lazily evaluated version of polars.
 
-**Related issues:** [#10: GPU integration: Dask, cuda (cudf) and RAPIDS (Polars)](https://github.com/projectmesa/mesa-frames/issues/10), [#89: Investigate using Ibis for the common interface library to any DF backend](https://github.com/projectmesa/mesa-frames/issues/89), [#52: Use of LazyFrames for Polars implementation](https://github.com/projectmesa/mesa-frames/issues/52)
+**Related issues:** [#10: GPU integration: Dask, cuda (cudf) and RAPIDS (Polars)](https://github.com/mesa/mesa-frames/issues/10), [#89: Investigate using Ibis for the common interface library to any DF backend](https://github.com/mesa/mesa-frames/issues/89), [#52: Use of LazyFrames for Polars implementation](https://github.com/mesa/mesa-frames/issues/52)
 
 #### Progress and Next Steps
 
@@ -20,7 +20,7 @@ Now we should transition to using the lazily evaluated version of polars.
 
 A critical aspect of agent-based models is efficiently managing concurrent agent movements, especially when multiple agents attempt to move to the same location simultaneously. We aim to implement abstractions that handle these concurrency conditions automatically.
 
-**Related issues:** [#108: Adding abstraction of optimal agent movement](https://github.com/projectmesa/mesa-frames/issues/108), [#48: Emulate RandomActivation with DataFrame.rolling](https://github.com/projectmesa/mesa-frames/issues/48)
+**Related issues:** [#108: Adding abstraction of optimal agent movement](https://github.com/mesa/mesa-frames/issues/108), [#48: Emulate RandomActivation with DataFrame.rolling](https://github.com/mesa/mesa-frames/issues/48)
 
 #### Sugarscape Example of Concurrency Issues
 

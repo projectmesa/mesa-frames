@@ -1,6 +1,6 @@
 # Welcome to mesa-frames 🚀
 
-mesa-frames is an extension of the [mesa](https://github.com/projectmesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax.
+mesa-frames is an extension of the [mesa](https://github.com/mesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax.
 
 You can get a model which is multiple orders of magnitude faster based on the number of agents - the more agents, the faster the relative performance.
 
@@ -14,9 +14,9 @@ DataFrames are optimized for simultaneous operations through [SIMD processing](h
 
 Check out our performance graphs comparing mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html):
 
-![Performance Graph with Mesa](https://github.com/projectmesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
+![Performance Graph with Mesa](https://github.com/mesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
 
-![Performance Graph without Mesa](https://github.com/projectmesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
+![Performance Graph without Mesa](https://github.com/mesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
 
 ## Quick Start 🚀
 
@@ -31,7 +31,7 @@ pip install mesa-frames
 #### Installing from Source
 
 ```bash
-git clone https://github.com/projectmesa/mesa-frames.git
+git clone https://github.com/mesa/mesa-frames.git
 cd mesa_frames
 pip install -e .
 ```
@@ -82,8 +82,8 @@ class MoneyModel(Model):
 
 ## Get Involved! 🤝
 
-mesa-frames is in its early stages, and we welcome your feedback and contributions! Check out our [GitHub repository](https://github.com/projectmesa/mesa-frames) to get started.
+mesa-frames is in its early stages, and we welcome your feedback and contributions! Check out our [GitHub repository](https://github.com/mesa/mesa-frames) to get started.
 
 ## License
 
-mesa-frames is available under the MIT License. See the [LICENSE](https://github.com/projectmesa/mesa-frames/blob/main/LICENSE) file for full details.
+mesa-frames is available under the MIT License. See the [LICENSE](https://github.com/mesa/mesa-frames/blob/main/LICENSE) file for full details.

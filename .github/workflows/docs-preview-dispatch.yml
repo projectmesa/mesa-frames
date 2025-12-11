@@ -1,0 +1,97 @@
+# Deploys preview artifacts produced by the Docs — Build & Preview workflow for PRs.
+# The build workflow runs with read-only permissions on PRs (including forks) and
+# uploads the built site as an artifact. This workflow runs in the base repo with
+# the permissions needed to publish the preview to the gh-pages branch, but it
+# never checks out or executes untrusted PR code.
+name: Docs — Preview Deploy
+
+on:
+  workflow_run:
+    workflows: ["Docs — Build & Deploy to Main"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+  pages: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  deploy-preview:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.pull_requests || null)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built site artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive preview metadata
+        id: meta
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          set -euo pipefail
+          short_sha="$(printf '%s' "$HEAD_SHA" | cut -c1-7)"
+          {
+            echo "short_sha=$short_sha"
+            echo "head_branch=$HEAD_BRANCH"
+            echo "pr_number=$PR_NUMBER"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Deploy preview under subfolder
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          destination_dir: preview/${{ steps.meta.outputs.head_branch }}/${{ steps.meta.outputs.short_sha }}
+          keep_files: true
+
+      - name: Print preview URL
+        env:
+          PREVIEW_OWNER: ${{ github.repository_owner }}
+          PREVIEW_REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ steps.meta.outputs.head_branch }}
+          SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+        run: |
+          echo "Preview for PR #${PR_NUMBER}:"
+          echo "https://${PREVIEW_OWNER}.github.io/$(basename "$PREVIEW_REPO")/preview/${HEAD_BRANCH}/${SHORT_SHA}/"
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = Number('${{ steps.meta.outputs.pr_number }}');
+            if (!Number.isInteger(prNumber)) {
+              throw new Error(`Invalid PR number: ${{ steps.meta.outputs.pr_number }}`);
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const headBranch = '${{ steps.meta.outputs.head_branch }}';
+            const shortSha = '${{ steps.meta.outputs.short_sha }}';
+            const previewUrl = `https://${owner}.github.io/${repo}/preview/${headBranch}/${shortSha}/`;
+            const body = [
+              `Docs preview ready for PR #${prNumber}.`,
+              '',
+              previewUrl,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body,
+            });
