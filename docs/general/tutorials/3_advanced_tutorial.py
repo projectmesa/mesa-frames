@@ -44,7 +44,7 @@ Our goal is to show that, under instantaneous growback and uniform resources,
 the model converges to the *same* macroscopic inequality pattern regardless of
 whether agents act sequentially or in parallel and that As long as the random draws do
 not push the system into extinction, the long-run Gini coefficient of wealth and
-the wealth–trait correlations line up within sampling error — a classic example
+the wealth-trait correlations line up within sampling error - a classic example
 of emergent macro regularities in agent-based models.
 """
 
@@ -132,8 +132,6 @@ def gini(model: Model) -> float:
         return float("nan")
     sorted_vals = np.sort(sugar.astype(np.float64))
     n = sorted_vals.size
-    if n == 0:
-        return float("nan")
     cumulative = np.cumsum(sorted_vals)
     total = cumulative[-1]
     if total == 0:
@@ -403,8 +401,6 @@ class Sugarscape(Model):
         self.sets[0].step()
         self._advance_sugar_field()
         self.datacollector.collect()
-        if len(self.sets[0]) == 0:
-            self.running = False
 
     def run(self, steps: int) -> None:
         """Run the model for a fixed number of steps.
@@ -1142,7 +1138,7 @@ class AntsParallel(AntsBase):
             .with_columns(pl.col("agent_id").cum_count().over("agent_id").alias("rank"))
         )
 
-        # Precompute per‑agent candidate rank once so conflict resolution can
+        # Precompute per-agent candidate rank once so conflict resolution can
         # promote losers by incrementing a cheap `current_rank` counter,
         # without re-sorting after each round. Alternative: drop taken cells
         # and re-rank by sugar every round; simpler conceptually but requires
@@ -1543,7 +1539,7 @@ par_model_frame = frames.get("Parallel (Polars)", pl.DataFrame())
 
 Even though micro rules differ, aggregate trajectories remain qualitatively similar (sugar trends up while population gradually declines).
 When we join the traces step-by-step, we see small but noticeable deviations introduced by synchronous conflict resolution (e.g., a few more retirements when conflicts cluster).
-In our run (seed=42), the final-step Gini differs by ≈0.005, and wealth–trait correlations match within ~1e-3.
+In our run (seed=42), the final-step Gini differs by ≈0.005, and wealth-trait correlations match within ~1e-3.
 These gaps vary by seed and grid size, but they consistently stay modest, supporting the relaxed parallel update as a faithful macro-level approximation."""
 
 # %%
@@ -1566,9 +1562,9 @@ print("Step-level absolute differences (first 10 steps):")
 print(comparison.select(["step", "mean_diff", "total_diff", "count_diff"]).head(10))
 
 
-# Build the steady‑state metrics table from the DataCollector output rather than
+# Build the steady-state metrics table from the DataCollector output rather than
 # recomputing reporters directly on the model objects. The collector already
-# stored the model‑level reporters (gini, correlations, etc.) every step.
+# stored the model-level reporters (gini, correlations, etc.) every step.
 def _last_row(df: pl.DataFrame) -> pl.DataFrame:
     if df.is_empty():
         return df
@@ -1642,7 +1638,7 @@ Some final notes:
 
 Currently, the Polars implementation spends most of the time in join operations.
 
-**Polars + LazyFrames roadmap** – future mesa-frames releases will expose
+**Polars + LazyFrames roadmap** - future mesa-frames releases will expose
   LazyFrame-powered sets and spaces (which can also use a GPU cuda accelerated backend which greatly accelerates joins), so the same Polars
   code you wrote here will scale even further without touching Numba.
 """
