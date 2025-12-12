@@ -69,6 +69,7 @@ class TestAgentSetRegistry:
         assert reg.model is model
         assert len(reg) == 0
         assert reg.ids.len() == 0
+        assert reg.seed == model.seed
 
     # Public: add
     def test_add(self, fix_model: Model) -> None:

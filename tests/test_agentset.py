@@ -94,6 +94,7 @@ class Test_AgentSet:
         assert agents.df["age"].to_list() == [0, 1, 2, 3]
         assert isinstance(agents._mask, pl.Series)
         assert isinstance(agents.random, Generator)
+        assert agents.seed == model.seed
         assert agents.starting_wealth.to_list() == [1, 2, 3, 4]
 
     def test_add(

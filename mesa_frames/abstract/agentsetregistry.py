@@ -644,6 +644,17 @@ class AbstractAgentSetRegistry(CopyMixin):
         return self.model.random
 
     @property
+    def seed(self) -> int | Sequence[int]:
+        """Return the seed for the random number generator of the model.
+
+        Returns
+        -------
+        int | Sequence[int]
+            The seed that initialized the model's random number generator.
+        """
+        return self.model.seed
+
+    @property
     def space(self) -> mesa_frames.abstract.space.Space | None:
         """The space of the model.
 

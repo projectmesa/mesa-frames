@@ -607,6 +607,17 @@ class Space(CopyMixin, DataFrameMixin):
         """
         return self.model.random
 
+    @property
+    def seed(self) -> int | Sequence[int]:
+        """Return the seed for the model's random number generator.
+
+        Returns
+        -------
+        int | Sequence[int]
+            The seed that initialized the model's random number generator.
+        """
+        return self.model.seed
+
 
 class AbstractDiscreteSpace(Space):
     """The AbstractDiscreteSpace class is an abstract class that defines the interface for all discrete space classes (Grids and Networks) in mesa_frames."""
