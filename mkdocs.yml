@@ -1,8 +1,8 @@
 # Project information
 site_name: mesa-frames
-site_url: https://projectmesa.github.io/mesa-frames
-repo_url: https://github.com/projectmesa/mesa-frames
-repo_name: projectmesa/mesa-frames
+site_url: https://mesa.github.io/mesa-frames
+repo_url: https://github.com/mesa/mesa-frames
+repo_name: mesa/mesa-frames
 docs_dir: docs/general
 
 # Theme configuration
@@ -76,7 +76,7 @@ markdown_extensions:
   - pymdownx.keys
   - pymdownx.magiclink:
       repo_url_shorthand: true
-      user: projectmesa
+      user: mesa
       repo: mesa-frames
   - pymdownx.mark
   - pymdownx.smartsymbols
@@ -100,7 +100,7 @@ extra_javascript:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/projectmesa
+      link: https://github.com/mesa
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/mesa-frames/
 
