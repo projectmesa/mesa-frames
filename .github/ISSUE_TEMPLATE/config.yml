@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Discussions/Questions etc
-    url: https://github.com/projectmesa/mesa-frames/discussions
+    url: https://github.com/mesa/mesa-frames/discussions
     about: Discuss Mesa-Frames, ask questions, do discussions, share ideas, and showcase your projects
 
 

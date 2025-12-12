@@ -38,7 +38,7 @@ For more detailed information, refer to the full documentation and API reference
 
 Developed by: Project Mesa, Adam Amer
 License: MIT
-GitHub: https://github.com/projectmesa/mesa-frames
+GitHub: https://github.com/mesa/mesa-frames
 """
 
 from __future__ import annotations
