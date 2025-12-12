@@ -421,9 +421,10 @@ class Sugarscape(Model):
         """Apply the instant-growback sugar regrowth rule.
 
         Empty cells (no agent present) are refilled to their ``max_sugar``
-        value. Cells that are occupied are set to zero because agents harvest
-        the sugar when they eat. The method uses vectorised DataFrame joins
-        and writes to keep the operation efficient.
+        value. Occupied cells have already been harvested in
+        :meth:`AntsBase.eat`, so we only need to refresh empty cells here.
+        The method uses vectorised DataFrame joins and writes to keep the
+        operation efficient.
         """
         empty_cells = self.space.empty_cells
         if not empty_cells.is_empty():
@@ -432,11 +433,6 @@ class Sugarscape(Model):
                 self._max_sugar, on=["dim_0", "dim_1"], how="left"
             )
             self.space.set_cells(empty_cells, {"sugar": refresh["max_sugar"]})
-        full_cells = self.space.full_cells
-        if not full_cells.is_empty():
-            # Occupied cells have just been harvested; set their sugar to 0.
-            zeros = pl.Series(np.zeros(len(full_cells), dtype=np.int64))
-            self.space.set_cells(full_cells, {"sugar": zeros})
 
 
 # %% [markdown]
@@ -946,7 +942,7 @@ class AntsNumba(AntsBase):
 
 # %% [markdown]
 """
-### 3.5 Simultaneous Movement with Conflict Resolution (the Polars mesa-frames idiomatic way)
+### 3.4 Simultaneous Movement with Conflict Resolution (the Polars mesa-frames idiomatic way)
 
 The previous implementation is optimal speed-wise but it's a bit low-level. It requires maintaining an occupancy grid and imperative loops and it might become tricky to extend with more complex movement rules or models.
 To stay in mesa-frames idiom, we can implement a parallel movement policy that uses Polars DataFrame operations to resolve conflicts when multiple agents target the same cell.
@@ -1109,6 +1105,34 @@ class AntsParallel(AntsBase):
         """
         # Create ranked choices per agent: sort by sugar (desc), radius
         # (asc), then coordinates. Keep the first unique entry per cell.
+        # First, filter visible cells to those that are empty or the agent's
+        # own current cell. This makes the parallel rule match the classic
+        # "open cells only" definition while still allowing agents to stay put.
+        occupied = (
+            self.space.full_cells.select(["dim_0", "dim_1"])
+            .rename({"dim_0": "dim_0_candidate", "dim_1": "dim_1_candidate"})
+            .with_columns(pl.lit(True).alias("occupied"))
+        )
+        origins_for_filter = current_pos.select(
+            [
+                "agent_id",
+                pl.col("dim_0_center").alias("dim_0_origin"),
+                pl.col("dim_1_center").alias("dim_1_origin"),
+            ]
+        )
+        neighborhood = (
+            neighborhood.join(origins_for_filter, on="agent_id", how="left")
+            .join(occupied, on=["dim_0_candidate", "dim_1_candidate"], how="left")
+            .filter(
+                pl.col("occupied").is_null()
+                | (
+                    (pl.col("dim_0_candidate") == pl.col("dim_0_origin"))
+                    & (pl.col("dim_1_candidate") == pl.col("dim_1_origin"))
+                )
+            )
+            .drop(["occupied", "dim_0_origin", "dim_1_origin"])
+        )
+
         # choices columns (after select):
         # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┐
         # │ agent_id ┆ dim_0_candidate  ┆ dim_1_candidate  ┆ sugar  ┆ radius │
@@ -1125,7 +1149,6 @@ class AntsParallel(AntsBase):
                     "radius",
                 ]
             )
-            .with_columns(pl.col("radius"))
             .sort(
                 ["agent_id", "sugar", "radius", "dim_0_candidate", "dim_1_candidate"],
                 descending=[False, True, False, False, False],
@@ -1244,15 +1267,17 @@ class AntsParallel(AntsBase):
         # │ ---              ┆ ---              │
         # │ i64              ┆ i64              │
         # ╞══════════════════╪══════════════════╡
-        taken = pl.DataFrame(
-            {
-                "dim_0_candidate": pl.Series(
-                    name="dim_0_candidate", values=[], dtype=pl.Int64
-                ),
-                "dim_1_candidate": pl.Series(
-                    name="dim_1_candidate", values=[], dtype=pl.Int64
-                ),
-            }
+        # Treat all currently occupied cells (origins) as taken from the start.
+        # Each agent may still target its own origin; we handle that exception
+        # when filtering candidate pools.
+        taken = origins.select(
+            [
+                pl.col("dim_0").alias("dim_0_candidate"),
+                pl.col("dim_1").alias("dim_1_candidate"),
+            ]
+        )
+        origins_for_filter = origins.rename(
+            {"dim_0": "dim_0_origin", "dim_1": "dim_1_origin"}
         )
 
         # Resolve in rounds: each unresolved agent proposes its current-ranked
@@ -1273,12 +1298,22 @@ class AntsParallel(AntsBase):
             candidate_pool = candidate_pool.filter(
                 pl.col("rank") >= pl.col("current_rank")
             )
-            if not taken.is_empty():
-                candidate_pool = candidate_pool.join(
-                    taken,
+            candidate_pool = (
+                candidate_pool.join(origins_for_filter, on="agent_id", how="left")
+                .join(
+                    taken.with_columns(pl.lit(True).alias("is_taken")),
                     on=["dim_0_candidate", "dim_1_candidate"],
-                    how="anti",
+                    how="left",
                 )
+                .filter(
+                    pl.col("is_taken").is_null()
+                    | (
+                        (pl.col("dim_0_candidate") == pl.col("dim_0_origin"))
+                        & (pl.col("dim_1_candidate") == pl.col("dim_1_origin"))
+                    )
+                )
+                .drop(["dim_0_origin", "dim_1_origin", "is_taken"])
+            )
 
             if candidate_pool.is_empty():
                 # No available candidates — everyone falls back to origin.
@@ -1337,18 +1372,6 @@ class AntsParallel(AntsBase):
                         fallback.select(
                             [
                                 "agent_id",
-                                pl.col("dim_0").alias("dim_0_candidate"),
-                                pl.col("dim_1").alias("dim_1_candidate"),
-                            ]
-                        ),
-                    ],
-                    how="vertical",
-                )
-                taken = pl.concat(
-                    [
-                        taken,
-                        fallback.select(
-                            [
                                 pl.col("dim_0").alias("dim_0_candidate"),
                                 pl.col("dim_1").alias("dim_1_candidate"),
                             ]
