@@ -462,6 +462,7 @@ def run(
 
     if save_results:
         result.datacollector.flush()
+        typer.echo(f"Saved CSV results under {results_dir}")
 
     if plot:
         # Create a subdirectory for per-metric plots under the timestamped
@@ -492,7 +493,7 @@ def run(
 
         typer.echo(f"Saved plots under {plots_dir}")
 
-    typer.echo(f"Saved CSV results under {results_dir}")
+    # Skip CSV-saved confirmation when results are not persisted
 
 
 if __name__ == "__main__":
