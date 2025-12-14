@@ -20,6 +20,8 @@ _THEMES = {
         rc={
             "axes.spines.top": False,
             "axes.spines.right": False,
+            "legend.facecolor": "#ffffff",
+            "legend.edgecolor": "#d0d0d0",
         },
     ),
     "dark": dict(
@@ -161,9 +163,18 @@ def plot_model_metrics(
         else:
             ax.set_ylabel("Value")
             leg = ax.get_legend()
-            if theme == "dark" and leg is not None:
+            if leg is not None:
+                # Remove redundant legend title and ensure a readable
+                # boxed background for the light theme (subtle) while
+                # keeping a slightly transparent frame for dark theme.
                 leg.set_title(None)
-                leg.get_frame().set_alpha(0.8)
+                frame = leg.get_frame()
+                if theme == "dark":
+                    frame.set_alpha(0.8)
+                else:
+                    frame.set_alpha(0.9)
+                    frame.set_edgecolor("#d0d0d0")
+                    frame.set_linewidth(0.8)
 
         ax.yaxis.set_major_formatter(FormatStrFormatter("%.3f"))
         ax.margins(x=0.01)
@@ -219,11 +230,16 @@ def plot_agent_metrics(
         ax.set_xlabel(xcol.capitalize())
         ax.set_ylabel("Value")
 
-        if theme == "dark":
-            leg = ax.get_legend()
-            if leg is not None:
-                leg.set_title(None)
-                leg.get_frame().set_alpha(0.8)
+        leg = ax.get_legend()
+        if leg is not None:
+            leg.set_title(None)
+            frame = leg.get_frame()
+            if theme == "dark":
+                frame.set_alpha(0.8)
+            else:
+                frame.set_alpha(0.9)
+                frame.set_edgecolor("#d0d0d0")
+                frame.set_linewidth(0.8)
 
         _finalize_and_save(fig, output_dir, f"{stem}_agents", theme)
 
