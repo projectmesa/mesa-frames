@@ -184,6 +184,5 @@ def run(
         typer.echo(f"Saved plots under {results_dir}")
 
 
-
 if __name__ == "__main__":
     app()
