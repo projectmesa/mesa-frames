@@ -255,9 +255,7 @@ def run(
         dc.get_model_vars_dataframe().reset_index().rename(columns={"index": "step"})
     )
     # Keep the full model metrics (step + any model reporters)
-    seed_val = None
-    if "seed" in model_pd.columns and not model_pd.empty:
-        seed_val = model_pd["seed"].iloc[0]
+    # Keep the full model metrics (step + any model reporters)
 
     # Show tail for quick inspection (exclude seed column from display)
     display_pd = (
