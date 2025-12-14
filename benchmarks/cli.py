@@ -163,14 +163,14 @@ def _plot_performance(
 @app.command()
 def run(
     models: Annotated[
-        str,
+        str | list[str],
         typer.Option(
             help="Models to benchmark: boltzmann, sugarscape, or all",
             callback=_parse_models,
         ),
     ] = "all",
     agents: Annotated[
-        str,
+        str | list[int],
         typer.Option(
             help="Agent count or range (start:stop:step)", callback=_parse_agents
         ),
@@ -198,6 +198,11 @@ def run(
     ] = None,
 ) -> None:
     """Run performance benchmarks for the selected models."""
+    # Support both CLI (via callbacks) and direct function calls
+    if isinstance(models, str):
+        models = _parse_models(models)
+    if isinstance(agents, str):
+        agents = _parse_agents(agents)
     # Ensure module-relative default is computed at call time (avoids import-time side effects)
     if results_dir is None:
         results_dir = Path(__file__).resolve().parent / "results"
