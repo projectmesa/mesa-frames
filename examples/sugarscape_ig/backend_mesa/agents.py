@@ -18,7 +18,7 @@ class AntAgent(mesa.Agent):
 
     def __init__(
         self,
-        model: Sugarscape,
+        model: mesa.Model,
         *,
         sugar: int,
         metabolism: int,
