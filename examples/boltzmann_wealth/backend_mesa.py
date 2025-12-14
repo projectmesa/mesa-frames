@@ -8,12 +8,10 @@ from typing import Annotated
 from collections.abc import Iterable
 import pandas as pd
 
-import matplotlib.pyplot as plt
 import mesa
 from mesa.datacollection import DataCollector
 import numpy as np
 import polars as pl
-import seaborn as sns
 import typer
 from time import perf_counter
 
