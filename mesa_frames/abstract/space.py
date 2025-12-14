@@ -1236,7 +1236,7 @@ class AbstractGrid(AbstractDiscreteSpace):
     The [0, 0] coordinate is at the bottom-left corner of the grid.
 
     .. _np.genfromtxt: https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
-    .. _mesa-examples Sugarscape model: https://github.com/projectmesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
+    .. _mesa-examples Sugarscape model: https://github.com/mesa/mesa-examples/blob/e137a60e4e2f2546901bec497e79c4a7b0cc69bb/examples/sugarscape_g1mt/sugarscape_g1mt/model.py#L93-L94
     """
 
     _cells_capacity: (

@@ -2,11 +2,11 @@
 
 Thank you for taking the time to contribute to **mesa-frames**! Since the project is still in its early stages, we warmly welcome contributions that will help shape its development. 🎉
 
-For a more general and comprehensive guide, please refer to [mesa's main contribution guidelines](https://github.com/projectmesa/mesa/blob/main/CONTRIBUTING.md). 📜
+For a more general and comprehensive guide, please refer to [mesa's main contribution guidelines](https://github.com/mesa/mesa/blob/main/CONTRIBUTING.md). 📜
 
 ## Project Roadmap 🗺️
 
-Before contributing, we recommend reviewing our [roadmap](https://projectmesa.github.io/mesa-frames/roadmap/) file to understand the project's current priorities, upcoming features, and long-term vision. This will help ensure your contributions align with the project's direction.
+Before contributing, we recommend reviewing our [roadmap](https://mesa.github.io/mesa-frames/roadmap/) file to understand the project's current priorities, upcoming features, and long-term vision. This will help ensure your contributions align with the project's direction.
 
 ## How to Contribute 💡
 
@@ -125,7 +125,7 @@ It is recommended to set up a virtual environment before installing dependencies
 
       No manual setup needed in these environments!
 
-  For more details on runtime type checking, see the [Development Guidelines](https://projectmesa.github.io/mesa-frames/development/).
+  For more details on runtime type checking, see the [Development Guidelines](https://mesa.github.io/mesa-frames/development/).
 
 #### **Step 6: Documentation Updates (If Needed)** 📖
 
