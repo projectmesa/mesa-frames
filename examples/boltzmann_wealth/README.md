@@ -54,7 +54,7 @@ uv run examples/boltzmann_wealth/backend_mesa.py --agents 5000 --steps 200 --see
 - `--seed` Optional RNG seed for reproducibility
 - `--plot / --no-plot` Generate line plot(s) of Gini
 - `--save-results / --no-save-results` Persist CSV metrics
-- `--results-dir` Override the auto timestamped directory under `results/`
+- `--results-dir` Override the auto-timestamped directory under `results/`
 
 Frames backend additionally warns if runtime type checking is enabled because it
 slows vectorised operations: set `MESA_FRAMES_RUNTIME_TYPECHECKING=0` for fair
