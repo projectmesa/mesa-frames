@@ -70,6 +70,74 @@ from numba import njit
 
 from mesa_frames import AgentSet, DataCollector, Grid, Model
 
+
+# Simple display helper to render HTML in notebooks while keeping stdout
+# output for scripts/CI runs.
+def _in_ipython() -> bool:
+    """Return True when running inside an IPython/Jupyter session."""
+    try:
+        from IPython import get_ipython
+    except Exception:
+        return False
+    return get_ipython() is not None
+
+
+def show_output(
+    obj: object,
+    *,
+    title: str | None = None,
+    max_rows: int = 12,
+    collapsible: bool = False,
+    open_by_default: bool = False,
+) -> None:
+    """Display rich HTML when available, otherwise fall back to prints."""
+    rich_env = _in_ipython()
+
+    if isinstance(obj, pl.DataFrame):
+        df = obj.head(max_rows) if max_rows else obj
+        if rich_env:
+            from IPython.display import HTML, display
+
+            if collapsible:
+                open_attr = " open" if open_by_default else ""
+                summary = title or "Table"
+                html = df.to_pandas().to_html(index=False)
+                display(
+                    HTML(
+                        f"""
+<details{open_attr} style="margin: 0.75em 0;">
+  <summary style="cursor:pointer; font-weight:600;">{summary}</summary>
+  <div style="margin-top:0.5em;">{html}</div>
+</details>
+"""
+                    )
+                )
+            else:
+                if title:
+                    display(HTML(f"<h4 style='margin: 0.6em 0 0.2em'>{title}</h4>"))
+                display(df.to_pandas())
+        else:
+            if title:
+                print(f"\n=== {title} ===")
+            print(df)
+        return
+
+    if title:
+        if rich_env:
+            from IPython.display import HTML, display
+
+            display(HTML(f"<h4 style='margin: 0.6em 0 0.2em'>{title}</h4>"))
+        else:
+            print(f"\n=== {title} ===")
+
+    if rich_env:
+        from IPython.display import display
+
+        display(obj)
+    else:
+        print(obj)
+
+
 # %% [markdown]
 """## 2. Model definition
 
@@ -1525,14 +1593,17 @@ for variant_name, agent_cls in variant_specs.items():
     frames[variant_name] = model.datacollector.data["model"]
     runtimes[variant_name] = runtime
 
-    print(f"{variant_name} aggregate trajectory (last 5 steps):")
-    print(
+    show_output(
         frames[variant_name]
         .select(["step", "mean_sugar", "total_sugar", "agents_alive"])
-        .tail(5)
+        .tail(5),
+        title=f"{variant_name} aggregate trajectory (last 5 steps)",
+        max_rows=5,
+        collapsible=True,
     )
-    print(f"{variant_name} runtime: {runtime:.3f} s")
-    print()
+    show_output(f"{variant_name} runtime: {runtime:.3f} s")
+    if not _in_ipython():
+        print()
 
 runtime_table = (
     pl.DataFrame(
@@ -1548,8 +1619,12 @@ runtime_table = (
     .sort("runtime_seconds", descending=False, nulls_last=True)
 )
 
-print("Runtime comparison (fastest first):")
-print(runtime_table)
+show_output(
+    runtime_table,
+    title="Runtime comparison (fastest first)",
+    collapsible=True,
+    open_by_default=True,
+)
 
 # Access models/frames on demand; keep namespace minimal.
 numba_model_frame = frames.get("Sequential (Numba)", pl.DataFrame())
@@ -1581,8 +1656,12 @@ comparison = comparison.with_columns(
     .abs()
     .alias("count_diff"),
 )
-print("Step-level absolute differences (first 10 steps):")
-print(comparison.select(["step", "mean_diff", "total_diff", "count_diff"]).head(10))
+show_output(
+    comparison.select(["step", "mean_diff", "total_diff", "count_diff"]).head(10),
+    title="Step-level absolute differences (first 10 steps)",
+    max_rows=10,
+    collapsible=True,
+)
 
 
 # Build the steady-state metrics table from the DataCollector output rather than
@@ -1628,8 +1707,7 @@ metrics_table = (
     pl.concat(metrics_pieces, how="vertical") if metrics_pieces else pl.DataFrame()
 )
 
-print("\nSteady-state inequality metrics:")
-print(
+show_output(
     metrics_table.select(
         [
             "update_rule",
@@ -1638,7 +1716,10 @@ print(
             pl.col("corr_sugar_vision").round(4),
             pl.col("agents_alive"),
         ]
-    )
+    ),
+    title="Steady-state inequality metrics",
+    collapsible=True,
+    open_by_default=True,
 )
 
 if metrics_table.height >= 2:
@@ -1648,7 +1729,9 @@ if metrics_table.height >= 2:
     par_gini = metrics_table.filter(
         pl.col("update_rule") == "Parallel (random tie-break)"
     )["gini"][0]
-    print(f"Absolute Gini gap (numba vs parallel): {abs(numba_gini - par_gini):.4f}")
+    show_output(
+        f"Absolute Gini gap (numba vs parallel): {abs(numba_gini - par_gini):.4f}"
+    )
 
 # %% [markdown]
 """
