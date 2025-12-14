@@ -187,17 +187,21 @@ def run(
     save: Annotated[bool, typer.Option(help="Persist benchmark CSV results.")] = True,
     plot: Annotated[bool, typer.Option(help="Render performance plots.")] = True,
     results_dir: Annotated[
-        Path,
+        Optional[Path],
         typer.Option(
             help=(
                 "Base directory for benchmark outputs. A timestamped subdirectory "
                 "(e.g. results/20250101_120000) is created with CSV files at the root "
-                "and a 'plots/' subfolder for images."
+                "and a 'plots/' subfolder for images. Defaults to the module's results directory."
             ),
         ),
-    ] = Path(__file__).resolve().parent / "results",
+    ] = None,
 ) -> None:
-    """Run performance benchmarks for the models models."""
+    """Run performance benchmarks for the selected models."""
+    # Ensure module-relative default is computed at call time (avoids import-time side effects)
+    if results_dir is None:
+        results_dir = Path(__file__).resolve().parent / "results"
+
     runtime_typechecking = os.environ.get("MESA_FRAMES_RUNTIME_TYPECHECKING", "")
     if runtime_typechecking and runtime_typechecking.lower() not in {"0", "false"}:
         typer.secho(
