@@ -18,7 +18,9 @@ unfolds as follows:
 * **Sense:** each ant looks outward along the four cardinal directions up to its
   `vision` radius and spots open cells.
 * **Move:** the ant chooses the cell with highest sugar (breaking ties by
-  distance and coordinates). The sugar on cells that are already occupied (including its own) is 0.
+  distance and coordinates). In the instant-growback variant used here, any cell
+  that was occupied at the end of the previous step has sugar 0 (it was harvested
+  and did not regrow).
 * **Eat & survive:** ants harvest the sugar on the cell they occupy. If their
   sugar stock falls below their `metabolism` cost, they die.
 * **Regrow:** sugar instantly regrows to its maximum level on empty cells. The
@@ -32,20 +34,24 @@ The update schedule matters for micro-behaviour, so we study three variants:
 This cannot be vectorised easily as the best move for an ant might depend on the moves of earlier ants (for example, if they target the same cell).
 2. **Sequential with Numba:** matches the first variant but relies on a compiled
    helper for speed.
-3. **Parallel (synchronous):** all ants propose moves; conflicts are resolved at
-   random before applying the winners simultaneously (and the losers get to their second-best cell, etc).
+3. **Parallel (synchronous):** ants rank candidate destinations using the
+   start-of-step sugar field; conflicts are resolved by a random lottery in
+   rounds (losers fall back to their next choice). If an ant wins a destination
+   other than its origin, its origin becomes available to other ants in later
+   rounds of the same step.
 
 The first variant (pure Python loops) is a natural starting point, but it is **not** the mesa-frames philosophy.
 The latter two are: we aim to **write rules declaratively** and let the dataframe engine worry about performance.
 Our guiding principle is to **focus on modelling first and performance second**. Only when a rule is truly
 inherently sequential do we fall back to a compiled kernel (Numba or JAX).
 
-Our goal is to show that, under instantaneous growback and uniform resources,
-the model converges to the *same* macroscopic inequality pattern regardless of
-whether agents act sequentially or in parallel and that As long as the random draws do
-not push the system into extinction, the long-run Gini coefficient of wealth and
-the wealth-trait correlations line up within sampling error - a classic example
-of emergent macro regularities in agent-based models.
+Our goal is to compare these update rules and show how far a synchronous,
+dataframe-friendly rule can go as a **performance-oriented relaxation** of the
+classic sequential schedule. Some macroscopic summaries (like total sugar or the
+Gini coefficient of wealth) often remain qualitatively similar, while more
+fine-grained statistics (like wealth–trait correlations) can drift noticeably for
+individual seeds because conflict resolution changes which traits win contested
+cells.
 """
 
 # %% [markdown]
@@ -1173,33 +1179,6 @@ class AntsParallel(AntsBase):
         """
         # Create ranked choices per agent: sort by sugar (desc), radius
         # (asc), then coordinates. Keep the first unique entry per cell.
-        # First, filter visible cells to those that are empty or the agent's
-        # own current cell. This makes the parallel rule match the classic
-        # "open cells only" definition while still allowing agents to stay put.
-        occupied = (
-            self.space.full_cells.select(["dim_0", "dim_1"])
-            .rename({"dim_0": "dim_0_candidate", "dim_1": "dim_1_candidate"})
-            .with_columns(pl.lit(True).alias("occupied"))
-        )
-        origins_for_filter = current_pos.select(
-            [
-                "agent_id",
-                pl.col("dim_0_center").alias("dim_0_origin"),
-                pl.col("dim_1_center").alias("dim_1_origin"),
-            ]
-        )
-        neighborhood = (
-            neighborhood.join(origins_for_filter, on="agent_id", how="left")
-            .join(occupied, on=["dim_0_candidate", "dim_1_candidate"], how="left")
-            .filter(
-                pl.col("occupied").is_null()
-                | (
-                    (pl.col("dim_0_candidate") == pl.col("dim_0_origin"))
-                    & (pl.col("dim_1_candidate") == pl.col("dim_1_origin"))
-                )
-            )
-            .drop(["occupied", "dim_0_origin", "dim_1_origin"])
-        )
 
         # choices columns (after select):
         # ┌──────────┬──────────────────┬──────────────────┬────────┬────────┐
@@ -1493,6 +1472,25 @@ class AntsParallel(AntsBase):
                 ],
                 how="vertical",
             )
+            # Origins of agents that move away become available to others in
+            # subsequent rounds. Keep origins for agents that stayed put.
+            vacated = (
+                winners.join(origins_for_filter, on="agent_id", how="left")
+                .filter(
+                    (pl.col("dim_0_candidate") != pl.col("dim_0_origin"))
+                    | (pl.col("dim_1_candidate") != pl.col("dim_1_origin"))
+                )
+                .select(
+                    pl.col("dim_0_origin").alias("dim_0_candidate"),
+                    pl.col("dim_1_origin").alias("dim_1_candidate"),
+                )
+            )
+            if not vacated.is_empty():
+                taken = taken.join(
+                    vacated,
+                    on=["dim_0_candidate", "dim_1_candidate"],
+                    how="anti",
+                )
 
             winner_ids = winners.select("agent_id")
             unresolved = unresolved.join(winner_ids, on="agent_id", how="anti")
@@ -1637,8 +1635,9 @@ par_model_frame = frames.get("Parallel (Polars)", pl.DataFrame())
 
 Even though micro rules differ, aggregate trajectories remain qualitatively similar (sugar trends up while population gradually declines).
 When we join the traces step-by-step, we see small but noticeable deviations introduced by synchronous conflict resolution (e.g., a few more retirements when conflicts cluster).
-In our run (seed=42), the final-step Gini differs by ≈0.005, and wealth-trait correlations match within ~1e-3.
-These gaps vary by seed and grid size, but they consistently stay modest, supporting the relaxed parallel update as a faithful macro-level approximation."""
+
+In our run (seed=42, with vacated origins available to others), the final-step Gini differs by ≈0.045, and wealth-trait correlations diverge by a few 1e-2 to 1e-1.
+These gaps vary by seed and grid size. In practice the parallel rule is best seen as a *performance-oriented relaxation* of the sequential schedule: it can preserve broad macro trends, but it is not a drop-in replacement when you care about seed-level microstructure."""
 
 # %%
 comparison = numba_model_frame.select(
