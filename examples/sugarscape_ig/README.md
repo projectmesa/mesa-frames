@@ -47,10 +47,10 @@ Both backends record population-level reporters each step:
 
 Notes on interpretation:
 
-- `agents_alive` typically decreases until a quasi steady state (metabolism vs regrowth) or total collapse.
+- `agents_alive` typically decreases until a quasi-steady state (metabolism vs regrowth) or total collapse.
 - `mean_sugar` and `total_sugar` may stabilise if regrowth balances metabolism.
 - Rising `gini` indicates emerging inequality; sustained high values suggest strong positional advantages.
-- Correlations near 0 imply weak linear relationships; positive `corr_sugar_vision` suggests high vision aids resource gathering. Negative `corr_sugar_metabolism` can emerge if high metabolism accelerates starvation.
+- Correlations near 0 imply weak linear relationships; positive `corr_sugar_vision` suggests high-vision agents aid resource gathering. Negative `corr_sugar_metabolism` can emerge if high-metabolism agents accelerate starvation.
 
 ## Running
 
