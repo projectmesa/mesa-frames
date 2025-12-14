@@ -18,7 +18,6 @@ import mesa
 from mesa.datacollection import DataCollector
 from mesa.space import SingleGrid
 import numpy as np
-import pandas as pd
 import polars as pl
 import typer
 
