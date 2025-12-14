@@ -167,6 +167,7 @@ def run(
 
     if save_results:
         result.datacollector.flush()
+        typer.echo(f"Saved CSV results under {results_dir}")
 
     if plot:
         stem = f"gini_{timestamp}"
@@ -182,8 +183,6 @@ def run(
         )
         typer.echo(f"Saved plots under {results_dir}")
 
-    # Inform user where CSVs were saved
-    typer.echo(f"Saved CSV results under {results_dir}")
 
 
 if __name__ == "__main__":
