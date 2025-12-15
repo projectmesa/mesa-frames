@@ -300,7 +300,7 @@ def plot_performance(
 
 
 __all__ = [
-    "plot_model_metrics",
     "plot_agent_metrics",
+    "plot_model_metrics",
     "plot_performance",
 ]
