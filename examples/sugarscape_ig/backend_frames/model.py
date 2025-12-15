@@ -1,6 +1,6 @@
 """Mesa-frames implementation of Sugarscape IG with Typer CLI.
 
-This mirrors the advanced tutorial in docs/general/user-guide/3_advanced_tutorial.py
+This mirrors the advanced tutorial in docs/general/tutorials/3_advanced_tutorial.py
 and exposes a simple CLI to run the parallel update variant, save CSVs, and plot
 the Gini trajectory.
 """

@@ -2,7 +2,7 @@
 
 This module provides the parallel (synchronous) movement variant as in the
 advanced tutorial. The code and comments mirror
-docs/general/user-guide/3_advanced_tutorial.py.
+docs/general/tutorials/3_advanced_tutorial.py.
 """
 
 from __future__ import annotations
@@ -295,7 +295,6 @@ class AntsParallel(AntsBase):
                     "radius",
                 ]
             )
-            .with_columns(pl.col("radius"))
             .sort(
                 ["agent_id", "sugar", "radius", "dim_0_candidate", "dim_1_candidate"],
                 descending=[False, True, False, False, False],
@@ -414,15 +413,17 @@ class AntsParallel(AntsBase):
         # │ ---              ┆ ---              │
         # │ i64              ┆ i64              │
         # ╞══════════════════╪══════════════════╡
-        taken = pl.DataFrame(
-            {
-                "dim_0_candidate": pl.Series(
-                    name="dim_0_candidate", values=[], dtype=pl.Int64
-                ),
-                "dim_1_candidate": pl.Series(
-                    name="dim_1_candidate", values=[], dtype=pl.Int64
-                ),
-            }
+        # Treat all currently occupied cells (origins) as taken from the start.
+        # Each agent may still target its own origin; we handle that exception
+        # when filtering candidate pools.
+        taken = origins.select(
+            [
+                pl.col("dim_0").alias("dim_0_candidate"),
+                pl.col("dim_1").alias("dim_1_candidate"),
+            ]
+        )
+        origins_for_filter = origins.rename(
+            {"dim_0": "dim_0_origin", "dim_1": "dim_1_origin"}
         )
 
         # Resolve in rounds: each unresolved agent proposes its current-ranked
@@ -443,12 +444,22 @@ class AntsParallel(AntsBase):
             candidate_pool = candidate_pool.filter(
                 pl.col("rank") >= pl.col("current_rank")
             )
-            if not taken.is_empty():
-                candidate_pool = candidate_pool.join(
-                    taken,
+            candidate_pool = (
+                candidate_pool.join(origins_for_filter, on="agent_id", how="left")
+                .join(
+                    taken.with_columns(pl.lit(True).alias("is_taken")),
                     on=["dim_0_candidate", "dim_1_candidate"],
-                    how="anti",
+                    how="left",
                 )
+                .filter(
+                    pl.col("is_taken").is_null()
+                    | (
+                        (pl.col("dim_0_candidate") == pl.col("dim_0_origin"))
+                        & (pl.col("dim_1_candidate") == pl.col("dim_1_origin"))
+                    )
+                )
+                .drop(["dim_0_origin", "dim_1_origin", "is_taken"])
+            )
 
             if candidate_pool.is_empty():
                 # No available candidates — everyone falls back to origin.
@@ -514,18 +525,6 @@ class AntsParallel(AntsBase):
                     ],
                     how="vertical",
                 )
-                taken = pl.concat(
-                    [
-                        taken,
-                        fallback.select(
-                            [
-                                pl.col("dim_0").alias("dim_0_candidate"),
-                                pl.col("dim_1").alias("dim_1_candidate"),
-                            ]
-                        ),
-                    ],
-                    how="vertical",
-                )
                 unresolved = unresolved.join(
                     missing.select("agent_id"), on="agent_id", how="anti"
                 )
@@ -547,7 +546,7 @@ class AntsParallel(AntsBase):
             # ╞══════════╪══════════════════╪══════════════════╪════════╪════════╪══════╪══════════════╪═════════╡
             winners = (
                 best_candidates.sort(
-                    ["dim_0_candidate", "dim_1_candidate", "radius", "lottery"],
+                    ["dim_0_candidate", "dim_1_candidate", "lottery"],
                 )
                 .group_by(["dim_0_candidate", "dim_1_candidate"], maintain_order=True)
                 .first()
@@ -573,6 +572,26 @@ class AntsParallel(AntsBase):
                 ],
                 how="vertical",
             )
+
+            # Origins of agents that move away become available to others in
+            # subsequent rounds. Keep origins for agents that stayed put.
+            vacated = (
+                winners.join(origins_for_filter, on="agent_id", how="left")
+                .filter(
+                    (pl.col("dim_0_candidate") != pl.col("dim_0_origin"))
+                    | (pl.col("dim_1_candidate") != pl.col("dim_1_origin"))
+                )
+                .select(
+                    pl.col("dim_0_origin").alias("dim_0_candidate"),
+                    pl.col("dim_1_origin").alias("dim_1_candidate"),
+                )
+            )
+            if not vacated.is_empty():
+                taken = taken.join(
+                    vacated,
+                    on=["dim_0_candidate", "dim_1_candidate"],
+                    how="anti",
+                )
 
             winner_ids = winners.select("agent_id")
             unresolved = unresolved.join(winner_ids, on="agent_id", how="anti")
