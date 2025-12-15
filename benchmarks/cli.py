@@ -187,7 +187,7 @@ def run(
     save: Annotated[bool, typer.Option(help="Persist benchmark CSV results.")] = True,
     plot: Annotated[bool, typer.Option(help="Render performance plots.")] = True,
     results_dir: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option(
             help=(
                 "Base directory for benchmark outputs. A timestamped subdirectory "
