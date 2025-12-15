@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 from collections.abc import Iterable
-import pandas as pd
 
 import mesa
 from mesa.datacollection import DataCollector
