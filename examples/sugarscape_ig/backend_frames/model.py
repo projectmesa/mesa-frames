@@ -56,10 +56,7 @@ def gini(model: Model) -> float:
         return float("nan")
 
     sugar = primary_set.df["sugar"].to_numpy().astype(np.float64)
-
-    if sugar.size == 0:
-        return float("nan")
-    sorted_vals = np.sort(sugar.astype(np.float64))
+    sorted_vals = np.sort(sugar)
     n = sorted_vals.size
     if n == 0:
         return float("nan")
