@@ -267,9 +267,18 @@ def run(
             _plot_performance(model_df, model, plots_subdir, timestamp)
             typer.echo(f"Saved {model} plots under {plots_subdir}")
 
-    typer.echo(
-        f"Unified benchmark outputs written under {timestamp_dir} (CSV files) and {plots_subdir} (plots)"
-    )
+    destinations: list[str] = []
+    if save:
+        destinations.append(f"CSVs under {timestamp_dir}")
+    if plot:
+        destinations.append(f"plots under {plots_subdir}")
+
+    if destinations:
+        typer.echo("Unified benchmark outputs written: " + "; ".join(destinations))
+    else:
+        typer.echo(
+            "Benchmark run completed (save=False, plot=False; no files written)."
+        )
 
 
 if __name__ == "__main__":

@@ -143,7 +143,7 @@ def run(
     model_pd = model_pd.reset_index()
     # The first column is the step index; normalize name to "step".
     model_pd = model_pd.rename(columns={model_pd.columns[0]: "step"})
-    seed = model_pd["seed"].iloc[0]
+    extracted_seed = model_pd["seed"].iloc[0]
     model_pd = model_pd[["step", "gini"]]
 
     # Show a short tail in console for quick inspection
@@ -164,7 +164,7 @@ def run(
             results_dir,
             stem,
             title="Boltzmann wealth — Gini",
-            subtitle=f"mesa backend; seed={seed}",
+            subtitle=f"mesa backend; seed={extracted_seed}",
             agents=agents,
             steps=steps,
         )

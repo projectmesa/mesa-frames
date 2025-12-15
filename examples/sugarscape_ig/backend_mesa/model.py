@@ -254,7 +254,6 @@ def run(
         dc.get_model_vars_dataframe().reset_index().rename(columns={"index": "step"})
     )
     # Keep the full model metrics (step + any model reporters)
-    # Keep the full model metrics (step + any model reporters)
 
     # Show tail for quick inspection (exclude seed column from display)
     display_pd = (
@@ -268,6 +267,7 @@ def run(
     if save_results:
         csv_path = results_dir / "model.csv"
         model_pd.to_csv(csv_path, index=False)
+        typer.echo(f"Saved CSV results under {results_dir}")
 
     # Plot per-metric similar to the backend_frames example: create a
     # `plots/` subdirectory and generate one figure per model metric column
@@ -305,7 +305,7 @@ def run(
 
         typer.echo(f"Saved plots under {plots_dir}")
 
-    typer.echo(f"Saved CSV results under {results_dir}")
+    # Skip CSV-saved confirmation when results are not persisted
 
 
 if __name__ == "__main__":

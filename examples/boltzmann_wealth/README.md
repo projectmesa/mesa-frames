@@ -85,7 +85,7 @@ Metrics in the final 5 steps: shape: (5, 2)
 
 ## Performance & Benchmarking
 
-Use the shared benchmarking CLI to compare scaling, checkout `benchmarks/README.md`.
+Use the shared benchmarking CLI to compare scaling, check out `benchmarks/README.md`.
 
 ## Programmatic Use
 

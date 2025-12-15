@@ -94,7 +94,7 @@ Mesa backend normalises to the same layout (excluding internal columns).
 
 ## Performance & Benchmarking
 
-Use the shared benchmarking CLI to compare scaling, checkout `benchmarks/README.md`.
+Use the shared benchmarking CLI to compare scaling, check out `benchmarks/README.md`.
 
 ## Programmatic Use
 
