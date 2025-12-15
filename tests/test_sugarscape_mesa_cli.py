@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def test_saved_csv_echo_is_guarded_by_save_results_flag() -> None:
     """Ensure the CSV-saved confirmation is printed only when results are saved.
 
