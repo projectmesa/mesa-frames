@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-    <img src="https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png" alt="Mesa logo" width="96">
+    <img src="https://raw.githubusercontent.com/mesa/mesa/main/docs/images/mesa_logo.png" alt="Mesa logo" width="96">
 </p>
 
 <h1 align="center">mesa-frames</h1>
@@ -8,7 +8,7 @@
 
 |         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CI/CD   | [![CI Checks](https://github.com/projectmesa/mesa-frames/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/projectmesa/mesa-frames/actions/workflows/build.yml) [![codecov](https://codecov.io/gh/projectmesa/mesa-frames/branch/main/graph/badge.svg)](https://app.codecov.io/gh/projectmesa/mesa-frames)                                                                                                                     |
+| CI/CD   | [![CI Checks](https://github.com/mesa/mesa-frames/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/mesa/mesa-frames/actions/workflows/build.yml) [![codecov](https://codecov.io/gh/mesa/mesa-frames/branch/main/graph/badge.svg)](https://app.codecov.io/gh/mesa/mesa-frames)                                                                                                                     |
 | Package | [![PyPI - Version](https://img.shields.io/pypi/v/mesa-frames.svg?logo=pypi&label=PyPI&logoColor=gold)](https://pypi.org/project/mesa-frames/) [![PyPI - Downloads](https://img.shields.io/pypi/dm/mesa-frames.svg?color=blue&label=Downloads&logo=pypi&logoColor=gold)](https://pypi.org/project/mesa-frames/) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mesa-frames.svg?logo=python&label=Python&logoColor=gold)](https://pypi.org/project/mesa-frames/) |
 | Meta    | [![linting - Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/) [![formatter - Ruff](https://img.shields.io/badge/formatter-Ruff-0f172a?logo=ruff&logoColor=white)](https://docs.astral.sh/ruff/formatter/) [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://github.com/pypa/hatch) [![Managed with uv](https://img.shields.io/badge/managed%20with-uv-5a4fcf?logo=uv&logoColor=white)](https://github.com/astral-sh/uv) |
 | Chat    | [![chat](https://img.shields.io/matrix/project-mesa:matrix.org?label=chat&logo=Matrix)](https://matrix.to/#/#project-mesa:matrix.org)                                                                                                                                                                                                                                                                                                                                                      |
@@ -17,7 +17,7 @@
 
 ## Scale Mesa beyond its limits
 
-Classic [Mesa](https://github.com/projectmesa/mesa) stores each agent as a Python object, which quickly becomes a bottleneck at scale.
+Classic [Mesa](https://github.com/mesa/mesa) stores each agent as a Python object, which quickly becomes a bottleneck at scale.
 **mesa-frames** reimagines agent storage using **Polars DataFrames**, so agents live in a columnar store rather than the Python heap.
 
 You keep the Mesa-style `Model` / `AgentSet` structure, but updates are vectorized and memory-efficient.
@@ -56,7 +56,7 @@ mesa-frames currently uses **Polars** as its backend.
 
 ## Benchmarks
 
-[![Reproduce Benchmarks](https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge)](https://github.com/projectmesa/mesa-frames/blob/main/benchmarks/README.md)
+[![Reproduce Benchmarks](https://img.shields.io/badge/Reproduce%20Benchmarks-📊-orange?style=for-the-badge)](https://github.com/mesa/mesa-frames/blob/main/benchmarks/README.md)
 
 **mesa-frames consistently outperforms classic Mesa across both toy and canonical ABMs.**
 
@@ -85,7 +85,7 @@ We still have room to optimize performance further (see [Roadmap](#roadmap)).
 Or for development:
 
 ```bash
-git clone https://github.com/projectmesa/mesa-frames.git
+git clone https://github.com/mesa/mesa-frames.git
 cd mesa-frames
 uv sync --all-extras
 ```
@@ -135,6 +135,6 @@ uv sync --all-extras
 
 ## License
 
-Copyright © 2025 Adam Amer, Project Mesa team and contributors
+Copyright © 2025 Adam Amer, Mesa team and contributors
 
-Licensed under the [Apache License, Version 2.0](https://raw.githubusercontent.com/projectmesa/mesa-frames/refs/heads/main/LICENSE).
+Licensed under the [Apache License, Version 2.0](https://raw.githubusercontent.com/mesa/mesa-frames/refs/heads/main/LICENSE).
