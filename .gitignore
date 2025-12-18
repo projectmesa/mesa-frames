@@ -155,9 +155,10 @@ cython_debug/
 llm_rules.md
 .python-version
 
-benchmarks/results/*
+benchmarks/**/results
+benchmarks/**/plots
 docs/api/_build/*
 docs/api/reference/*
-examples/**/results/*
+examples/**/results
 docs/general/**/data_*
 docs/site/*
