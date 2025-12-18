@@ -37,7 +37,7 @@ class MoneyModel(Model):
             agent_reporters={"wealth": "wealth"},
             storage="csv",
             storage_uri="./data",
-            trigger=lambda m: m.schedule.steps % 2 == 0,
+            trigger=lambda m: m.steps % 2 == 0,
         )
 
     def step(self):
