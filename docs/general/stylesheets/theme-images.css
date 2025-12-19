@@ -1,0 +1,18 @@
+/* Theme-aware image swapping for MkDocs Material.
+
+   Usage in Markdown (attr_list enabled):
+   ![...](...){.only-light}
+   ![...](...){.only-dark}
+*/
+
+.only-dark {
+  display: none !important;
+}
+
+[data-md-color-scheme="slate"] .only-light {
+  display: none !important;
+}
+
+[data-md-color-scheme="slate"] .only-dark {
+  display: initial !important;
+}

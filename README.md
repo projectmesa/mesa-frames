@@ -66,9 +66,11 @@ In the more computation-intensive Sugarscape model, **mesa-frames roughly halves
 
 We still have room to optimize performance further (see [Roadmap](#roadmap)).
 
+<!-- mkdocs-benchmark-plots-start -->
 ![Benchmark: Boltzmann Wealth](docs/general/plots/boltzmann.svg)
 
 ![Benchmark: Sugarscape IG](docs/general/plots/sugarscape.svg)
+<!-- mkdocs-benchmark-plots-end -->
 
 ---
 
