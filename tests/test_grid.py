@@ -1567,6 +1567,56 @@ class TestGrid:
         with pytest.raises(AssertionError):
             grid_moore.set_cells([0, 0], properties={"capacity": 1})
 
+    def test_get_set_cell_property_dense_row_major(self, model: Model):
+        grid = Grid(model, dimensions=[2, 3], capacity=2)
+        cells = pl.DataFrame(
+            {
+                "dim_0": [0, 0, 0, 1, 1, 1],
+                "dim_1": [0, 1, 2, 0, 1, 2],
+                "capacity": [2, 2, 2, 2, 2, 2],
+                "foo": [0, 1, 2, 3, 4, 5],
+            }
+        )
+        grid.set_cells(cells)
+
+        coords = pl.DataFrame({"dim_0": [1, 0, 1], "dim_1": [2, 0, 0]})
+        assert grid.get_cell_property(coords, "foo").to_list() == [5, 0, 3]
+
+        grid.set_cell_property(coords, "foo", pl.Series([50, 10, 30]))
+        assert grid.get_cell_property(coords, "foo").to_list() == [50, 10, 30]
+        assert (
+            grid.get_cell_property(pl.DataFrame({"dim_0": [0], "dim_1": [1]}), "foo")[0]
+            == 1
+        )
+
+        # Out-of-bounds reads should not raise and return nulls.
+        oob = pl.DataFrame({"dim_0": [-1, 99], "dim_1": [0, 0]})
+        assert grid.get_cell_property(oob, "foo").to_list() == [None, None]
+
+        # Out-of-bounds writes are a no-op for non-toroidal grids.
+        grid.set_cell_property(oob, "foo", pl.Series([123, 456]))
+        assert grid.get_cell_property(coords, "foo").to_list() == [50, 10, 30]
+
+    def test_get_set_cell_property_torus(self, model: Model):
+        grid = Grid(model, dimensions=[2, 3], capacity=2, torus=True)
+        cells = pl.DataFrame(
+            {
+                "dim_0": [0, 0, 0, 1, 1, 1],
+                "dim_1": [0, 1, 2, 0, 1, 2],
+                "capacity": [2, 2, 2, 2, 2, 2],
+                "foo": [0, 1, 2, 3, 4, 5],
+            }
+        )
+        grid.set_cells(cells)
+
+        wrapped = pl.DataFrame({"dim_0": [-1], "dim_1": [0]})
+        grid.set_cell_property(wrapped, "foo", pl.Series([99]))
+        assert (
+            grid.get_cell_property(pl.DataFrame({"dim_0": [1], "dim_1": [0]}), "foo")[0]
+            == 99
+        )
+        assert grid.get_cell_property(wrapped, "foo")[0] == 99
+
     def test_swap_agents(
         self,
         grid_moore: Grid,
