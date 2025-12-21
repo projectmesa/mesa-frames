@@ -1,0 +1,1130 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mesa_frames.concrete.datacollector &#8212; mesa-frames  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/brand-core.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/brand-pydata.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=ccdb6887"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/mesa_frames/concrete/datacollector';</script>
+    <link rel="icon" href="https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png" class="logo__image only-light" alt="mesa-frames  documentation - Home"/>
+    <img src="https://raw.githubusercontent.com/projectmesa/mesa/main/docs/images/mesa_logo.png" class="logo__image only-dark pst-js-only" alt="mesa-frames  documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/agents/index.html">
+    Agents
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/model.html">
+    Model
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/space/index.html">
+    Space
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/datacollector.html">
+    Data Collection
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://mesa.github.io/mesa-frames/user-guide/0_getting-started/">
+    User guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/mesa/mesa-frames" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://matrix.to/#/#project-mesa:matrix.org" title="Matrix" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-comments fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Matrix</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/agents/index.html">
+    Agents
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/model.html">
+    Model
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/space/index.html">
+    Space
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../reference/datacollector.html">
+    Data Collection
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://mesa.github.io/mesa-frames/user-guide/0_getting-started/">
+    User guide
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/mesa/mesa-frames" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://matrix.to/#/#project-mesa:matrix.org" title="Matrix" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-comments fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Matrix</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">mesa_frames.concrete.datacollector</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for mesa_frames.concrete.datacollector</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Concrete class for data collection in mesa-frames.</span>
+
+<span class="sd">This module defines a `DataCollector` implementation that gathers and optionally persists</span>
+<span class="sd">model-level and agent-level data during simulations. It supports multiple storage backends,</span>
+<span class="sd">including in-memory, CSV, Parquet, S3, and PostgreSQL, using Polars for efficient lazy</span>
+<span class="sd">data processing.</span>
+
+<span class="sd">Classes:</span>
+<span class="sd">    DataCollector:</span>
+<span class="sd">        A concrete class defining logic for all data collector implementations.</span>
+<span class="sd">        It supports flexible reporting of model and agent attributes, conditional</span>
+<span class="sd">        data collection using a trigger function, and pluggable backends for storage.</span>
+
+<span class="sd">Supported Storage Backends:</span>
+<span class="sd">    - memory         : In-memory collection (default)</span>
+<span class="sd">    - csv            : Local CSV file output</span>
+<span class="sd">    - parquet        : Local Parquet file output</span>
+<span class="sd">    - S3-csv         : CSV files stored on Amazon S3</span>
+<span class="sd">    - S3-parquet     : Parquet files stored on Amazon S3</span>
+<span class="sd">    - postgresql     : PostgreSQL database with schema support</span>
+
+<span class="sd">Triggers:</span>
+<span class="sd">    - A `trigger` parameter can be provided to control conditional collection.</span>
+<span class="sd">      This is a callable taking the model as input and returning a boolean.</span>
+<span class="sd">      If true, data is collected during `conditional_collect()`.</span>
+
+<span class="sd">Usage:</span>
+<span class="sd">    The `DataCollector` class is designed to be used within a `Model` instance</span>
+<span class="sd">    to collect model-level and/or agent-level data.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">    --------</span>
+<span class="sd">    from mesa_frames.concrete.model import Model</span>
+<span class="sd">    from mesa_frames.concrete.datacollector import DataCollector</span>
+
+<span class="sd">    class ExampleModel(Model):</span>
+<span class="sd">        def __init__(self, agents: AgentSetRegistry):</span>
+<span class="sd">            super().__init__()</span>
+<span class="sd">            self.sets = agents</span>
+<span class="sd">            self.dc = DataCollector(</span>
+<span class="sd">                model=self,</span>
+<span class="sd">                # other required arguments</span>
+<span class="sd">            )</span>
+
+<span class="sd">        def step(self):</span>
+<span class="sd">            # Option 1: collect immediately</span>
+<span class="sd">            self.dc.collect()</span>
+
+<span class="sd">            # Option 2: collect based on condition</span>
+<span class="sd">            self.dc.conditional_collect()</span>
+
+<span class="sd">            # Write the collected data to the destination</span>
+<span class="sd">            self.dc.flush()</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">psycopg2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mesa_frames.abstract.datacollector</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractDataCollector</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mesa_frames</span><span class="w"> </span><span class="kn">import</span> <span class="n">Model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">psycopg2.extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">connection</span>
+
+
+<div class="viewcode-block" id="DataCollector">
+<a class="viewcode-back" href="../../../reference/datacollector.html#mesa_frames.DataCollector">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataCollector</span><span class="p">(</span><span class="n">AbstractDataCollector</span><span class="p">):</span>
+<div class="viewcode-block" id="DataCollector.__init__">
+<a class="viewcode-back" href="../../../reference/mesa_frames.DataCollector.__init__.html#mesa_frames.DataCollector.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">Model</span><span class="p">,</span>
+        <span class="n">model_reporters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">agent_reporters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">trigger</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">reset_memory</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">storage</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
+            <span class="s2">&quot;memory&quot;</span><span class="p">,</span> <span class="s2">&quot;csv&quot;</span><span class="p">,</span> <span class="s2">&quot;parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;S3-csv&quot;</span><span class="p">,</span> <span class="s2">&quot;S3-parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;postgresql&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;memory&quot;</span><span class="p">,</span>
+        <span class="n">storage_uri</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;public&quot;</span><span class="p">,</span>
+        <span class="n">max_worker</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the DataCollector with configuration options.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : Model</span>
+<span class="sd">            The model object from which data is collected.</span>
+<span class="sd">        model_reporters : dict[str, Callable] | None</span>
+<span class="sd">            Functions to collect data at the model level.</span>
+<span class="sd">        agent_reporters : dict[str, str | Callable] | None</span>
+<span class="sd">            Attributes or functions to collect data at the agent level.</span>
+<span class="sd">        trigger : Callable[[Any], bool] | None</span>
+<span class="sd">            A function(model) -&gt; bool that determines whether to collect data.</span>
+<span class="sd">        reset_memory : bool</span>
+<span class="sd">            Whether to reset in-memory data after flushing. Default is True.</span>
+<span class="sd">        storage : Literal[&quot;memory&quot;, &quot;csv&quot;, &quot;parquet&quot;, &quot;S3-csv&quot;, &quot;S3-parquet&quot;, &quot;postgresql&quot;        ]</span>
+<span class="sd">            Storage backend URI (e.g. &#39;memory:&#39;, &#39;csv:&#39;, &#39;postgresql:&#39;).</span>
+<span class="sd">        storage_uri: str | None</span>
+<span class="sd">            URI or path corresponding to the selected storage backend.</span>
+<span class="sd">        schema: str</span>
+<span class="sd">            Schema name used for PostgreSQL storage.</span>
+<span class="sd">        max_worker : int</span>
+<span class="sd">            Maximum number of worker threads used for flushing collected data asynchronously</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">model_reporters</span><span class="o">=</span><span class="n">model_reporters</span><span class="p">,</span>
+            <span class="n">agent_reporters</span><span class="o">=</span><span class="n">agent_reporters</span><span class="p">,</span>
+            <span class="n">trigger</span><span class="o">=</span><span class="n">trigger</span><span class="p">,</span>
+            <span class="n">reset_memory</span><span class="o">=</span><span class="n">reset_memory</span><span class="p">,</span>
+            <span class="n">storage</span><span class="o">=</span><span class="n">storage</span><span class="p">,</span>
+            <span class="n">max_workers</span><span class="o">=</span><span class="n">max_worker</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_writers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;csv&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_csv_local</span><span class="p">,</span>
+            <span class="s2">&quot;parquet&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_parquet_local</span><span class="p">,</span>
+            <span class="s2">&quot;S3-csv&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_csv_s3</span><span class="p">,</span>
+            <span class="s2">&quot;S3-parquet&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_parquet_s3</span><span class="p">,</span>
+            <span class="s2">&quot;postgresql&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_postgres</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_storage_uri</span> <span class="o">=</span> <span class="n">storage_uri</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_model_step</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_id</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_inputs</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_collect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collect data from the model and agents for the current step.</span>
+
+<span class="sd">        This method checks for the presence of model and agent reporters</span>
+<span class="sd">        and calls the appropriate collection routines for each.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_model_step</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_model_step</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">steps</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_model_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">steps</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_batch_id</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_reporters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_collect_model_reporters</span><span class="p">(</span>
+                <span class="n">current_model_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_current_model_step</span><span class="p">,</span> <span class="n">batch_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_id</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_reporters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_collect_agent_reporters</span><span class="p">(</span>
+                <span class="n">current_model_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_current_model_step</span><span class="p">,</span> <span class="n">batch_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_id</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_id</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_collect_model_reporters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_model_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collect model-level data using the model_reporters.</span>
+
+<span class="sd">        Creates a LazyFrame containing the step, seed, and values</span>
+<span class="sd">        returned by each model reporter. Appends the LazyFrame to internal storage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">model_data_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">model_data_dict</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_model_step</span>
+        <span class="n">model_data_dict</span><span class="p">[</span><span class="s2">&quot;seed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">model_data_dict</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_id</span>
+        <span class="k">for</span> <span class="n">column_name</span><span class="p">,</span> <span class="n">reporter</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_reporters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">model_data_dict</span><span class="p">[</span><span class="n">column_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">reporter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+        <span class="n">model_lazy_frame</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">([</span><span class="n">model_data_dict</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frames</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">current_model_step</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">model_lazy_frame</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_collect_agent_reporters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_model_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collect agent-level data using the agent_reporters.</span>
+
+<span class="sd">        Constructs a LazyFrame with one column per reporter and</span>
+<span class="sd">        includes `step` and `seed` metadata. Appends it to internal storage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_is_str_collection</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Collection</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Collection</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">agent_data_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">reporter</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_reporters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># 1) String or collection[str]: shorthand to fetch columns</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reporter</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_is_str_collection</span><span class="p">(</span><span class="n">reporter</span><span class="p">):</span>
+                <span class="c1"># If a single string, fetch that attribute from each set</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reporter</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">values_by_set</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">sets</span><span class="p">,</span> <span class="n">reporter</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">set_name</span><span class="p">,</span> <span class="n">series</span> <span class="ow">in</span> <span class="n">values_by_set</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">agent_data_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">set_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">series</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Collection of strings: pull multiple columns from each set via set.get([...])</span>
+                    <span class="k">for</span> <span class="n">set_name</span><span class="p">,</span> <span class="n">aset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">sets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                        <span class="n">df</span> <span class="o">=</span> <span class="n">aset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">reporter</span><span class="p">))</span>  <span class="c1"># DataFrame of requested attrs</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+                            <span class="c1"># Defensive, though get(list) should yield DataFrame</span>
+                            <span class="n">agent_data_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">set_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">for</span> <span class="n">subcol</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                                <span class="n">agent_data_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">subcol</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">set_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span>
+                                    <span class="n">subcol</span>
+                                <span class="p">]</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># 2) Callables: prefer registry-level; then set-level</span>
+            <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">reporter</span><span class="p">):</span>
+                <span class="n">called</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="c1"># Try registry-level callable: reporter(AgentSetRegistry)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">reg_result</span> <span class="o">=</span> <span class="n">reporter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">sets</span><span class="p">)</span>
+                    <span class="c1"># Accept Series | DataFrame | dict[str, Series|DataFrame]</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_result</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+                        <span class="n">agent_data_dict</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">reg_result</span>
+                        <span class="n">called</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_result</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">subcol</span> <span class="ow">in</span> <span class="n">reg_result</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                            <span class="n">agent_data_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">subcol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reg_result</span><span class="p">[</span><span class="n">subcol</span><span class="p">]</span>
+                        <span class="n">called</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reg_result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">reg_result</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+                                <span class="n">agent_data_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+                                <span class="k">for</span> <span class="n">subcol</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                                    <span class="n">agent_data_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">subcol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span>
+                                        <span class="n">subcol</span>
+                                    <span class="p">]</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                                    <span class="s2">&quot;Registry-level reporter dict values must be Series or DataFrame&quot;</span>
+                                <span class="p">)</span>
+                        <span class="n">called</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                    <span class="n">called</span> <span class="o">=</span> <span class="kc">False</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">called</span><span class="p">:</span>
+                    <span class="c1"># Fallback: set-level callable, run once per set and suffix by set name</span>
+                    <span class="k">for</span> <span class="n">set_name</span><span class="p">,</span> <span class="n">aset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">sets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                        <span class="n">set_result</span> <span class="o">=</span> <span class="n">reporter</span><span class="p">(</span><span class="n">aset</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">set_result</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+                            <span class="n">agent_data_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">set_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_result</span>
+                        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">set_result</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+                            <span class="k">for</span> <span class="n">subcol</span> <span class="ow">in</span> <span class="n">set_result</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                                <span class="n">agent_data_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">subcol</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">set_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                                    <span class="n">set_result</span><span class="p">[</span><span class="n">subcol</span><span class="p">]</span>
+                                <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                                <span class="s2">&quot;Set-level reporter must return polars Series or DataFrame&quot;</span>
+                            <span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Unknown type</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;agent_reporters values must be str, collection[str], or callable&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">agent_lazy_frame</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">(</span><span class="n">agent_data_dict</span><span class="p">)</span>
+        <span class="n">agent_lazy_frame</span> <span class="o">=</span> <span class="n">agent_lazy_frame</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">current_model_step</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">),</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;seed&quot;</span><span class="p">),</span>
+                <span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">batch_id</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;batch&quot;</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frames</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;agent&quot;</span><span class="p">,</span> <span class="n">current_model_step</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">agent_lazy_frame</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve the collected data as eagerly evaluated Polars DataFrames.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict[str, pl.DataFrame]</span>
+<span class="sd">            A dictionary with keys &quot;model&quot; and &quot;agent&quot; mapping to concatenated DataFrames of collected data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">model_frames</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">lf</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;model&quot;</span>
+        <span class="p">]</span>
+        <span class="n">agent_frames</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span> <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">lf</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;agent&quot;</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">model_frames</span><span class="p">)</span> <span class="k">if</span> <span class="n">model_frames</span> <span class="k">else</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+            <span class="s2">&quot;agent&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">agent_frames</span><span class="p">)</span> <span class="k">if</span> <span class="n">agent_frames</span> <span class="k">else</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_flush</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Flush the collected data to the configured external storage backend.</span>
+
+<span class="sd">        Uses the appropriate writer function based on the specified storage option.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_writers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage</span><span class="p">](</span>
+            <span class="n">uri</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_uri</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="o">=</span><span class="n">frames_to_flush</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_csv_local</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write collected data to local CSV files.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uri : str</span>
+<span class="sd">            Local directory path to write files into.</span>
+<span class="sd">        frames_to_flush : list</span>
+<span class="sd">            the collected data in the current thread.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">frames_to_flush</span><span class="p">:</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span><span class="o">.</span><span class="n">write_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">uri</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">_step</span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">_batch</span><span class="si">{</span><span class="n">batch</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_parquet_local</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write collected data to local Parquet files.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uri: str</span>
+<span class="sd">            Local directory path to write files into.</span>
+<span class="sd">        frames_to_flush : list</span>
+<span class="sd">            the collected data in the current thread.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">frames_to_flush</span><span class="p">:</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span><span class="o">.</span><span class="n">write_parquet</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">uri</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">_step</span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">_batch</span><span class="si">{</span><span class="n">batch</span><span class="si">}</span><span class="s2">.parquet&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_csv_s3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write collected data to AWS S3 in CSV format.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uri: str</span>
+<span class="sd">            S3 URI (e.g., s3://bucket/path) to upload files to.</span>
+<span class="sd">        frames_to_flush : list</span>
+<span class="sd">            the collected data in the current thread.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_s3</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="o">=</span><span class="n">frames_to_flush</span><span class="p">,</span> <span class="n">format_</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_parquet_s3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write collected data to AWS S3 in Parquet format.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uri: str</span>
+<span class="sd">            S3 URI (e.g., s3://bucket/path) to upload files to.</span>
+<span class="sd">        frames_to_flush : list</span>
+<span class="sd">            the collected data in the current thread.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_s3</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="o">=</span><span class="n">frames_to_flush</span><span class="p">,</span> <span class="n">format_</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_s3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">format_</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Upload collected data to S3 in a specified format.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uri: str</span>
+<span class="sd">            S3 URI to upload to.</span>
+<span class="sd">        frames_to_flush : list</span>
+<span class="sd">            the collected data in the current thread.</span>
+<span class="sd">        format_: str</span>
+<span class="sd">            Format of the output files (&quot;csv&quot; or &quot;parquet&quot;).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">s3</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;s3&quot;</span><span class="p">)</span>
+        <span class="n">parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span>
+        <span class="n">bucket</span> <span class="o">=</span> <span class="n">parsed</span><span class="o">.</span><span class="n">netloc</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">parsed</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">lf</span> <span class="ow">in</span> <span class="n">frames_to_flush</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+            <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">format_</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">format_</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span><span class="p">:</span>
+                    <span class="n">df</span><span class="o">.</span><span class="n">write_csv</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">format_</span> <span class="o">==</span> <span class="s2">&quot;parquet&quot;</span><span class="p">:</span>
+                    <span class="n">df</span><span class="o">.</span><span class="n">write_parquet</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">_step</span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">_batch</span><span class="si">{</span><span class="n">batch</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">format_</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">s3</span><span class="o">.</span><span class="n">upload_file</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_postgres</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">frames_to_flush</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write collected data to a PostgreSQL database.</span>
+
+<span class="sd">        Each frame is inserted into the appropriate table (`model_data` or `agent_data`)</span>
+<span class="sd">        using batched insert queries.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uri: str</span>
+<span class="sd">            PostgreSQL connection URI in the form postgresql://testuser:testpass@localhost:5432/testdb</span>
+<span class="sd">        frames_to_flush : list</span>
+<span class="sd">            the collected data in the current thread.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_db_connection</span><span class="p">(</span><span class="n">uri</span><span class="o">=</span><span class="n">uri</span><span class="p">)</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">lf</span> <span class="ow">in</span> <span class="n">frames_to_flush</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">_data&quot;</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">rows</span><span class="p">()]</span>
+            <span class="n">placeholders</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">))</span>
+            <span class="n">columns</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;INSERT INTO </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2">) VALUES (</span><span class="si">{</span><span class="n">placeholders</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+                <span class="n">values</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_db_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">connection</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uri should be like: postgresql://user:pass@host:port/dbname.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uri: str</span>
+<span class="sd">            PostgreSQL connection URI in the form postgresql://testuser:testpass@localhost:5432/testdb</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        connection</span>
+<span class="sd">            psycopg2 connection</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">uri</span><span class="p">)</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="n">dbname</span><span class="o">=</span><span class="n">parsed</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>  <span class="c1"># remove leading slash</span>
+            <span class="n">user</span><span class="o">=</span><span class="n">parsed</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+            <span class="n">password</span><span class="o">=</span><span class="n">parsed</span><span class="o">.</span><span class="n">password</span><span class="p">,</span>
+            <span class="n">host</span><span class="o">=</span><span class="n">parsed</span><span class="o">.</span><span class="n">hostname</span><span class="p">,</span>
+            <span class="n">port</span><span class="o">=</span><span class="n">parsed</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">conn</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate configuration and required schema for non-memory storage backends.</span>
+
+<span class="sd">        - Ensures a `storage_uri` is provided if needed.</span>
+<span class="sd">        - For PostgreSQL, validates that required tables and columns exist.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span> <span class="o">!=</span> <span class="s2">&quot;memory&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_uri</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Please define a storage_uri to if to be stored not in memory&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage</span> <span class="o">==</span> <span class="s2">&quot;postgresql&quot;</span><span class="p">:</span>
+            <span class="n">conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_db_connection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_storage_uri</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_validate_postgress_table_exists</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_validate_postgress_columns_exists</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_postgress_table_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">:</span> <span class="n">connection</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate that the required PostgreSQL tables exist for storing model and agent data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        conn: connection</span>
+<span class="sd">            Open database connection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_reporters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_reporter_table</span><span class="p">(</span><span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;model_data&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_reporters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_reporter_table</span><span class="p">(</span><span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;agent_data&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_postgress_columns_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">:</span> <span class="n">connection</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate that required columns are present in the PostgreSQL tables.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        conn: connection</span>
+<span class="sd">            Open database connection.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_reporters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_reporter_table_columns</span><span class="p">(</span>
+                <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;model_data&quot;</span><span class="p">,</span> <span class="n">reporter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_reporters</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_agent_reporters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_reporter_table_columns</span><span class="p">(</span>
+                <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">table_name</span><span class="o">=</span><span class="s2">&quot;agent_data&quot;</span><span class="p">,</span> <span class="n">reporter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_agent_reporters</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_reporter_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">:</span> <span class="n">connection</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if a given table exists in the PostgreSQL schema.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        conn : connection</span>
+<span class="sd">            Open database connection.</span>
+<span class="sd">        table_name : str</span>
+<span class="sd">            Name of the table to check.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the table does not exist in the schema.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT EXISTS (</span>
+<span class="s2">            SELECT FROM information_schema.tables</span>
+<span class="s2">            WHERE table_schema = &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="si">}</span><span class="s2">&#39; AND table_name = &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;</span>
+<span class="s2">            );&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_query_with_result</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="p">[(</span><span class="kc">False</span><span class="p">,)]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> does not exist. To store collected data in DB please create a table with required columns&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_reporter_table_columns</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">conn</span><span class="p">:</span> <span class="n">connection</span><span class="p">,</span>
+        <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">reporter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the expected columns are present in a given PostgreSQL table.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        conn : connection</span>
+<span class="sd">            Open database connection.</span>
+<span class="sd">        table_name :str</span>
+<span class="sd">            Name of the table to validate.</span>
+<span class="sd">        reporter : dict[str, Callable | str]</span>
+<span class="sd">            Dictionary of reporters whose keys are expected as columns.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If any expected columns are missing from the table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_is_str_collection</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Collection</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Collection</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">expected_columns</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">req</span> <span class="ow">in</span> <span class="n">reporter</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Strings → one column per set with suffix</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">set_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">sets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                    <span class="n">expected_columns</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">set_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Collection[str] → one column per attribute per set</span>
+            <span class="k">if</span> <span class="n">_is_str_collection</span><span class="p">(</span><span class="n">req</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">set_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">sets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                    <span class="k">for</span> <span class="n">subcol</span> <span class="ow">in</span> <span class="n">req</span><span class="p">:</span>  <span class="c1"># type: ignore[assignment]</span>
+                        <span class="n">expected_columns</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">subcol</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">set_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Callable: conservative default → require &#39;col_name&#39; to exist</span>
+            <span class="c1"># We cannot know the dynamic column explosion without running model code safely here.</span>
+            <span class="n">expected_columns</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">col_name</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+
+        <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT column_name</span>
+<span class="s2">            FROM information_schema.columns</span>
+<span class="s2">            WHERE table_schema = &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="si">}</span><span class="s2">&#39; AND table_name = &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;;</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_query_with_result</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Could not retrieve columns for table </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">existing_columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">result</span><span class="p">}</span>
+        <span class="n">missing_columns</span> <span class="o">=</span> <span class="n">expected_columns</span> <span class="o">-</span> <span class="n">existing_columns</span>
+        <span class="n">required_columns</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="s2">&quot;Integer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="s2">&quot;Varchar&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">missing_required</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">col</span><span class="p">:</span> <span class="n">col_type</span>
+            <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">col_type</span> <span class="ow">in</span> <span class="n">required_columns</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">existing_columns</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">missing_columns</span> <span class="ow">or</span> <span class="n">missing_required</span><span class="p">:</span>
+            <span class="n">error_parts</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">if</span> <span class="n">missing_columns</span><span class="p">:</span>
+                <span class="n">error_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing columns: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">missing_columns</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">missing_required</span><span class="p">:</span>
+                <span class="n">required_list</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">` column of type (</span><span class="si">{</span><span class="n">col_type</span><span class="si">}</span><span class="s2">)&quot;</span>
+                    <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">col_type</span> <span class="ow">in</span> <span class="n">missing_required</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">]</span>
+                <span class="n">error_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="s2">&quot;Missing specific columns: &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">required_list</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Missing columns in table </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">: &quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">error_parts</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_execute_query_with_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">:</span> <span class="n">connection</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute a SQL query and return the fetched results.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        conn : connection</span>
+<span class="sd">            Open database connection.</span>
+<span class="sd">        query : str</span>
+<span class="sd">            SQL query string.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list[tuple]</span>
+<span class="sd">            Query result rows.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Project Mesa, Adam Amer.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

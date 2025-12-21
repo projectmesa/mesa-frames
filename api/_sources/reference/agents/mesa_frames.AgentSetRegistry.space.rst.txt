@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.space
+===================================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: AgentSetRegistry.space

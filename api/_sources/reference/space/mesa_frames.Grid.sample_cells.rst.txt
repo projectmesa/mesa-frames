@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.sample\_cells
+===============================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Grid.sample_cells

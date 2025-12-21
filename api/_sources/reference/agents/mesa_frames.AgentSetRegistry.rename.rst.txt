@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.rename
+====================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSetRegistry.rename

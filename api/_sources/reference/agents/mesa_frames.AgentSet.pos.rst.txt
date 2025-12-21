@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSet.pos
+=========================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: AgentSet.pos

@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.model
+===================================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: AgentSetRegistry.model

@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.\_\_reversed\_\_
+==============================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSetRegistry.__reversed__

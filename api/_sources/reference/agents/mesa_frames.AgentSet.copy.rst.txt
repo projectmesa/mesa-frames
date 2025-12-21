@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSet.copy
+==========================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSet.copy

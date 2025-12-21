@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSet.shuffle
+=============================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSet.shuffle

@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.replace
+=====================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSetRegistry.replace

@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.remove
+====================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSetRegistry.remove

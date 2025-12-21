@@ -1,0 +1,6 @@
+﻿mesa\_frames.DataCollector.collect
+==================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: DataCollector.collect

@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.neighborhood\_type
+====================================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: Grid.neighborhood_type

@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSetRegistry.\_\_str\_\_
+=========================================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSetRegistry.__str__

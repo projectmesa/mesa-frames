@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.model
+=======================
+
+.. currentmodule:: mesa_frames
+
+.. autoproperty:: Grid.model

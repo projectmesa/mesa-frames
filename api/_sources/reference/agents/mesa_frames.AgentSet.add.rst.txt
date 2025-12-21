@@ -1,0 +1,6 @@
+﻿mesa\_frames.AgentSet.add
+=========================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: AgentSet.add

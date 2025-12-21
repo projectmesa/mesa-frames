@@ -1,0 +1,6 @@
+﻿mesa\_frames.Grid.random\_pos
+=============================
+
+.. currentmodule:: mesa_frames
+
+.. automethod:: Grid.random_pos
