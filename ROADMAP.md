@@ -2,7 +2,7 @@
 
 This document outlines the near-term roadmap for mesa-frames as of October 2025.
 
-### 1) LazyFrames for Polars + GPU
+## 1) LazyFrames for Polars + GPU
 
 Switch Polars usage from eager to `LazyFrame` to enable better query optimization and GPU acceleration.
 
@@ -28,7 +28,7 @@ Progress and next steps:
 
 ---
 
-### 2) AgentSet Enhancements
+## 2) AgentSet Enhancements
 
 Expose movement methods from `AgentContainer` and provide optimized utilities for "move to optimal" workflows.
 
@@ -48,7 +48,7 @@ Next steps:
 
 ---
 
-### 3) Research & Publication
+## 3) Research & Publication
 
 JOSS paper preparation and submission.
 

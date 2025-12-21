@@ -4,14 +4,28 @@
 </p>
 
 <h1 align="center">mesa-frames</h1>
-<!-- markdownlint-enable MD033 -->
 
-|         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CI/CD   | [![CI Checks](https://github.com/mesa/mesa-frames/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/mesa/mesa-frames/actions/workflows/build.yml) [![codecov](https://codecov.io/gh/mesa/mesa-frames/branch/main/graph/badge.svg)](https://app.codecov.io/gh/mesa/mesa-frames)                                                                                                                     |
-| Package | [![PyPI - Version](https://img.shields.io/pypi/v/mesa-frames.svg?logo=pypi&label=PyPI&logoColor=gold)](https://pypi.org/project/mesa-frames/) [![PyPI - Downloads](https://img.shields.io/pypi/dm/mesa-frames.svg?color=blue&label=Downloads&logo=pypi&logoColor=gold)](https://pypi.org/project/mesa-frames/) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/mesa-frames.svg?logo=python&label=Python&logoColor=gold)](https://pypi.org/project/mesa-frames/) |
-| Meta    | [![linting - Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/) [![formatter - Ruff](https://img.shields.io/badge/formatter-Ruff-0f172a?logo=ruff&logoColor=white)](https://docs.astral.sh/ruff/formatter/) [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://github.com/pypa/hatch) [![Managed with uv](https://img.shields.io/badge/managed%20with-uv-5a4fcf?logo=uv&logoColor=white)](https://github.com/astral-sh/uv) |
-| Chat    | [![chat](https://img.shields.io/matrix/project-mesa:matrix.org?label=chat&logo=Matrix)](https://matrix.to/#/#project-mesa:matrix.org)                                                                                                                                                                                                                                                                                                                                                      |
+<div align="center">
+<table>
+<tr>
+<td align="right"><strong>CI/CD</strong></td>
+<td><a href="https://github.com/mesa/mesa-frames/actions/workflows/build.yml"><img src="https://github.com/mesa/mesa-frames/actions/workflows/build.yml/badge.svg?branch=main" alt="CI Checks"></a> <a href="https://app.codecov.io/gh/mesa/mesa-frames"><img src="https://codecov.io/gh/mesa/mesa-frames/branch/main/graph/badge.svg" alt="codecov"></a></td>
+</tr>
+<tr>
+<td align="right"><strong>Package</strong></td>
+<td><a href="https://pypi.org/project/mesa-frames/"><img src="https://img.shields.io/pypi/v/mesa-frames.svg?logo=pypi&label=PyPI&logoColor=gold" alt="PyPI - Version"></a> <a href="https://pypi.org/project/mesa-frames/"><img src="https://img.shields.io/pypi/dm/mesa-frames.svg?color=blue&label=Downloads&logo=pypi&logoColor=gold" alt="PyPI - Downloads"></a> <a href="https://pypi.org/project/mesa-frames/"><img src="https://img.shields.io/pypi/pyversions/mesa-frames.svg?logo=python&label=Python&logoColor=gold" alt="PyPI - Python Version"></a></td>
+</tr>
+<tr>
+<td align="right"><strong>Meta</strong></td>
+<td><a href="https://docs.astral.sh/ruff/"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="linting - Ruff"></a> <a href="https://docs.astral.sh/ruff/formatter/"><img src="https://img.shields.io/badge/formatter-Ruff-0f172a?logo=ruff&logoColor=white" alt="formatter - Ruff"></a> <a href="https://github.com/pypa/hatch"><img src="https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg" alt="Hatch project"></a> <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/managed%20with-uv-5a4fcf?logo=uv&logoColor=white" alt="Managed with uv"></a></td>
+</tr>
+<tr>
+<td align="right"><strong>Chat</strong></td>
+<td><a href="https://matrix.to/#/#project-mesa:matrix.org"><img src="https://img.shields.io/matrix/project-mesa:matrix.org?label=chat&logo=Matrix" alt="chat"></a></td>
+</tr>
+</table>
+</div>
+<!-- markdownlint-enable MD033 -->
 
 ---
 
@@ -45,12 +59,12 @@ You keep the Mesa-style `Model` / `AgentSet` structure, but updates are vectoriz
 DataFrames enable SIMD and columnar operations that are far more efficient than Python loops.
 mesa-frames currently uses **Polars** as its backend.
 
-| Feature                | mesa (classic) | mesa-frames |
-| ---------------------- | -------------- | ----------- |
-| Storage                | Python objects | Polars DataFrame |
-| Updates                | Loops          | Vectorized ops |
-| Memory overhead        | High           | Low |
-| Max agents (practical) | ~10^3           | ~10^6+ |
+| Feature | mesa (classic) | mesa-frames |
+| ------- | -------------- | ----------- |
+| Storage | Python objects | Polars DataFrame |
+| Updates | Loops | Vectorized ops |
+| Memory overhead | High | Low |
+| Max agents (practical) | ~10^3 | ~10^6+ |
 
 ---
 
@@ -67,9 +81,9 @@ In the more computation-intensive Sugarscape model, **mesa-frames roughly halves
 We still have room to optimize performance further (see [Roadmap](#roadmap)).
 
 <!-- mkdocs-benchmark-plots-start -->
-![Benchmark: Boltzmann Wealth](docs/general/plots/boltzmann_runtime_dark.svg)
+![Benchmark: Boltzmann Wealth](docs/general/plots/benchmarks/boltzmann_runtime_dark.svg)
 
-![Benchmark: Sugarscape IG](docs/general/plots/sugarscape_runtime_dark.svg)
+![Benchmark: Sugarscape IG](docs/general/plots/benchmarks/sugarscape_runtime_dark.svg)
 <!-- mkdocs-benchmark-plots-end -->
 
 ---

@@ -15,7 +15,7 @@ It also shows how to use **conditional triggers** and how the **schema validatio
 Uncomment and run the next cell if you're in Colab or a clean environment."""
 
 # %%
-# !pip install git+https://github.com/projectmesa/mesa-frames mesa
+# #!pip install git+https://github.com/projectmesa/mesa-frames mesa
 
 # %% [markdown]
 """## Minimal Example Model
