@@ -99,16 +99,25 @@ class AntsBase(AgentSet):
                 "dim_1",
             ]
         )
-        sugar = self.space.get_cell_property(positions, "sugar").fill_null(0)
+        sugar = (
+            positions.join(
+                self.space.cells(include="properties").select(
+                    ["dim_0", "dim_1", "sugar"]
+                ),
+                on=["dim_0", "dim_1"],
+                how="left",
+            )
+            .with_columns(pl.col("sugar").fill_null(0))
+            .select("sugar")["sugar"]
+        )
         agent_ids = positions["agent_id"]
         self[agent_ids, "sugar"] = (
             self[agent_ids, "sugar"] + sugar - self[agent_ids, "metabolism"]
         )
         # After harvesting, occupied cells have zero sugar.
-        self.space.set_cell_property(
-            positions,
-            "sugar",
-            pl.repeat(0, positions.height, eager=True).cast(pl.Int64),
+        self.space.cells.set(
+            positions.select(["dim_0", "dim_1"]),
+            {"sugar": pl.repeat(0, positions.height, eager=True).cast(pl.Int64)},
         )
 
     def _remove_starved(self) -> None:
@@ -216,10 +225,15 @@ class AntsParallel(AntsBase):
         # │ i64        ┆ i64        ┆ i64    │
         # ╞════════════╪════════════╪════════╡
 
-        neighborhood_cells = neighborhood_cells.with_columns(
-            self.space.get_cell_property(neighborhood_cells, "sugar")
-            .fill_null(0)
-            .alias("sugar")
+        neighborhood_cells = (
+            neighborhood_cells.join(
+                self.space.cells(include="properties").select(
+                    ["dim_0", "dim_1", "sugar"]
+                ),
+                on=["dim_0", "dim_1"],
+                how="left",
+            )
+            .with_columns(pl.col("sugar").fill_null(0))
         )
 
         # Final neighborhood columns:

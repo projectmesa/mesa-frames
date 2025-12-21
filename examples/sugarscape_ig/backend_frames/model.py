@@ -232,7 +232,7 @@ class Sugarscape(Model):
         self.space = Grid(
             self, [width, height], neighborhood_type="von_neumann", capacity=1
         )
-        self.space.set_cells(sugar_grid_df)
+        self.space.cells.set(sugar_grid_df)
         self._max_sugar = sugar_grid_df.select(["dim_0", "dim_1", "max_sugar"])
 
         # 2. Now we create the agents and place them on the grid
@@ -369,18 +369,17 @@ class Sugarscape(Model):
         the sugar when they eat. The method uses vectorised DataFrame joins
         and writes to keep the operation efficient.
         """
-        empty_cells = self.space.empty_cells
+        empty_cells = self.space.cells.empty
         if not empty_cells.is_empty():
             # Look up the maximum sugar for each empty cell and restore it.
-            max_sugar = self.space.get_cell_property(empty_cells, "max_sugar")
-            self.space.set_cell_property(empty_cells, "sugar", max_sugar)
-        full_cells = self.space.full_cells
+            max_sugar = self.space.cells(empty_cells, include="properties")["max_sugar"]
+            self.space.cells.set(empty_cells, {"sugar": max_sugar})
+        full_cells = self.space.cells.full
         if not full_cells.is_empty():
             # Occupied cells have just been harvested; set their sugar to 0.
-            self.space.set_cell_property(
+            self.space.cells.set(
                 full_cells,
-                "sugar",
-                pl.repeat(0, full_cells.height, eager=True).cast(pl.Int64),
+                {"sugar": pl.repeat(0, full_cells.height, eager=True).cast(pl.Int64)},
             )
 
 

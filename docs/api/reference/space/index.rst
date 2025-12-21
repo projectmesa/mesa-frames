@@ -74,11 +74,6 @@ API reference
             Grid.get_neighbors
             Grid.get_directions
             Grid.get_distances
-            Grid.sample_cells
-            Grid.random_pos
-            Grid.is_empty
-            Grid.is_available
-            Grid.is_full
 
         .. rubric:: Accessors & Metadata
 
@@ -89,7 +84,7 @@ API reference
             Grid.dimensions
             Grid.neighborhood_type
             Grid.torus
-            Grid.remaining_capacity
+            Grid.cells
             Grid.agents
             Grid.model
             Grid.random

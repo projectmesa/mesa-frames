@@ -374,7 +374,7 @@ class Sugarscape(Model):
         self.space = Grid(
             self, [width, height], neighborhood_type="von_neumann", capacity=1
         )
-        self.space.set_cells(sugar_grid_df)
+        self.space.cells.set(sugar_grid_df)
         self._max_sugar = sugar_grid_df.select(["dim_0", "dim_1", "max_sugar"])
 
         # 2. Now we create the agents and place them on the grid
@@ -500,13 +500,13 @@ class Sugarscape(Model):
         The method uses vectorised DataFrame joins and writes to keep the
         operation efficient.
         """
-        empty_cells = self.space.empty_cells
+        empty_cells = self.space.cells.empty
         if not empty_cells.is_empty():
             # Look up the maximum sugar for each empty cell and restore it.
             refresh = empty_cells.join(
                 self._max_sugar, on=["dim_0", "dim_1"], how="left"
             )
-            self.space.set_cells(empty_cells, {"sugar": refresh["max_sugar"]})
+            self.space.cells.set(empty_cells, {"sugar": refresh["max_sugar"]})
 
 
 # %% [markdown]
@@ -606,7 +606,7 @@ class AntsBase(AgentSet):
         # `occupied_ids` is a Polars Series; calling `is_in` with a Series
         # of the same datatype is ambiguous in newer Polars. Use `implode`
         # to collapse the Series into a list-like value for membership checks.
-        occupied_cells = self.space.cells.filter(
+        occupied_cells = self.space.cells().filter(
             pl.col("agent_id").is_in(occupied_ids.implode())
         )
         if occupied_cells.is_empty():
@@ -621,7 +621,7 @@ class AntsBase(AgentSet):
             - self[agent_ids, "metabolism"]
         )
         # After harvesting, occupied cells have zero sugar.
-        self.space.set_cells(
+        self.space.cells.set(
             occupied_cells.select(["dim_0", "dim_1"]),
             {"sugar": pl.Series(np.zeros(len(occupied_cells), dtype=np.int64))},
         )
@@ -764,7 +764,7 @@ class AntsSequential(AntsBase):
             Keys are ``(x, y)`` tuples and values are the integer sugar amount
             on that cell (zero if missing/None).
         """
-        cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
+        cells = self.space.cells().select(["dim_0", "dim_1", "sugar"])
         # Build a plain Python dict for fast lookups in the movement code.
         return {
             (int(x), int(y)): 0 if sugar is None else int(sugar)
@@ -1003,7 +1003,7 @@ class AntsNumba(AntsBase):
         vision = state["vision"].to_numpy().astype(np.int64)
 
         sugar_array = (
-            self.space.cells.sort(["dim_0", "dim_1"])
+            self.space.cells().sort(["dim_0", "dim_1"])
             .with_columns(pl.col("sugar").fill_null(0))["sugar"]
             .to_numpy()
             .reshape(self.space.dimensions)
@@ -1120,7 +1120,7 @@ class AntsParallel(AntsBase):
         # │ i64        ┆ i64        ┆ i64    │
         # ╞════════════╪════════════╪════════╡
 
-        sugar_cells = self.space.cells.select(["dim_0", "dim_1", "sugar"])
+        sugar_cells = self.space.cells().select(["dim_0", "dim_1", "sugar"])
 
         neighborhood_cells = (
             neighborhood_cells.join(sugar_cells, on=["dim_0", "dim_1"], how="left")

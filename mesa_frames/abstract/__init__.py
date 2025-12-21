@@ -13,10 +13,11 @@ Classes:
         - CopyMixin: Mixin class providing fast copy functionality.
         - DataFrameMixin: Mixin class defining the interface for DataFrame operations.
 
-    space.py:
-            - AbstractSpace: Abstract base class for all space classes.
-            - AbstractDiscreteSpace: Abstract base class for discrete space classes (Grids and Networks).
-            - AbstractGrid: Abstract base class for grid classes.
+    space/:
+        - AbstractSpace: Abstract base class for all space classes.
+        - AbstractDiscreteSpace: Abstract base class for discrete space classes (Grids and Networks).
+        - AbstractGrid: Abstract base class for grid classes.
+        - cells.py: AbstractCells interface for cell storage and queries.
 
 These abstract classes and mixins provide the foundation for the concrete
 implementations in mesa-frames, ensuring consistent interfaces and shared
