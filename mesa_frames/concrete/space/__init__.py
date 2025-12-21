@@ -2,5 +2,6 @@
 
 from .cells import GridCells
 from .grid import Grid
+from .neighborhood import GridNeighborhood
 
-__all__ = ["Grid", "GridCells"]
+__all__ = ["Grid", "GridCells", "GridNeighborhood"]

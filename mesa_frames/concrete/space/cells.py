@@ -69,21 +69,6 @@ class GridCells(AbstractCells):
         *,
         include: Literal["properties", "agents", "both"] = "both",
     ) -> DataFrame:
-        return self.get(target, include=include)
-
-    def get(
-        self,
-        target: DiscreteCoordinate
-        | DiscreteCoordinates
-        | DataFrame
-        | AbstractAgentSet
-        | AbstractAgentSetRegistry
-        | Collection[AbstractAgentSet]
-        | Collection[AbstractAgentSetRegistry]
-        | None = None,
-        *,
-        include: Literal["properties", "agents", "both"] = "both",
-    ) -> DataFrame:
         if include not in {"properties", "agents", "both"}:
             raise ValueError("include must be one of: properties, agents, both")
 

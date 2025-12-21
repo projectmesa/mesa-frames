@@ -209,13 +209,13 @@ class AntsParallel(AntsBase):
         # attach the cell sugar. The raw offsets contain the candidate
         # cell coordinates and the center coordinates for the sensing agent.
         # Raw neighborhood columns:
-        # ┌────────────┬────────────┬────────┬────────────────┬────────────────┐
-        # │ dim_0      ┆ dim_1      ┆ radius ┆ dim_0_center   ┆ dim_1_center   │
-        # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            │
-        # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            │
-        # ╞════════════╪════════════╪════════╪════════════════╪════════════════╡
-        neighborhood_cells = self.space.get_neighborhood_for_agents(
-            radius=self["vision"], agents=self, include_center=True
+        # ┌──────────┬────────────┬────────────┬────────┬────────────────┬────────────────┐
+        # │ agent_id ┆ dim_0      ┆ dim_1      ┆ radius ┆ dim_0_center   ┆ dim_1_center   │
+        # │ ---      ┆ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            │
+        # │ u64      ┆ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            │
+        # ╞══════════╪════════════╪════════════╪════════╪════════════════╪════════════════╡
+        neighborhood_cells = self.space.neighborhood(
+            radius=self["vision"], target=self, include_center=True
         )
 
         # sugar_cells columns:

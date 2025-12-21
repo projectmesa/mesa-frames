@@ -12,8 +12,8 @@ from numpy.random import Generator
 from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
+from mesa_frames.abstract.space.neighborhood import AbstractNeighborhood
 from mesa_frames.types_ import (
-    ArrayLike,
     DataFrame,
     IdsLike,
     Series,
@@ -26,6 +26,7 @@ class Space(CopyMixin, DataFrameMixin):
     """The Space class is an abstract class that defines the interface for all space classes in mesa_frames."""
 
     _agents: DataFrame  # | GeoDataFrame  # Stores the agents placed in the space
+    _neighborhood_obj: AbstractNeighborhood
     _center_col_names: list[
         str
     ]  # The column names of the center pos/agents in the neighbors/neighborhood method (eg. ['dim_0_center', 'dim_1_center', ...] in Grids, ['node_id_center', 'edge_id_center'] in Networks)
@@ -196,6 +197,12 @@ class Space(CopyMixin, DataFrameMixin):
 
         return obj
 
+    @property
+    @abstractmethod
+    def neighborhood(self) -> AbstractNeighborhood:
+        """Access neighborhood queries via a unified interface."""
+        ...
+
     @abstractmethod
     def get_directions(
         self,
@@ -282,47 +289,6 @@ class Space(CopyMixin, DataFrameMixin):
             A DataFrame where each row represents the distance from pos0 to pos1 or agents0 to agents1
         """
         return ...
-
-    @abstractmethod
-    def get_neighbors(
-        self,
-        radius: int | float | Sequence[int] | Sequence[float] | ArrayLike,
-        pos: SpaceCoordinate | SpaceCoordinates | None = None,
-        agents: IdsLike
-        | AbstractAgentSet
-        | AbstractAgentSetRegistry
-        | Collection[AbstractAgentSet]
-        | Collection[AbstractAgentSetRegistry]
-        | None = None,
-        include_center: bool = False,
-    ) -> DataFrame:
-        """Get the neighboring agents from given positions or agents according to the specified radiuses.
-
-        Either positions (pos0, pos1) or agents (agents0, agents1) must be specified, not both and they must have the same length.
-
-        Parameters
-        ----------
-        radius : int | float | Sequence[int] | Sequence[float] | ArrayLike
-            The radius(es) of the neighborhood
-        pos : SpaceCoordinate | SpaceCoordinates | None, optional
-            The coordinates of the cell to get the neighborhood from, by default None
-        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None, optional
-            The id of the agents to get the neighborhood from, by default None
-        include_center : bool, optional
-            If the center cells or agents should be included in the result, by default False
-
-        Returns
-        -------
-        DataFrame
-            A dataframe with neighboring agents.
-            The columns with '_center' suffix represent the center agent/position.
-
-        Raises
-        ------
-        ValueError
-            If both pos and agent are None or if both pos and agent are not None.
-        """
-        ...
 
     @abstractmethod
     def move_to_empty(

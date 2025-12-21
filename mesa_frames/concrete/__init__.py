@@ -17,7 +17,7 @@ Modules:
     model: Provides the Model class, the base class for models in mesa-frames.
     agentset: Defines the AgentSet class, a Polars-based implementation of AgentSet.
     mixin: Provides the PolarsMixin class, implementing DataFrame operations using Polars.
-    space: Contains the Grid class and cell implementations for Polars-based spaces.
+    space: Contains the Grid class plus cell and neighborhood implementations for Polars-based spaces.
 
 Classes:
     from agentset:

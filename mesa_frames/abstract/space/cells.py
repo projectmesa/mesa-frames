@@ -51,21 +51,6 @@ class AbstractCells(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
-    def get(
-        self,
-        target: DiscreteCoordinate
-        | DiscreteCoordinates
-        | DataFrame
-        | AbstractAgentSet
-        | AbstractAgentSetRegistry
-        | Collection[AbstractAgentSet]
-        | Collection[AbstractAgentSetRegistry]
-        | None = None,
-        *,
-        include: Literal["properties", "agents", "both"] = "both",
-    ) -> DataFrame: ...
-
-    @abstractmethod
     def set(
         self,
         target: DiscreteCoordinate

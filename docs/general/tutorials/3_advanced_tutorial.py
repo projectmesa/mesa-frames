@@ -1109,9 +1109,11 @@ class AntsParallel(AntsBase):
         # │ ---        ┆ ---        ┆ ---    ┆ ---            ┆ ---            │
         # │ i64        ┆ i64        ┆ i64    ┆ i64            ┆ i64            │
         # ╞════════════╪════════════╪════════╪════════════════╪════════════════╡
-        neighborhood_cells = self.space.get_neighborhood(
-            radius=self["vision"], agents=self, include_center=True
+        neighborhood_cells = self.space.neighborhood(
+            radius=self["vision"], target=self, include_center=True
         )
+        if "agent_id" in neighborhood_cells.columns:
+            neighborhood_cells = neighborhood_cells.drop("agent_id")
 
         # sugar_cells columns:
         # ┌────────────┬────────────┬────────┐

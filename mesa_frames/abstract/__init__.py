@@ -18,6 +18,7 @@ Classes:
         - AbstractDiscreteSpace: Abstract base class for discrete space classes (Grids and Networks).
         - AbstractGrid: Abstract base class for grid classes.
         - cells.py: AbstractCells interface for cell storage and queries.
+        - neighborhood.py: AbstractNeighborhood interface for neighborhood queries.
 
 These abstract classes and mixins provide the foundation for the concrete
 implementations in mesa-frames, ensuring consistent interfaces and shared

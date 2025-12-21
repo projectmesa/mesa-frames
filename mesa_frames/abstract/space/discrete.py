@@ -11,7 +11,6 @@ from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry
 from mesa_frames.abstract.space.cells import AbstractCells
 from mesa_frames.abstract.space.space import Space
 from mesa_frames.types_ import (
-    ArrayLike,
     DataFrame,
     DiscreteCoordinate,
     DiscreteCoordinates,
@@ -52,8 +51,10 @@ class AbstractDiscreteSpace(Space):
     ) -> Self:
         skip_list = list(skip or [])
         skip_list.append("_cells_obj")
+        skip_list.append("_neighborhood_obj")
         obj = super().copy(deep=deep, memo=memo, skip=skip_list)
         obj._cells_obj = self._cells_obj.copy(obj)
+        obj._neighborhood_obj = self._neighborhood_obj.copy(obj)
         return obj
 
     def move_to_empty(
@@ -127,42 +128,6 @@ class AbstractDiscreteSpace(Space):
             agents, cell_type="available", is_move=False
         )
 
-    @abstractmethod
-    def get_neighborhood(
-        self,
-        radius: int | float | Sequence[int] | Sequence[float] | ArrayLike,
-        pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
-        agents: IdsLike
-        | AbstractAgentSet
-        | AbstractAgentSetRegistry
-        | Collection[AbstractAgentSet]
-        | Collection[AbstractAgentSetRegistry] = None,
-        include_center: bool = False,
-    ) -> DataFrame:
-        """Get the neighborhood cells from the given positions (pos) or agents according to the specified radiuses.
-
-        Either positions (pos) or agents must be specified, not both.
-
-        Parameters
-        ----------
-        radius : int | float | Sequence[int] | Sequence[float] | ArrayLike
-            The radius(es) of the neighborhoods
-        pos : DiscreteCoordinate | DiscreteCoordinates | None, optional
-            The coordinates of the cell(s) to get the neighborhood from
-        agents : IdsLike | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry], optional
-            The agent(s) to get the neighborhood from
-        include_center : bool, optional
-            If the cell in the center of the neighborhood should be included in the result, by default False
-
-        Returns
-        -------
-        DataFrame
-            A dataframe where
-             - Columns are called according to the coordinates of the space(['dim_0', 'dim_1', ...] in Grids, ['node_id', 'edge_id'] in Networks)
-             - Rows represent the coordinates of a neighboring cells
-        """
-        ...
-
     def _place_or_move_agents_to_cells(
         self,
         agents: IdsLike
@@ -232,6 +197,7 @@ class AbstractDiscreteSpace(Space):
     def cells(self) -> AbstractCells:
         """Access cell data via a unified get/set interface."""
         ...
+
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}\n{str(self.cells())}"

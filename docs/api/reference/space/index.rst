@@ -71,7 +71,6 @@ API reference
             :nosignatures:
             :toctree:
 
-            Grid.get_neighbors
             Grid.get_directions
             Grid.get_distances
 
@@ -85,6 +84,7 @@ API reference
             Grid.neighborhood_type
             Grid.torus
             Grid.cells
+            Grid.neighborhood
             Grid.agents
             Grid.model
             Grid.random

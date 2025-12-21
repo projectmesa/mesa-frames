@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from collections.abc import Collection, Sequence, Sized
 from itertools import product
 from typing import Literal, Self
@@ -13,6 +12,7 @@ import numpy as np
 from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry
 from mesa_frames.abstract.space.cells import AbstractCells
+from mesa_frames.abstract.space.neighborhood import AbstractNeighborhood
 from mesa_frames.abstract.space.discrete import AbstractDiscreteSpace
 from mesa_frames.types_ import (
     ArrayLike,
@@ -101,6 +101,14 @@ class AbstractGrid(AbstractDiscreteSpace):
     def cells(self, cells: AbstractCells) -> None:
         self._cells_obj = cells
 
+    @property
+    def neighborhood(self) -> AbstractNeighborhood:
+        return self._neighborhood_obj
+
+    @neighborhood.setter
+    def neighborhood(self, neighborhood: AbstractNeighborhood) -> None:
+        self._neighborhood_obj = neighborhood
+
     def get_directions(
         self,
         pos0: GridCoordinate | GridCoordinates | None = None,
@@ -143,37 +151,6 @@ class AbstractGrid(AbstractDiscreteSpace):
     ) -> DataFrame:
         result = self._calculate_differences(pos0, pos1, agents0, agents1)
         return self._df_norm(result, "distance", True)
-
-    def get_neighbors(
-        self,
-        radius: int | Sequence[int],
-        pos: GridCoordinate | GridCoordinates | None = None,
-        agents: IdsLike
-        | AbstractAgentSetRegistry
-        | Collection[AbstractAgentSetRegistry]
-        | None = None,
-        include_center: bool = False,
-    ) -> DataFrame:
-        neighborhood_df = self.get_neighborhood(
-            radius=radius, pos=pos, agents=agents, include_center=include_center
-        )
-        return self._df_get_masked_df(
-            df=self._agents,
-            index_cols=self._pos_col_names,
-            mask=neighborhood_df,
-        )
-
-    @abstractmethod
-    def get_neighborhood(
-        self,
-        radius: int | Sequence[int] | ArrayLike,
-        pos: DiscreteCoordinate | DiscreteCoordinates | None = None,
-        agents: IdsLike
-        | AbstractAgentSetRegistry
-        | Collection[AbstractAgentSetRegistry]
-        | None = None,
-        include_center: bool = False,
-    ) -> DataFrame: ...
 
     def out_of_bounds(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
         """Check if a position is out of bounds in a non-toroidal grid.
