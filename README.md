@@ -45,12 +45,12 @@ You keep the Mesa-style `Model` / `AgentSet` structure, but updates are vectoriz
 DataFrames enable SIMD and columnar operations that are far more efficient than Python loops.
 mesa-frames currently uses **Polars** as its backend.
 
-| Feature                | mesa (classic) | mesa-frames |
-| ---------------------- | -------------- | ----------- |
-| Storage                | Python objects | Polars DataFrame |
-| Updates                | Loops          | Vectorized ops |
-| Memory overhead        | High           | Low |
-| Max agents (practical) | ~10^3           | ~10^6+ |
+| Feature | mesa (classic) | mesa-frames |
+| ------- | -------------- | ----------- |
+| Storage | Python objects | Polars DataFrame |
+| Updates | Loops | Vectorized ops |
+| Memory overhead | High | Low |
+| Max agents (practical) | ~10^3 | ~10^6+ |
 
 ---
 
