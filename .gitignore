@@ -155,10 +155,11 @@ cython_debug/
 llm_rules.md
 .python-version
 
-benchmarks/**/results
-benchmarks/**/plots
-docs/api/_build/*
-docs/api/reference/*
-examples/**/results
-docs/general/**/data_*
-docs/site/*
+benchmarks/results/*
+docs/api/_build
+docs/api/reference/**/mesa_frames.*.rst
+examples/**/results/*
+docs/general/tutorials/data_csv
+docs/general/tutorials/data_parquet
+docs/general/tutorials/*.ipynb
+docs/site

@@ -163,14 +163,14 @@ def _plot_performance(
 @app.command()
 def run(
     models: Annotated[
-        str | list[str],
+        str,
         typer.Option(
             help="Models to benchmark: boltzmann, sugarscape, or all",
             callback=_parse_models,
         ),
     ] = "all",
     agents: Annotated[
-        str | list[int],
+        str,
         typer.Option(
             help="Agent count or range (start:stop:step)", callback=_parse_agents
         ),

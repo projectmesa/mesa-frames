@@ -1,89 +1,9 @@
-# Welcome to mesa-frames 🚀
+{% include-markdown "../../README.md" end="<!-- mkdocs-benchmark-plots-start -->" %}
 
-mesa-frames is an extension of the [mesa](https://github.com/mesa/mesa) framework, designed for complex simulations with thousands of agents. By storing agents in a DataFrame, mesa-frames significantly enhances the performance and scalability of mesa, while maintaining a similar syntax.
+![Benchmark: Boltzmann Wealth (light)](plots/benchmarks/boltzmann_runtime_light.svg){.only-light}
+![Benchmark: Boltzmann Wealth (dark)](plots/benchmarks/boltzmann_runtime_dark.svg){.only-dark}
 
-You can get a model which is multiple orders of magnitude faster based on the number of agents - the more agents, the faster the relative performance.
+![Benchmark: Sugarscape IG (light)](plots/benchmarks/sugarscape_runtime_light.svg){.only-light}
+![Benchmark: Sugarscape IG (dark)](plots/benchmarks/sugarscape_runtime_dark.svg){.only-dark}
 
-## Why DataFrames? 📊
-
-DataFrames are optimized for simultaneous operations through [SIMD processing](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data). Currently, mesa-frames supports the library:
-
-- [Polars](https://pola.rs/): A new DataFrame library with a Rust backend, offering innovations like Apache Arrow memory format and support for larger-than-memory DataFrames.
-
-## Performance Boost 🏎️
-
-Check out our performance graphs comparing mesa and mesa-frames for the [Boltzmann Wealth model](https://mesa.readthedocs.io/en/stable/tutorials/intro_tutorial.html):
-
-![Performance Graph with Mesa](https://github.com/mesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_with_mesa.png)
-
-![Performance Graph without Mesa](https://github.com/mesa/mesa-frames/raw/main/examples/boltzmann_wealth/boltzmann_no_mesa.png)
-
-## Quick Start 🚀
-
-### Installation
-
-#### Installing from PyPI
-
-```bash
-pip install mesa-frames
-```
-
-#### Installing from Source
-
-```bash
-git clone https://github.com/mesa/mesa-frames.git
-cd mesa_frames
-pip install -e .
-```
-
-### Basic Usage
-
-Here's a quick example of how to create a model using mesa-frames:
-
-```python
-from mesa_frames import AgentSet, Model
-import polars as pl
-
-class MoneyAgents(AgentSet):
-    def __init__(self, n: int, model: Model):
-        super().__init__(model)
-        self += pl.DataFrame(
-            {"wealth": pl.ones(n, eager=True)}
-        )
-
-    def step(self) -> None:
-        self.do("give_money")
-
-    def give_money(self):
-        # ... (implementation details)
-
-class MoneyModel(Model):
-    def __init__(self, N: int):
-        super().__init__()
-        self.sets += MoneyAgents(N, self)
-
-    def step(self):
-        self.sets.do("step")
-
-    def run_model(self, n):
-        for _ in range(n):
-            self.step()
-```
-
-## What's Next? 🔮
-
-- API refinement for seamless transition from mesa
-- Support for mesa functions
-- Multiple other spaces: GeoGrid, ContinuousSpace, Network...
-- Additional backends: Dask, cuDF (GPU), Dask-cuDF (GPU)...
-- More examples: Schelling model, ...
-- Automatic vectorization of existing mesa models
-- Backend-agnostic AgentSet class
-
-## Get Involved! 🤝
-
-mesa-frames is in its early stages, and we welcome your feedback and contributions! Check out our [GitHub repository](https://github.com/mesa/mesa-frames) to get started.
-
-## License
-
-mesa-frames is available under the MIT License. See the [LICENSE](https://github.com/mesa/mesa-frames/blob/main/LICENSE) file for full details.
+{% include-markdown "../../README.md" start="<!-- mkdocs-benchmark-plots-end -->" %}
