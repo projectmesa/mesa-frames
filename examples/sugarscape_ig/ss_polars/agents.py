@@ -35,24 +35,15 @@ class AntDFBase(AgentSet):
         self.add(agents)
 
     def eat(self):
-        # Join agent positions against cell properties to harvest sugar without
-        # materializing a full cells×agents join.
-        positions = self.pos.select(
-            [
-                pl.col("unique_id").alias("agent_id"),
-                "dim_0",
-                "dim_1",
-            ]
-        )
-        occupied = positions.join(
-            self.space.cell_properties.select(["dim_0", "dim_1", "sugar"]),
-            on=["dim_0", "dim_1"],
-            how="left",
-        ).with_columns(pl.col("sugar").fill_null(0))
-        ids = occupied["agent_id"]
-        self[ids, "sugar"] = (
-            self[ids, "sugar"] + occupied["sugar"] - self[ids, "metabolism"]
-        )
+        # Only consider cells currently occupied by agents of this set
+        cells = self.space.cells.filter(pl.col("agent_id").is_not_null())
+        mask_in_set = cells["agent_id"].is_in(self.index.implode())
+        if mask_in_set.any():
+            cells = cells.filter(mask_in_set)
+            ids = cells["agent_id"]
+            self[ids, "sugar"] = (
+                self[ids, "sugar"] + cells["sugar"] - self[ids, "metabolism"]
+            )
 
     def step(self):
         self.shuffle().do("move").do("eat")
@@ -78,18 +69,9 @@ class AntDFBase(AgentSet):
         neighborhood: pl.DataFrame = self.space.get_neighborhood(
             radius=self["vision"], agents=self, include_center=True
         )
-        # Join cell properties and occupancy without materializing `space.cells`
-        # (which joins all cells against all agents).
-        neighborhood = neighborhood.join(
-            self.space.cell_properties,
-            on=["dim_0", "dim_1"],
-            how="left",
-        )
-        neighborhood = neighborhood.join(
-            self.space.agents.select(["agent_id", "dim_0", "dim_1"]),
-            on=["dim_0", "dim_1"],
-            how="left",
-        )
+        # Join self.space.cells to obtain properties ('sugar') per cell
+
+        neighborhood = neighborhood.join(self.space.cells, on=["dim_0", "dim_1"])
 
         # Join self.pos to obtain the agent_id of the center cell
         # TODO: get_neighborhood/get_neighbors should return 'agent_id_center' instead of center position when input is AgentLike

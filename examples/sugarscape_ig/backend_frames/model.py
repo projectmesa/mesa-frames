@@ -372,16 +372,15 @@ class Sugarscape(Model):
         empty_cells = self.space.empty_cells
         if not empty_cells.is_empty():
             # Look up the maximum sugar for each empty cell and restore it.
-            max_sugar = self.space.get_cell_property(empty_cells, "max_sugar")
-            self.space.set_cell_property(empty_cells, "sugar", max_sugar)
+            refresh = empty_cells.join(
+                self._max_sugar, on=["dim_0", "dim_1"], how="left"
+            )
+            self.space.set_cells(empty_cells, {"sugar": refresh["max_sugar"]})
         full_cells = self.space.full_cells
         if not full_cells.is_empty():
             # Occupied cells have just been harvested; set their sugar to 0.
-            self.space.set_cell_property(
-                full_cells,
-                "sugar",
-                pl.repeat(0, full_cells.height, eager=True).cast(pl.Int64),
-            )
+            zeros = pl.Series(np.zeros(len(full_cells), dtype=np.int64))
+            self.space.set_cells(full_cells, {"sugar": zeros})
 
 
 def simulate(

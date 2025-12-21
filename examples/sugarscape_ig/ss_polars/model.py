@@ -49,7 +49,9 @@ class SugarscapePolars(Model):
                 return
             empty_cells = self.space.empty_cells
             full_cells = self.space.full_cells
-            max_sugar = self.space.get_cell_properties(empty_cells)["max_sugar"]
+            max_sugar = self.space.cells.join(
+                empty_cells, on=["dim_0", "dim_1"]
+            ).select(pl.col("max_sugar"))
             self.space.set_cells(full_cells, {"sugar": 0})
             self.space.set_cells(empty_cells, {"sugar": max_sugar})
             self.step()

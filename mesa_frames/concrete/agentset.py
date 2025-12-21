@@ -592,13 +592,8 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
     def __getattr__(self, key: str) -> Any:
         if key == "name":
             return self.name
-        # Avoid interpreting special/protocol attributes as dataframe columns.
-        if key.startswith("__") and key.endswith("__"):
-            raise AttributeError(key)
-        try:
-            return self._df[key]
-        except (pl.exceptions.ColumnNotFoundError, KeyError) as exc:
-            raise AttributeError(key) from exc
+        super().__getattr__(key)
+        return self._df[key]
 
     def _generate_unique_ids(self, n: int) -> pl.Series:
         return pl.Series(

@@ -635,43 +635,6 @@ class AbstractDiscreteSpace(Space):
         super().__init__(model)
         self._capacity = capacity
 
-    @property
-    def cell_properties(self) -> DataFrame:
-        """Return cell properties without joining agent occupancy.
-
-        The ``cells`` property (and :meth:`get_cells`) returns a dataframe that
-        includes both cell properties and any placed agents. Many models only
-        need cell attributes (e.g., ``sugar``) and can avoid the extra join by
-        accessing this property instead.
-
-        Returns
-        -------
-        DataFrame
-            DataFrame of cell properties only.
-        """
-        return self._cells
-
-    def get_cell_properties(
-        self, coords: DiscreteCoordinate | DiscreteCoordinates | None = None
-    ) -> DataFrame:
-        """Retrieve cell properties at specific coordinates (no agent join).
-
-        Parameters
-        ----------
-        coords : DiscreteCoordinate | DiscreteCoordinates | None, optional
-            Coordinates to retrieve. When ``None``, returns all cell properties.
-
-        Returns
-        -------
-        DataFrame
-            Cell property dataframe.
-        """
-        if coords is None:
-            return self._cells
-        coords_df = self._get_df_coords(pos=coords)
-        # Join with coordinates on the left to preserve input ordering.
-        return coords_df.join(self._cells, on=self._pos_col_names, how="left")
-
     def is_available(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame:
         """Check whether the input positions are available (there exists at least one remaining spot in the cells).
 
@@ -886,64 +849,9 @@ class AbstractDiscreteSpace(Space):
         if "capacity" in obj._df_column_names(cells_df):
             obj._cells_capacity = obj._update_capacity_cells(cells_df)
 
-        # Polars fast-path: updating existing cell properties is a left-join
-        # (no need for a full outer join + reorder as in `_df_combine_first`).
-        # If the space is still uninitialised (no cells yet), `cells_df` *is*
-        # the new cell table.
-        if isinstance(obj._cells, pl.DataFrame) and isinstance(cells_df, pl.DataFrame):
-            if obj._cells.is_empty():
-                obj._cells = cells_df
-                # Cell table was replaced; row-major cache may be invalid.
-                try:
-                    object.__delattr__(obj, "_cells_row_major_ok")
-                except AttributeError:
-                    pass
-                return obj
-            update_cols = [c for c in cells_df.columns if c not in obj._pos_col_names]
-            if update_cols:
-                is_dense_grid = isinstance(
-                    obj, AbstractGrid
-                ) and obj._cells.height == int(np.prod(obj._dimensions))
-                if is_dense_grid:
-                    updates = cells_df.select([*obj._pos_col_names, *update_cols])
-                    merged = obj._cells.join(
-                        updates,
-                        on=obj._pos_col_names,
-                        how="left",
-                        suffix="_new",
-                        maintain_order="left",
-                    )
-                    existing_cols = set(obj._cells.columns)
-                    coalesce_exprs: list[pl.Expr] = []
-                    drop_cols: list[str] = []
-                    for c in update_cols:
-                        if c in existing_cols:
-                            new_c = f"{c}_new"
-                            coalesce_exprs.append(
-                                pl.coalesce(pl.col(new_c), pl.col(c)).alias(c)
-                            )
-                            drop_cols.append(new_c)
-                    if coalesce_exprs:
-                        merged = merged.with_columns(coalesce_exprs).drop(drop_cols)
-                    obj._cells = merged
-                else:
-                    obj._cells = obj._df_combine_first(
-                        cells_df, obj._cells, index_cols=obj._pos_col_names
-                    )
-                    # Result ordering is not guaranteed; clear row-major cache.
-                    try:
-                        object.__delattr__(obj, "_cells_row_major_ok")
-                    except AttributeError:
-                        pass
-        else:
-            obj._cells = obj._df_combine_first(
-                cells_df, obj._cells, index_cols=obj._pos_col_names
-            )
-            # Result ordering is not guaranteed; clear row-major cache.
-            try:
-                object.__delattr__(obj, "_cells_row_major_ok")
-            except AttributeError:
-                pass
+        obj._cells = obj._df_combine_first(
+            cells_df, obj._cells, index_cols=obj._pos_col_names
+        )
         return obj
 
     @abstractmethod
@@ -1216,12 +1124,7 @@ class AbstractDiscreteSpace(Space):
         """
         # Fallback, if key (property) is not found in the object,
         # then it must mean that it's in the _cells dataframe
-        if key.startswith("__") and key.endswith("__"):
-            raise AttributeError(key)
-        try:
-            return self._cells[key]
-        except (pl.exceptions.ColumnNotFoundError, KeyError) as exc:
-            raise AttributeError(key) from exc
+        return self._cells[key]
 
     def __setitem__(
         self, cells: DiscreteCoordinates, properties: DataFrame | DataFrameInput
@@ -1454,7 +1357,6 @@ class AbstractGrid(AbstractDiscreteSpace):
             mask=neighborhood_df,
         )
 
-    @abstractmethod
     def get_neighborhood(
         self,
         radius: int | Sequence[int] | ArrayLike,
@@ -1464,7 +1366,177 @@ class AbstractGrid(AbstractDiscreteSpace):
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         include_center: bool = False,
-    ) -> DataFrame: ...
+    ) -> DataFrame:
+        pos_df = self._get_df_coords(pos, agents)
+
+        if __debug__:
+            if isinstance(radius, ArrayLike):
+                if len(radius) != len(pos_df):
+                    raise ValueError(
+                        "The length of the radius sequence must be equal to the number of positions/agents"
+                    )
+
+        ## Create all possible neighbors by multiplying offsets by the radius and adding original pos
+
+        # If radius is a sequence, get the maximum radius (we will drop unnecessary neighbors later, time-efficient but memory-inefficient)
+        if isinstance(radius, ArrayLike):
+            radius_srs = self._srs_constructor(radius, name="radius")
+            radius_df = self._srs_to_df(radius_srs)
+            max_radius = radius_srs.max()
+        else:
+            max_radius = radius
+
+        range_df = self._srs_to_df(
+            self._srs_range(name="radius", start=1, end=max_radius + 1)
+        )
+
+        neighbors_df = self._df_join(
+            self._offsets,
+            range_df,
+            how="cross",
+        )
+
+        neighbors_df = self._df_with_columns(
+            neighbors_df,
+            data=self._df_mul(
+                neighbors_df[self._pos_col_names], neighbors_df["radius"]
+            ),
+            new_columns=self._pos_col_names,
+        )
+
+        if self.neighborhood_type == "hexagonal":
+            # We need to add in-between cells for hexagonal grids
+            # In-between offsets (for every radius k>=2, we need k-1 in-between cells)
+            in_between_cols = ["in_between_dim_0", "in_between_dim_1"]
+            radius_srs = self._srs_constructor(
+                np.repeat(np.arange(1, max_radius + 1), np.arange(0, max_radius)),
+                name="radius",
+            )
+            radius_df = self._srs_to_df(radius_srs)
+            radius_df = self._df_with_columns(
+                radius_df,
+                self._df_groupby_cumcount(radius_df, "radius", name="offset"),
+                new_columns="offset",
+            )
+
+            in_between_df = self._df_join(
+                self._in_between_offsets,
+                radius_df,
+                how="cross",
+            )
+            # We multiply the radius to get the directional cells
+            in_between_df = self._df_with_columns(
+                in_between_df,
+                data=self._df_mul(
+                    in_between_df[self._pos_col_names], in_between_df["radius"]
+                ),
+                new_columns=self._pos_col_names,
+            )
+            # We multiply the offset (from the directional cells) to get the in-between offset for each radius
+            in_between_df = self._df_with_columns(
+                in_between_df,
+                data=self._df_mul(
+                    in_between_df[in_between_cols], in_between_df["offset"]
+                ),
+                new_columns=in_between_cols,
+            )
+            # We add the in-between offset to the directional cells to obtain the in-between cells
+            in_between_df = self._df_with_columns(
+                in_between_df,
+                data=self._df_add(
+                    in_between_df[self._pos_col_names],
+                    self._df_rename_columns(
+                        in_between_df[in_between_cols],
+                        in_between_cols,
+                        self._pos_col_names,
+                    ),
+                ),
+                new_columns=self._pos_col_names,
+            )
+
+            in_between_df = self._df_drop_columns(
+                in_between_df, in_between_cols + ["offset"]
+            )
+
+            neighbors_df = self._df_concat(
+                [neighbors_df, in_between_df], how="vertical"
+            )
+            radius_df = self._df_drop_columns(radius_df, "offset")
+
+        neighbors_df = self._df_join(
+            neighbors_df, pos_df, how="cross", suffix="_center"
+        )
+
+        center_df = self._df_rename_columns(
+            neighbors_df[self._center_col_names],
+            self._center_col_names,
+            self._pos_col_names,
+        )  # We rename the columns to the original names for the addition
+
+        neighbors_df = self._df_with_columns(
+            original_df=neighbors_df,
+            new_columns=self._pos_col_names,
+            data=self._df_add(
+                neighbors_df[self._pos_col_names],
+                center_df,
+            ),
+        )
+
+        # If radius is a sequence, filter unnecessary neighbors
+        if isinstance(radius, ArrayLike):
+            radius_df = self._df_rename_columns(
+                self._df_concat([pos_df, radius_df], how="horizontal"),
+                self._pos_col_names + ["radius"],
+                self._center_col_names + ["max_radius"],
+            )
+
+            neighbors_df = self._df_join(
+                neighbors_df,
+                radius_df,
+                on=self._center_col_names,
+            )
+            neighbors_df = self._df_get_masked_df(
+                neighbors_df, mask=neighbors_df["radius"] <= neighbors_df["max_radius"]
+            )
+            neighbors_df = self._df_drop_columns(neighbors_df, "max_radius")
+
+        # If torus, "normalize" (take modulo) for out-of-bounds cells
+        if self._torus:
+            neighbors_df = self._df_with_columns(
+                neighbors_df,
+                data=self.torus_adj(neighbors_df[self._pos_col_names]),
+                new_columns=self._pos_col_names,
+            )
+            # Remove duplicates
+            neighbors_df = self._df_drop_duplicates(neighbors_df, self._pos_col_names)
+
+        # Filter out-of-bound neighbors
+        mask = self._df_all(
+            self._df_and(
+                self._df_lt(
+                    neighbors_df[self._pos_col_names], self._dimensions, axis="columns"
+                ),
+                neighbors_df >= 0,
+            )
+        )
+        neighbors_df = self._df_get_masked_df(neighbors_df, mask=mask)
+
+        if include_center:
+            center_df = self._df_rename_columns(
+                pos_df, self._pos_col_names, self._center_col_names
+            )
+            pos_df = self._df_with_columns(
+                pos_df,
+                data=0,
+                new_columns="radius",
+            )
+            pos_df = self._df_concat([pos_df, center_df], how="horizontal")
+
+            neighbors_df = self._df_concat(
+                [pos_df, neighbors_df], how="vertical", ignore_index=True
+            )
+
+        return neighbors_df
 
     def get_cells(
         self, coords: GridCoordinate | GridCoordinates | None = None
@@ -1705,10 +1777,6 @@ class AbstractGrid(AbstractDiscreteSpace):
         ValueError
             If neither pos or agents are specified
         """
-        agents_ids = None
-        if agents is not None:
-            agents_ids = self._get_ids_srs(agents)
-
         if __debug__:
             if pos is None and agents is None:
                 raise ValueError("Neither pos or agents are specified")
@@ -1722,28 +1790,29 @@ class AbstractGrid(AbstractDiscreteSpace):
                         "If the grid is non-toroidal, every position must be in-bound"
                     )
             if agents is not None:
+                agents = self._get_ids_srs(agents)
                 # Check ids presence in model
-                b_contained = agents_ids.is_in(self.model.sets.ids)
+                b_contained = agents.is_in(self.model.sets.ids)
                 if (isinstance(b_contained, Series) and not b_contained.all()) or (
                     isinstance(b_contained, bool) and not b_contained
                 ):
                     raise ValueError("Some agents are not present in the model")
 
                 # Check ids presence in the grid
-                b_contained = self._df_contains(self._agents, "agent_id", agents_ids)
+                b_contained = self._df_contains(self._agents, "agent_id", agents)
                 if (isinstance(b_contained, Series) and not b_contained.all()) or (
                     isinstance(b_contained, bool) and not b_contained
                 ):
                     raise ValueError("Some agents are not placed in the grid")
                 # Check ids are unique
-                if agents_ids.n_unique() != len(agents_ids):
+                agents = pl.Series(agents)
+                if agents.n_unique() != len(agents):
                     raise ValueError("Some agents are present multiple times")
-
-        if agents_ids is not None:
+        if agents is not None:
             df = self._df_get_masked_df(
-                self._agents, index_cols="agent_id", mask=agents_ids
+                self._agents, index_cols="agent_id", mask=agents
             )
-            df = self._df_reindex(df, agents_ids, "agent_id")
+            df = self._df_reindex(df, agents, "agent_id")
             return self._df_reset_index(df, index_cols="agent_id", drop=True)
         if isinstance(pos, DataFrame):
             return self._df_reset_index(pos[self._pos_col_names], drop=True)
@@ -1835,21 +1904,9 @@ class AbstractGrid(AbstractDiscreteSpace):
         self._cells_capacity = self._update_capacity_agents(
             new_df, operation="movement"
         )
-        full_move = (
-            is_move
-            and (not self._agents.is_empty())
-            and new_df.height == self._agents.height
-            and agents.n_unique() == len(agents)
+        self._agents = self._df_combine_first(
+            new_df, self._agents, index_cols="agent_id"
         )
-        if full_move:
-            full_move = bool(agents.is_in(self._agents["agent_id"]).all())
-
-        if full_move:
-            self._agents = new_df
-        else:
-            self._agents = self._df_combine_first(
-                new_df, self._agents, index_cols="agent_id"
-            )
         return self
 
     @abstractmethod

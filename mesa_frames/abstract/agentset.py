@@ -26,7 +26,6 @@ from typing import Any, Literal, Self, overload
 from collections.abc import Callable, Sequence
 
 from numpy.random import Generator
-import polars as pl
 
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
 from mesa_frames.types_ import (
@@ -429,18 +428,11 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
             raise AttributeError(
                 "Attempted to access `pos`, but the model has no space attached."
             )
-        index = self.index
-        if isinstance(index, pl.DataFrame):
-            if __debug__ and index.width != 1:
-                raise ValueError("Agent index DataFrame must have exactly one column.")
-            ids_df = index.rename({index.columns[0]: "agent_id"})
-        else:
-            ids_df = pl.Series(name="agent_id", values=index).to_frame()
-
-        # Left-join against space agents to preserve the set's order and keep
-        # unplaced agents as null coordinates (mirrors prior `_df_reindex` use).
-        pos = ids_df.join(self.space.agents, on="agent_id", how="left").rename(
-            {"agent_id": "unique_id"}
+        pos = self._df_get_masked_df(
+            df=self.space.agents, index_cols="agent_id", mask=self.index
+        )
+        pos = self._df_reindex(
+            pos, self.index, new_index_cols="unique_id", original_index_cols="agent_id"
         )
         return pos
 
