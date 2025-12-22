@@ -185,7 +185,7 @@ class Sugarscape(Model):
     ----------
     agent_type : type[AntsBase]
         The :class:`AgentSet` subclass implementing the movement rules
-        (sequential, numba-accelerated, or parallel).
+        (sequential or parallel).
     n_agents : int
         Number of agents to create and place on the grid.
     width : int
@@ -273,6 +273,7 @@ class Sugarscape(Model):
             storage=storage,
             storage_uri=storage_uri,
         )
+        self._collect_data = True
         self.datacollector.collect()
 
     def _generate_sugar_grid(
@@ -342,7 +343,8 @@ class Sugarscape(Model):
             return
         self.sets[0].step()
         self._advance_sugar_field()
-        self.datacollector.collect()
+        if self._collect_data:
+            self.datacollector.collect()
         if len(self.sets[0]) == 0:
             self.running = False
 
@@ -369,6 +371,7 @@ class Sugarscape(Model):
         the sugar when they eat. The method uses vectorised DataFrame joins
         and writes to keep the operation efficient.
         """
+        # Default path (tutorial semantics)
         empty_cells = self.space.cells.empty
         if not empty_cells.is_empty():
             # Look up the maximum sugar for each empty cell and restore it.

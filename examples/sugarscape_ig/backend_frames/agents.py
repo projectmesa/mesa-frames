@@ -133,6 +133,14 @@ class AntsBase(AgentSet):
 
 
 class AntsParallel(AntsBase):
+    def step(self) -> None:
+        """Advance the agent set by one time step (parallel semantics)."""
+        # In synchronous parallel updates, agent ordering does not affect the outcome,
+        # so we skip the per-step shuffle to avoid unnecessary overhead.
+        self.move()
+        self.eat()
+        self._remove_starved()
+
     def move(self) -> None:
         """Move agents in parallel by ranking visible cells and resolving conflicts.
 
@@ -162,42 +170,28 @@ class AntsParallel(AntsBase):
                 pl.col("dim_1").alias("dim_1_center"),
             ]
         )
-
-        neighborhood = self._build_neighborhood_frame(current_pos)
+        neighborhood = self._build_neighborhood_frame()
         choices, origins, max_rank = self._rank_candidates(neighborhood, current_pos)
         if choices.is_empty():
             return
-
         assigned = self._resolve_conflicts_in_rounds(choices, origins, max_rank)
         if assigned.is_empty():
             return
 
-        # move_df columns:
-        # ┌────────────┬────────────┬────────────┐
-        # │ unique_id  ┆ dim_0      ┆ dim_1      │
-        # │ ---        ┆ ---        ┆ ---        │
-        # │ u64        ┆ i64        ┆ i64        │
-        # ╞════════════╪════════════╪════════════╡
-        move_df = pl.DataFrame(
-            {
-                "unique_id": assigned["agent_id"],
-                "dim_0": assigned["dim_0_candidate"],
-                "dim_1": assigned["dim_1_candidate"],
-            }
+        agent_ids = assigned["agent_id"]
+        pos_df = assigned.select(
+            [
+                pl.col("dim_0_candidate").alias("dim_0"),
+                pl.col("dim_1_candidate").alias("dim_1"),
+            ]
         )
-        # `move_agents` accepts IdsLike and SpaceCoordinates (Polars Series/DataFrame),
-        # so pass Series/DataFrame directly rather than converting to Python lists.
-        self.space.move_agents(move_df["unique_id"], move_df.select(["dim_0", "dim_1"]))
+        self.space.move_all(agent_ids, pos_df)
 
-    def _build_neighborhood_frame(self, current_pos: pl.DataFrame) -> pl.DataFrame:
+    def _build_neighborhood_frame(self) -> pl.DataFrame:
         """Assemble the sugar-weighted neighbourhood for each sensing agent.
 
         Parameters
         ----------
-        current_pos : pl.DataFrame
-            DataFrame with columns ``agent_id``, ``dim_0_center`` and
-            ``dim_1_center`` describing the current position of each agent.
-
         Returns
         -------
         pl.DataFrame
@@ -631,7 +625,6 @@ class AntsParallel(AntsBase):
         if assigned_parts:
             return pl.concat([assigned, *assigned_parts], how="vertical")
         return assigned
-
 
 __all__ = [
     "AntsBase",
