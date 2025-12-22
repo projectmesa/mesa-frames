@@ -399,6 +399,20 @@ class Grid(AbstractGrid, PolarsMixin):
         agents_input = agents
         agents = self._get_ids_srs(agents)
 
+        # If move_all (or other trusted full-move calls) pass a Polars DataFrame of
+        # coordinates, coerce it to NumPy early so the NumPy fast paths below can
+        # trigger.
+        if is_move and (trust_full_move or require_full_move) and isinstance(pos, pl.DataFrame):
+            pos_df = pos
+            if "agent_id" in pos_df.columns:
+                pos_df = self._df_reindex(pos_df, agents, new_index_cols="agent_id")
+                pos_df = pos_df.select(self._pos_col_names)
+                pos_arr = pos_df.to_numpy()
+                pos = tuple(pos_arr[:, i] for i in range(pos_arr.shape[1]))
+            else:
+                pos_df = pos_df.select(self._pos_col_names)
+                pos = pos_df.to_numpy()
+
         reorder_idx: np.ndarray | None = None
         if is_move and (isinstance(pos, np.ndarray) or isinstance(pos, (tuple, list))):
             input_ids: np.ndarray | None = None
