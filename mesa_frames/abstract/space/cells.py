@@ -69,6 +69,10 @@ class AbstractCells(ABC):
     @abstractmethod
     def capacity(self) -> DiscreteSpaceCapacity: ...
 
+    @capacity.setter
+    @abstractmethod
+    def capacity(self, cap: DiscreteSpaceCapacity) -> None: ...
+
     @property
     @abstractmethod
     def remaining_capacity(self) -> int | Infinity: ...
@@ -111,6 +115,26 @@ class AbstractCells(ABC):
     def _update_capacity_agents(
         self, agents: DataFrame | Series, operation: Literal["movement", "removal"]
     ) -> DiscreteSpaceCapacity: ...
+
+    def update_capacity_cells(self, cells: DataFrame) -> DiscreteSpaceCapacity:
+        """Public wrapper around internal capacity updates.
+
+        This is intentionally public so other components (e.g. grids) can
+        request capacity recomputation without reaching into protected APIs.
+        """
+
+        return self._update_capacity_cells(cells)
+
+    def update_capacity_agents(
+        self, agents: DataFrame | Series, operation: Literal["movement", "removal"]
+    ) -> DiscreteSpaceCapacity:
+        """Public wrapper around internal capacity updates.
+
+        This is intentionally public so other components (e.g. grids) can
+        update capacity without reaching into protected APIs.
+        """
+
+        return self._update_capacity_agents(agents, operation=operation)
 
     @abstractmethod
     def _empty_cell_condition(

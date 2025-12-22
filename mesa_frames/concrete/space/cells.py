@@ -287,6 +287,15 @@ class GridCells(AbstractCells):
     def capacity(self) -> DiscreteSpaceCapacity:
         return self._cells_capacity
 
+    @capacity.setter
+    def capacity(self, cap: DiscreteSpaceCapacity) -> None:
+        # GridCells stores capacity as a dense ndarray.
+        if cap is np.inf:
+            raise ValueError("Grid cells capacity cannot be infinity")
+        if not isinstance(cap, np.ndarray):
+            raise TypeError("capacity must be a numpy ndarray")
+        self._cells_capacity = cap
+
     @property
     def remaining_capacity(self) -> int | Infinity:
         if not self._space._capacity:
