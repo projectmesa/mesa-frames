@@ -128,6 +128,8 @@ class AntsBase(AgentSet):
         """
         starved = self.df.filter(pl.col("sugar") <= 0)
         if not starved.is_empty():
+            # Remove starved agents from the grid so full-move paths stay valid.
+            self.space.remove_agents(starved["unique_id"])
             # ``discard`` accepts a DataFrame of agents to remove.
             self.discard(starved)
 
