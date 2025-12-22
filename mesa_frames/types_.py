@@ -145,7 +145,10 @@ TimeT = float | int
 
 NetworkCoordinate = int | DataFrame
 
-GridCoordinate = int | Sequence[int] | DataFrame
+# NOTE: Grid coordinates may be provided in vectorized form as NumPy arrays
+# (e.g., an (n, d) array or a tuple/list of per-dimension 1D arrays). These are
+# performance-critical paths and are supported by the public API.
+GridCoordinate = int | Sequence[int] | DataFrame | ndarray
 
 DiscreteCoordinate = NetworkCoordinate | GridCoordinate
 ContinousCoordinate = float | Sequence[float] | DataFrame
@@ -155,7 +158,9 @@ SpaceCoordinate = DiscreteCoordinate | ContinousCoordinate
 
 NetworkCoordinates = NetworkCoordinate | Collection[NetworkCoordinate]
 GridCoordinates = (
-    GridCoordinate | Sequence[int | slice | Sequence[int]] | Collection[GridCoordinate]
+    GridCoordinate
+    | Sequence[int | slice | Sequence[int] | ndarray]
+    | Collection[GridCoordinate]
 )
 
 DiscreteCoordinates = NetworkCoordinates | GridCoordinates
