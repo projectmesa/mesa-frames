@@ -230,3 +230,23 @@ def test_torus(model: Model, grid_moore: Grid):
 
     grid_2 = Grid(model, [3, 3], torus=True)
     assert grid_2.torus
+
+
+def test_move_all_full_move_fast_path(grid_moore: Grid):
+    # Move the two placed agents to new coordinates using move_all.
+    agent_ids = grid_moore.agents["agent_id"]
+    new_dim0 = np.array([2, 0], dtype=np.int64)
+    new_dim1 = np.array([2, 2], dtype=np.int64)
+    grid_moore.move_all(agent_ids, (new_dim0, new_dim1))
+
+    moved = grid_moore.agents.select(["agent_id", "dim_0", "dim_1"]).sort("agent_id")
+    expected = (
+        pl.DataFrame({"agent_id": agent_ids, "dim_0": new_dim0, "dim_1": new_dim1})
+        .select(["agent_id", "dim_0", "dim_1"])
+        .sort("agent_id")
+    )
+    assert_frame_equal(moved, expected, check_dtypes=False)
+
+    # Contract: move_all requires all placed agents. Subsets should error.
+    with pytest.raises(ValueError):
+        grid_moore.move_all(agent_ids[:1], (np.array([0]), np.array([0])))
