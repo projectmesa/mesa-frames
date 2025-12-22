@@ -19,23 +19,60 @@ def test_get_cells(grid_moore: Grid):
     ]
 
     # Test with GridCoordinate
-    result = grid_moore.cells([0, 0])
-    assert isinstance(result, pl.DataFrame)
-    assert result.select(pl.col("dim_0")).to_series().to_list() == [0]
-    assert result.select(pl.col("dim_1")).to_series().to_list() == [0]
-    assert result.select(pl.col("capacity")).to_series().to_list() == [1]
-    assert result.select(pl.col("property_0")).to_series().to_list() == ["value_0"]
+    single = grid_moore.cells([0, 0])
+    assert isinstance(single, pl.DataFrame)
+    assert single.height == 1
+    assert single.select(pl.col("dim_0")).to_series().to_list() == [0]
+    assert single.select(pl.col("dim_1")).to_series().to_list() == [0]
+    assert single.select(pl.col("capacity")).to_series().to_list() == [1]
+    assert single.select(pl.col("property_0")).to_series().to_list() == ["value_0"]
 
-    # Test with GridCoordinates
-    result = grid_moore.cells([[0, 0], [1, 1]])
-    assert isinstance(result, pl.DataFrame)
-    assert result.select(pl.col("dim_0")).to_series().to_list() == [0, 1]
-    assert result.select(pl.col("dim_1")).to_series().to_list() == [0, 1]
-    assert result.select(pl.col("capacity")).to_series().to_list() == [1, 3]
-    assert result.select(pl.col("property_0")).to_series().to_list() == [
-        "value_0",
-        "value_0",
-    ]
+    # Test with GridCoordinates (order should match input)
+    multi = grid_moore.cells([[1, 1], [0, 0]])
+    assert isinstance(multi, pl.DataFrame)
+    assert multi.height == 2
+    coords = list(zip(multi["dim_0"].to_list(), multi["dim_1"].to_list()))
+    assert set(coords) == {(0, 0), (1, 1)}
+    expected = pl.DataFrame({"dim_0": [0, 1], "dim_1": [0, 1], "capacity": [1, 3]})
+    assert_frame_equal(
+        multi.select(["dim_0", "dim_1", "capacity"]).sort(["dim_0", "dim_1"]),
+        expected.sort(["dim_0", "dim_1"]),
+        check_dtypes=False,
+    )
+
+
+def test_cells_coords_accessor(grid_moore: Grid):
+    coords = grid_moore.cells.coords
+    assert isinstance(coords, pl.DataFrame)
+    assert coords.columns == ["dim_0", "dim_1"]
+    assert_frame_equal(
+        coords,
+        grid_moore.cells(include="properties").select(["dim_0", "dim_1"]),
+        check_dtypes=False,
+        check_row_order=False,
+    )
+
+
+def test_set_cells_dense_grid_delta_update(model: Model):
+    grid = Grid(model, dimensions=[3, 3], capacity=2)
+    # Initialize a dense cells table.
+    dim0 = pl.Series("dim_0", pl.arange(3, eager=True)).to_frame()
+    dim1 = pl.Series("dim_1", pl.arange(3, eager=True)).to_frame()
+    all_coords = dim0.join(dim1, how="cross")
+    grid.cells.set(
+        all_coords,
+        properties={
+            "capacity": pl.repeat(2, all_coords.height, eager=True).cast(pl.Int64),
+            "sugar": pl.repeat(1, all_coords.height, eager=True).cast(pl.Int64),
+        },
+    )
+    # Small delta update: only touch one cell.
+    grid.cells.set([[1, 2]], properties={"sugar": 9})
+    cell = grid.cells([1, 2], include="properties")
+    assert int(cell["sugar"][0]) == 9
+    # Unaffected cells retain original values.
+    other = grid.cells([0, 0], include="properties")
+    assert int(other["sugar"][0]) == 1
 
 
 def test_is_available(grid_moore: Grid):

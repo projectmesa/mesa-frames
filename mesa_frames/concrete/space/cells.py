@@ -47,6 +47,50 @@ class GridCells(AbstractCells):
             self._space._dimensions, self._space._capacity
         )
 
+    @property
+    def coords(self) -> pl.DataFrame:
+        """Return a DataFrame of cell coordinates.
+
+        This is the canonical public accessor for cell positions.
+        """
+        return self._cells.select(self._space._pos_col_names)
+
+    def _cell_id_from_coords(self, coords: np.ndarray) -> np.ndarray:
+        """Convert coordinate rows to flat cell ids (row-major)."""
+        if coords.ndim != 2 or coords.shape[1] != len(self._space._dimensions):
+            raise ValueError("coords must be a (n, ndim) array")
+        dims = self._space._dimensions
+        if len(dims) == 2:
+            height = int(dims[1])
+            return coords[:, 0].astype(np.int64, copy=False) * height + coords[:, 1].astype(
+                np.int64, copy=False
+            )
+        return np.ravel_multi_index(coords.T, dims)
+
+    def _coords_from_cell_id(self, cell_id: np.ndarray) -> np.ndarray:
+        """Convert flat cell ids (row-major) to coordinate rows."""
+        dims = self._space._dimensions
+        if len(dims) == 2:
+            height = int(dims[1])
+            dim0 = (cell_id // height).astype(np.int64, copy=False)
+            dim1 = (cell_id % height).astype(np.int64, copy=False)
+            return np.stack([dim0, dim1], axis=1)
+        coords = np.array(np.unravel_index(cell_id, dims)).T
+        return coords.astype(np.int64, copy=False)
+
+    def _ensure_dense_row_major_cells(self) -> None:
+        """Ensure dense grid cells are stored in row-major coordinate order."""
+        space = self._space
+        if getattr(space, "_cells_row_major_ok", False):
+            return
+        if self._cells.is_empty():
+            return
+        if self._cells.height != int(np.prod(space._dimensions)):
+            return
+        # Sort into canonical (dim_0, dim_1, ...) order once and cache the fact.
+        self._cells = self._cells.sort(space._pos_col_names)
+        setattr(space, "_cells_row_major_ok", True)
+
     def copy(self, space: AbstractGrid) -> "GridCells":
         obj = self.__class__(space)
         if isinstance(self._cells, pl.DataFrame):
@@ -172,6 +216,34 @@ class GridCells(AbstractCells):
                     np.prod(obj._dimensions)
                 )
                 if is_dense_grid:
+                    # Delta-aware update: for small updates on dense grids, avoid a join.
+                    # We rely on a stable row-major layout and update only the touched rows.
+                    n_updates = int(cells_df.height)
+                    n_total = int(cells_obj._cells.height)
+                    if n_updates and n_updates <= max(1, int(0.05 * n_total)):
+                        cells_obj._ensure_dense_row_major_cells()
+                        coords_np = cells_df.select(obj._pos_col_names).to_numpy()
+                        row_idx = cells_obj._cell_id_from_coords(coords_np)
+
+                        updated = cells_obj._cells
+                        for col in update_cols:
+                            values = cells_df[col]
+                            if col in updated.columns:
+                                base = updated[col]
+                            else:
+                                # Create a null base column for new properties.
+                                base_expr = pl.repeat(None, n_total, eager=True)
+                                if values.dtype != pl.Null:
+                                    base_expr = base_expr.cast(values.dtype)
+                                updated = updated.with_columns(base_expr.alias(col))
+                                base = updated[col]
+
+                            scattered = base.scatter(row_idx, values)
+                            updated = updated.with_columns(scattered.alias(col))
+
+                        cells_obj._cells = updated
+                        return obj
+
                     updates = cells_df.select([*obj._pos_col_names, *update_cols])
                     merged = cells_obj._cells.join(
                         updates,
