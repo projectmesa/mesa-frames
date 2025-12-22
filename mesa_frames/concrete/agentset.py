@@ -103,6 +103,37 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
+        # Internal cache for NumPy buffers aligned to the current row order.
+        # This is useful for high-performance kernels that intentionally skip
+        # per-step shuffling and keep stable ordering.
+        self._order_token = 0
+        self._aligned_numpy_cache: dict[tuple[int, str, str | None], np.ndarray] = {}
+
+    def _bump_order_token(self) -> None:
+        self._order_token += 1
+        self._aligned_numpy_cache.clear()
+
+    def _aligned_numpy(
+        self,
+        column: str,
+        *,
+        dtype: np.dtype | None = None,
+    ) -> np.ndarray:
+        """Return a cached NumPy view aligned to current AgentSet order.
+
+        The cache is invalidated automatically by operations that permute rows
+        (shuffle/sort) and conservatively by operations that change row count.
+        """
+        dtype_key = None if dtype is None else str(np.dtype(dtype))
+        key = (self._order_token, column, dtype_key)
+        cached = self._aligned_numpy_cache.get(key)
+        if cached is not None:
+            return cached
+        arr = self._df[column].to_numpy()
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        self._aligned_numpy_cache[key] = arr
+        return arr
 
     def rename(self, new_name: str, inplace: bool = True) -> Self:
         """Rename this agent set. If attached to AgentSetRegistry, delegate for uniqueness enforcement.
@@ -212,6 +243,8 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
             original_active_indices = obj._df.filter(obj._mask)["unique_id"]
 
         obj._df = pl.concat([obj._df, new_agents], how="diagonal_relaxed")
+
+        obj._bump_order_token()
 
         if isinstance(obj._mask, pl.Series) and not originally_empty:
             obj._update_mask(original_active_indices, new_agents["unique_id"])
@@ -378,6 +411,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         obj._df = pl.concat([non_masked_df, masked_df], how="diagonal_relaxed")
         obj._df = original_index.join(obj._df, on="unique_id", how="left")
         obj._update_mask(original_index["unique_id"], unique_id_column)
+
+        # Values may have changed; invalidate aligned NumPy cache.
+        obj._bump_order_token()
         return obj
 
     def select(
@@ -408,6 +444,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
             shuffle=True,
             seed=obj.random.integers(np.iinfo(np.int32).max),
         )
+        obj._bump_order_token()
         return obj
 
     def sort(
@@ -423,6 +460,7 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         else:
             descending = [not a for a in ascending]
         obj._df = obj._df.sort(by=by, descending=descending, **kwargs)
+        obj._bump_order_token()
         return obj
 
     def _concatenate_agentsets(
@@ -576,6 +614,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
 
         if isinstance(self._mask, pl.Series):
             self._update_mask(original_active_indices)
+
+        # Row removals can change row count and alignment.
+        self._bump_order_token()
 
         return self
 
