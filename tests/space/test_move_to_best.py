@@ -257,3 +257,146 @@ def test_move_to_best_accepts_numpy_id_array() -> None:
 
     ids_np = ids.to_numpy().astype(np.uint64, copy=False)
     grid.move_to_best(ids_np, radius=1, property="sugar", include_center=True)
+
+
+def test_move_to_best_scalar_equals_uniform_per_agent_radius(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model_a = Model(seed=123)
+    agents_a = ExampleAgentSet(model_a)
+    agents_a.add({"x": np.zeros(64, dtype=np.int64)})
+    model_a.sets.add(agents_a)
+
+    grid_a = Grid(model_a, dimensions=[10, 10], capacity=1, neighborhood_type="moore")
+    model_a.space = grid_a
+    _make_dense_sugar(grid_a, seed=1)
+    ids_a = agents_a["unique_id"]
+    _place_agents_unique(grid_a, ids_a, seed=2)
+
+    model_b = Model(seed=123)
+    agents_b = ExampleAgentSet(model_b)
+    agents_b.add({"x": np.zeros(64, dtype=np.int64)})
+    model_b.sets.add(agents_b)
+
+    grid_b = Grid(model_b, dimensions=[10, 10], capacity=1, neighborhood_type="moore")
+    model_b.space = grid_b
+    _make_dense_sugar(grid_b, seed=1)
+    ids_b = agents_b["unique_id"]
+    _place_agents_unique(grid_b, ids_b, seed=2)
+
+    monkeypatch.setenv("MESA_FRAMES_GRID_MOVE_TO_BEST_FORCE_PATH", "fast")
+
+    radius = 3
+    radii = np.full(len(ids_a), radius, dtype=np.int64)
+    grid_a.move_to_best(ids_a, radius=radius, property="sugar", include_center=True)
+    grid_b.move_to_best(ids_b, radius=radii, property="sugar", include_center=True)
+
+    moved_a = grid_a.agents.select(["agent_id", "dim_0", "dim_1"]).sort("agent_id")
+    moved_b = grid_b.agents.select(["agent_id", "dim_0", "dim_1"]).sort("agent_id")
+    assert_frame_equal(moved_a, moved_b, check_dtypes=False)
+
+
+def test_move_to_best_per_agent_radius_torus_fast_equals_df(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model_fast = Model(seed=123)
+    agents_fast = ExampleAgentSet(model_fast)
+    agents_fast.add({"x": np.zeros(128, dtype=np.int64)})
+    model_fast.sets.add(agents_fast)
+
+    grid_fast = Grid(
+        model_fast,
+        dimensions=[12, 12],
+        capacity=1,
+        neighborhood_type="moore",
+        torus=True,
+    )
+    model_fast.space = grid_fast
+    _make_dense_sugar(grid_fast, seed=1)
+
+    ids = agents_fast["unique_id"]
+    _place_agents_unique(grid_fast, ids, seed=2)
+
+    model_df = Model(seed=123)
+    agents_df = ExampleAgentSet(model_df)
+    agents_df.add({"x": np.zeros(128, dtype=np.int64)})
+    model_df.sets.add(agents_df)
+
+    grid_df = Grid(
+        model_df,
+        dimensions=[12, 12],
+        capacity=1,
+        neighborhood_type="moore",
+        torus=True,
+    )
+    model_df.space = grid_df
+    _make_dense_sugar(grid_df, seed=1)
+    _place_agents_unique(grid_df, agents_df["unique_id"], seed=2)
+
+    rng = np.random.default_rng(99)
+    radii = rng.integers(0, 10, size=len(ids), dtype=np.int64)
+
+    monkeypatch.setenv("MESA_FRAMES_GRID_MOVE_TO_BEST_FORCE_PATH", "df")
+    grid_fast.move_to_best(ids, radius=radii, property="sugar", include_center=True)
+    grid_df.move_to_best(
+        agents_df["unique_id"], radius=radii, property="sugar", include_center=True
+    )
+
+    moved_fast = grid_fast.agents.select(["agent_id", "dim_0", "dim_1"]).sort(
+        "agent_id"
+    )
+    moved_df = grid_df.agents.select(["agent_id", "dim_0", "dim_1"]).sort("agent_id")
+    assert_frame_equal(moved_fast, moved_df, check_dtypes=False)
+
+
+def test_move_to_best_radius_series_aligned_to_placed_agents(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model_a = Model(seed=123)
+    agents_a = ExampleAgentSet(model_a)
+    agents_a.add({"x": np.zeros(64, dtype=np.int64)})
+    model_a.sets.add(agents_a)
+
+    grid_a = Grid(model_a, dimensions=[10, 10], capacity=1, neighborhood_type="moore")
+    model_a.space = grid_a
+    _make_dense_sugar(grid_a, seed=1)
+    ids_a = agents_a["unique_id"]
+    _place_agents_unique(grid_a, ids_a, seed=2)
+
+    # Move a subset.
+    move_ids = ids_a.head(16)
+
+    # Provide radii aligned to all placed agents (grid's internal agent table order).
+    full_ids = grid_a.agents["agent_id"].to_numpy()
+    radius_full = np.arange(full_ids.shape[0], dtype=np.int64)
+    radius_full_srs = pl.Series("radius", radius_full)
+
+    # Compute expected per-move alignment using the same searchsorted mapping logic.
+    sorted_idx = np.argsort(full_ids)
+    sorted_ids = full_ids[sorted_idx]
+    move_np = move_ids.to_numpy()
+    pos = np.searchsorted(sorted_ids, move_np)
+    move_row_idx = sorted_idx[pos]
+    radius_aligned = radius_full[move_row_idx]
+
+    # Run two equivalent fast runs.
+    model_b = Model(seed=123)
+    agents_b = ExampleAgentSet(model_b)
+    agents_b.add({"x": np.zeros(64, dtype=np.int64)})
+    model_b.sets.add(agents_b)
+
+    grid_b = Grid(model_b, dimensions=[10, 10], capacity=1, neighborhood_type="moore")
+    model_b.space = grid_b
+    _make_dense_sugar(grid_b, seed=1)
+    _place_agents_unique(grid_b, agents_b["unique_id"], seed=2)
+
+    monkeypatch.setenv("MESA_FRAMES_GRID_MOVE_TO_BEST_FORCE_PATH", "fast")
+
+    grid_a.move_to_best(move_ids, radius=radius_full_srs, property="sugar")
+    grid_b.move_to_best(
+        agents_b["unique_id"].head(16), radius=radius_aligned, property="sugar"
+    )
+
+    moved_a = grid_a.agents.select(["agent_id", "dim_0", "dim_1"]).sort("agent_id")
+    moved_b = grid_b.agents.select(["agent_id", "dim_0", "dim_1"]).sort("agent_id")
+    assert_frame_equal(moved_a, moved_b, check_dtypes=False)

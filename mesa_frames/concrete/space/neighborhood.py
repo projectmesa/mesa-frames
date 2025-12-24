@@ -327,6 +327,16 @@ class GridNeighborhood(AbstractNeighborhood):
             ]
             neighbors_df = neighbors_df.filter(pl.all_horizontal(in_bounds_exprs))
 
+        # Ensure a stable, canonical column order before any concat operations.
+        neighbors_df = neighbors_df.select(
+            [
+                *center_id_cols,
+                *space._pos_col_names,
+                "radius",
+                *space._center_col_names,
+            ]
+        )
+
         if include_center:
             center_rows = center_df.with_columns(
                 [

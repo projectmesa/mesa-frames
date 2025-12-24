@@ -371,35 +371,44 @@ class Grid(AbstractGrid, PolarsMixin):
             return self
 
         # Normalize radius.
-        radius_per_agent: np.ndarray | None = None
+        radius_arr: np.ndarray | None = None
         radius_scalar: int | None = None
+        radius_aligned_to: str | None = None  # "move" | "placed"
+
         if isinstance(radius, Series):
-            radius_per_agent = radius.to_numpy()
+            radius_arr = radius.to_numpy()
         elif isinstance(radius, np.ndarray):
-            radius_per_agent = radius
+            radius_arr = radius
         elif isinstance(radius, Collection) and not isinstance(radius, (str, bytes)):
-            radius_per_agent = np.asarray(radius)
+            radius_arr = np.asarray(radius)
         else:
             try:
                 radius_scalar = int(radius)  # type: ignore[arg-type]
             except Exception as e:
                 raise TypeError("radius must be an int or an integer sequence") from e
 
-        if radius_per_agent is not None:
-            if radius_per_agent.ndim != 1:
+        if radius_arr is not None:
+            radius_arr = np.asarray(radius_arr)
+            if radius_arr.ndim != 1:
                 raise ValueError("radius sequence must be 1-D")
-            if radius_per_agent.size != int(move_ids_srs.len()):
+            if radius_arr.size == 0:
+                return self
+            if not np.issubdtype(radius_arr.dtype, np.integer):
+                raise TypeError("radius sequence must have integer dtype")
+            if np.any(radius_arr < 0):
+                raise ValueError("radius values must be >= 0")
+            radius_arr = radius_arr.astype(np.int64, copy=False)
+
+            n_move = int(move_ids_srs.len())
+            n_placed = int(self._agents.height)
+            if radius_arr.size == n_move:
+                radius_aligned_to = "move"
+            elif radius_arr.size == n_placed:
+                radius_aligned_to = "placed"
+            else:
                 raise ValueError(
                     "radius sequence length must match the number of agents"
                 )
-            if radius_per_agent.size == 0:
-                return self
-            if not np.issubdtype(radius_per_agent.dtype, np.integer):
-                raise TypeError("radius sequence must have integer dtype")
-            if np.any(radius_per_agent < 0):
-                raise ValueError("radius values must be >= 0")
-            radius_per_agent = radius_per_agent.astype(np.int64, copy=False)
-            max_radius = int(radius_per_agent.max())
         else:
             if radius_scalar is None:
                 raise TypeError("radius must be an int or an integer sequence")
@@ -407,7 +416,6 @@ class Grid(AbstractGrid, PolarsMixin):
                 raise ValueError("radius must be integer-valued")
             if radius_scalar < 0:
                 raise ValueError("radius must be >= 0")
-            max_radius = int(radius_scalar)
 
         # Validate property up front.
         if self.cells._cells.is_empty() or property not in self.cells._cells.columns:
@@ -449,6 +457,17 @@ class Grid(AbstractGrid, PolarsMixin):
                 raise ValueError("Some agents are not placed in the grid")
         move_row_idx = sorted_idx[pos]
 
+        radius_per_agent: np.ndarray | None = None
+        max_radius: int
+        if radius_arr is not None:
+            if radius_aligned_to == "placed":
+                radius_per_agent = radius_arr[move_row_idx]
+            else:
+                radius_per_agent = radius_arr
+            max_radius = int(radius_per_agent.max())
+        else:
+            max_radius = int(radius_scalar)
+
         centers = full_coords[move_row_idx]
         height = int(self._dimensions[1])
         origin_cell_id = centers[:, 0] * height + centers[:, 1]
@@ -469,26 +488,9 @@ class Grid(AbstractGrid, PolarsMixin):
             score_flat = self.cells._property_buffer(property)
             csr = self._fastpath.neighbors_for_agents_array(
                 centers=centers,
-                radius=max_radius,
+                radius=radius_per_agent if radius_per_agent is not None else max_radius,
                 include_center=include_center,
             )
-            # Apply per-agent radius limits if provided.
-            if radius_per_agent is not None and csr.cell_id.size:
-                rad_limit = np.repeat(radius_per_agent, np.diff(csr.offsets))
-                ok_rad = csr.radius <= rad_limit
-                if ok_rad.size and not ok_rad.all():
-                    ok_int = ok_rad.astype(np.int64, copy=False)
-                    counts = np.add.reduceat(ok_int, csr.offsets[:-1])
-                    new_offsets = np.empty_like(csr.offsets)
-                    new_offsets[0] = 0
-                    np.cumsum(counts, out=new_offsets[1:])
-                    csr = self._fastpath.csr(
-                        offsets=new_offsets,
-                        cell_id=csr.cell_id[ok_rad],
-                        radius=csr.radius[ok_rad],
-                        dim0=csr.dim0[ok_rad],
-                        dim1=csr.dim1[ok_rad],
-                    )
             # Filter candidates by capacity > 0, allowing the agent's own origin.
             if csr.cell_id.size:
                 origin_rep = np.repeat(origin_cell_id, np.diff(csr.offsets))
@@ -529,23 +531,43 @@ class Grid(AbstractGrid, PolarsMixin):
             if neighbors_df.is_empty():
                 dest_coords = centers
             else:
-                cells_df = self.cells._cells.select([*self._pos_col_names, property])
-                cand = neighbors_df.join(cells_df, on=self._pos_col_names, how="left")
-                cand = cand.with_columns(
-                    pl.col(property).fill_null(float("-inf")).cast(pl.Float64)
-                )
-
                 cand_coords = (
-                    cand.select(self._pos_col_names)
+                    neighbors_df.select(self._pos_col_names)
                     .to_numpy()
                     .astype(np.int64, copy=False)
                 )
                 cand_cell_id = cand_coords[:, 0] * height + cand_coords[:, 1]
-                cand_radius = cand["radius"].to_numpy().astype(np.int64, copy=False)
+
+                cand_radius = (
+                    neighbors_df["radius"].to_numpy().astype(np.int64, copy=False)
+                )
                 cand_d0 = cand_coords[:, 0]
                 cand_d1 = cand_coords[:, 1]
-                cand_score = cand[property].to_numpy()
-                cand_agent = cand["agent_id"].to_numpy()
+
+                cand_agent = neighbors_df["agent_id"].to_numpy()
+
+                # Prefer dense row-major property buffer when available (avoids join).
+                cand_score: np.ndarray
+                dense_ok = (
+                    (not self.cells._cells.is_empty())
+                    and (self.cells._cells.height == int(np.prod(self._dimensions)))
+                    and (property in self.cells._cells.columns)
+                )
+                if dense_ok:
+                    self.cells._ensure_dense_row_major_cells()
+                    score_flat = self.cells._property_buffer(property)
+                    cand_score = np.asarray(score_flat[cand_cell_id], dtype=np.float64)
+                else:
+                    cells_df = self.cells._cells.select(
+                        [*self._pos_col_names, property]
+                    )
+                    cand = neighbors_df.join(
+                        cells_df, on=self._pos_col_names, how="left"
+                    )
+                    cand = cand.with_columns(
+                        pl.col(property).fill_null(float("-inf")).cast(pl.Float64)
+                    )
+                    cand_score = cand[property].to_numpy()
 
                 # Filter by capacity > 0, allowing origin.
                 cand_agent = np.asarray(cand_agent, dtype=np.uint64)

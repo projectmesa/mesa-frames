@@ -73,7 +73,7 @@ class _GridFastPath:
         self,
         *,
         centers: np.ndarray,
-        radius: int,
+        radius: int | np.ndarray,
         include_center: bool,
     ) -> _CSR:
         """Build neighborhood candidates matching GridNeighborhood semantics.
@@ -95,9 +95,24 @@ class _GridFastPath:
                 dim1=np.empty(0, dtype=np.int64),
             )
 
-        radius = int(radius)
-        if radius < 0:
-            raise ValueError("radius must be >= 0")
+        radius_scalar: int | None = None
+        radius_per_agent: np.ndarray | None = None
+
+        if isinstance(radius, np.ndarray):
+            radius_per_agent = np.asarray(radius)
+            if radius_per_agent.ndim != 1:
+                raise ValueError("radius sequence must be 1-D")
+            if int(radius_per_agent.shape[0]) != n_agents:
+                raise ValueError("radius sequence length must match number of centers")
+            if not np.issubdtype(radius_per_agent.dtype, np.integer):
+                raise TypeError("radius sequence must have integer dtype")
+            if np.any(radius_per_agent < 0):
+                raise ValueError("radius values must be >= 0")
+            radius_per_agent = radius_per_agent.astype(np.int64, copy=False)
+        else:
+            radius_scalar = int(radius)
+            if radius_scalar < 0:
+                raise ValueError("radius must be >= 0")
 
         grid = self._grid
 
@@ -108,9 +123,17 @@ class _GridFastPath:
         )
         n_dirs = int(base_dirs.shape[0])
 
-        # Upper bound (no bounds filtering, no torus de-dupe)
-        max_per_agent = (1 if include_center else 0) + (radius * n_dirs)
-        cell_id_all = np.empty(n_agents * max_per_agent, dtype=np.int64)
+        # Upper bound (no bounds filtering, no torus de-dupe). When radii vary,
+        # allocate using the sum of per-agent bounds instead of n_agents * max_radius.
+        if radius_per_agent is None:
+            max_per_agent = (1 if include_center else 0) + (int(radius_scalar) * n_dirs)
+            total_upper = n_agents * max_per_agent
+        else:
+            total_upper = (n_agents if include_center else 0) + int(
+                n_dirs * int(radius_per_agent.sum())
+            )
+
+        cell_id_all = np.empty(total_upper, dtype=np.int64)
         rad_all = np.empty_like(cell_id_all)
         dim0_all = np.empty_like(cell_id_all)
         dim1_all = np.empty_like(cell_id_all)
@@ -123,6 +146,12 @@ class _GridFastPath:
         for i in range(n_agents):
             offsets[i] = out
             cx, cy = int(centers[i, 0]), int(centers[i, 1])
+
+            rmax = (
+                int(radius_scalar)
+                if radius_per_agent is None
+                else int(radius_per_agent[i])
+            )
 
             # Include center first (matches GridNeighborhood._finalize_neighbors)
             if include_center:
@@ -144,7 +173,7 @@ class _GridFastPath:
             for d in range(n_dirs):
                 dx0 = int(base_dirs[d, 0])
                 dy0 = int(base_dirs[d, 1])
-                for r in range(1, radius + 1):
+                for r in range(1, rmax + 1):
                     dx = dx0 * r
                     dy = dy0 * r
                     x = cx + dx
