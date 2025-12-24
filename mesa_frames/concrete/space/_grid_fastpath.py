@@ -8,6 +8,7 @@ Design: Grid composes this helper via the private `_GridFastPath` class.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 
 import numpy as np
 
@@ -20,10 +21,541 @@ except ImportError:  # pragma: no cover
     _NUMBA_AVAILABLE = False
 
 
+def _numba_enabled() -> bool:
+    """Return True if numba is importable and not explicitly disabled."""
+    if not _NUMBA_AVAILABLE:
+        return False
+    flag = os.environ.get("MESA_FRAMES_GRID_MOVE_TO_BEST_DISABLE_NUMBA", "")
+    return flag.strip().lower() not in {"1", "true", "yes", "on"}
+
+
 # Imported to keep beartype forward-ref resolution happy without introducing a
 # circular import at `grid.py` import time (Grid imports this module only from
 # `Grid.__init__`).
 from mesa_frames.concrete.space.grid import Grid  # noqa: E402
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+    # NOTE: cache=False to avoid "no locator available" errors under wrapped
+    # functions (e.g., runtime type-checking / beartype instrumentation).
+    _njit = _numba.njit(cache=False)
+
+
+def _splitmix64_next(state: np.uint64) -> tuple[np.uint64, np.uint64]:
+    z = state + np.uint64(0x9E3779B97F4A7C15)
+    z = (z ^ (z >> np.uint64(30))) * np.uint64(0xBF58476D1CE4E5B9)
+    z = (z ^ (z >> np.uint64(27))) * np.uint64(0x94D049BB133111EB)
+    z = z ^ (z >> np.uint64(31))
+    return state + np.uint64(0x9E3779B97F4A7C15), z
+
+
+def _randbelow_u64(state: np.uint64, n: int) -> tuple[np.uint64, int]:
+    """Uniform integer in [0, n)."""
+    if n <= 1:
+        return state, 0
+    x = np.uint64(n)
+    limit = (np.uint64(0xFFFFFFFFFFFFFFFF) // x) * x
+    while True:
+        state, r = _splitmix64_next(state)
+        if r < limit:
+            return state, int(r % x)
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _neighbors_count_kernel_2d(
+        centers: np.ndarray,
+        radius_per_agent: np.ndarray,
+        radius_scalar: int,
+        use_per_agent: bool,
+        base_dirs: np.ndarray,
+        width: int,
+        height: int,
+        torus: bool,
+        include_center: bool,
+    ) -> np.ndarray:
+        n_agents = int(centers.shape[0])
+        n_dirs = int(base_dirs.shape[0])
+        counts = np.zeros(n_agents, dtype=np.int64)
+
+        for i in range(n_agents):
+            cx = int(centers[i, 0])
+            cy = int(centers[i, 1])
+            rmax = radius_scalar
+            if use_per_agent:
+                rmax = int(radius_per_agent[i])
+
+            # Upper bound for this agent (including center). Used only for the
+            # local de-dupe buffer.
+            seg_upper = (1 if include_center else 0) + n_dirs * rmax
+            seen = np.empty(seg_upper if seg_upper > 0 else 1, dtype=np.int64)
+            seen_n = 0
+
+            if include_center:
+                x0 = cx
+                y0 = cy
+                if torus:
+                    x0 %= width
+                    y0 %= height
+                else:
+                    if x0 < 0 or x0 >= width or y0 < 0 or y0 >= height:
+                        counts[i] = 0
+                        continue
+                cid0 = x0 * height + y0
+                seen[seen_n] = cid0
+                seen_n += 1
+
+            for d in range(n_dirs):
+                dx0 = int(base_dirs[d, 0])
+                dy0 = int(base_dirs[d, 1])
+                for r in range(1, rmax + 1):
+                    x = cx + dx0 * r
+                    y = cy + dy0 * r
+                    if torus:
+                        x %= width
+                        y %= height
+                    else:
+                        if x < 0 or x >= width or y < 0 or y >= height:
+                            continue
+                    cid = x * height + y
+                    if torus:
+                        dup = False
+                        for k in range(seen_n):
+                            if int(seen[k]) == cid:
+                                dup = True
+                                break
+                        if dup:
+                            continue
+                    seen[seen_n] = cid
+                    seen_n += 1
+
+            counts[i] = seen_n
+
+        return counts
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _neighbors_fill_kernel_2d(
+        centers: np.ndarray,
+        radius_per_agent: np.ndarray,
+        radius_scalar: int,
+        use_per_agent: bool,
+        base_dirs: np.ndarray,
+        width: int,
+        height: int,
+        torus: bool,
+        include_center: bool,
+        offsets: np.ndarray,
+        out_cell_id: np.ndarray,
+        out_rad: np.ndarray,
+        out_d0: np.ndarray,
+        out_d1: np.ndarray,
+    ) -> None:
+        n_agents = int(centers.shape[0])
+        n_dirs = int(base_dirs.shape[0])
+
+        for i in range(n_agents):
+            start = int(offsets[i])
+            cx = int(centers[i, 0])
+            cy = int(centers[i, 1])
+            rmax = radius_scalar
+            if use_per_agent:
+                rmax = int(radius_per_agent[i])
+
+            seg_upper = (1 if include_center else 0) + n_dirs * rmax
+            seen = np.empty(seg_upper if seg_upper > 0 else 1, dtype=np.int64)
+            seen_n = 0
+
+            out = start
+
+            if include_center:
+                x0 = cx
+                y0 = cy
+                if torus:
+                    x0 %= width
+                    y0 %= height
+                else:
+                    if x0 < 0 or x0 >= width or y0 < 0 or y0 >= height:
+                        continue
+                cid0 = x0 * height + y0
+                seen[seen_n] = cid0
+                seen_n += 1
+
+                out_d0[out] = x0
+                out_d1[out] = y0
+                out_rad[out] = 0
+                out_cell_id[out] = cid0
+                out += 1
+
+            for d in range(n_dirs):
+                dx0 = int(base_dirs[d, 0])
+                dy0 = int(base_dirs[d, 1])
+                for r in range(1, rmax + 1):
+                    x = cx + dx0 * r
+                    y = cy + dy0 * r
+                    if torus:
+                        x %= width
+                        y %= height
+                    else:
+                        if x < 0 or x >= width or y < 0 or y >= height:
+                            continue
+                    cid = x * height + y
+                    if torus:
+                        dup = False
+                        for k in range(seen_n):
+                            if int(seen[k]) == cid:
+                                dup = True
+                                break
+                        if dup:
+                            continue
+                    seen[seen_n] = cid
+                    seen_n += 1
+
+                    out_d0[out] = x
+                    out_d1[out] = y
+                    out_rad[out] = r
+                    out_cell_id[out] = cid
+                    out += 1
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _rank_candidates_kernel(
+        offsets: np.ndarray,
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        dim0: np.ndarray,
+        dim1: np.ndarray,
+        score_flat: np.ndarray,
+    ) -> None:
+        n_agents = int(offsets.shape[0] - 1)
+        for i in range(n_agents):
+            start = int(offsets[i])
+            stop = int(offsets[i + 1])
+            # insertion sort on small K
+            for j in range(start + 1, stop):
+                key_cell = int(cell_id[j])
+                key_rad = int(radius[j])
+                key_d0 = int(dim0[j])
+                key_d1 = int(dim1[j])
+                key_score = float(score_flat[key_cell])
+
+                k = j - 1
+                while k >= start:
+                    cur_cell = int(cell_id[k])
+                    cur_score = float(score_flat[cur_cell])
+                    # comparator: score desc, radius asc, dim0 asc, dim1 asc
+                    better = False
+                    if cur_score > key_score:
+                        better = True
+                    elif cur_score < key_score:
+                        better = False
+                    else:
+                        cur_rad = int(radius[k])
+                        if cur_rad < key_rad:
+                            better = True
+                        elif cur_rad > key_rad:
+                            better = False
+                        else:
+                            cur_d0 = int(dim0[k])
+                            if cur_d0 < key_d0:
+                                better = True
+                            elif cur_d0 > key_d0:
+                                better = False
+                            else:
+                                cur_d1 = int(dim1[k])
+                                better = cur_d1 <= key_d1
+
+                    if better:
+                        break
+
+                    cell_id[k + 1] = cell_id[k]
+                    radius[k + 1] = radius[k]
+                    dim0[k + 1] = dim0[k]
+                    dim1[k + 1] = dim1[k]
+                    k -= 1
+
+                cell_id[k + 1] = key_cell
+                radius[k + 1] = key_rad
+                dim0[k + 1] = key_d0
+                dim1[k + 1] = key_d1
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _rank_candidates_by_score_kernel(
+        offsets: np.ndarray,
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        dim0: np.ndarray,
+        dim1: np.ndarray,
+        cand_score: np.ndarray,
+    ) -> None:
+        n_agents = int(offsets.shape[0] - 1)
+        for i in range(n_agents):
+            start = int(offsets[i])
+            stop = int(offsets[i + 1])
+            for j in range(start + 1, stop):
+                key_cell = int(cell_id[j])
+                key_rad = int(radius[j])
+                key_d0 = int(dim0[j])
+                key_d1 = int(dim1[j])
+                key_score = float(cand_score[j])
+                if key_score != key_score:
+                    key_score = -1e300
+
+                k = j - 1
+                while k >= start:
+                    cur_score = float(cand_score[k])
+                    if cur_score != cur_score:
+                        cur_score = -1e300
+
+                    better = False
+                    if cur_score > key_score:
+                        better = True
+                    elif cur_score < key_score:
+                        better = False
+                    else:
+                        cur_rad = int(radius[k])
+                        if cur_rad < key_rad:
+                            better = True
+                        elif cur_rad > key_rad:
+                            better = False
+                        else:
+                            cur_d0 = int(dim0[k])
+                            if cur_d0 < key_d0:
+                                better = True
+                            elif cur_d0 > key_d0:
+                                better = False
+                            else:
+                                cur_d1 = int(dim1[k])
+                                better = cur_d1 <= key_d1
+
+                    if better:
+                        break
+
+                    cell_id[k + 1] = cell_id[k]
+                    radius[k + 1] = radius[k]
+                    dim0[k + 1] = dim0[k]
+                    dim1[k + 1] = dim1[k]
+                    cand_score[k + 1] = cand_score[k]
+                    k -= 1
+
+                cell_id[k + 1] = key_cell
+                radius[k + 1] = key_rad
+                dim0[k + 1] = key_d0
+                dim1[k + 1] = key_d1
+                cand_score[k + 1] = key_score
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _resolve_conflicts_lottery_kernel(
+        offsets: np.ndarray,
+        cand_cell: np.ndarray,
+        origin: np.ndarray,
+        capacity_flat: np.ndarray,
+        seed: np.uint64,
+    ) -> tuple[np.ndarray, int]:
+        n_agents = int(offsets.shape[0] - 1)
+        dest = np.full(n_agents, -1, dtype=np.int64)
+        if n_agents == 0:
+            return dest, seed
+
+        cap = capacity_flat.copy()
+
+        ptr = np.zeros(n_agents, dtype=np.int64)
+        seg_len = (offsets[1:] - offsets[:-1]).astype(np.int64)
+        unassigned = np.ones(n_agents, dtype=np.uint8)  # 1 if unassigned
+
+        max_candidates = 0
+        for i in range(n_agents):
+            if int(seg_len[i]) > max_candidates:
+                max_candidates = int(seg_len[i])
+        if max_candidates == 0:
+            for i in range(n_agents):
+                dest[i] = int(origin[i])
+            return dest, seed
+
+        state = seed
+
+        # Scratch for proposals (<= n_agents each round).
+        prop_agents = np.empty(n_agents, dtype=np.int64)
+        prop_cells = np.empty(n_agents, dtype=np.int64)
+        prop_wait = np.empty(n_agents, dtype=np.uint8)
+
+        # Upper bound similar to Python implementation.
+        max_iters = int(n_agents * max_candidates + n_agents + 1)
+
+        for _ in range(max_iters):
+            any_unassigned = False
+            for i in range(n_agents):
+                if unassigned[i] == 1:
+                    any_unassigned = True
+                    break
+            if not any_unassigned:
+                break
+
+            made_progress = False
+
+            freeable = np.zeros(cap.shape[0], dtype=np.uint8)
+            for i in range(n_agents):
+                if unassigned[i] == 1:
+                    freeable[int(origin[i])] = 1
+
+            prop_n = 0
+
+            for i in range(n_agents):
+                if unassigned[i] != 1:
+                    continue
+                base = int(offsets[i])
+                nseg = int(seg_len[i])
+                if nseg <= 0:
+                    dest[i] = int(origin[i])
+                    unassigned[i] = 0
+                    made_progress = True
+                    continue
+
+                # Walk candidates until we find a proposal or exhaust.
+                while int(ptr[i]) < nseg:
+                    j = base + int(ptr[i])
+                    cell = int(cand_cell[j])
+
+                    if cell == int(origin[i]):
+                        dest[i] = cell
+                        unassigned[i] = 0
+                        made_progress = True
+                        break
+
+                    if int(cap[cell]) > 0:
+                        prop_agents[prop_n] = i
+                        prop_cells[prop_n] = cell
+                        prop_wait[prop_n] = 0
+                        prop_n += 1
+                        break
+
+                    if freeable[cell] == 1:
+                        prop_agents[prop_n] = i
+                        prop_cells[prop_n] = cell
+                        prop_wait[prop_n] = 1
+                        prop_n += 1
+                        break
+
+                    ptr[i] += 1
+                    made_progress = True
+
+                if unassigned[i] == 1 and int(ptr[i]) >= nseg:
+                    dest[i] = int(origin[i])
+                    unassigned[i] = 0
+                    made_progress = True
+
+            if prop_n == 0:
+                if not made_progress:
+                    break
+                continue
+
+            order = np.argsort(prop_cells[:prop_n])
+            # Walk proposal runs by cell.
+            run_start = 0
+            while run_start < prop_n:
+                idx0 = int(order[run_start])
+                cell = int(prop_cells[idx0])
+                run_end = run_start + 1
+                while run_end < prop_n:
+                    idxn = int(order[run_end])
+                    if int(prop_cells[idxn]) != cell:
+                        break
+                    run_end += 1
+
+                remaining = int(cap[cell])
+                run_len = run_end - run_start
+
+                if remaining <= 0:
+                    # Full: non-waiters advance.
+                    for t in range(run_start, run_end):
+                        ii = int(order[t])
+                        a = int(prop_agents[ii])
+                        if prop_wait[ii] == 0:
+                            ptr[a] += 1
+                            made_progress = True
+                else:
+                    # Pick winners without replacement (simple in-place shuffle).
+                    k = remaining
+                    if k > run_len:
+                        k = run_len
+
+                    tmp = np.empty(run_len, dtype=np.int64)
+                    for t in range(run_len):
+                        ii = int(order[run_start + t])
+                        tmp[t] = int(prop_agents[ii])
+
+                    # Partial Fisher-Yates for first k.
+                    for t in range(k):
+                        # Inline splitmix64 + randbelow to avoid calling external
+                        # helpers that may be runtime-wrapped.
+                        n = run_len - t
+                        if n <= 1:
+                            j = t
+                        else:
+                            x = np.uint64(n)
+                            limit = (np.uint64(0xFFFFFFFFFFFFFFFF) // x) * x
+                            while True:
+                                z = state + np.uint64(0x9E3779B97F4A7C15)
+                                z = (z ^ (z >> np.uint64(30))) * np.uint64(
+                                    0xBF58476D1CE4E5B9
+                                )
+                                z = (z ^ (z >> np.uint64(27))) * np.uint64(
+                                    0x94D049BB133111EB
+                                )
+                                z = z ^ (z >> np.uint64(31))
+                                state = state + np.uint64(0x9E3779B97F4A7C15)
+                                if z < limit:
+                                    j = t + int(z % x)
+                                    break
+                        tmp[t], tmp[j] = tmp[j], tmp[t]
+
+                    for t in range(k):
+                        w = int(tmp[t])
+                        dest[w] = cell
+                        unassigned[w] = 0
+                    cap[cell] -= k
+                    made_progress = True
+
+                    # Free origins for winners that moved.
+                    for t in range(k):
+                        w = int(tmp[t])
+                        if int(origin[w]) != cell:
+                            cap[int(origin[w])] += 1
+
+                    # Losers advance.
+                    # Build a small winner marker (linear scan: run_len small).
+                    for t in range(run_start, run_end):
+                        ii = int(order[t])
+                        a = int(prop_agents[ii])
+                        won = False
+                        for u in range(k):
+                            if int(tmp[u]) == a:
+                                won = True
+                                break
+                        if not won:
+                            ptr[a] += 1
+
+                run_start = run_end
+
+            if not made_progress:
+                break
+
+        for i in range(n_agents):
+            if unassigned[i] == 1:
+                dest[i] = int(origin[i])
+
+        return dest, state
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +583,10 @@ def _coords_from_cell_id_2d(cell_id: np.ndarray, height: int) -> np.ndarray:
 class _GridFastPath:
     def __init__(self, grid: Grid) -> None:
         self._grid = grid
+
+    @property
+    def numba_enabled(self) -> bool:
+        return _numba_enabled()
 
     def csr(
         self,
@@ -122,6 +658,57 @@ class _GridFastPath:
             .astype(np.int64, copy=False)
         )
         n_dirs = int(base_dirs.shape[0])
+
+        if _numba_enabled():
+            width = int(grid._dimensions[0])
+            height = int(grid._dimensions[1])
+            torus = bool(grid._torus)
+            use_per_agent = radius_per_agent is not None
+            rad_arr = radius_per_agent if radius_per_agent is not None else np.empty(0)
+            rad_scalar = int(radius_scalar) if radius_scalar is not None else 0
+
+            counts = _neighbors_count_kernel_2d(
+                centers.astype(np.int64, copy=False),
+                rad_arr.astype(np.int64, copy=False),
+                rad_scalar,
+                use_per_agent,
+                base_dirs,
+                width,
+                height,
+                torus,
+                include_center,
+            )
+            offsets = np.empty(n_agents + 1, dtype=np.int64)
+            offsets[0] = 0
+            np.cumsum(counts, out=offsets[1:])
+            total = int(offsets[-1])
+            cell_id_all = np.empty(total, dtype=np.int64)
+            rad_all = np.empty(total, dtype=np.int64)
+            dim0_all = np.empty(total, dtype=np.int64)
+            dim1_all = np.empty(total, dtype=np.int64)
+            _neighbors_fill_kernel_2d(
+                centers.astype(np.int64, copy=False),
+                rad_arr.astype(np.int64, copy=False),
+                rad_scalar,
+                use_per_agent,
+                base_dirs,
+                width,
+                height,
+                torus,
+                include_center,
+                offsets,
+                cell_id_all,
+                rad_all,
+                dim0_all,
+                dim1_all,
+            )
+            return _CSR(
+                offsets=offsets,
+                cell_id=cell_id_all,
+                radius=rad_all,
+                dim0=dim0_all,
+                dim1=dim1_all,
+            )
 
         # Upper bound (no bounds filtering, no torus de-dupe). When radii vary,
         # allocate using the sum of per-agent bounds instead of n_agents * max_radius.
@@ -231,19 +818,31 @@ class _GridFastPath:
         if cand_score.dtype.kind == "f":
             cand_score = np.nan_to_num(cand_score, nan=-np.inf)
 
-        n_agents = int(offsets.shape[0] - 1)
-        for i in range(n_agents):
-            start = int(offsets[i])
-            stop = int(offsets[i + 1])
-            if stop - start <= 1:
-                continue
-            seg = slice(start, stop)
-            seg_score = cand_score[seg]
-            order = np.lexsort((out_d1[seg], out_d0[seg], out_rad[seg], -seg_score))
-            out_cell[seg] = out_cell[seg][order]
-            out_rad[seg] = out_rad[seg][order]
-            out_d0[seg] = out_d0[seg][order]
-            out_d1[seg] = out_d1[seg][order]
+        if _numba_enabled() and out_cell.size:
+            score_buf = cand_score.astype(np.float64, copy=True)
+            _rank_candidates_by_score_kernel(
+                offsets,
+                out_cell,
+                out_rad,
+                out_d0,
+                out_d1,
+                score_buf,
+            )
+            # score_buf is updated in-place to preserve stability; not returned.
+        else:
+            n_agents = int(offsets.shape[0] - 1)
+            for i in range(n_agents):
+                start = int(offsets[i])
+                stop = int(offsets[i + 1])
+                if stop - start <= 1:
+                    continue
+                seg = slice(start, stop)
+                seg_score = cand_score[seg]
+                order = np.lexsort((out_d1[seg], out_d0[seg], out_rad[seg], -seg_score))
+                out_cell[seg] = out_cell[seg][order]
+                out_rad[seg] = out_rad[seg][order]
+                out_d0[seg] = out_d0[seg][order]
+                out_d1[seg] = out_d1[seg][order]
 
         return _CSR(
             offsets=offsets,
@@ -281,21 +880,32 @@ class _GridFastPath:
         else:
             score = score_flat
 
-        n_agents = int(offsets.shape[0] - 1)
-        for i in range(n_agents):
-            start = int(offsets[i])
-            stop = int(offsets[i + 1])
-            if stop - start <= 1:
-                continue
-            seg = slice(start, stop)
-            seg_cell = out_cell[seg]
-            seg_score = score[seg_cell]
-            # lexsort uses last key as primary.
-            order = np.lexsort((out_d1[seg], out_d0[seg], out_rad[seg], -seg_score))
-            out_cell[seg] = seg_cell[order]
-            out_rad[seg] = out_rad[seg][order]
-            out_d0[seg] = out_d0[seg][order]
-            out_d1[seg] = out_d1[seg][order]
+        if _numba_enabled() and out_cell.size:
+            score_buf = score.astype(np.float64, copy=False)
+            _rank_candidates_kernel(
+                offsets,
+                out_cell,
+                out_rad,
+                out_d0,
+                out_d1,
+                score_buf,
+            )
+        else:
+            n_agents = int(offsets.shape[0] - 1)
+            for i in range(n_agents):
+                start = int(offsets[i])
+                stop = int(offsets[i + 1])
+                if stop - start <= 1:
+                    continue
+                seg = slice(start, stop)
+                seg_cell = out_cell[seg]
+                seg_score = score[seg_cell]
+                # lexsort uses last key as primary.
+                order = np.lexsort((out_d1[seg], out_d0[seg], out_rad[seg], -seg_score))
+                out_cell[seg] = seg_cell[order]
+                out_rad[seg] = out_rad[seg][order]
+                out_d0[seg] = out_d0[seg][order]
+                out_d1[seg] = out_d1[seg][order]
 
         return _CSR(
             offsets=offsets,
@@ -340,9 +950,20 @@ class _GridFastPath:
         """
         offsets = csr.offsets
         cand_cell = csr.cell_id
+        origin = origin_cell_id.astype(np.int64, copy=False)
+
+        if _numba_enabled():
+            seed = np.uint64(rng.integers(0, 2**63 - 1, dtype=np.uint64))
+            dest, _ = _resolve_conflicts_lottery_kernel(
+                offsets.astype(np.int64, copy=False),
+                cand_cell.astype(np.int64, copy=False),
+                origin.astype(np.int64, copy=False),
+                capacity_flat.astype(np.int64, copy=False),
+                seed,
+            )
+            return dest
 
         n_agents = int(offsets.shape[0] - 1)
-        origin = origin_cell_id.astype(np.int64, copy=False)
         dest = np.full(n_agents, -1, dtype=np.int64)
 
         if n_agents == 0:
@@ -393,6 +1014,7 @@ class _GridFastPath:
                     continue
 
                 stop = base + seg_len
+                _ = stop  # keep local var for parity with old code
 
                 # Advance past permanently impossible candidates.
                 while int(ptr[i]) < seg_len:

@@ -196,9 +196,40 @@ def test_move_to_best_fast_path_selected_smoke() -> None:
         radius=3, property="sugar", include_center=True
     )
     assert explain["path"] == "fast"
+    assert "fast_kind" in explain
 
     # Completes without error.
     grid.move_to_best(ids, radius=3, property="sugar", include_center=True)
+
+
+def test_move_to_best_explain_falls_back_when_numba_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = Model(seed=0)
+    agents = ExampleAgentSet(model)
+    agents.add({"x": np.zeros(64, dtype=np.int64)})
+    model.sets.add(agents)
+
+    grid = Grid(model, dimensions=[10, 10], capacity=1, neighborhood_type="moore")
+    model.space = grid
+    _make_dense_sugar(grid, seed=0)
+    ids = agents["unique_id"]
+    _place_agents_unique(grid, ids, seed=0)
+
+    monkeypatch.setenv("MESA_FRAMES_GRID_MOVE_TO_BEST_DISABLE_NUMBA", "1")
+
+    explain_scalar = grid._explain_move_to_best_path(
+        radius=2, property="sugar", include_center=True
+    )
+    assert explain_scalar["path"] == "df"
+    assert explain_scalar["fast_kind"] == "python"
+
+    radii = np.full(len(ids), 2, dtype=np.int64)
+    explain_per_agent = grid._explain_move_to_best_path(
+        radius=radii, property="sugar", include_center=True
+    )
+    assert explain_per_agent["path"] == "df"
+    assert explain_per_agent["fast_kind"] == "python"
 
 
 def test_move_to_best_sorts_dense_cells_row_major_for_fastpath() -> None:

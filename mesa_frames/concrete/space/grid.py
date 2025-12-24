@@ -257,7 +257,13 @@ class Grid(AbstractGrid, PolarsMixin):
             .lower()
         )
         if forced in {"fast", "df"}:
-            return {"path": forced, "reasons": [f"forced via env: {forced}"]}
+            # Preserve compatibility: forced controls the high-level path.
+            fast_kind = "numba" if self._fastpath.numba_enabled else "python"
+            return {
+                "path": forced,
+                "fast_kind": fast_kind,
+                "reasons": [f"forced via env: {forced}"],
+            }
 
         if len(self._dimensions) != 2:
             reasons.append("dimensions not 2D")
@@ -293,6 +299,14 @@ class Grid(AbstractGrid, PolarsMixin):
                 reasons.append("radius sequence must have integer dtype")
             elif np.any(radius_np < 0):
                 reasons.append("radius values must be >= 0")
+
+        # Numba gating: we want to avoid Python loops on the hot path.
+        # - per-agent radius requires Numba to be eligible for the fast path
+        # - scalar radius also prefers Numba (conflict resolution is iterative)
+        if radius_np is not None and not self._fastpath.numba_enabled:
+            reasons.append("per-agent radius requires numba for fast path")
+        if radius_np is None and not self._fastpath.numba_enabled:
+            reasons.append("numba unavailable for fast path")
         if not isinstance(include_center, bool):
             reasons.append("include_center must be a bool")
         if self._agents.is_empty():
@@ -326,9 +340,10 @@ class Grid(AbstractGrid, PolarsMixin):
                 if not numeric:
                     reasons.append("property column not numeric")
 
+        fast_kind = "numba" if self._fastpath.numba_enabled else "python"
         if reasons:
-            return {"path": "df", "reasons": reasons}
-        return {"path": "fast", "reasons": ["eligible"]}
+            return {"path": "df", "fast_kind": fast_kind, "reasons": reasons}
+        return {"path": "fast", "fast_kind": fast_kind, "reasons": ["eligible"]}
 
     def move_to_best(
         self,
