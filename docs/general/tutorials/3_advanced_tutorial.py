@@ -1003,7 +1003,8 @@ class AntsNumba(AntsBase):
         vision = state["vision"].to_numpy().astype(np.int64)
 
         sugar_array = (
-            self.space.cells().sort(["dim_0", "dim_1"])
+            self.space.cells()
+            .sort(["dim_0", "dim_1"])
             .with_columns(pl.col("sugar").fill_null(0))["sugar"]
             .to_numpy()
             .reshape(self.space.dimensions)
