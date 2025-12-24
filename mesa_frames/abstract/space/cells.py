@@ -1,6 +1,4 @@
-"""
-Abstract cells interface for discrete spaces in mesa-frames.
-"""
+"""Abstract cells interface for discrete spaces in mesa-frames."""
 
 from __future__ import annotations
 
@@ -32,7 +30,7 @@ class AbstractCells(ABC):
         self._space = space
 
     @abstractmethod
-    def copy(self, space: object) -> "AbstractCells":
+    def copy(self, space: object) -> AbstractCells:
         """Return a copy of the cells bound to a new space."""
 
     @abstractmethod
@@ -100,7 +98,9 @@ class AbstractCells(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
-    def is_available(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame: ...
+    def is_available(
+        self, pos: DiscreteCoordinate | DiscreteCoordinates
+    ) -> DataFrame: ...
 
     @abstractmethod
     def is_empty(self, pos: DiscreteCoordinate | DiscreteCoordinates) -> DataFrame: ...
@@ -122,7 +122,6 @@ class AbstractCells(ABC):
         This is intentionally public so other components (e.g. grids) can
         request capacity recomputation without reaching into protected APIs.
         """
-
         return self._update_capacity_cells(cells)
 
     def update_capacity_agents(
@@ -133,7 +132,6 @@ class AbstractCells(ABC):
         This is intentionally public so other components (e.g. grids) can
         update capacity without reaching into protected APIs.
         """
-
         return self._update_capacity_agents(agents, operation=operation)
 
     @abstractmethod

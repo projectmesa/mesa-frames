@@ -24,23 +24,19 @@ class AbstractGrid(AbstractDiscreteSpace, ABC):
 
     @property
     @abstractmethod
-    def cells(self) -> AbstractCells:
-        ...
+    def cells(self) -> AbstractCells: ...
 
     @cells.setter
     @abstractmethod
-    def cells(self, cells: AbstractCells) -> None:
-        ...
+    def cells(self, cells: AbstractCells) -> None: ...
 
     @property
     @abstractmethod
-    def neighborhood(self) -> AbstractNeighborhood:
-        ...
+    def neighborhood(self) -> AbstractNeighborhood: ...
 
     @neighborhood.setter
     @abstractmethod
-    def neighborhood(self, neighborhood: AbstractNeighborhood) -> None:
-        ...
+    def neighborhood(self, neighborhood: AbstractNeighborhood) -> None: ...
 
     @abstractmethod
     def get_directions(
@@ -60,8 +56,7 @@ class AbstractGrid(AbstractDiscreteSpace, ABC):
         | Collection[AbstractAgentSetRegistry]
         | None = None,
         normalize: bool = False,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @abstractmethod
     def get_distances(
@@ -80,12 +75,10 @@ class AbstractGrid(AbstractDiscreteSpace, ABC):
         | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
-    ) -> DataFrame:
-        ...
+    ) -> DataFrame: ...
 
     @abstractmethod
-    def out_of_bounds(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
-        ...
+    def out_of_bounds(self, pos: GridCoordinate | GridCoordinates) -> DataFrame: ...
 
     @abstractmethod
     def remove_agents(
@@ -96,8 +89,7 @@ class AbstractGrid(AbstractDiscreteSpace, ABC):
         | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @abstractmethod
     def move_all(
@@ -109,24 +101,19 @@ class AbstractGrid(AbstractDiscreteSpace, ABC):
         | Collection[AbstractAgentSetRegistry],
         pos: GridCoordinate | GridCoordinates,
         inplace: bool = True,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     @abstractmethod
-    def torus_adj(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
-        ...
+    def torus_adj(self, pos: GridCoordinate | GridCoordinates) -> DataFrame: ...
 
     @property
     @abstractmethod
-    def dimensions(self) -> Sequence[int]:
-        ...
+    def dimensions(self) -> Sequence[int]: ...
 
     @property
     @abstractmethod
-    def neighborhood_type(self) -> Literal["moore", "von_neumann", "hexagonal"]:
-        ...
+    def neighborhood_type(self) -> Literal["moore", "von_neumann", "hexagonal"]: ...
 
     @property
     @abstractmethod
-    def torus(self) -> bool:
-        ...
+    def torus(self) -> bool: ...

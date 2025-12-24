@@ -231,7 +231,9 @@ def test_swap_agents(
         [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]],
     )
     # Test with IdsLike
-    space = grid_moore.swap_agents(unique_ids[[0, 1]], unique_ids[[2, 3]], inplace=False)
+    space = grid_moore.swap_agents(
+        unique_ids[[0, 1]], unique_ids[[2, 3]], inplace=False
+    )
     assert (
         space.agents.filter(pl.col("agent_id") == unique_ids[0]).row(0)[1:]
         == grid_moore.agents.filter(pl.col("agent_id") == unique_ids[2]).row(0)[1:]

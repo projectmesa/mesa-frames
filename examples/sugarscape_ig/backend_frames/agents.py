@@ -192,8 +192,6 @@ class AntsParallel(AntsBase):
     def _build_neighborhood_frame(self) -> pl.DataFrame:
         """Assemble the sugar-weighted neighbourhood for each sensing agent.
 
-        Parameters
-        ----------
         Returns
         -------
         pl.DataFrame
@@ -221,16 +219,11 @@ class AntsParallel(AntsBase):
         # │ i64        ┆ i64        ┆ i64    │
         # ╞════════════╪════════════╪════════╡
 
-        neighborhood_cells = (
-            neighborhood_cells.join(
-                self.space.cells(include="properties").select(
-                    ["dim_0", "dim_1", "sugar"]
-                ),
-                on=["dim_0", "dim_1"],
-                how="left",
-            )
-            .with_columns(pl.col("sugar").fill_null(0))
-        )
+        neighborhood_cells = neighborhood_cells.join(
+            self.space.cells(include="properties").select(["dim_0", "dim_1", "sugar"]),
+            on=["dim_0", "dim_1"],
+            how="left",
+        ).with_columns(pl.col("sugar").fill_null(0))
 
         # Final neighborhood columns:
         # ┌──────────┬────────┬──────────────────┬──────────────────┬────────┐
@@ -627,6 +620,7 @@ class AntsParallel(AntsBase):
         if assigned_parts:
             return pl.concat([assigned, *assigned_parts], how="vertical")
         return assigned
+
 
 __all__ = [
     "AntsBase",

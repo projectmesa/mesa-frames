@@ -117,7 +117,7 @@ These are measured on this branch with `MESA_FRAMES_SUGARSCAPE_ENGINE=frames` an
 Each row changes *one major layer* (resolver / grid move path / sugar-regrow path), so you can see what each feature buys.
 
 | Configuration | Seconds | Speedup vs rounds (trust=1, ultra=0) |
-| --- | ---:| ---: |
+| --- | ---: | ---: |
 | `resolver=rounds`, `trust_full_move=0`, `ultra_fast=0` | 19.84 | 0.996× |
 | `resolver=rounds`, `trust_full_move=1`, `ultra_fast=0` | 19.75 | 1.000× |
 | `resolver=kernel`, `trust_full_move=1`, `ultra_fast=0` | 17.90 | 1.10× |
@@ -293,7 +293,7 @@ When moving all agents:
 - recomputes capacity via `np.bincount(cell_id)`
 - rebuilds the agents table in one shot
 
-2) If `pos` is provided as a tuple/list of per-dimension arrays `(dim0, dim1, ...)`, the grid performs the same operations without allocating a stacked `(n, d)` array.
+1) If `pos` is provided as a tuple/list of per-dimension arrays `(dim0, dim1, ...)`, the grid performs the same operations without allocating a stacked `(n, d)` array.
 
 Why this matters:
 
@@ -358,7 +358,7 @@ Measured time: **~0.090s for 50k×100** after warmup.
 - The logic in [mesa_frames/abstract/space/grid.py](mesa_frames/abstract/space/grid.py) is generally useful for any model that moves all agents each step.
 - Keep `MESA_FRAMES_GRID_TRUST_FULL_MOVE` default-off to preserve safety.
 
-2) Accept per-dimension NumPy arrays for full-move
+1) Accept per-dimension NumPy arrays for full-move
 
 - Avoids allocating stacked `(n, d)` position arrays.
 - Useful whenever a model computes destination coordinates as separate arrays.
@@ -370,7 +370,7 @@ Measured time: **~0.090s for 50k×100** after warmup.
 - It’s highly specific to Sugarscape IG rules and candidate structure.
 - Can remain an example “performance mode” without complicating core APIs.
 
-2) Ultra-fast sugar buffer + bulk writeback
+1) Ultra-fast sugar buffer + bulk writeback
 
 - This depends on specific `cells` layouts and on being able to treat the grid as dense row-major.
 - It is safe as an example optimization but not yet a general core feature.

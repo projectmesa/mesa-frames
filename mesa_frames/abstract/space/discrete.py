@@ -191,13 +191,11 @@ class AbstractDiscreteSpace(Space):
         """
         ...
 
-
     @property
     @abstractmethod
     def cells(self) -> AbstractCells:
         """Access cell data via a unified get/set interface."""
         ...
-
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}\n{str(self.cells())}"

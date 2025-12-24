@@ -41,10 +41,12 @@ class _NullDataCollector:
 
 
 def null_datacollector() -> _NullDataCollector:
+    """Return a no-op DataCollector stand-in for benchmark runs."""
     return _NullDataCollector(data={"model": [], "agent": []})
 
 
 # --- RNG helpers (deterministic, fast) ---
+
 
 def _splitmix64_next(state: np.uint64) -> tuple[np.uint64, np.uint64]:
     z = state + np.uint64(0x9E3779B97F4A7C15)
@@ -325,7 +327,6 @@ def _step_once_inplace(
     - `occ_gen`: dynamic occupancy stamps during conflict rounds (for availability)
     Both use `gen` as the active stamp.
     """
-
     # Build start occupancy (sugar) and dynamic occupancy (availability).
     for i in range(n_agents):
         c = int(origin_cell[i])
@@ -564,7 +565,9 @@ if njit is not None:  # pragma: no cover
     _splitmix64_next = njit(cache=True)(_splitmix64_next)
     _randbelow_u64 = njit(cache=True)(_randbelow_u64)
     _resolve_conflicts_kernel = njit(cache=True)(_resolve_conflicts_kernel)
-    _build_ranked_candidates_von_neumann = njit(cache=True)(_build_ranked_candidates_von_neumann)
+    _build_ranked_candidates_von_neumann = njit(cache=True)(
+        _build_ranked_candidates_von_neumann
+    )
     _step_once_inplace = njit(cache=True)(_step_once_inplace)
     _step_once = njit(cache=True)(_step_once)
 
@@ -659,5 +662,6 @@ def simulate_numpy(
 
 
 def engine_enabled() -> bool:
+    """Return True when the benchmark engine is enabled via env var."""
     engine = os.environ.get("MESA_FRAMES_SUGARSCAPE_ENGINE", "").strip().lower()
     return engine == "numpy"

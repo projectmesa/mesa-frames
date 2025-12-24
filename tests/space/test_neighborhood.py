@@ -385,7 +385,9 @@ def test_get_neighbors(
     )
     assert_frame_equal(
         neighbors,
-        pl.DataFrame({"agent_id": unique_ids[[1, 3]], "dim_0": [0, 1], "dim_1": [1, 0]}),
+        pl.DataFrame(
+            {"agent_id": unique_ids[[1, 3]], "dim_0": [0, 1], "dim_1": [1, 0]}
+        ),
         check_row_order=False,
     )
 
@@ -426,9 +428,7 @@ def test_get_neighbors(
         unique_ids[[0, 1, 2, 3, 4, 5, 6, 7]],
         [[2, 2], [2, 0], [2, 1], [0, 2], [0, 1], [1, 2], [1, 0], [1, 1]],
     )
-    neighbors = grid_moore_torus.neighborhood(
-        radius=1, target=[0, 0], include="agents"
-    )
+    neighbors = grid_moore_torus.neighborhood(radius=1, target=[0, 0], include="agents")
     assert_frame_equal(
         neighbors,
         pl.DataFrame(
@@ -449,9 +449,7 @@ def test_get_neighbors(
     grid_von_neumann.move_agents(
         unique_ids[[0, 1, 2, 3]], [[0, 1], [1, 0], [1, 2], [2, 1]]
     )
-    neighbors = grid_von_neumann.neighborhood(
-        radius=1, target=[1, 1], include="agents"
-    )
+    neighbors = grid_von_neumann.neighborhood(radius=1, target=[1, 1], include="agents")
     assert_frame_equal(
         neighbors,
         pl.DataFrame(

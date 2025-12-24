@@ -1,6 +1,4 @@
-"""
-Concrete neighborhood implementation for polars-backed grids.
-"""
+"""Concrete neighborhood implementation for polars-backed grids."""
 
 from __future__ import annotations
 
@@ -30,7 +28,7 @@ class GridNeighborhood(AbstractNeighborhood):
     def __init__(self, space: AbstractGrid) -> None:
         super().__init__(space)
 
-    def copy(self, space: AbstractGrid) -> "GridNeighborhood":
+    def copy(self, space: AbstractGrid) -> GridNeighborhood:
         return self.__class__(space)
 
     def __call__(
@@ -338,7 +336,14 @@ class GridNeighborhood(AbstractNeighborhood):
                         for c in space._center_col_names
                     ],
                 ]
-            ).select([*center_id_cols, *space._pos_col_names, "radius", *space._center_col_names])
+            ).select(
+                [
+                    *center_id_cols,
+                    *space._pos_col_names,
+                    "radius",
+                    *space._center_col_names,
+                ]
+            )
             neighbors_df = pl.concat([center_rows, neighbors_df], how="vertical")
 
         return neighbors_df

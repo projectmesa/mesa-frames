@@ -131,7 +131,9 @@ def test_get_distances(
     # Test with GridCoordinate
     dist = grid_moore.get_distances(pos0=[1, 1], pos1=[2, 2])
     assert isinstance(dist, pl.DataFrame)
-    assert np.allclose(dist.select(pl.col("distance")).to_series().to_list(), [np.sqrt(2)])
+    assert np.allclose(
+        dist.select(pl.col("distance")).to_series().to_list(), [np.sqrt(2)]
+    )
 
     # Test with GridCoordinates
     dist = grid_moore.get_distances(pos0=[[0, 0], [2, 2]], pos1=[[1, 2], [1, 1]])

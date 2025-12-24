@@ -1,6 +1,4 @@
-"""
-Abstract neighborhood interface for discrete spaces in mesa-frames.
-"""
+"""Abstract neighborhood interface for discrete spaces in mesa-frames."""
 
 from __future__ import annotations
 
@@ -26,7 +24,7 @@ class AbstractNeighborhood(ABC):
         self._space = space
 
     @abstractmethod
-    def copy(self, space: object) -> "AbstractNeighborhood":
+    def copy(self, space: object) -> AbstractNeighborhood:
         """Return a copy of the neighborhood accessor bound to a new space."""
 
     @abstractmethod
