@@ -1,6 +1,4 @@
-"""
-Concrete cells implementation for polars-backed grids.
-"""
+"""Concrete cells implementation for polars-backed grids."""
 
 from __future__ import annotations
 
@@ -62,9 +60,9 @@ class GridCells(AbstractCells):
         dims = self._space._dimensions
         if len(dims) == 2:
             height = int(dims[1])
-            return coords[:, 0].astype(np.int64, copy=False) * height + coords[:, 1].astype(
-                np.int64, copy=False
-            )
+            return coords[:, 0].astype(np.int64, copy=False) * height + coords[
+                :, 1
+            ].astype(np.int64, copy=False)
         return np.ravel_multi_index(coords.T, dims)
 
     def _coords_from_cell_id(self, cell_id: np.ndarray) -> np.ndarray:
@@ -91,7 +89,24 @@ class GridCells(AbstractCells):
         self._cells = self._cells.sort(space._pos_col_names)
         setattr(space, "_cells_row_major_ok", True)
 
-    def copy(self, space: AbstractGrid) -> "GridCells":
+    def _property_buffer(self, col: str) -> np.ndarray:
+        """Return a flat, row-major NumPy buffer for a cell property.
+
+        The returned array is aligned with `_cell_id_from_coords` / `_coords_from_cell_id`.
+        This is an internal helper used by NumPy fast paths.
+        """
+        if self._cells.is_empty():
+            raise ValueError("Cells properties are not initialized")
+        if col not in self._cells.columns:
+            raise ValueError(f"Unknown cell property: {col}")
+
+        self._ensure_dense_row_major_cells()
+        if self._cells.height != int(np.prod(self._space._dimensions)):
+            raise ValueError("Fast property buffer requires dense cells")
+
+        return self._cells[col].to_numpy()
+
+    def copy(self, space: AbstractGrid) -> GridCells:
         obj = self.__class__(space)
         if isinstance(self._cells, pl.DataFrame):
             obj._cells = self._cells.clone()
@@ -212,9 +227,7 @@ class GridCells(AbstractCells):
                 return obj
             update_cols = [c for c in cells_df.columns if c not in obj._pos_col_names]
             if update_cols:
-                is_dense_grid = cells_obj._cells.height == int(
-                    np.prod(obj._dimensions)
-                )
+                is_dense_grid = cells_obj._cells.height == int(np.prod(obj._dimensions))
                 if is_dense_grid:
                     # Delta-aware update: for small updates on dense grids, avoid a join.
                     # We rely on a stable row-major layout and update only the touched rows.
@@ -554,7 +567,7 @@ class GridCells(AbstractCells):
         if isinstance(target, (AbstractAgentSet, AbstractAgentSetRegistry)):
             return None, target
         if isinstance(target, Collection):
-            if not target:
+            if len(target) == 0:
                 return None, target
             first = next(iter(target))
             if isinstance(first, (AbstractAgentSet, AbstractAgentSetRegistry)):

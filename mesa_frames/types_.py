@@ -38,7 +38,7 @@ AgnosticMask = (
 )  # Any is a placeholder for any type if it's a single value
 AgentMaskLiteral = Literal["all", "active"]
 AgnosticAgentMask = Sequence[int] | int | AgentMaskLiteral | None
-AgnosticIds = int | Collection[int]
+AgnosticIds = int | Collection[int] | ndarray
 
 ###----- Polars Types -----###
 PolarsIndex = pl.Series | pl.DataFrame

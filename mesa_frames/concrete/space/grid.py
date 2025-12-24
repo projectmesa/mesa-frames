@@ -83,7 +83,7 @@ class Grid(AbstractGrid, PolarsMixin):
 
     def __init__(
         self,
-        model: "mesa_frames.concrete.model.Model",
+        model: mesa_frames.concrete.model.Model,
         dimensions: Sequence[int],
         torus: bool = False,
         capacity: int | None = None,
@@ -107,6 +107,10 @@ class Grid(AbstractGrid, PolarsMixin):
 
         self.cells = GridCells(self)
         self.neighborhood = GridNeighborhood(self)
+
+        from mesa_frames.concrete.space._grid_fastpath import _GridFastPath
+
+        self._fastpath = _GridFastPath(self)
 
     @property
     def cells(self) -> GridCells:
@@ -183,7 +187,9 @@ class Grid(AbstractGrid, PolarsMixin):
             ),
             name="out_of_bounds",
         )
-        return self._df_concat(objs=[pos_df, self._srs_to_df(out_of_bounds)], how="horizontal")
+        return self._df_concat(
+            objs=[pos_df, self._srs_to_df(out_of_bounds)], how="horizontal"
+        )
 
     def remove_agents(
         self,
@@ -193,7 +199,7 @@ class Grid(AbstractGrid, PolarsMixin):
         | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
         inplace: bool = True,
-    ) -> "Grid":
+    ) -> Grid:
         if not inplace:
             obj = self.copy()
             return obj.remove_agents(agents, inplace=True)
@@ -219,7 +225,7 @@ class Grid(AbstractGrid, PolarsMixin):
         | Collection[AbstractAgentSetRegistry],
         pos: GridCoordinate | GridCoordinates,
         inplace: bool = True,
-    ) -> "Grid":
+    ) -> Grid:
         if not inplace:
             obj = self.copy()
             return obj.move_all(agents, pos, inplace=True)
@@ -231,6 +237,352 @@ class Grid(AbstractGrid, PolarsMixin):
             trust_full_move=True,
             require_full_move=True,
         )
+
+    def _explain_move_to_best_path(
+        self,
+        *,
+        radius: int,
+        property: str,  # noqa: A002
+        include_center: bool,
+    ) -> dict[str, object]:
+        """Explain which implementation path will be used for move_to_best.
+
+        This is an internal debug hook; it is not part of the public API.
+        """
+        reasons: list[str] = []
+
+        forced = (
+            os.environ.get("MESA_FRAMES_GRID_MOVE_TO_BEST_FORCE_PATH", "")
+            .strip()
+            .lower()
+        )
+        if forced in {"fast", "df"}:
+            return {"path": forced, "reasons": [f"forced via env: {forced}"]}
+
+        if len(self._dimensions) != 2:
+            reasons.append("dimensions not 2D")
+        if self._neighborhood_type not in {"moore", "von_neumann"}:
+            reasons.append("neighborhood_type not supported")
+        if not isinstance(radius, int) or radius < 0:
+            reasons.append("radius must be a non-negative int")
+        if not isinstance(include_center, bool):
+            reasons.append("include_center must be a bool")
+        if self._agents.is_empty():
+            reasons.append("no agents placed")
+
+        # Dense row-major property buffer requirements.
+        if self.cells._cells.is_empty():
+            reasons.append("cells properties not initialized")
+        else:
+            if self.cells._cells.height != int(np.prod(self._dimensions)):
+                reasons.append("cells not dense")
+            if property not in self.cells._cells.columns:
+                reasons.append("property column missing")
+            else:
+                # Ensure the cell table is in canonical row-major order exactly once.
+                # This keeps the NumPy property buffer aligned with cell_id.
+                self.cells._ensure_dense_row_major_cells()
+                dtype = self.cells._cells.schema.get(property)
+                numeric = dtype in {
+                    pl.Int8,
+                    pl.Int16,
+                    pl.Int32,
+                    pl.Int64,
+                    pl.UInt8,
+                    pl.UInt16,
+                    pl.UInt32,
+                    pl.UInt64,
+                    pl.Float32,
+                    pl.Float64,
+                }
+                if not numeric:
+                    reasons.append("property column not numeric")
+
+        if reasons:
+            return {"path": "df", "reasons": reasons}
+        return {"path": "fast", "reasons": ["eligible"]}
+
+    def move_to_best(
+        self,
+        agents: IdsLike
+        | AbstractAgentSet
+        | AbstractAgentSetRegistry
+        | Collection[AbstractAgentSet]
+        | Collection[AbstractAgentSetRegistry],
+        radius: int,
+        property: str = "sugar",  # noqa: A002
+        include_center: bool = True,
+        *,
+        inplace: bool = True,
+    ) -> Grid:
+        """Move agents to the best neighboring cell by a simple cell property.
+
+        Ranking is by:
+        - property (descending)
+        - radius (ascending)
+        - dim_0 (ascending)
+        - dim_1 (ascending)
+
+        Conflicts are resolved with a deterministic, seeded round-based lottery.
+        """
+        if not inplace:
+            obj = self.copy()
+            return obj.move_to_best(
+                agents=agents,
+                radius=radius,
+                property=property,
+                include_center=include_center,
+                inplace=True,
+            )
+
+        if len(self._dimensions) != 2:
+            raise ValueError("move_to_best is only supported for 2D grids")
+
+        radius = int(radius)
+        if radius < 0:
+            raise ValueError("radius must be >= 0")
+
+        move_ids_srs = self._get_ids_srs(agents)
+        if move_ids_srs.is_empty() or self._agents.is_empty():
+            return self
+
+        # Validate property up front.
+        if self.cells._cells.is_empty() or property not in self.cells._cells.columns:
+            raise ValueError(f"Unknown cell property: {property}")
+        dtype = self.cells._cells.schema.get(property)
+        numeric = dtype in {
+            pl.Int8,
+            pl.Int16,
+            pl.Int32,
+            pl.Int64,
+            pl.UInt8,
+            pl.UInt16,
+            pl.UInt32,
+            pl.UInt64,
+            pl.Float32,
+            pl.Float64,
+        }
+        if not numeric:
+            raise ValueError(f"Cell property must be numeric: {property}")
+
+        # We apply a full-move update (move_all) for speed; agents not in `agents`
+        # keep their original coordinates.
+        full_ids = self._agents["agent_id"].to_numpy()
+        full_coords = (
+            self._agents.select(self._pos_col_names)
+            .to_numpy()
+            .astype(np.int64, copy=False)
+        )
+
+        # Map move ids -> row indices in full_coords
+        sorted_idx = np.argsort(full_ids)
+        sorted_ids = full_ids[sorted_idx]
+        move_ids = move_ids_srs.to_numpy()
+        pos = np.searchsorted(sorted_ids, move_ids)
+        if __debug__:
+            if (pos >= sorted_ids.shape[0]).any() or not np.array_equal(
+                sorted_ids[pos], move_ids
+            ):
+                raise ValueError("Some agents are not placed in the grid")
+        move_row_idx = sorted_idx[pos]
+
+        centers = full_coords[move_row_idx]
+        height = int(self._dimensions[1])
+        origin_cell_id = centers[:, 0] * height + centers[:, 1]
+
+        # Remaining capacity BEFORE movement (cells currently occupied have 0 remaining
+        # capacity). Origins are not pre-freed: only agents that actually move away will
+        # free their origin slot during conflict resolution.
+        cap_flat = np.asarray(self.cells.capacity, dtype=np.int64).ravel(order="C")
+
+        explain = self._explain_move_to_best_path(
+            radius=radius, property=property, include_center=include_center
+        )
+        path = str(explain["path"])
+
+        if path == "fast":
+            score_flat = self.cells._property_buffer(property)
+            csr = self._fastpath.neighbors_for_agents_array(
+                centers=centers,
+                radius=radius,
+                include_center=include_center,
+            )
+            # Filter candidates by capacity > 0, allowing the agent's own origin.
+            if csr.cell_id.size:
+                ok = cap_flat[csr.cell_id] > 0
+                ok |= csr.cell_id == np.repeat(origin_cell_id, np.diff(csr.offsets))
+            else:
+                ok = np.empty(0, dtype=bool)
+            if ok.size and not ok.all():
+                # rebuild CSR by filtering within segments
+                new_offsets = np.zeros_like(csr.offsets)
+                kept_cell: list[np.ndarray] = []
+                kept_rad: list[np.ndarray] = []
+                kept_d0: list[np.ndarray] = []
+                kept_d1: list[np.ndarray] = []
+                out = 0
+                for i in range(len(csr.offsets) - 1):
+                    start = int(csr.offsets[i])
+                    stop = int(csr.offsets[i + 1])
+                    seg_ok = ok[start:stop]
+                    new_offsets[i] = out
+                    if seg_ok.any():
+                        kept_cell.append(csr.cell_id[start:stop][seg_ok])
+                        kept_rad.append(csr.radius[start:stop][seg_ok])
+                        kept_d0.append(csr.dim0[start:stop][seg_ok])
+                        kept_d1.append(csr.dim1[start:stop][seg_ok])
+                        out += int(seg_ok.sum())
+                new_offsets[-1] = out
+                if out:
+                    csr = self._fastpath.csr(
+                        offsets=new_offsets,
+                        cell_id=np.concatenate(kept_cell),
+                        radius=np.concatenate(kept_rad),
+                        dim0=np.concatenate(kept_d0),
+                        dim1=np.concatenate(kept_d1),
+                    )
+                else:
+                    csr = self._fastpath.csr(
+                        offsets=new_offsets,
+                        cell_id=np.empty(0, dtype=np.int64),
+                        radius=np.empty(0, dtype=np.int64),
+                        dim0=np.empty(0, dtype=np.int64),
+                        dim1=np.empty(0, dtype=np.int64),
+                    )
+
+            csr = self._fastpath.rank_candidates_array(csr, score_flat)
+            dest_cell = self._fastpath.resolve_conflicts_lottery(
+                rng=self.model.random,
+                csr=csr,
+                origin_cell_id=origin_cell_id,
+                capacity_flat=cap_flat,
+            )
+            dest_coords = self.cells._coords_from_cell_id(dest_cell)
+        else:
+            # Polars neighborhood generation fallback, then reuse NumPy rank+resolve.
+            neighbors_df = self.neighborhood(
+                radius=radius,
+                target=move_ids_srs,
+                include="coords",
+                include_center=include_center,
+            )
+            if neighbors_df.is_empty():
+                dest_coords = centers
+            else:
+                cells_df = self.cells._cells.select([*self._pos_col_names, property])
+                cand = neighbors_df.join(cells_df, on=self._pos_col_names, how="left")
+                cand = cand.with_columns(
+                    pl.col(property).fill_null(float("-inf")).cast(pl.Float64)
+                )
+
+                cand_coords = (
+                    cand.select(self._pos_col_names)
+                    .to_numpy()
+                    .astype(np.int64, copy=False)
+                )
+                cand_cell_id = cand_coords[:, 0] * height + cand_coords[:, 1]
+                cand_radius = cand["radius"].to_numpy().astype(np.int64, copy=False)
+                cand_d0 = cand_coords[:, 0]
+                cand_d1 = cand_coords[:, 1]
+                cand_score = cand[property].to_numpy()
+                cand_agent = cand["agent_id"].to_numpy()
+
+                # Filter by capacity > 0, allowing origin.
+                cand_agent = np.asarray(cand_agent, dtype=np.uint64)
+                move_ids_np = move_ids.astype(np.uint64, copy=False)
+                sort_move = np.argsort(move_ids_np, kind="stable")
+                move_ids_sorted = move_ids_np[sort_move]
+                origin_sorted = origin_cell_id[sort_move]
+                pos_o = np.searchsorted(move_ids_sorted, cand_agent)
+                if __debug__:
+                    if (pos_o >= move_ids_sorted.shape[0]).any() or not np.array_equal(
+                        move_ids_sorted[pos_o], cand_agent
+                    ):
+                        raise ValueError(
+                            "Neighborhood returned agent ids not in target"
+                        )
+                allow_origin = cand_cell_id == origin_sorted[pos_o]
+                ok = (cap_flat[cand_cell_id] > 0) | allow_origin
+                cand_agent = cand_agent[ok]
+                cand_cell_id = cand_cell_id[ok]
+                cand_radius = cand_radius[ok]
+                cand_d0 = cand_d0[ok]
+                cand_d1 = cand_d1[ok]
+                cand_score = np.asarray(cand_score)[ok]
+
+                # Build CSR in the same order as move_ids.
+                idx_sorted = np.argsort(cand_agent, kind="stable")
+                cand_agent_s = cand_agent[idx_sorted]
+                cand_cell_s = cand_cell_id[idx_sorted]
+                cand_rad_s = cand_radius[idx_sorted]
+                cand_d0_s = cand_d0[idx_sorted]
+                cand_d1_s = cand_d1[idx_sorted]
+                cand_score_s = cand_score[idx_sorted]
+
+                # Map agent id -> segment.
+                offsets = np.zeros(move_ids_np.shape[0] + 1, dtype=np.int64)
+                segments_cell: list[np.ndarray] = []
+                segments_rad: list[np.ndarray] = []
+                segments_d0: list[np.ndarray] = []
+                segments_d1: list[np.ndarray] = []
+                out = 0
+                start = 0
+                for i, aid in enumerate(move_ids_np.tolist()):
+                    offsets[i] = out
+                    # advance start to first matching
+                    while start < cand_agent_s.shape[0] and int(
+                        cand_agent_s[start]
+                    ) < int(aid):
+                        start += 1
+                    stop = start
+                    while stop < cand_agent_s.shape[0] and int(
+                        cand_agent_s[stop]
+                    ) == int(aid):
+                        stop += 1
+                    if stop > start:
+                        segments_cell.append(cand_cell_s[start:stop])
+                        segments_rad.append(cand_rad_s[start:stop])
+                        segments_d0.append(cand_d0_s[start:stop])
+                        segments_d1.append(cand_d1_s[start:stop])
+                        out += int(stop - start)
+                    start = stop
+                offsets[-1] = out
+                if out:
+                    csr = self._fastpath.csr(
+                        offsets=offsets,
+                        cell_id=np.concatenate(segments_cell)
+                        if segments_cell
+                        else np.empty(0, dtype=np.int64),
+                        radius=np.concatenate(segments_rad)
+                        if segments_rad
+                        else np.empty(0, dtype=np.int64),
+                        dim0=np.concatenate(segments_d0)
+                        if segments_d0
+                        else np.empty(0, dtype=np.int64),
+                        dim1=np.concatenate(segments_d1)
+                        if segments_d1
+                        else np.empty(0, dtype=np.int64),
+                    )
+                    # DF fallback already computed per-candidate scores.
+                    csr = self._fastpath.rank_candidates_array_by_score(
+                        csr, cand_score_s
+                    )
+                    dest_cell = self._fastpath.resolve_conflicts_lottery(
+                        rng=self.model.random,
+                        csr=csr,
+                        origin_cell_id=origin_cell_id,
+                        capacity_flat=cap_flat,
+                    )
+                    dest_coords = self.cells._coords_from_cell_id(dest_cell)
+                else:
+                    dest_coords = centers
+
+        # Write destination coords back into full coord array and do a full move.
+        dest_full = full_coords.copy()
+        dest_full[move_row_idx] = dest_coords
+
+        self.move_all(self._agents["agent_id"], dest_full)
+        return self
 
     def torus_adj(self, pos: GridCoordinate | GridCoordinates) -> DataFrame:
         df_coords = self._get_df_coords(pos)
@@ -265,7 +617,9 @@ class Grid(AbstractGrid, PolarsMixin):
             directions = [d for d in product(*ranges) if any(d)]
         elif neighborhood_type == "von_neumann":
             ranges = [range(-1, 2) for _ in self._dimensions]
-            directions = [d for d in product(*ranges) if sum(map(abs, d)) <= 1 and any(d)]
+            directions = [
+                d for d in product(*ranges) if sum(map(abs, d)) <= 1 and any(d)
+            ]
         elif neighborhood_type == "hexagonal":
             if __debug__ and len(self._dimensions) > 2:
                 raise ValueError(
@@ -395,14 +749,18 @@ class Grid(AbstractGrid, PolarsMixin):
         *,
         trust_full_move: bool = False,
         require_full_move: bool = False,
-    ) -> "Grid":
+    ) -> Grid:
         agents_input = agents
         agents = self._get_ids_srs(agents)
 
         # If move_all (or other trusted full-move calls) pass a Polars DataFrame of
         # coordinates, coerce it to NumPy early so the NumPy fast paths below can
         # trigger.
-        if is_move and (trust_full_move or require_full_move) and isinstance(pos, pl.DataFrame):
+        if (
+            is_move
+            and (trust_full_move or require_full_move)
+            and isinstance(pos, pl.DataFrame)
+        ):
             pos_df = pos
             if "agent_id" in pos_df.columns:
                 pos_df = self._df_reindex(pos_df, agents, new_index_cols="agent_id")
@@ -453,7 +811,11 @@ class Grid(AbstractGrid, PolarsMixin):
         ):
             membership_ok = True
             if not trust_full_move:
-                trusted = os.environ.get("MESA_FRAMES_GRID_TRUST_FULL_MOVE", "").strip().lower()
+                trusted = (
+                    os.environ.get("MESA_FRAMES_GRID_TRUST_FULL_MOVE", "")
+                    .strip()
+                    .lower()
+                )
                 trust_full_move = bool(trusted and trusted not in {"0", "false"})
 
             if not trust_full_move:
@@ -468,8 +830,12 @@ class Grid(AbstractGrid, PolarsMixin):
                         pos_arr[:, i] %= int(dim)
                 elif __debug__:
                     for i, dim in enumerate(self._dimensions):
-                        if (pos_arr[:, i] < 0).any() or (pos_arr[:, i] >= int(dim)).any():
-                            raise ValueError("Some coordinates are outside the grid bounds")
+                        if (pos_arr[:, i] < 0).any() or (
+                            pos_arr[:, i] >= int(dim)
+                        ).any():
+                            raise ValueError(
+                                "Some coordinates are outside the grid bounds"
+                            )
 
                 capacity = self._capacity
                 if capacity and capacity != np.inf:
@@ -513,7 +879,11 @@ class Grid(AbstractGrid, PolarsMixin):
         ):
             membership_ok = True
             if not trust_full_move:
-                trusted = os.environ.get("MESA_FRAMES_GRID_TRUST_FULL_MOVE", "").strip().lower()
+                trusted = (
+                    os.environ.get("MESA_FRAMES_GRID_TRUST_FULL_MOVE", "")
+                    .strip()
+                    .lower()
+                )
                 trust_full_move = bool(trusted and trusted not in {"0", "false"})
 
             if not trust_full_move:
@@ -529,7 +899,9 @@ class Grid(AbstractGrid, PolarsMixin):
                 elif __debug__:
                     for i, dim in enumerate(self._dimensions):
                         if (pos_arrs[i] < 0).any() or (pos_arrs[i] >= int(dim)).any():
-                            raise ValueError("Some coordinates are outside the grid bounds")
+                            raise ValueError(
+                                "Some coordinates are outside the grid bounds"
+                            )
 
                 capacity = self._capacity
                 if capacity and capacity != np.inf:

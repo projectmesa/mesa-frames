@@ -411,6 +411,20 @@ class Space(CopyMixin, DataFrameMixin):
             return self._df_concat(ids, ignore_index=True)
         elif isinstance(agents, int):
             return self._srs_constructor([agents], name="agent_id", dtype="uint64")
+        elif isinstance(agents, np.ndarray):
+            if agents.ndim != 1:
+                raise ValueError("agent ids numpy array must be 1-D")
+            if agents.size == 0:
+                return self._srs_constructor([], name="agent_id", dtype="uint64")
+            if not np.issubdtype(agents.dtype, np.integer):
+                raise TypeError("agent ids numpy array must have integer dtype")
+            if np.any(agents < 0):
+                raise ValueError("agent ids must be non-negative")
+            return self._srs_constructor(
+                agents.astype(np.uint64, copy=False),
+                name="agent_id",
+                dtype="uint64",
+            )
         else:  # IDsLike
             return self._srs_constructor(agents, name="agent_id", dtype="uint64")
 
