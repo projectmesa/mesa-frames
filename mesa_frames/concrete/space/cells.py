@@ -190,6 +190,12 @@ class GridCells(AbstractCells):
         obj = self._space._get_obj(inplace)
         cells_obj = obj.cells
 
+        # Any write can change ordering/density; invalidate the fastpath alignment cache.
+        try:
+            object.__delattr__(obj, "_cells_row_major_ok")
+        except AttributeError:
+            pass
+
         if agents is not None:
             coords = obj._get_df_coords(agents=agents)
 

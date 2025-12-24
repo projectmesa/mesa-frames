@@ -75,6 +75,70 @@ def test_move_to_best_fast_equals_df(monkeypatch: pytest.MonkeyPatch) -> None:
     assert_frame_equal(moved_fast, moved_df, check_dtypes=False)
 
 
+def test_move_to_best_per_agent_radius_fast_equals_df(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model_fast = Model(seed=123)
+    agents_fast = ExampleAgentSet(model_fast)
+    agents_fast.add({"x": np.zeros(128, dtype=np.int64)})
+    model_fast.sets.add(agents_fast)
+
+    grid_fast = Grid(
+        model_fast, dimensions=[12, 12], capacity=1, neighborhood_type="moore"
+    )
+    model_fast.space = grid_fast
+    _make_dense_sugar(grid_fast, seed=1)
+
+    ids = agents_fast["unique_id"]
+    _place_agents_unique(grid_fast, ids, seed=2)
+
+    # Clone state for DF run.
+    model_df = Model(seed=123)
+    agents_df = ExampleAgentSet(model_df)
+    agents_df.add({"x": np.zeros(128, dtype=np.int64)})
+    model_df.sets.add(agents_df)
+
+    grid_df = Grid(model_df, dimensions=[12, 12], capacity=1, neighborhood_type="moore")
+    model_df.space = grid_df
+    _make_dense_sugar(grid_df, seed=1)
+    _place_agents_unique(grid_df, agents_df["unique_id"], seed=2)
+
+    # Per-agent radii, including 0 (stay put is allowed).
+    rng = np.random.default_rng(99)
+    radii = rng.integers(0, 5, size=len(ids), dtype=np.int64)
+
+    # Force the DF path for the second run.
+    monkeypatch.setenv("MESA_FRAMES_GRID_MOVE_TO_BEST_FORCE_PATH", "df")
+
+    grid_fast.move_to_best(ids, radius=radii, property="sugar", include_center=True)
+    grid_df.move_to_best(
+        agents_df["unique_id"], radius=radii, property="sugar", include_center=True
+    )
+
+    moved_fast = grid_fast.agents.select(["agent_id", "dim_0", "dim_1"]).sort(
+        "agent_id"
+    )
+    moved_df = grid_df.agents.select(["agent_id", "dim_0", "dim_1"]).sort("agent_id")
+    assert_frame_equal(moved_fast, moved_df, check_dtypes=False)
+
+
+def test_move_to_best_per_agent_radius_length_must_match() -> None:
+    model = Model(seed=0)
+    agents = ExampleAgentSet(model)
+    agents.add({"x": np.zeros(8, dtype=np.int64)})
+    model.sets.add(agents)
+
+    grid = Grid(model, dimensions=[10, 10], capacity=1, neighborhood_type="moore")
+    model.space = grid
+    _make_dense_sugar(grid, seed=0)
+
+    ids = agents["unique_id"]
+    _place_agents_unique(grid, ids, seed=0)
+
+    with pytest.raises(ValueError):
+        grid.move_to_best(ids, radius=np.array([1, 2, 3], dtype=np.int64))
+
+
 def test_move_to_best_falls_back_when_cells_not_dense() -> None:
     model = Model(seed=0)
     agents = ExampleAgentSet(model)

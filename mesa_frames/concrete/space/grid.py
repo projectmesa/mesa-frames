@@ -241,7 +241,7 @@ class Grid(AbstractGrid, PolarsMixin):
     def _explain_move_to_best_path(
         self,
         *,
-        radius: int,
+        radius: int | ArrayLike,
         property: str,  # noqa: A002
         include_center: bool,
     ) -> dict[str, object]:
@@ -263,8 +263,36 @@ class Grid(AbstractGrid, PolarsMixin):
             reasons.append("dimensions not 2D")
         if self._neighborhood_type not in {"moore", "von_neumann"}:
             reasons.append("neighborhood_type not supported")
-        if not isinstance(radius, int) or radius < 0:
-            reasons.append("radius must be a non-negative int")
+
+        # Radius can be scalar or per-agent (sequence/Series/ndarray). For fast path,
+        # we require integer-valued, non-negative radii.
+        radius_np: np.ndarray | None = None
+        if isinstance(radius, Series):
+            radius_np = radius.to_numpy()
+        elif isinstance(radius, np.ndarray):
+            radius_np = radius
+        elif isinstance(radius, Collection) and not isinstance(radius, (str, bytes)):
+            radius_np = np.asarray(radius)
+
+        if radius_np is None:
+            try:
+                radius_int = int(radius)  # type: ignore[arg-type]
+            except Exception:
+                reasons.append("radius must be a non-negative int or integer sequence")
+            else:
+                if isinstance(radius, float) and not float(radius).is_integer():
+                    reasons.append("radius must be integer-valued")
+                if radius_int < 0:
+                    reasons.append("radius must be a non-negative int")
+        else:
+            if radius_np.ndim != 1:
+                reasons.append("radius sequence must be 1-D")
+            elif radius_np.size == 0:
+                reasons.append("radius sequence must be non-empty")
+            elif not np.issubdtype(radius_np.dtype, np.integer):
+                reasons.append("radius sequence must have integer dtype")
+            elif np.any(radius_np < 0):
+                reasons.append("radius values must be >= 0")
         if not isinstance(include_center, bool):
             reasons.append("include_center must be a bool")
         if self._agents.is_empty():
@@ -309,7 +337,7 @@ class Grid(AbstractGrid, PolarsMixin):
         | AbstractAgentSetRegistry
         | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry],
-        radius: int,
+        radius: int | ArrayLike,
         property: str = "sugar",  # noqa: A002
         include_center: bool = True,
         *,
@@ -338,13 +366,48 @@ class Grid(AbstractGrid, PolarsMixin):
         if len(self._dimensions) != 2:
             raise ValueError("move_to_best is only supported for 2D grids")
 
-        radius = int(radius)
-        if radius < 0:
-            raise ValueError("radius must be >= 0")
-
         move_ids_srs = self._get_ids_srs(agents)
         if move_ids_srs.is_empty() or self._agents.is_empty():
             return self
+
+        # Normalize radius.
+        radius_per_agent: np.ndarray | None = None
+        radius_scalar: int | None = None
+        if isinstance(radius, Series):
+            radius_per_agent = radius.to_numpy()
+        elif isinstance(radius, np.ndarray):
+            radius_per_agent = radius
+        elif isinstance(radius, Collection) and not isinstance(radius, (str, bytes)):
+            radius_per_agent = np.asarray(radius)
+        else:
+            try:
+                radius_scalar = int(radius)  # type: ignore[arg-type]
+            except Exception as e:
+                raise TypeError("radius must be an int or an integer sequence") from e
+
+        if radius_per_agent is not None:
+            if radius_per_agent.ndim != 1:
+                raise ValueError("radius sequence must be 1-D")
+            if radius_per_agent.size != int(move_ids_srs.len()):
+                raise ValueError(
+                    "radius sequence length must match the number of agents"
+                )
+            if radius_per_agent.size == 0:
+                return self
+            if not np.issubdtype(radius_per_agent.dtype, np.integer):
+                raise TypeError("radius sequence must have integer dtype")
+            if np.any(radius_per_agent < 0):
+                raise ValueError("radius values must be >= 0")
+            radius_per_agent = radius_per_agent.astype(np.int64, copy=False)
+            max_radius = int(radius_per_agent.max())
+        else:
+            if radius_scalar is None:
+                raise TypeError("radius must be an int or an integer sequence")
+            if isinstance(radius, float) and not float(radius).is_integer():
+                raise ValueError("radius must be integer-valued")
+            if radius_scalar < 0:
+                raise ValueError("radius must be >= 0")
+            max_radius = int(radius_scalar)
 
         # Validate property up front.
         if self.cells._cells.is_empty() or property not in self.cells._cells.columns:
@@ -396,7 +459,9 @@ class Grid(AbstractGrid, PolarsMixin):
         cap_flat = np.asarray(self.cells.capacity, dtype=np.int64).ravel(order="C")
 
         explain = self._explain_move_to_best_path(
-            radius=radius, property=property, include_center=include_center
+            radius=radius_per_agent if radius_per_agent is not None else max_radius,
+            property=property,
+            include_center=include_center,
         )
         path = str(explain["path"])
 
@@ -404,51 +469,46 @@ class Grid(AbstractGrid, PolarsMixin):
             score_flat = self.cells._property_buffer(property)
             csr = self._fastpath.neighbors_for_agents_array(
                 centers=centers,
-                radius=radius,
+                radius=max_radius,
                 include_center=include_center,
             )
+            # Apply per-agent radius limits if provided.
+            if radius_per_agent is not None and csr.cell_id.size:
+                rad_limit = np.repeat(radius_per_agent, np.diff(csr.offsets))
+                ok_rad = csr.radius <= rad_limit
+                if ok_rad.size and not ok_rad.all():
+                    ok_int = ok_rad.astype(np.int64, copy=False)
+                    counts = np.add.reduceat(ok_int, csr.offsets[:-1])
+                    new_offsets = np.empty_like(csr.offsets)
+                    new_offsets[0] = 0
+                    np.cumsum(counts, out=new_offsets[1:])
+                    csr = self._fastpath.csr(
+                        offsets=new_offsets,
+                        cell_id=csr.cell_id[ok_rad],
+                        radius=csr.radius[ok_rad],
+                        dim0=csr.dim0[ok_rad],
+                        dim1=csr.dim1[ok_rad],
+                    )
             # Filter candidates by capacity > 0, allowing the agent's own origin.
             if csr.cell_id.size:
+                origin_rep = np.repeat(origin_cell_id, np.diff(csr.offsets))
                 ok = cap_flat[csr.cell_id] > 0
-                ok |= csr.cell_id == np.repeat(origin_cell_id, np.diff(csr.offsets))
+                ok |= csr.cell_id == origin_rep
             else:
                 ok = np.empty(0, dtype=bool)
             if ok.size and not ok.all():
-                # rebuild CSR by filtering within segments
-                new_offsets = np.zeros_like(csr.offsets)
-                kept_cell: list[np.ndarray] = []
-                kept_rad: list[np.ndarray] = []
-                kept_d0: list[np.ndarray] = []
-                kept_d1: list[np.ndarray] = []
-                out = 0
-                for i in range(len(csr.offsets) - 1):
-                    start = int(csr.offsets[i])
-                    stop = int(csr.offsets[i + 1])
-                    seg_ok = ok[start:stop]
-                    new_offsets[i] = out
-                    if seg_ok.any():
-                        kept_cell.append(csr.cell_id[start:stop][seg_ok])
-                        kept_rad.append(csr.radius[start:stop][seg_ok])
-                        kept_d0.append(csr.dim0[start:stop][seg_ok])
-                        kept_d1.append(csr.dim1[start:stop][seg_ok])
-                        out += int(seg_ok.sum())
-                new_offsets[-1] = out
-                if out:
-                    csr = self._fastpath.csr(
-                        offsets=new_offsets,
-                        cell_id=np.concatenate(kept_cell),
-                        radius=np.concatenate(kept_rad),
-                        dim0=np.concatenate(kept_d0),
-                        dim1=np.concatenate(kept_d1),
-                    )
-                else:
-                    csr = self._fastpath.csr(
-                        offsets=new_offsets,
-                        cell_id=np.empty(0, dtype=np.int64),
-                        radius=np.empty(0, dtype=np.int64),
-                        dim0=np.empty(0, dtype=np.int64),
-                        dim1=np.empty(0, dtype=np.int64),
-                    )
+                ok_int = ok.astype(np.int64, copy=False)
+                counts = np.add.reduceat(ok_int, csr.offsets[:-1])
+                new_offsets = np.empty_like(csr.offsets)
+                new_offsets[0] = 0
+                np.cumsum(counts, out=new_offsets[1:])
+                csr = self._fastpath.csr(
+                    offsets=new_offsets,
+                    cell_id=csr.cell_id[ok],
+                    radius=csr.radius[ok],
+                    dim0=csr.dim0[ok],
+                    dim1=csr.dim1[ok],
+                )
 
             csr = self._fastpath.rank_candidates_array(csr, score_flat)
             dest_cell = self._fastpath.resolve_conflicts_lottery(
@@ -503,6 +563,7 @@ class Grid(AbstractGrid, PolarsMixin):
                         )
                 allow_origin = cand_cell_id == origin_sorted[pos_o]
                 ok = (cap_flat[cand_cell_id] > 0) | allow_origin
+                pos_o = pos_o[ok]
                 cand_agent = cand_agent[ok]
                 cand_cell_id = cand_cell_id[ok]
                 cand_radius = cand_radius[ok]
@@ -510,60 +571,37 @@ class Grid(AbstractGrid, PolarsMixin):
                 cand_d1 = cand_d1[ok]
                 cand_score = np.asarray(cand_score)[ok]
 
-                # Build CSR in the same order as move_ids.
-                idx_sorted = np.argsort(cand_agent, kind="stable")
-                cand_agent_s = cand_agent[idx_sorted]
-                cand_cell_s = cand_cell_id[idx_sorted]
-                cand_rad_s = cand_radius[idx_sorted]
-                cand_d0_s = cand_d0[idx_sorted]
-                cand_d1_s = cand_d1[idx_sorted]
-                cand_score_s = cand_score[idx_sorted]
+                # Build CSR in the same order as move_ids (vectorized).
+                inv_sort_move = np.empty_like(sort_move)
+                inv_sort_move[sort_move] = np.arange(sort_move.size)
+                agent_idx = inv_sort_move[pos_o].astype(np.int64, copy=False)
 
-                # Map agent id -> segment.
-                offsets = np.zeros(move_ids_np.shape[0] + 1, dtype=np.int64)
-                segments_cell: list[np.ndarray] = []
-                segments_rad: list[np.ndarray] = []
-                segments_d0: list[np.ndarray] = []
-                segments_d1: list[np.ndarray] = []
-                out = 0
-                start = 0
-                for i, aid in enumerate(move_ids_np.tolist()):
-                    offsets[i] = out
-                    # advance start to first matching
-                    while start < cand_agent_s.shape[0] and int(
-                        cand_agent_s[start]
-                    ) < int(aid):
-                        start += 1
-                    stop = start
-                    while stop < cand_agent_s.shape[0] and int(
-                        cand_agent_s[stop]
-                    ) == int(aid):
-                        stop += 1
-                    if stop > start:
-                        segments_cell.append(cand_cell_s[start:stop])
-                        segments_rad.append(cand_rad_s[start:stop])
-                        segments_d0.append(cand_d0_s[start:stop])
-                        segments_d1.append(cand_d1_s[start:stop])
-                        out += int(stop - start)
-                    start = stop
-                offsets[-1] = out
-                if out:
+                row_order = np.argsort(agent_idx, kind="stable")
+                agent_idx_s = agent_idx[row_order]
+                cand_cell_s = cand_cell_id[row_order]
+                cand_rad_s = cand_radius[row_order]
+                cand_d0_s = cand_d0[row_order]
+                cand_d1_s = cand_d1[row_order]
+                cand_score_s = cand_score[row_order]
+
+                counts = np.bincount(
+                    agent_idx_s, minlength=move_ids_np.shape[0]
+                ).astype(
+                    np.int64,
+                    copy=False,
+                )
+                offsets = np.empty(move_ids_np.shape[0] + 1, dtype=np.int64)
+                offsets[0] = 0
+                np.cumsum(counts, out=offsets[1:])
+
+                if offsets[-1]:
                     csr = self._fastpath.csr(
                         offsets=offsets,
-                        cell_id=np.concatenate(segments_cell)
-                        if segments_cell
-                        else np.empty(0, dtype=np.int64),
-                        radius=np.concatenate(segments_rad)
-                        if segments_rad
-                        else np.empty(0, dtype=np.int64),
-                        dim0=np.concatenate(segments_d0)
-                        if segments_d0
-                        else np.empty(0, dtype=np.int64),
-                        dim1=np.concatenate(segments_d1)
-                        if segments_d1
-                        else np.empty(0, dtype=np.int64),
+                        cell_id=cand_cell_s.astype(np.int64, copy=False),
+                        radius=cand_rad_s.astype(np.int64, copy=False),
+                        dim0=cand_d0_s.astype(np.int64, copy=False),
+                        dim1=cand_d1_s.astype(np.int64, copy=False),
                     )
-                    # DF fallback already computed per-candidate scores.
                     csr = self._fastpath.rank_candidates_array_by_score(
                         csr, cand_score_s
                     )
