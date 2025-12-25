@@ -479,7 +479,10 @@ class TestDataCollector:
         # Connect directly and validate data
         import psycopg2
 
-        conn = psycopg2.connect(postgres_uri)
+        try:
+            conn = psycopg2.connect(postgres_uri)
+        except psycopg2.OperationalError as exc:
+            pytest.skip(f"PostgreSQL not available for tests: {exc}")
         cur = conn.cursor()
 
         cur.execute("""

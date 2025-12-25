@@ -66,6 +66,7 @@ import numpy as np
 import polars as pl
 
 from mesa_frames.abstract.agentset import AbstractAgentSet
+from mesa_frames.concrete._update_masked import _MaskedUpdateMixin
 from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
 from mesa_frames.utils import copydoc
@@ -73,7 +74,7 @@ import mesa_frames
 
 
 @copydoc(AbstractAgentSet)
-class AgentSet(AbstractAgentSet, PolarsMixin):
+class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
     """Polars-based implementation of AgentSet."""
 
     _df: pl.DataFrame
@@ -103,37 +104,6 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
-        # Internal cache for NumPy buffers aligned to the current row order.
-        # This is useful for high-performance kernels that intentionally skip
-        # per-step shuffling and keep stable ordering.
-        self._order_token = 0
-        self._aligned_numpy_cache: dict[tuple[int, str, str | None], np.ndarray] = {}
-
-    def _bump_order_token(self) -> None:
-        self._order_token += 1
-        self._aligned_numpy_cache.clear()
-
-    def _aligned_numpy(
-        self,
-        column: str,
-        *,
-        dtype: np.dtype | None = None,
-    ) -> np.ndarray:
-        """Return a cached NumPy view aligned to current AgentSet order.
-
-        The cache is invalidated automatically by operations that permute rows
-        (shuffle/sort) and conservatively by operations that change row count.
-        """
-        dtype_key = None if dtype is None else str(np.dtype(dtype))
-        key = (self._order_token, column, dtype_key)
-        cached = self._aligned_numpy_cache.get(key)
-        if cached is not None:
-            return cached
-        arr = self._df[column].to_numpy()
-        if dtype is not None:
-            arr = arr.astype(dtype, copy=False)
-        self._aligned_numpy_cache[key] = arr
-        return arr
 
     def rename(self, new_name: str, inplace: bool = True) -> Self:
         """Rename this agent set. If attached to AgentSetRegistry, delegate for uniqueness enforcement.
@@ -244,10 +214,13 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
 
         obj._df = pl.concat([obj._df, new_agents], how="diagonal_relaxed")
 
-        obj._bump_order_token()
-
-        if isinstance(obj._mask, pl.Series) and not originally_empty:
-            obj._update_mask(original_active_indices, new_agents["unique_id"])
+        if isinstance(obj._mask, pl.Series):
+            if originally_empty:
+                # When starting from an empty AgentSet, the initial mask is a
+                # zero-length boolean Series; expand it to match the new rows.
+                obj._mask = pl.repeat(True, len(obj._df), dtype=pl.Boolean, eager=True)
+            else:
+                obj._update_mask(original_active_indices, new_agents["unique_id"])
 
         return obj
 
@@ -357,64 +330,209 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         # Remove by ids
         return obj._discard(ids)
 
-    def set(
+    def update(
         self,
-        attr_names: str | Collection[str] | dict[str, Any] | None = None,
-        values: Any | None = None,
-        mask: AgentPolarsMask = None,
-        inplace: bool = True,
-    ) -> Self:
-        obj = self._get_obj(inplace)
-        masked_df = obj._get_masked_df(mask)
+        target: PolarsIdsLike | pl.DataFrame | dict[str, object] | None = None,
+        updates: dict[str, object] | None = None,
+        *,
+        mask: AgentMask | np.ndarray | None = None,
+        backend: Literal["auto", "polars"] = "auto",
+        mask_col: str | None = None,
+    ) -> None:
+        """Update agent attributes.
 
-        if not attr_names:
-            attr_names = masked_df.columns
-            attr_names.remove("unique_id")
+        Parameters
+        ----------
+        target : PolarsIdsLike | pl.DataFrame | dict[str, object] | None, optional
+            Optional id selector (scalar/sequence/Series) or a DataFrame with a
+            ``unique_id`` column.
+        updates : dict[str, object] | None, optional
+            Mapping of column names to update values.
+        mask : AgentMask | np.ndarray | None, optional
+            Optional selector limiting which agents are updated.
+        backend : Literal["auto", "polars"], optional
+            Accepted for API compatibility; only Polars paths are used.
+        mask_col : str | None, optional
+            When ``mask``/``target`` is a DataFrame, optional name of a boolean
+            column to interpret as per-row selector.
+        """
+        if updates is None and isinstance(target, dict):
+            updates = target
+            target = None
 
-        def process_single_attr(
-            masked_df: pl.DataFrame, attr_name: str, values: Any
-        ) -> pl.DataFrame:
-            if isinstance(values, pl.DataFrame):
-                values_series = values.to_series()
-            elif isinstance(values, (pl.Expr, pl.Series, Collection)):
-                values_series = pl.Series(values)
-            else:
-                values_series = pl.repeat(values, len(masked_df))
-            return masked_df.with_columns(values_series.alias(attr_name))
+        if updates is None or len(updates) == 0:
+            raise ValueError("update() requires a non-empty updates dict")
+        self._reject_callables(updates)
+        if backend not in {"auto", "polars"}:
+            raise ValueError('backend must be one of: "auto", "polars"')
+        if target is not None and mask is not None:
+            raise ValueError("Provide either target or mask, not both")
 
-        if isinstance(attr_names, str) and values is not None:
-            masked_df = process_single_attr(masked_df, attr_names, values)
-        elif isinstance(attr_names, Collection) and values is not None:
-            if isinstance(values, Collection) and len(attr_names) == len(values):
-                for attribute, val in zip(attr_names, values):
-                    masked_df = process_single_attr(masked_df, attribute, val)
-            else:
-                for attribute in attr_names:
-                    masked_df = process_single_attr(masked_df, attribute, values)
-        elif isinstance(attr_names, dict):
-            for key, val in attr_names.items():
-                masked_df = process_single_attr(masked_df, key, val)
+        selector: object = target if target is not None else mask
+        if selector is None:
+            selector = "all"
+
+        # Bootstrapping: allow creating rows on an empty AgentSet.
+        if self._df.is_empty() and selector == "all":
+            if any(isinstance(v, pl.Expr) for v in updates.values()):
+                raise ValueError(
+                    "Cannot initialize an empty AgentSet using pl.Expr updates"
+                )
+            if any(isinstance(v, str) for v in updates.values()):
+                raise ValueError(
+                    "Cannot initialize an empty AgentSet using copy-from-column updates"
+                )
+
+            lengths: list[int] = []
+            for v in updates.values():
+                if isinstance(v, pl.Series):
+                    lengths.append(int(v.len()))
+                elif isinstance(v, np.ndarray):
+                    lengths.append(int(v.shape[0]))
+                elif isinstance(v, (list, tuple)):
+                    lengths.append(len(v))
+
+            if not lengths:
+                raise ValueError(
+                    "Cannot initialize an empty AgentSet from scalar-only updates"
+                )
+            n = lengths[0]
+            if any(l != n for l in lengths):
+                raise ValueError("Update value lengths must match when initializing")
+
+            init_data: dict[str, object] = {}
+            for col, v in updates.items():
+                if isinstance(v, pl.Series):
+                    if int(v.len()) != n:
+                        raise ValueError("Series length mismatch")
+                    init_data[col] = v
+                elif isinstance(v, np.ndarray):
+                    if int(v.shape[0]) != n:
+                        raise ValueError("Array length mismatch")
+                    init_data[col] = v
+                elif isinstance(v, (list, tuple)):
+                    if len(v) != n:
+                        raise ValueError("Sequence length mismatch")
+                    init_data[col] = list(v)
+                else:
+                    init_data[col] = [v] * n
+
+            self.add(pl.DataFrame(init_data), inplace=True)
+            return
+
+        if isinstance(selector, pl.Expr):
+            raise TypeError(
+                "update(mask=pl.Expr) is not supported; pass ids, a boolean mask, or a string mask"
+            )
+
+        mask_bool = self._mask_to_bool(selector, mask_col=mask_col)
+        self._df = self._apply_masked_updates(self._df, mask_bool, updates)
+
+    def _mask_to_bool(self, mask: object, *, mask_col: str | None = None) -> np.ndarray:
+        n_total = int(len(self._df))
+
+        if mask is None or (isinstance(mask, str) and mask == "all"):
+            return np.ones(n_total, dtype=bool)
+
+        if isinstance(mask, str) and mask == "active":
+            if isinstance(self._mask, pl.Series):
+                if int(self._mask.len()) != n_total:
+                    raise ValueError("Active mask length mismatch")
+                return self._mask.to_numpy().astype(bool, copy=False)
+            raise TypeError("active mask is not available as a boolean Series")
+
+        if isinstance(mask, np.ndarray):
+            if mask.dtype == bool:
+                if mask.ndim != 1 or int(mask.shape[0]) != n_total:
+                    raise ValueError("Boolean mask ndarray length mismatch")
+                return mask.astype(bool, copy=False)
+            return (
+                self._df["unique_id"]
+                .is_in(pl.Series(mask))
+                .to_numpy()
+                .astype(bool, copy=False)
+            )
+
+        if isinstance(mask, pl.Series):
+            if mask.dtype == pl.Boolean:
+                if int(mask.len()) != n_total:
+                    raise ValueError("Boolean mask Series length mismatch")
+                return mask.to_numpy().astype(bool, copy=False)
+            return self._df["unique_id"].is_in(mask).to_numpy().astype(bool, copy=False)
+
+        if isinstance(mask, pl.DataFrame):
+            if "unique_id" in mask.columns:
+                ids = mask["unique_id"]
+                if mask_col is not None:
+                    if mask_col not in mask.columns:
+                        raise KeyError(f"mask_col not found in DataFrame: {mask_col}")
+                    ids = mask.filter(pl.col(mask_col))["unique_id"]
+                return (
+                    self._df["unique_id"].is_in(ids).to_numpy().astype(bool, copy=False)
+                )
+            if len(mask.columns) == 1 and mask.dtypes[0] == pl.Boolean:
+                s = mask[mask.columns[0]]
+                if int(s.len()) != n_total:
+                    raise ValueError("Boolean mask DataFrame length mismatch")
+                return s.to_numpy().astype(bool, copy=False)
+            raise KeyError(
+                "DataFrame mask must have a 'unique_id' column or a single boolean column"
+            )
+
+        if isinstance(mask, Collection) and not isinstance(mask, (str, bytes)):
+            return (
+                self._df["unique_id"]
+                .is_in(pl.Series(mask))
+                .to_numpy()
+                .astype(bool, copy=False)
+            )
+
+        return (
+            self._df["unique_id"]
+            .is_in(pl.Series([mask]))
+            .to_numpy()
+            .astype(bool, copy=False)
+        )
+
+    def lookup(
+        self,
+        target: PolarsIdsLike | pl.DataFrame,
+        columns: list[str] | None = None,
+        *,
+        as_df: bool = True,
+    ) -> pl.DataFrame | dict[str, np.ndarray] | np.ndarray:
+        """Fetch rows by unique_id without joins."""
+        if isinstance(target, pl.DataFrame):
+            if "unique_id" not in target.columns:
+                raise KeyError("AgentSet.lookup target DataFrame must have 'unique_id'")
+            ids = target["unique_id"]
         else:
-            raise ValueError(
-                "attr_names must be a string, a collection of string or a dictionary with columns as keys and values."
-            )
-        unique_id_column = None
-        if "unique_id" not in obj._df:
-            unique_id_column = self._generate_unique_ids(len(masked_df)).alias(
-                "unique_id"
-            )
-            obj._df = obj._df.with_columns(unique_id_column)
-            masked_df = masked_df.with_columns(unique_id_column)
-        b_mask = obj._get_bool_mask(mask)
-        non_masked_df = obj._df.filter(b_mask.not_())
-        original_index = obj._df.select("unique_id")
-        obj._df = pl.concat([non_masked_df, masked_df], how="diagonal_relaxed")
-        obj._df = original_index.join(obj._df, on="unique_id", how="left")
-        obj._update_mask(original_index["unique_id"], unique_id_column)
+            ids = target
 
-        # Values may have changed; invalidate aligned NumPy cache.
-        obj._bump_order_token()
-        return obj
+        ids_arr = np.asarray(ids)
+        if ids_arr.ndim == 0:
+            ids_arr = ids_arr.reshape(1)
+
+        uids = self._df["unique_id"].to_numpy()
+        sort_idx = np.argsort(uids)
+        sorted_uids = uids[sort_idx]
+        pos = np.searchsorted(sorted_uids, ids_arr)
+        if (pos >= sorted_uids.shape[0]).any():
+            raise KeyError("One or more unique_id values not present")
+        found = sorted_uids[pos] == ids_arr
+        if not bool(np.all(found)):
+            raise KeyError("One or more unique_id values not present")
+        row_idx = sort_idx[pos]
+
+        out = self._df[row_idx]
+        if columns is not None:
+            out = out.select(columns)
+
+        if as_df:
+            return out
+        if columns is not None and len(columns) == 1:
+            return out[columns[0]].to_numpy()
+        return {col: out[col].to_numpy() for col in out.columns}
 
     def select(
         self,
@@ -444,7 +562,6 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
             shuffle=True,
             seed=obj.random.integers(np.iinfo(np.int32).max),
         )
-        obj._bump_order_token()
         return obj
 
     def sort(
@@ -460,7 +577,6 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
         else:
             descending = [not a for a in ascending]
         obj._df = obj._df.sort(by=by, descending=descending, **kwargs)
-        obj._bump_order_token()
         return obj
 
     def _concatenate_agentsets(
@@ -549,9 +665,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
                 raise KeyError(
                     "DataFrame must have a 'unique_id' column or a single boolean column."
                 )
-        elif mask is None or mask == "all":
+        elif mask is None or (isinstance(mask, str) and mask == "all"):
             return pl.repeat(True, len(self._df))
-        elif mask == "active":
+        elif isinstance(mask, str) and mask == "active":
             return self._mask
         elif isinstance(mask, Collection):
             return bool_mask_from_series(pl.Series(mask, dtype=pl.UInt64))
@@ -579,9 +695,9 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
                 )
             mask_df = mask.to_frame("unique_id")
             return mask_df.join(self._df, on="unique_id", how="left")
-        elif mask is None or mask == "all":
+        elif mask is None or (isinstance(mask, str) and mask == "all"):
             return self._df
-        elif mask == "active":
+        elif isinstance(mask, str) and mask == "active":
             return self._df.filter(self._mask)
         else:
             if isinstance(mask, Collection):
@@ -614,9 +730,6 @@ class AgentSet(AbstractAgentSet, PolarsMixin):
 
         if isinstance(self._mask, pl.Series):
             self._update_mask(original_active_indices)
-
-        # Row removals can change row count and alignment.
-        self._bump_order_token()
 
         return self
 

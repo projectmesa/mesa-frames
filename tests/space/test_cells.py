@@ -59,20 +59,67 @@ def test_set_cells_dense_grid_delta_update(model: Model):
     dim0 = pl.Series("dim_0", pl.arange(3, eager=True)).to_frame()
     dim1 = pl.Series("dim_1", pl.arange(3, eager=True)).to_frame()
     all_coords = dim0.join(dim1, how="cross")
-    grid.cells.set(
+    grid.cells.update(
         all_coords,
-        properties={
+        {
             "capacity": pl.repeat(2, all_coords.height, eager=True).cast(pl.Int64),
             "sugar": pl.repeat(1, all_coords.height, eager=True).cast(pl.Int64),
         },
     )
     # Small delta update: only touch one cell.
-    grid.cells.set([[1, 2]], properties={"sugar": 9})
+    grid.cells.update([[1, 2]], {"sugar": 9})
     cell = grid.cells([1, 2], include="properties")
     assert int(cell["sugar"][0]) == 9
     # Unaffected cells retain original values.
     other = grid.cells([0, 0], include="properties")
     assert int(other["sugar"][0]) == 1
+
+
+def test_cells_update_named_masks_and_column_copy(model: Model):
+    grid = Grid(model, dimensions=[3, 3], capacity=1)
+
+    dim0 = pl.Series("dim_0", pl.arange(3, eager=True)).to_frame()
+    dim1 = pl.Series("dim_1", pl.arange(3, eager=True)).to_frame()
+    all_coords = dim0.join(dim1, how="cross")
+    max_sugar = pl.repeat(4, all_coords.height, eager=True).cast(pl.Int64)
+    grid.cells.update(
+        all_coords,
+        {
+            "capacity": pl.repeat(1, all_coords.height, eager=True).cast(pl.Int64),
+            "sugar": pl.repeat(0, all_coords.height, eager=True).cast(pl.Int64),
+            "max_sugar": max_sugar,
+        },
+    )
+
+    # Place one agent to create a full cell.
+    ids = get_unique_ids(model)
+    grid.place_agents(ids[[0]], [[1, 1]])
+
+    # Occupied cells should be set to 0 sugar.
+    grid.cells.update({"sugar": 0}, mask="full")
+    assert int(grid.cells([1, 1], include="properties")["sugar"][0]) == 0
+
+    # Empty cells should be refilled to max_sugar.
+    grid.cells.update({"sugar": "max_sugar"}, mask="empty")
+    assert int(grid.cells([0, 0], include="properties")["sugar"][0]) == 4
+    assert int(grid.cells([1, 1], include="properties")["sugar"][0]) == 0
+
+
+def test_cells_update_expr_fallback(model: Model):
+    grid = Grid(model, dimensions=[2, 2], capacity=1)
+    dim0 = pl.Series("dim_0", pl.arange(2, eager=True)).to_frame()
+    dim1 = pl.Series("dim_1", pl.arange(2, eager=True)).to_frame()
+    all_coords = dim0.join(dim1, how="cross")
+    grid.cells.update(
+        all_coords,
+        {
+            "capacity": pl.repeat(1, all_coords.height, eager=True).cast(pl.Int64),
+            "sugar": pl.Series([1, 2, 3, 4], dtype=pl.Int64),
+        },
+    )
+
+    grid.cells.update({"sugar": pl.col("sugar") + 1}, mask="all")
+    assert grid.cells(include="properties")["sugar"].to_list() == [2, 3, 4, 5]
 
 
 def test_is_available(grid_moore: Grid):
@@ -129,7 +176,7 @@ def test_empty_cells(grid_moore: Grid):
 
 
 def test_full_cells(grid_moore: Grid):
-    grid_moore.cells.set([[0, 0], [1, 1]], {"capacity": 1})
+    grid_moore.cells.update([[0, 0], [1, 1]], {"capacity": 1})
     result = grid_moore.cells.full
     assert len(result) == 2
     assert isinstance(result, pl.DataFrame)
@@ -248,7 +295,7 @@ def test_sample_cells(grid_moore: Grid):
         grid_moore.cells.sample(17, cell_type="available")
 
     # Test with 'full' cell_type and no replacement
-    grid_moore.cells.set([[0, 0], [1, 1]], properties={"capacity": 1})
+    grid_moore.cells.update([[0, 0], [1, 1]], {"capacity": 1})
     result = grid_moore.cells.sample(2, cell_type="full", with_replacement=False)
     assert len(result) == 2
     assert isinstance(result, pl.DataFrame)
@@ -273,16 +320,14 @@ def test_set_cells(model: Model):
     grid_moore = Grid(model, dimensions=[3, 3], capacity=2)
 
     # Test with GridCoordinate
-    grid_moore.cells.set([0, 0], properties={"capacity": 1, "property_0": "value_0"})
+    grid_moore.cells.update([0, 0], {"capacity": 1, "property_0": "value_0"})
     assert grid_moore.cells.remaining_capacity == (2 * 3 * 3 - 1)
     cell_df = grid_moore.cells([0, 0])
     assert cell_df["capacity"][0] == 1
     assert cell_df["property_0"][0] == "value_0"
 
     # Test with GridCoordinates
-    grid_moore.cells.set(
-        [[1, 1], [2, 2]], properties={"capacity": 3, "property_1": "value_1"}
-    )
+    grid_moore.cells.update([[1, 1], [2, 2]], {"capacity": 3, "property_1": "value_1"})
     assert grid_moore.cells.remaining_capacity == (2 * 3 * 3 - 1 + 2)
     cell_df = grid_moore.cells([[1, 1], [2, 2]])
     assert cell_df["capacity"][0] == 3
@@ -296,7 +341,7 @@ def test_set_cells(model: Model):
 
     # Test with DataFrame
     df = pl.DataFrame({"dim_0": [0, 1, 2], "dim_1": [0, 1, 2], "capacity": [2, 2, 2]})
-    grid_moore.cells.set(df)
+    grid_moore.cells.update(df)
     assert grid_moore.cells.remaining_capacity == (2 * 3 * 3)
 
     cells_df = grid_moore.cells([[0, 0], [1, 1], [2, 2]])
@@ -311,4 +356,4 @@ def test_set_cells(model: Model):
     unique_ids = get_unique_ids(grid_moore.model)
     grid_moore.place_agents(unique_ids[[1, 2]], [[0, 0], [0, 0]])
     with pytest.raises(AssertionError):
-        grid_moore.cells.set([0, 0], properties={"capacity": 1})
+        grid_moore.cells.update([0, 0], {"capacity": 1})

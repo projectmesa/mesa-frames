@@ -38,7 +38,7 @@ def _setup(
     sugar = np.random.default_rng(seed + 1).integers(
         0, 100, size=coords.shape[0], dtype=np.int64
     )
-    grid.cells.set(coords, properties={"sugar": sugar})
+    grid.cells.update(coords, {"sugar": sugar})
 
     # Place agents without overlap.
     rng = np.random.default_rng(seed + 2)

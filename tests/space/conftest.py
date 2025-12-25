@@ -22,9 +22,7 @@ def grid_moore(model: Model) -> Grid:
     space = Grid(model, dimensions=[3, 3], capacity=2)
     unique_ids = get_unique_ids(model)
     space.place_agents(agents=unique_ids[[0, 1]], pos=[[0, 0], [1, 1]])
-    space.cells.set(
-        [[0, 0], [1, 1]], properties={"capacity": [1, 3], "property_0": "value_0"}
-    )
+    space.cells.update([[0, 0], [1, 1]], {"capacity": [1, 3], "property_0": "value_0"})
     return space
 
 
@@ -33,9 +31,7 @@ def grid_moore_torus(model: Model) -> Grid:
     space = Grid(model, dimensions=[3, 3], capacity=2, torus=True)
     unique_ids = get_unique_ids(model)
     space.place_agents(agents=unique_ids[[0, 1]], pos=[[0, 0], [1, 1]])
-    space.cells.set(
-        [[0, 0], [1, 1]], properties={"capacity": [1, 3], "property_0": "value_0"}
-    )
+    space.cells.update([[0, 0], [1, 1]], {"capacity": [1, 3], "property_0": "value_0"})
     return space
 
 

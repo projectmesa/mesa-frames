@@ -146,10 +146,9 @@ class MoneyAgentsConcise(AgentSet):
         new_wealth = other_agents.group_by("unique_id").len()
 
         # Add the income to the other agents
-        # 1. Using the set method
-        """self.set(
-            attr_names="wealth",
-            values=pl.col("wealth") + new_wealth["len"],
+        # 1. Using the update method
+        """self.update(
+            {"wealth": pl.col("wealth") + new_wealth["len"]},
             mask=new_wealth,
         )"""
 

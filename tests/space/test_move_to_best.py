@@ -18,10 +18,7 @@ def _make_dense_sugar(grid: Grid, *, seed: int) -> None:
     w, h = grid.dimensions
     coords = np.array([(i, j) for i in range(w) for j in range(h)], dtype=np.int64)
     sugar = rng.integers(0, 100, size=coords.shape[0], dtype=np.int64)
-    grid.cells.set(
-        coords.tolist(),
-        properties={"sugar": sugar},
-    )
+    grid.cells.update(coords.tolist(), {"sugar": sugar})
 
 
 def _place_agents_unique(grid: Grid, agent_ids: pl.Series, *, seed: int) -> None:
@@ -149,7 +146,7 @@ def test_move_to_best_falls_back_when_cells_not_dense() -> None:
     model.space = grid
 
     # Sparse cell properties (not dense)
-    grid.cells.set([[0, 0]], properties={"sugar": [10]})
+    grid.cells.update([[0, 0]], {"sugar": [10]})
 
     ids = agents["unique_id"]
     _place_agents_unique(grid, ids, seed=1)
@@ -173,7 +170,7 @@ def test_move_to_best_rejects_non_2d_grid() -> None:
     grid = Grid(model, dimensions=[3, 3, 3], capacity=1)
     model.space = grid
     # Minimal cells property (still not enough; should fail on dims first)
-    grid.cells.set([[0, 0, 0]], properties={"sugar": [1]})
+    grid.cells.update([[0, 0, 0]], {"sugar": [1]})
 
     with pytest.raises(ValueError):
         grid.move_to_best(agents["unique_id"], radius=1, property="sugar")

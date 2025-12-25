@@ -90,8 +90,6 @@ class AntsBase(AgentSet):
         - After agents harvest, set the sugar on those cells to zero (they
           were consumed).
         """
-        # Join agent positions against the underlying cell properties to look
-        # up sugar values, avoiding an O(|cells|) scan + `is_in` filter.
         positions = self.pos.select(
             [
                 pl.col("unique_id").alias("agent_id"),
@@ -99,25 +97,16 @@ class AntsBase(AgentSet):
                 "dim_1",
             ]
         )
-        sugar = (
-            positions.join(
-                self.space.cells(include="properties").select(
-                    ["dim_0", "dim_1", "sugar"]
-                ),
-                on=["dim_0", "dim_1"],
-                how="left",
-            )
-            .with_columns(pl.col("sugar").fill_null(0))
-            .select("sugar")["sugar"]
-        )
+        sugar_df = self.space.cells.lookup(positions, columns=["sugar"], as_df=True)
+        sugar = sugar_df["sugar"].fill_null(0)
         agent_ids = positions["agent_id"]
         self[agent_ids, "sugar"] = (
             self[agent_ids, "sugar"] + sugar - self[agent_ids, "metabolism"]
         )
         # After harvesting, occupied cells have zero sugar.
-        self.space.cells.set(
+        self.space.cells.update(
             positions.select(["dim_0", "dim_1"]),
-            {"sugar": pl.repeat(0, positions.height, eager=True).cast(pl.Int64)},
+            {"sugar": 0},
         )
 
     def _remove_starved(self) -> None:

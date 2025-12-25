@@ -321,9 +321,11 @@ class Grid(AbstractGrid, PolarsMixin):
             if property not in self.cells._cells.columns:
                 reasons.append("property column missing")
             else:
-                # Ensure the cell table is in canonical row-major order exactly once.
-                # This keeps the NumPy property buffer aligned with cell_id.
-                self.cells._ensure_dense_row_major_cells()
+                # Only sort/canonicalize when the table is already dense.
+                # Do NOT densify here: this function is a debug hook and should not
+                # mutate state or change the chosen path.
+                if self.cells._cells.height == int(np.prod(self._dimensions)):
+                    self.cells._ensure_dense_row_major_cells()
                 dtype = self.cells._cells.schema.get(property)
                 numeric = dtype in {
                     pl.Int8,

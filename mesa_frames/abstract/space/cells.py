@@ -13,7 +13,6 @@ from mesa_frames.abstract.agentsetregistry import AbstractAgentSetRegistry
 from mesa_frames.types_ import (
     BoolSeries,
     DataFrame,
-    DataFrameInput,
     DiscreteCoordinate,
     DiscreteCoordinates,
     DiscreteSpaceCapacity,
@@ -49,7 +48,7 @@ class AbstractCells(ABC):
     ) -> DataFrame: ...
 
     @abstractmethod
-    def set(
+    def update(
         self,
         target: DiscreteCoordinate
         | DiscreteCoordinates
@@ -57,11 +56,61 @@ class AbstractCells(ABC):
         | AbstractAgentSet
         | AbstractAgentSetRegistry
         | Collection[AbstractAgentSet]
-        | Collection[AbstractAgentSetRegistry],
-        properties: DataFrame | DataFrameInput | None = None,
+        | Collection[AbstractAgentSetRegistry]
+        | None = None,
+        updates: dict[str, object] | None = None,
         *,
-        inplace: bool = True,
-    ) -> object: ...
+        mask: str | DataFrame | Series | np.ndarray | None = None,
+        backend: Literal["auto", "polars"] = "auto",
+        mask_col: str | None = None,
+    ) -> None:
+        """Update existing cell properties.
+
+        This is the primary write API for cells.
+
+        Parameters
+        ----------
+        target : DiscreteCoordinate | DiscreteCoordinates | DataFrame | AbstractAgentSet | AbstractAgentSetRegistry | Collection[AbstractAgentSet] | Collection[AbstractAgentSetRegistry] | None, optional
+            Target cells to update. When provided, this selects the cells to be
+            updated (by coordinates or via agents/registries). When ``target`` is
+            a DataFrame, it is interpreted as a coordinate mask or a full cells
+            table (when ``updates`` is ``None``).
+
+        updates : dict[str, object] | None, optional
+            Mapping of property name to update value.
+
+            Accepted value types are:
+
+            - scalar (int/float/bool)
+            - array-like (NumPy array, list, or backend Series)
+            - Polars expression (``pl.Expr``; triggers Polars fallback)
+            - column name (str), interpreted as "copy values from that column"
+
+            Callables are not accepted.
+
+        mask : str | DataFrame | Series | np.ndarray | None, optional
+            Optional selector for which cells to update. Supported string masks
+            include ``"all"``, ``"empty"``, and ``"full"``.
+
+        backend : Literal["auto", "polars"], optional
+            Selects the implementation backend.
+
+        mask_col : str | None, optional
+            When ``mask`` is a DataFrame, optional name of a boolean column
+            indicating the selected rows.
+        """
+        ...
+
+    @abstractmethod
+    def lookup(
+        self,
+        target: DiscreteCoordinates | DataFrame | IdsLike | np.ndarray,
+        columns: list[str] | None = None,
+        *,
+        as_df: bool = True,
+    ) -> DataFrame | dict[str, np.ndarray] | np.ndarray:
+        """Fetch cell rows by key without joins."""
+        ...
 
     @property
     @abstractmethod

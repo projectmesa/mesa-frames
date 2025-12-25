@@ -374,7 +374,7 @@ class Sugarscape(Model):
         self.space = Grid(
             self, [width, height], neighborhood_type="von_neumann", capacity=1
         )
-        self.space.cells.set(sugar_grid_df)
+        self.space.cells.update(sugar_grid_df)
         self._max_sugar = sugar_grid_df.select(["dim_0", "dim_1", "max_sugar"])
 
         # 2. Now we create the agents and place them on the grid
@@ -502,11 +502,8 @@ class Sugarscape(Model):
         """
         empty_cells = self.space.cells.empty
         if not empty_cells.is_empty():
-            # Look up the maximum sugar for each empty cell and restore it.
-            refresh = empty_cells.join(
-                self._max_sugar, on=["dim_0", "dim_1"], how="left"
-            )
-            self.space.cells.set(empty_cells, {"sugar": refresh["max_sugar"]})
+            # Restore sugar to per-cell max_sugar.
+            self.space.cells.update({"sugar": "max_sugar"}, mask="empty")
 
 
 # %% [markdown]
@@ -621,9 +618,9 @@ class AntsBase(AgentSet):
             - self[agent_ids, "metabolism"]
         )
         # After harvesting, occupied cells have zero sugar.
-        self.space.cells.set(
+        self.space.cells.update(
             occupied_cells.select(["dim_0", "dim_1"]),
-            {"sugar": pl.Series(np.zeros(len(occupied_cells), dtype=np.int64))},
+            {"sugar": 0},
         )
 
     def _remove_starved(self) -> None:

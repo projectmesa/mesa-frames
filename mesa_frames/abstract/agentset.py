@@ -19,13 +19,14 @@ implementations that use specific DataFrame backends.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Collection, Iterable, Iterator
+from collections.abc import Collection, Iterator
 from contextlib import suppress
 from typing import Any, Literal, Self, overload
 
 from collections.abc import Callable, Sequence
 
 from numpy.random import Generator
+import numpy as np
 import polars as pl
 
 from mesa_frames.abstract.mixin import CopyMixin, DataFrameMixin
@@ -513,32 +514,50 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         ...
 
     @abstractmethod
-    def set(
+    def update(
         self,
-        attr_names: str | Collection[str] | dict[str, Any] | None = None,
-        values: Any | None = None,
-        mask: AgentMask | None = None,
-        inplace: bool = True,
-    ) -> Self:
-        """Update agent attributes, optionally on a masked subset.
+        target: IdsLike | DataFrame | dict[str, object] | None = None,
+        updates: dict[str, object] | None = None,
+        *,
+        mask: AgentMask | DataFrame | Series | np.ndarray | None = None,
+        backend: Literal["auto", "polars"] = "auto",
+        mask_col: str | None = None,
+    ) -> None:
+        """Update agent attributes.
 
         Parameters
         ----------
-        attr_names : str | Collection[str] | dict[str, Any] | None, optional
-            Attribute(s) to assign. When ``None``, concrete implementations may
-            derive targets from ``values``.
-        values : Any | None, optional
-            Replacement value(s) aligned with ``attr_names``.
-        mask : AgentMask | None, optional
-            Subset selector limiting which agents are updated.
-        inplace : bool, optional
-            Whether to mutate in place or return an updated copy, by default True.
+        target : IdsLike | DataFrame | dict[str, object] | None
+            Optional selector indicating which agents to update. For
+            convenience, a dict may be passed as the first positional argument
+            (in which case it is treated as ``updates``).
 
-        Returns
-        -------
-        Self
-            The updated AgentSet (or a modified copy when ``inplace=False``).
+        updates : dict[str, object] | None
+            Mapping of column -> value. Values may be scalars, array-likes,
+            Polars expressions, or column-name strings (copy-from-column).
+            Callables are not accepted.
+
+        mask : AgentMask | DataFrame | Series | np.ndarray | None, optional
+            Optional selector limiting which agents are updated.
+
+        backend : Literal["auto", "polars"], optional
+            Selects the implementation backend.
+
+        mask_col : str | None, optional
+            When ``mask``/``target`` is a DataFrame, optional name of a boolean
+            column indicating the selected rows.
         """
+        ...
+
+    @abstractmethod
+    def lookup(
+        self,
+        target: IdsLike | DataFrame,
+        columns: list[str] | None = None,
+        *,
+        as_df: bool = True,
+    ) -> DataFrame | dict[str, np.ndarray] | np.ndarray:
+        """Fetch rows by key without joins."""
         ...
 
     @abstractmethod
@@ -624,19 +643,29 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         | tuple[AgentMask, str | Collection[str]],
         values: Any,
     ) -> None:
-        """Set values using [] syntax, delegating to set()."""
+        """Set values using [] syntax, delegating to update()."""
         mask_literals = AgentMaskLiteral.__args__
         if isinstance(key, tuple):
             # Tuple keys are (mask, attr_names)
-            self.set(mask=key[0], attr_names=key[1], values=values)
+            attr_names = key[1]
+            if isinstance(attr_names, str):
+                self.update({attr_names: values}, mask=key[0])
+                return
+            if isinstance(values, Collection) and not isinstance(values, (str, bytes)):
+                if len(attr_names) == len(values):
+                    self.update(dict(zip(attr_names, values)), mask=key[0])
+                    return
+            self.update({name: values for name in attr_names}, mask=key[0])
             return
 
         if isinstance(key, str):
             # Single string keys could be attribute names or mask literals
             if key in set(mask_literals):
-                self.set(attr_names=None, mask=key, values=values)
+                # Assign to all non-id columns when using a mask literal key.
+                updates = {c: values for c in self.df.columns if c != "unique_id"}
+                self.update(updates, mask=key)
             else:
-                self.set(attr_names=key, values=values)
+                self.update({key: values})
             return
 
         if isinstance(key, Collection) and all(isinstance(k, str) for k in key):
@@ -647,7 +676,19 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
                 raise KeyError(
                     "Mask keywords ('all', 'active') are not valid column names."
                 )
-            self.set(attr_names=key, values=values)
+            if isinstance(values, Collection) and not isinstance(values, (str, bytes)):
+                if len(key) == len(values):
+                    self.update(dict(zip(key, values)))
+                    return
+            self.update({name: values for name in key})
             return
 
-        self.set(attr_names=None, mask=key, values=values)
+        # Key is an AgentMask selecting rows. If values is a sequence matching the
+        # number of non-id columns, treat it as a row-wise assignment.
+        cols = [c for c in self.df.columns if c != "unique_id"]
+        if isinstance(values, Collection) and not isinstance(values, (str, bytes)):
+            if len(values) == len(cols):
+                self.update(dict(zip(cols, values)), mask=key)
+                return
+        updates = {c: values for c in cols}
+        self.update(updates, mask=key)

@@ -313,7 +313,7 @@ class PolarsMixin(DataFrameMixin):
                 raise KeyError(
                     f"Mask must have {index_cols} column(s) or a single boolean column."
                 )
-        elif mask is None or mask == "all":
+        elif mask is None or (isinstance(mask, str) and mask == "all"):
             result = pl.Series([True] * len(df))
         elif isinstance(mask, Collection):
             result = bool_mask_from_series(pl.Series(mask))

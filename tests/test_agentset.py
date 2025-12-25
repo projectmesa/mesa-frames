@@ -330,31 +330,52 @@ class Test_AgentSet:
             for id in agents["unique_id"][2, 3]
         )
 
-    def test_set(self, fix1_AgentSet: ExampleAgentSet):
+    def test_update(self, fix1_AgentSet: ExampleAgentSet):
         agents = fix1_AgentSet
 
-        # Test with a single attribute
-        result = agents.set("wealth", 0, inplace=False)
-        assert result.df["wealth"].to_list() == [0, 0, 0, 0]
+        # Scalar update on all agents
+        agents2 = copy(agents)
+        agents2.update({"wealth": 0}, mask="all")
+        assert agents2.df["wealth"].to_list() == [0, 0, 0, 0]
 
-        # Test with a list of attributes
-        result = agents.set(["wealth", "age"], 1, inplace=False)
-        assert result.df["wealth"].to_list() == [1, 1, 1, 1]
-        assert result.df["age"].to_list() == [1, 1, 1, 1]
-
-        # Test with a single attribute and a mask
+        # Scalar update on active mask
         selected = agents.select(agents.df["wealth"] > 1, inplace=False)
-        selected.set("wealth", 0, mask="active")
+        selected.update({"wealth": 0}, mask="active")
         assert selected.df["wealth"].to_list() == [1, 0, 0, 0]
 
-        # Test with a dictionary
-        agents.set({"wealth": 10, "age": 20})
+        # Dict update (two columns)
+        agents.update({"wealth": 10, "age": 20}, mask="all")
         assert agents.df["wealth"].to_list() == [10, 10, 10, 10]
         assert agents.df["age"].to_list() == [20, 20, 20, 20]
 
-        # Test with Collection values (Line 213) - using list as Collection
-        result = agents.set("wealth", [100, 200, 300, 400], inplace=False)
-        assert result.df["wealth"].to_list() == [100, 200, 300, 400]
+        # Array-like update
+        agents3 = copy(agents)
+        agents3.update({"wealth": [100, 200, 300, 400]}, mask="all")
+        assert agents3.df["wealth"].to_list() == [100, 200, 300, 400]
+
+        # Copy-from-column
+        agents4 = copy(agents)
+        agents4.update({"age": "wealth"}, mask="all")
+        assert agents4.df["age"].to_list() == agents4.df["wealth"].to_list()
+
+        # Expr fallback
+        agents5 = copy(agents)
+        agents5.update({"wealth": pl.col("wealth") + 1}, mask="all")
+        assert agents5.df["wealth"].to_list() == [
+            w + 1 for w in agents.df["wealth"].to_list()
+        ]
+
+    def test_update_buffer_invalidation_on_shuffle(
+        self, fix1_AgentSet: ExampleAgentSet
+    ):
+        agents = copy(fix1_AgentSet)
+        agents.update({"wealth": 1}, mask="all")
+        before = agents.df["wealth"].to_list()
+        agents.shuffle()
+        agents.update({"wealth": 2}, mask="all")
+        after = agents.df["wealth"].to_list()
+        assert all(v == 2 for v in after)
+        assert before != after or len(before) == len(after)
 
     def test_shuffle(self, fix1_AgentSet: ExampleAgentSet):
         agents = fix1_AgentSet

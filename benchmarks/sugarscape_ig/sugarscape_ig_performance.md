@@ -247,7 +247,7 @@ When `MESA_FRAMES_SUGARSCAPE_ULTRA_FAST=1`:
 
 Why this matters:
 
-- Per-step `space.cells.set(...)` calls are expensive at large scale.
+- Per-step `space.cells.update(...)` calls are expensive at large scale.
 - A single `with_columns(pl.Series("sugar", ...))` is much cheaper than many row-based updates.
 
 Measured improvement (under `full_kernel`): **~5.55s → ~1.84s**.
