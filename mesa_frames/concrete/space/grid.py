@@ -525,11 +525,12 @@ class Grid(AbstractGrid, PolarsMixin):
                     offsets=new_offsets,
                     cell_id=csr.cell_id[ok],
                     radius=csr.radius[ok],
-                    dim0=csr.dim0[ok],
-                    dim1=csr.dim1[ok],
                 )
 
-            csr = self._fastpath.rank_candidates_array(csr, score_flat)
+            cand_score = np.asarray(score_flat[csr.cell_id], dtype=np.float64)
+            csr = self._fastpath.rank_candidates_array_by_score(
+                csr, cand_score, height=height
+            )
             dest_cell = self._fastpath.resolve_conflicts_lottery(
                 rng=self.model.random,
                 csr=csr,
@@ -558,8 +559,6 @@ class Grid(AbstractGrid, PolarsMixin):
                 cand_radius = (
                     neighbors_df["radius"].to_numpy().astype(np.int64, copy=False)
                 )
-                cand_d0 = cand_coords[:, 0]
-                cand_d1 = cand_coords[:, 1]
 
                 cand_agent = neighbors_df["agent_id"].to_numpy()
 
@@ -606,8 +605,6 @@ class Grid(AbstractGrid, PolarsMixin):
                 cand_agent = cand_agent[ok]
                 cand_cell_id = cand_cell_id[ok]
                 cand_radius = cand_radius[ok]
-                cand_d0 = cand_d0[ok]
-                cand_d1 = cand_d1[ok]
                 cand_score = np.asarray(cand_score)[ok]
 
                 # Build CSR in the same order as move_ids (vectorized).
@@ -619,8 +616,6 @@ class Grid(AbstractGrid, PolarsMixin):
                 agent_idx_s = agent_idx[row_order]
                 cand_cell_s = cand_cell_id[row_order]
                 cand_rad_s = cand_radius[row_order]
-                cand_d0_s = cand_d0[row_order]
-                cand_d1_s = cand_d1[row_order]
                 cand_score_s = cand_score[row_order]
 
                 counts = np.bincount(
@@ -638,11 +633,9 @@ class Grid(AbstractGrid, PolarsMixin):
                         offsets=offsets,
                         cell_id=cand_cell_s.astype(np.int64, copy=False),
                         radius=cand_rad_s.astype(np.int64, copy=False),
-                        dim0=cand_d0_s.astype(np.int64, copy=False),
-                        dim1=cand_d1_s.astype(np.int64, copy=False),
                     )
                     csr = self._fastpath.rank_candidates_array_by_score(
-                        csr, cand_score_s
+                        csr, cand_score_s, height=height
                     )
                     dest_cell = self._fastpath.resolve_conflicts_lottery(
                         rng=self.model.random,

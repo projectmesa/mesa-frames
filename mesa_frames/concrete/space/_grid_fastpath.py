@@ -9,8 +9,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+from typing import Any
 
 import numpy as np
+
+
+def _prange(n: int) -> range:
+    return range(n)
+
 
 try:  # pragma: no cover
     import numba as _numba  # type: ignore
@@ -70,14 +76,20 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
         radius_scalar: int,
         use_per_agent: bool,
         base_dirs: np.ndarray,
+        dirs_scaled: np.ndarray,
+        max_per_agent: int,
         width: int,
         height: int,
         torus: bool,
+        dedup_torus: bool,
         include_center: bool,
     ) -> np.ndarray:
         n_agents = int(centers.shape[0])
         n_dirs = int(base_dirs.shape[0])
         counts = np.zeros(n_agents, dtype=np.int64)
+
+        # Local scratch buffer reused across agents (only used for torus de-dupe).
+        seen = np.empty(max_per_agent if max_per_agent > 0 else 1, dtype=np.int64)
 
         for i in range(n_agents):
             cx = int(centers[i, 0])
@@ -86,10 +98,30 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
             if use_per_agent:
                 rmax = int(radius_per_agent[i])
 
-            # Upper bound for this agent (including center). Used only for the
-            # local de-dupe buffer.
-            seg_upper = (1 if include_center else 0) + n_dirs * rmax
-            seen = np.empty(seg_upper if seg_upper > 0 else 1, dtype=np.int64)
+            if not torus:
+                c = 0
+                if include_center:
+                    x0 = cx
+                    y0 = cy
+                    if x0 < 0 or x0 >= width or y0 < 0 or y0 >= height:
+                        counts[i] = 0
+                        continue
+                    c += 1
+                for d in range(n_dirs):
+                    for r in range(1, rmax + 1):
+                        x = cx + int(dirs_scaled[r, d, 0])
+                        y = cy + int(dirs_scaled[r, d, 1])
+                        if x < 0 or x >= width or y < 0 or y >= height:
+                            continue
+                        c += 1
+                counts[i] = c
+                continue
+
+            if torus and not dedup_torus:
+                # No in-bounds filtering and no duplicates possible.
+                counts[i] = (1 if include_center else 0) + (n_dirs * rmax)
+                continue
+
             seen_n = 0
 
             if include_center:
@@ -107,11 +139,9 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                 seen_n += 1
 
             for d in range(n_dirs):
-                dx0 = int(base_dirs[d, 0])
-                dy0 = int(base_dirs[d, 1])
                 for r in range(1, rmax + 1):
-                    x = cx + dx0 * r
-                    y = cy + dy0 * r
+                    x = cx + int(dirs_scaled[r, d, 0])
+                    y = cy + int(dirs_scaled[r, d, 1])
                     if torus:
                         x %= width
                         y %= height
@@ -119,7 +149,7 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                         if x < 0 or x >= width or y < 0 or y >= height:
                             continue
                     cid = x * height + y
-                    if torus:
+                    if dedup_torus:
                         dup = False
                         for k in range(seen_n):
                             if int(seen[k]) == cid:
@@ -144,9 +174,12 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
         radius_scalar: int,
         use_per_agent: bool,
         base_dirs: np.ndarray,
+        dirs_scaled: np.ndarray,
+        max_per_agent: int,
         width: int,
         height: int,
         torus: bool,
+        dedup_torus: bool,
         include_center: bool,
         offsets: np.ndarray,
         out_cell_id: np.ndarray,
@@ -157,6 +190,9 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
         n_agents = int(centers.shape[0])
         n_dirs = int(base_dirs.shape[0])
 
+        # Local scratch buffer reused across agents (only used for torus de-dupe).
+        seen = np.empty(max_per_agent if max_per_agent > 0 else 1, dtype=np.int64)
+
         for i in range(n_agents):
             start = int(offsets[i])
             cx = int(centers[i, 0])
@@ -165,11 +201,59 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
             if use_per_agent:
                 rmax = int(radius_per_agent[i])
 
-            seg_upper = (1 if include_center else 0) + n_dirs * rmax
-            seen = np.empty(seg_upper if seg_upper > 0 else 1, dtype=np.int64)
-            seen_n = 0
-
             out = start
+
+            if not torus:
+                if include_center:
+                    x0 = cx
+                    y0 = cy
+                    if x0 < 0 or x0 >= width or y0 < 0 or y0 >= height:
+                        continue
+                    cid0 = x0 * height + y0
+                    out_d0[out] = x0
+                    out_d1[out] = y0
+                    out_rad[out] = 0
+                    out_cell_id[out] = cid0
+                    out += 1
+
+                for d in range(n_dirs):
+                    for r in range(1, rmax + 1):
+                        x = cx + int(dirs_scaled[r, d, 0])
+                        y = cy + int(dirs_scaled[r, d, 1])
+                        if x < 0 or x >= width or y < 0 or y >= height:
+                            continue
+                        cid = x * height + y
+                        out_d0[out] = x
+                        out_d1[out] = y
+                        out_rad[out] = r
+                        out_cell_id[out] = cid
+                        out += 1
+                continue
+
+            if torus and not dedup_torus:
+                if include_center:
+                    x0 = cx % width
+                    y0 = cy % height
+                    cid0 = x0 * height + y0
+                    out_d0[out] = x0
+                    out_d1[out] = y0
+                    out_rad[out] = 0
+                    out_cell_id[out] = cid0
+                    out += 1
+
+                for d in range(n_dirs):
+                    for r in range(1, rmax + 1):
+                        x = (cx + int(dirs_scaled[r, d, 0])) % width
+                        y = (cy + int(dirs_scaled[r, d, 1])) % height
+                        cid = x * height + y
+                        out_d0[out] = x
+                        out_d1[out] = y
+                        out_rad[out] = r
+                        out_cell_id[out] = cid
+                        out += 1
+                continue
+
+            seen_n = 0
 
             if include_center:
                 x0 = cx
@@ -191,11 +275,9 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                 out += 1
 
             for d in range(n_dirs):
-                dx0 = int(base_dirs[d, 0])
-                dy0 = int(base_dirs[d, 1])
                 for r in range(1, rmax + 1):
-                    x = cx + dx0 * r
-                    y = cy + dy0 * r
+                    x = cx + int(dirs_scaled[r, d, 0])
+                    y = cy + int(dirs_scaled[r, d, 1])
                     if torus:
                         x %= width
                         y %= height
@@ -203,7 +285,7 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                         if x < 0 or x >= width or y < 0 or y >= height:
                             continue
                     cid = x * height + y
-                    if torus:
+                    if dedup_torus:
                         dup = False
                         for k in range(seen_n):
                             if int(seen[k]) == cid:
@@ -224,65 +306,421 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
 if _NUMBA_AVAILABLE:  # pragma: no cover
 
     @_njit
+    def _gather_precomputed_neighbors_kernel(
+        origin_cell_id: np.ndarray,
+        cell_offsets: np.ndarray,
+        cell_cand_cell: np.ndarray,
+        cell_cand_rad: np.ndarray,
+        out_offsets: np.ndarray,
+        out_cell_id: np.ndarray,
+        out_rad: np.ndarray,
+    ) -> None:
+        n_agents = int(origin_cell_id.shape[0])
+        for i in range(n_agents):
+            cid = int(origin_cell_id[i])
+            src_start = int(cell_offsets[cid])
+            src_stop = int(cell_offsets[cid + 1])
+            dst = int(out_offsets[i])
+            for j in range(src_start, src_stop):
+                out_cell_id[dst] = cell_cand_cell[j]
+                out_rad[dst] = cell_cand_rad[j]
+                dst += 1
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _better_by_score_triplet(
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        cand_score: np.ndarray,
+        i: int,
+        j: int,
+    ) -> bool:
+        si = float(cand_score[i])
+        if si != si:
+            si = -1e300
+        sj = float(cand_score[j])
+        if sj != sj:
+            sj = -1e300
+        if si > sj:
+            return True
+        if si < sj:
+            return False
+        ri = int(radius[i])
+        rj = int(radius[j])
+        if ri < rj:
+            return True
+        if ri > rj:
+            return False
+        return int(cell_id[i]) < int(cell_id[j])
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _swap_score_triplet(
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        cand_score: np.ndarray,
+        a: int,
+        b: int,
+    ) -> None:
+        cell_id[a], cell_id[b] = cell_id[b], cell_id[a]
+        radius[a], radius[b] = radius[b], radius[a]
+        cand_score[a], cand_score[b] = cand_score[b], cand_score[a]
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _sift_down_score_triplet(
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        cand_score: np.ndarray,
+        base: int,
+        size: int,
+        root: int,
+    ) -> None:
+        while True:
+            left = 2 * root + 1
+            if left >= size:
+                return
+            right = left + 1
+            best = left
+            if right < size and _better_by_score_triplet(
+                cell_id, radius, cand_score, base + right, base + left
+            ):
+                best = right
+            if _better_by_score_triplet(
+                cell_id, radius, cand_score, base + best, base + root
+            ):
+                _swap_score_triplet(
+                    cell_id, radius, cand_score, base + root, base + best
+                )
+                root = best
+            else:
+                return
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _heapsort_score_triplet(
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        cand_score: np.ndarray,
+        start: int,
+        stop: int,
+    ) -> None:
+        seg_len = stop - start
+        if seg_len <= 1:
+            return
+
+        # Heapify (max-heap: best at root)
+        for root in range((seg_len // 2) - 1, -1, -1):
+            _sift_down_score_triplet(cell_id, radius, cand_score, start, seg_len, root)
+
+        # Extract
+        for end in range(seg_len - 1, 0, -1):
+            _swap_score_triplet(cell_id, radius, cand_score, start, start + end)
+            _sift_down_score_triplet(cell_id, radius, cand_score, start, end, 0)
+
+        # Reverse worst..best -> best..worst
+        lo = start
+        hi = stop - 1
+        while lo < hi:
+            _swap_score_triplet(cell_id, radius, cand_score, lo, hi)
+            lo += 1
+            hi -= 1
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _better_by_flat_triplet(
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        score_flat: np.ndarray,
+        i: int,
+        j: int,
+    ) -> bool:
+        si = float(score_flat[int(cell_id[i])])
+        sj = float(score_flat[int(cell_id[j])])
+        if si > sj:
+            return True
+        if si < sj:
+            return False
+        ri = int(radius[i])
+        rj = int(radius[j])
+        if ri < rj:
+            return True
+        if ri > rj:
+            return False
+        return int(cell_id[i]) < int(cell_id[j])
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _swap_flat_triplet(
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        a: int,
+        b: int,
+    ) -> None:
+        cell_id[a], cell_id[b] = cell_id[b], cell_id[a]
+        radius[a], radius[b] = radius[b], radius[a]
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _sift_down_flat_triplet(
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        score_flat: np.ndarray,
+        base: int,
+        size: int,
+        root: int,
+    ) -> None:
+        while True:
+            left = 2 * root + 1
+            if left >= size:
+                return
+            right = left + 1
+            best = left
+            if right < size and _better_by_flat_triplet(
+                cell_id, radius, score_flat, base + right, base + left
+            ):
+                best = right
+            if _better_by_flat_triplet(
+                cell_id, radius, score_flat, base + best, base + root
+            ):
+                _swap_flat_triplet(cell_id, radius, base + root, base + best)
+                root = best
+            else:
+                return
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _heapsort_flat_triplet(
+        cell_id: np.ndarray,
+        radius: np.ndarray,
+        score_flat: np.ndarray,
+        start: int,
+        stop: int,
+    ) -> None:
+        seg_len = stop - start
+        if seg_len <= 1:
+            return
+
+        for root in range((seg_len // 2) - 1, -1, -1):
+            _sift_down_flat_triplet(cell_id, radius, score_flat, start, seg_len, root)
+        for end in range(seg_len - 1, 0, -1):
+            _swap_flat_triplet(cell_id, radius, start, start + end)
+            _sift_down_flat_triplet(cell_id, radius, score_flat, start, end, 0)
+        lo = start
+        hi = stop - 1
+        while lo < hi:
+            _swap_flat_triplet(cell_id, radius, lo, hi)
+            lo += 1
+            hi -= 1
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
     def _rank_candidates_kernel(
         offsets: np.ndarray,
         cell_id: np.ndarray,
         radius: np.ndarray,
-        dim0: np.ndarray,
-        dim1: np.ndarray,
         score_flat: np.ndarray,
+        k_thresh: int = 24,
     ) -> None:
+        """Sort candidates in-place within each CSR segment.
+
+        Comparator (desc/asc/asc): score(cell_id), radius, cell_id.
+        """
         n_agents = int(offsets.shape[0] - 1)
         for i in range(n_agents):
             start = int(offsets[i])
             stop = int(offsets[i + 1])
-            # insertion sort on small K
-            for j in range(start + 1, stop):
-                key_cell = int(cell_id[j])
-                key_rad = int(radius[j])
-                key_d0 = int(dim0[j])
-                key_d1 = int(dim1[j])
-                key_score = float(score_flat[key_cell])
+            seg_len = stop - start
+            if seg_len <= 1:
+                continue
 
-                k = j - 1
-                while k >= start:
-                    cur_cell = int(cell_id[k])
-                    cur_score = float(score_flat[cur_cell])
-                    # comparator: score desc, radius asc, dim0 asc, dim1 asc
-                    better = False
-                    if cur_score > key_score:
-                        better = True
-                    elif cur_score < key_score:
+            if seg_len <= k_thresh:
+                for j in range(start + 1, stop):
+                    key_cell = int(cell_id[j])
+                    key_rad = int(radius[j])
+                    key_score = float(score_flat[key_cell])
+
+                    k = j - 1
+                    while k >= start:
+                        cur_cell = int(cell_id[k])
+                        cur_score = float(score_flat[cur_cell])
                         better = False
-                    else:
-                        cur_rad = int(radius[k])
-                        if cur_rad < key_rad:
+                        if cur_score > key_score:
                             better = True
-                        elif cur_rad > key_rad:
+                        elif cur_score < key_score:
                             better = False
                         else:
-                            cur_d0 = int(dim0[k])
-                            if cur_d0 < key_d0:
+                            cur_rad = int(radius[k])
+                            if cur_rad < key_rad:
                                 better = True
-                            elif cur_d0 > key_d0:
+                            elif cur_rad > key_rad:
                                 better = False
                             else:
-                                cur_d1 = int(dim1[k])
-                                better = cur_d1 <= key_d1
+                                better = int(cell_id[k]) <= key_cell
+
+                        if better:
+                            break
+
+                        cell_id[k + 1] = cell_id[k]
+                        radius[k + 1] = radius[k]
+                        k -= 1
+
+                    cell_id[k + 1] = key_cell
+                    radius[k + 1] = key_rad
+                continue
+
+            # Large-K: heapsort (O(K log K)) without calling global helpers.
+            size = seg_len
+
+            # Heapify (max-heap: best at root)
+            for root in range((size // 2) - 1, -1, -1):
+                r = root
+                while True:
+                    left = 2 * r + 1
+                    if left >= size:
+                        break
+                    best = left
+                    right = left + 1
+                    if right < size:
+                        ia = start + right
+                        ib = start + left
+                        sa = float(score_flat[int(cell_id[ia])])
+                        sb = float(score_flat[int(cell_id[ib])])
+                        better = False
+                        if sa > sb:
+                            better = True
+                        elif sa < sb:
+                            better = False
+                        else:
+                            ra = int(radius[ia])
+                            rb = int(radius[ib])
+                            if ra < rb:
+                                better = True
+                            elif ra > rb:
+                                better = False
+                            else:
+                                better = int(cell_id[ia]) < int(cell_id[ib])
+                        if better:
+                            best = right
+
+                    ia = start + best
+                    ib = start + r
+                    sa = float(score_flat[int(cell_id[ia])])
+                    sb = float(score_flat[int(cell_id[ib])])
+                    better = False
+                    if sa > sb:
+                        better = True
+                    elif sa < sb:
+                        better = False
+                    else:
+                        ra = int(radius[ia])
+                        rb = int(radius[ib])
+                        if ra < rb:
+                            better = True
+                        elif ra > rb:
+                            better = False
+                        else:
+                            better = int(cell_id[ia]) < int(cell_id[ib])
 
                     if better:
+                        a = start + r
+                        b = start + best
+                        cell_id[a], cell_id[b] = cell_id[b], cell_id[a]
+                        radius[a], radius[b] = radius[b], radius[a]
+                        r = best
+                    else:
                         break
 
-                    cell_id[k + 1] = cell_id[k]
-                    radius[k + 1] = radius[k]
-                    dim0[k + 1] = dim0[k]
-                    dim1[k + 1] = dim1[k]
-                    k -= 1
+            # Extract max repeatedly to end.
+            for end in range(size - 1, 0, -1):
+                a = start
+                b = start + end
+                cell_id[a], cell_id[b] = cell_id[b], cell_id[a]
+                radius[a], radius[b] = radius[b], radius[a]
 
-                cell_id[k + 1] = key_cell
-                radius[k + 1] = key_rad
-                dim0[k + 1] = key_d0
-                dim1[k + 1] = key_d1
+                r = 0
+                while True:
+                    left = 2 * r + 1
+                    if left >= end:
+                        break
+                    best = left
+                    right = left + 1
+                    if right < end:
+                        ia = start + right
+                        ib = start + left
+                        sa = float(score_flat[int(cell_id[ia])])
+                        sb = float(score_flat[int(cell_id[ib])])
+                        better = False
+                        if sa > sb:
+                            better = True
+                        elif sa < sb:
+                            better = False
+                        else:
+                            ra = int(radius[ia])
+                            rb = int(radius[ib])
+                            if ra < rb:
+                                better = True
+                            elif ra > rb:
+                                better = False
+                            else:
+                                better = int(cell_id[ia]) < int(cell_id[ib])
+                        if better:
+                            best = right
+
+                    ia = start + best
+                    ib = start + r
+                    sa = float(score_flat[int(cell_id[ia])])
+                    sb = float(score_flat[int(cell_id[ib])])
+                    better = False
+                    if sa > sb:
+                        better = True
+                    elif sa < sb:
+                        better = False
+                    else:
+                        ra = int(radius[ia])
+                        rb = int(radius[ib])
+                        if ra < rb:
+                            better = True
+                        elif ra > rb:
+                            better = False
+                        else:
+                            better = int(cell_id[ia]) < int(cell_id[ib])
+
+                    if better:
+                        a = start + r
+                        b = start + best
+                        cell_id[a], cell_id[b] = cell_id[b], cell_id[a]
+                        radius[a], radius[b] = radius[b], radius[a]
+                        r = best
+                    else:
+                        break
+
+            # Reverse worst..best -> best..worst.
+            lo = start
+            hi = stop - 1
+            while lo < hi:
+                cell_id[lo], cell_id[hi] = cell_id[hi], cell_id[lo]
+                radius[lo], radius[hi] = radius[hi], radius[lo]
+                lo += 1
+                hi -= 1
 
 
 if _NUMBA_AVAILABLE:  # pragma: no cover
@@ -292,65 +730,218 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
         offsets: np.ndarray,
         cell_id: np.ndarray,
         radius: np.ndarray,
-        dim0: np.ndarray,
-        dim1: np.ndarray,
         cand_score: np.ndarray,
+        k_thresh: int = 24,
     ) -> None:
+        """Sort candidates in-place within each CSR segment.
+
+        Comparator (desc/asc/asc): score, radius, cell_id.
+        Note: cell_id ordering is equivalent to (dim0, dim1) ordering because
+        cell_id = dim0 * height + dim1 with constant height.
+        """
         n_agents = int(offsets.shape[0] - 1)
         for i in range(n_agents):
             start = int(offsets[i])
             stop = int(offsets[i + 1])
-            for j in range(start + 1, stop):
-                key_cell = int(cell_id[j])
-                key_rad = int(radius[j])
-                key_d0 = int(dim0[j])
-                key_d1 = int(dim1[j])
-                key_score = float(cand_score[j])
-                if key_score != key_score:
-                    key_score = -1e300
+            seg_len = stop - start
+            if seg_len <= 1:
+                continue
 
-                k = j - 1
-                while k >= start:
-                    cur_score = float(cand_score[k])
-                    if cur_score != cur_score:
-                        cur_score = -1e300
+            # Small-K: insertion sort (lower constant factors).
+            if seg_len <= k_thresh:
+                for j in range(start + 1, stop):
+                    key_cell = int(cell_id[j])
+                    key_rad = int(radius[j])
+                    key_score = float(cand_score[j])
+                    if key_score != key_score:
+                        key_score = -1e300
 
-                    better = False
-                    if cur_score > key_score:
-                        better = True
-                    elif cur_score < key_score:
+                    k = j - 1
+                    while k >= start:
+                        cur_score = float(cand_score[k])
+                        if cur_score != cur_score:
+                            cur_score = -1e300
                         better = False
-                    else:
-                        cur_rad = int(radius[k])
-                        if cur_rad < key_rad:
+                        if cur_score > key_score:
                             better = True
-                        elif cur_rad > key_rad:
+                        elif cur_score < key_score:
                             better = False
                         else:
-                            cur_d0 = int(dim0[k])
-                            if cur_d0 < key_d0:
+                            cur_rad = int(radius[k])
+                            if cur_rad < key_rad:
                                 better = True
-                            elif cur_d0 > key_d0:
+                            elif cur_rad > key_rad:
                                 better = False
                             else:
-                                cur_d1 = int(dim1[k])
-                                better = cur_d1 <= key_d1
+                                better = int(cell_id[k]) <= key_cell
+
+                        if better:
+                            break
+
+                        cell_id[k + 1] = cell_id[k]
+                        radius[k + 1] = radius[k]
+                        cand_score[k + 1] = cand_score[k]
+                        k -= 1
+
+                    cell_id[k + 1] = key_cell
+                    radius[k + 1] = key_rad
+                    cand_score[k + 1] = key_score
+                continue
+
+            # Large-K: heapsort (O(K log K)) without calling global helpers.
+            size = seg_len
+
+            # Heapify (max-heap: best at root)
+            for root in range((size // 2) - 1, -1, -1):
+                r = root
+                while True:
+                    left = 2 * r + 1
+                    if left >= size:
+                        break
+                    best = left
+                    right = left + 1
+                    if right < size:
+                        ia = start + right
+                        ib = start + left
+                        sa = float(cand_score[ia])
+                        if sa != sa:
+                            sa = -1e300
+                        sb = float(cand_score[ib])
+                        if sb != sb:
+                            sb = -1e300
+                        better = False
+                        if sa > sb:
+                            better = True
+                        elif sa < sb:
+                            better = False
+                        else:
+                            ra = int(radius[ia])
+                            rb = int(radius[ib])
+                            if ra < rb:
+                                better = True
+                            elif ra > rb:
+                                better = False
+                            else:
+                                better = int(cell_id[ia]) < int(cell_id[ib])
+                        if better:
+                            best = right
+
+                    ia = start + best
+                    ib = start + r
+                    sa = float(cand_score[ia])
+                    if sa != sa:
+                        sa = -1e300
+                    sb = float(cand_score[ib])
+                    if sb != sb:
+                        sb = -1e300
+                    better = False
+                    if sa > sb:
+                        better = True
+                    elif sa < sb:
+                        better = False
+                    else:
+                        ra = int(radius[ia])
+                        rb = int(radius[ib])
+                        if ra < rb:
+                            better = True
+                        elif ra > rb:
+                            better = False
+                        else:
+                            better = int(cell_id[ia]) < int(cell_id[ib])
 
                     if better:
+                        a = start + r
+                        b = start + best
+                        cell_id[a], cell_id[b] = cell_id[b], cell_id[a]
+                        radius[a], radius[b] = radius[b], radius[a]
+                        cand_score[a], cand_score[b] = cand_score[b], cand_score[a]
+                        r = best
+                    else:
                         break
 
-                    cell_id[k + 1] = cell_id[k]
-                    radius[k + 1] = radius[k]
-                    dim0[k + 1] = dim0[k]
-                    dim1[k + 1] = dim1[k]
-                    cand_score[k + 1] = cand_score[k]
-                    k -= 1
+            # Extract max repeatedly to end.
+            for end in range(size - 1, 0, -1):
+                a = start
+                b = start + end
+                cell_id[a], cell_id[b] = cell_id[b], cell_id[a]
+                radius[a], radius[b] = radius[b], radius[a]
+                cand_score[a], cand_score[b] = cand_score[b], cand_score[a]
 
-                cell_id[k + 1] = key_cell
-                radius[k + 1] = key_rad
-                dim0[k + 1] = key_d0
-                dim1[k + 1] = key_d1
-                cand_score[k + 1] = key_score
+                r = 0
+                while True:
+                    left = 2 * r + 1
+                    if left >= end:
+                        break
+                    best = left
+                    right = left + 1
+                    if right < end:
+                        ia = start + right
+                        ib = start + left
+                        sa = float(cand_score[ia])
+                        if sa != sa:
+                            sa = -1e300
+                        sb = float(cand_score[ib])
+                        if sb != sb:
+                            sb = -1e300
+                        better = False
+                        if sa > sb:
+                            better = True
+                        elif sa < sb:
+                            better = False
+                        else:
+                            ra = int(radius[ia])
+                            rb = int(radius[ib])
+                            if ra < rb:
+                                better = True
+                            elif ra > rb:
+                                better = False
+                            else:
+                                better = int(cell_id[ia]) < int(cell_id[ib])
+                        if better:
+                            best = right
+
+                    ia = start + best
+                    ib = start + r
+                    sa = float(cand_score[ia])
+                    if sa != sa:
+                        sa = -1e300
+                    sb = float(cand_score[ib])
+                    if sb != sb:
+                        sb = -1e300
+                    better = False
+                    if sa > sb:
+                        better = True
+                    elif sa < sb:
+                        better = False
+                    else:
+                        ra = int(radius[ia])
+                        rb = int(radius[ib])
+                        if ra < rb:
+                            better = True
+                        elif ra > rb:
+                            better = False
+                        else:
+                            better = int(cell_id[ia]) < int(cell_id[ib])
+
+                    if better:
+                        a = start + r
+                        b = start + best
+                        cell_id[a], cell_id[b] = cell_id[b], cell_id[a]
+                        radius[a], radius[b] = radius[b], radius[a]
+                        cand_score[a], cand_score[b] = cand_score[b], cand_score[a]
+                        r = best
+                    else:
+                        break
+
+            # Reverse worst..best -> best..worst.
+            lo = start
+            hi = stop - 1
+            while lo < hi:
+                cell_id[lo], cell_id[hi] = cell_id[hi], cell_id[lo]
+                radius[lo], radius[hi] = radius[hi], radius[lo]
+                cand_score[lo], cand_score[hi] = cand_score[hi], cand_score[lo]
+                lo += 1
+                hi -= 1
 
 
 if _NUMBA_AVAILABLE:  # pragma: no cover
@@ -385,6 +976,11 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
 
         state = seed
 
+        # Reusable stamp array for "freeable" cells (avoid allocating/zeroing
+        # a full n_cells array each round).
+        freeable_stamp = np.zeros(cap.shape[0], dtype=np.int32)
+        gen = np.int32(1)
+
         # Scratch for proposals (<= n_agents each round).
         prop_agents = np.empty(n_agents, dtype=np.int64)
         prop_cells = np.empty(n_agents, dtype=np.int64)
@@ -404,10 +1000,15 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
 
             made_progress = False
 
-            freeable = np.zeros(cap.shape[0], dtype=np.uint8)
+            # Bump generation; reset on overflow.
+            gen = np.int32(gen + 1)
+            if gen == np.int32(0):
+                freeable_stamp[:] = 0
+                gen = np.int32(1)
+
             for i in range(n_agents):
                 if unassigned[i] == 1:
-                    freeable[int(origin[i])] = 1
+                    freeable_stamp[int(origin[i])] = gen
 
             prop_n = 0
 
@@ -440,7 +1041,7 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                         prop_n += 1
                         break
 
-                    if freeable[cell] == 1:
+                    if freeable_stamp[cell] == gen:
                         prop_agents[prop_n] = i
                         prop_cells[prop_n] = cell
                         prop_wait[prop_n] = 1
@@ -563,8 +1164,6 @@ class _CSR:
     offsets: np.ndarray  # shape (n_agents + 1,)
     cell_id: np.ndarray  # shape (n_candidates,)
     radius: np.ndarray  # shape (n_candidates,)
-    dim0: np.ndarray  # shape (n_candidates,)
-    dim1: np.ndarray  # shape (n_candidates,)
 
 
 def _cell_id_from_coords_2d(coords: np.ndarray, height: int) -> np.ndarray:
@@ -583,6 +1182,10 @@ def _coords_from_cell_id_2d(cell_id: np.ndarray, height: int) -> np.ndarray:
 class _GridFastPath:
     def __init__(self, grid: Grid) -> None:
         self._grid = grid
+        # Cache of precomputed neighbor tables keyed by:
+        # (width, height, torus, include_center, radius, base_dirs_hash, dedup_torus)
+        # Value: dict with cell_offsets, cand_cell, cand_rad.
+        self._neighbors_by_cell_cache: dict[tuple[Any, ...], dict[str, np.ndarray]] = {}
 
     @property
     def numba_enabled(self) -> bool:
@@ -594,16 +1197,192 @@ class _GridFastPath:
         offsets: np.ndarray,
         cell_id: np.ndarray,
         radius: np.ndarray,
-        dim0: np.ndarray,
-        dim1: np.ndarray,
     ) -> _CSR:
         return _CSR(
             offsets=np.asarray(offsets),
             cell_id=np.asarray(cell_id),
             radius=np.asarray(radius),
-            dim0=np.asarray(dim0),
-            dim1=np.asarray(dim1),
         )
+
+    def _neighbors_table_by_cell_id(
+        self,
+        *,
+        radius: int,
+        include_center: bool,
+    ) -> dict[str, np.ndarray]:
+        grid = self._grid
+        width = int(grid._dimensions[0])
+        height = int(grid._dimensions[1])
+        torus = bool(grid._torus)
+        rmax = int(radius)
+
+        base_dirs = (
+            grid._offsets.select(grid._pos_col_names)
+            .to_numpy()
+            .astype(np.int64, copy=False)
+        )
+        base_dirs_hash = hash(base_dirs.tobytes())
+
+        # If neighborhood is strictly contained, duplicates are impossible.
+        dedup_torus = bool(torus and not ((2 * rmax) < width and (2 * rmax) < height))
+
+        key = (
+            width,
+            height,
+            torus,
+            bool(include_center),
+            rmax,
+            base_dirs_hash,
+            dedup_torus,
+        )
+        cached = self._neighbors_by_cell_cache.get(key)
+        if cached is not None:
+            return cached
+
+        n_cells = width * height
+        n_dirs = int(base_dirs.shape[0])
+        # Upper bound per cell.
+        max_per_cell = (1 if include_center else 0) + (n_dirs * rmax)
+
+        # Pass 1: counts per cell.
+        counts = np.empty(n_cells, dtype=np.int64)
+        for cell in range(n_cells):
+            x0 = int(cell // height)
+            y0 = int(cell % height)
+            if torus and not dedup_torus:
+                counts[cell] = max_per_cell
+                continue
+
+            c = 0
+            if include_center:
+                c += 1
+            if not torus:
+                for d in range(n_dirs):
+                    dx0 = int(base_dirs[d, 0])
+                    dy0 = int(base_dirs[d, 1])
+                    for r in range(1, rmax + 1):
+                        x = x0 + dx0 * r
+                        y = y0 + dy0 * r
+                        if x < 0 or x >= width or y < 0 or y >= height:
+                            continue
+                        c += 1
+                counts[cell] = c
+                continue
+
+            # torus + possible de-dupe
+            seen_n = 0
+            seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
+            if include_center:
+                seen[seen_n] = cell
+                seen_n += 1
+            for d in range(n_dirs):
+                dx0 = int(base_dirs[d, 0])
+                dy0 = int(base_dirs[d, 1])
+                for r in range(1, rmax + 1):
+                    x = (x0 + dx0 * r) % width
+                    y = (y0 + dy0 * r) % height
+                    cid = x * height + y
+                    if dedup_torus:
+                        dup = False
+                        for k in range(seen_n):
+                            if int(seen[k]) == cid:
+                                dup = True
+                                break
+                        if dup:
+                            continue
+                    seen[seen_n] = cid
+                    seen_n += 1
+            counts[cell] = seen_n
+
+        cell_offsets = np.empty(n_cells + 1, dtype=np.int64)
+        cell_offsets[0] = 0
+        np.cumsum(counts, out=cell_offsets[1:])
+        total = int(cell_offsets[-1])
+        cand_cell = np.empty(
+            total, dtype=np.int32 if n_cells <= np.iinfo(np.int32).max else np.int64
+        )
+        cand_rad = np.empty(
+            total, dtype=np.uint8 if rmax <= np.iinfo(np.uint8).max else np.int32
+        )
+
+        # Pass 2: fill arrays.
+        out = 0
+        for cell in range(n_cells):
+            x0 = int(cell // height)
+            y0 = int(cell % height)
+
+            if torus and not dedup_torus:
+                if include_center:
+                    cand_cell[out] = cell
+                    cand_rad[out] = 0
+                    out += 1
+                for d in range(n_dirs):
+                    dx0 = int(base_dirs[d, 0])
+                    dy0 = int(base_dirs[d, 1])
+                    for r in range(1, rmax + 1):
+                        x = (x0 + dx0 * r) % width
+                        y = (y0 + dy0 * r) % height
+                        cand_cell[out] = x * height + y
+                        cand_rad[out] = r
+                        out += 1
+                continue
+
+            if not torus:
+                if include_center:
+                    cand_cell[out] = cell
+                    cand_rad[out] = 0
+                    out += 1
+                for d in range(n_dirs):
+                    dx0 = int(base_dirs[d, 0])
+                    dy0 = int(base_dirs[d, 1])
+                    for r in range(1, rmax + 1):
+                        x = x0 + dx0 * r
+                        y = y0 + dy0 * r
+                        if x < 0 or x >= width or y < 0 or y >= height:
+                            continue
+                        cand_cell[out] = x * height + y
+                        cand_rad[out] = r
+                        out += 1
+                continue
+
+            # torus + de-dupe
+            seen_n = 0
+            seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
+            if include_center:
+                seen[seen_n] = cell
+                seen_n += 1
+                cand_cell[out] = cell
+                cand_rad[out] = 0
+                out += 1
+            for d in range(n_dirs):
+                dx0 = int(base_dirs[d, 0])
+                dy0 = int(base_dirs[d, 1])
+                for r in range(1, rmax + 1):
+                    x = (x0 + dx0 * r) % width
+                    y = (y0 + dy0 * r) % height
+                    cid = x * height + y
+                    if dedup_torus:
+                        dup = False
+                        for k in range(seen_n):
+                            if int(seen[k]) == cid:
+                                dup = True
+                                break
+                        if dup:
+                            continue
+                    seen[seen_n] = cid
+                    seen_n += 1
+                    cand_cell[out] = cid
+                    cand_rad[out] = r
+                    out += 1
+
+        tbl = {
+            "cell_offsets": cell_offsets,
+            "cand_cell": cand_cell,
+            "cand_rad": cand_rad,
+            "height": np.array([height], dtype=np.int64),
+        }
+        self._neighbors_by_cell_cache[key] = tbl
+        return tbl
 
     def neighbors_for_agents_array(
         self,
@@ -627,8 +1406,6 @@ class _GridFastPath:
                 offsets=np.zeros(1, dtype=np.int64),
                 cell_id=np.empty(0, dtype=np.int64),
                 radius=np.empty(0, dtype=np.int64),
-                dim0=np.empty(0, dtype=np.int64),
-                dim1=np.empty(0, dtype=np.int64),
             )
 
         radius_scalar: int | None = None
@@ -667,47 +1444,105 @@ class _GridFastPath:
             rad_arr = radius_per_agent if radius_per_agent is not None else np.empty(0)
             rad_scalar = int(radius_scalar) if radius_scalar is not None else 0
 
-            counts = _neighbors_count_kernel_2d(
-                centers.astype(np.int64, copy=False),
-                rad_arr.astype(np.int64, copy=False),
-                rad_scalar,
-                use_per_agent,
-                base_dirs,
-                width,
-                height,
-                torus,
-                include_center,
+            max_radius = rad_scalar
+            if use_per_agent:
+                if int(rad_arr.shape[0]) == 0:
+                    max_radius = 0
+                else:
+                    max_radius = int(np.max(rad_arr))
+
+            # Torus neighborhoods can generate duplicate cell_ids when wrap-around
+            # causes distinct offsets to land on the same cell. When the neighborhood
+            # is strictly contained within the grid extents, duplicates are impossible
+            # and we can skip de-dup entirely.
+            dedup_torus = bool(
+                torus and not ((2 * max_radius) < width and (2 * max_radius) < height)
             )
+
+            # Fast path: use precomputed neighbor table by origin cell_id.
+            if use_per_agent:
+                # Vision is typically small and discrete; compute per-radius and stitch.
+                radii_unique = np.unique(rad_arr)
+                radii_unique = radii_unique[radii_unique >= 0]
+            else:
+                radii_unique = np.array([max_radius], dtype=np.int64)
+
+            # Compute origin cell_id (centers are already within bounds).
+            origin_cell_id = centers[:, 0].astype(
+                np.int64, copy=False
+            ) * height + centers[:, 1].astype(np.int64, copy=False)
+            if torus:
+                origin_cell_id = (
+                    centers[:, 0].astype(np.int64, copy=False) % width
+                ) * height + (centers[:, 1].astype(np.int64, copy=False) % height)
+
+            # Precompute per-agent counts by looking up each radius group's table.
+            counts = np.zeros(n_agents, dtype=np.int64)
+            for r in radii_unique.tolist():
+                r_i = int(r)
+                tbl = self._neighbors_table_by_cell_id(
+                    radius=r_i, include_center=include_center
+                )
+                cell_offsets = tbl["cell_offsets"]
+                cell_counts = cell_offsets[1:] - cell_offsets[:-1]
+
+                if use_per_agent:
+                    mask = rad_arr == r_i
+                    idx = np.flatnonzero(mask)
+                    if idx.size:
+                        counts[idx] = cell_counts[origin_cell_id[idx]]
+                else:
+                    counts[:] = cell_counts[origin_cell_id]
+
             offsets = np.empty(n_agents + 1, dtype=np.int64)
             offsets[0] = 0
             np.cumsum(counts, out=offsets[1:])
             total = int(offsets[-1])
-            cell_id_all = np.empty(total, dtype=np.int64)
-            rad_all = np.empty(total, dtype=np.int64)
-            dim0_all = np.empty(total, dtype=np.int64)
-            dim1_all = np.empty(total, dtype=np.int64)
-            _neighbors_fill_kernel_2d(
-                centers.astype(np.int64, copy=False),
-                rad_arr.astype(np.int64, copy=False),
-                rad_scalar,
-                use_per_agent,
-                base_dirs,
-                width,
-                height,
-                torus,
-                include_center,
-                offsets,
-                cell_id_all,
-                rad_all,
-                dim0_all,
-                dim1_all,
+            n_cells = width * height
+            cell_id_dtype = np.int32 if n_cells <= np.iinfo(np.int32).max else np.int64
+            radius_dtype = (
+                np.uint8 if max_radius <= np.iinfo(np.uint8).max else np.int32
             )
+            cell_id_all = np.empty(total, dtype=cell_id_dtype)
+            rad_all = np.empty(total, dtype=radius_dtype)
+
+            # Fill output by radius groups.
+            for r in radii_unique.tolist():
+                r_i = int(r)
+                tbl = self._neighbors_table_by_cell_id(
+                    radius=r_i, include_center=include_center
+                )
+                cell_offsets = tbl["cell_offsets"]
+                cand_cell = tbl["cand_cell"]
+                cand_rad = tbl["cand_rad"]
+                if use_per_agent:
+                    idx = np.flatnonzero(rad_arr == r_i)
+                    if idx.size == 0:
+                        continue
+                    _gather_precomputed_neighbors_kernel(
+                        origin_cell_id[idx].astype(np.int64, copy=False),
+                        cell_offsets.astype(np.int64, copy=False),
+                        cand_cell.astype(np.int64, copy=False),
+                        cand_rad.astype(np.int64, copy=False),
+                        offsets[idx].astype(np.int64, copy=False),
+                        cell_id_all,
+                        rad_all,
+                    )
+                else:
+                    _gather_precomputed_neighbors_kernel(
+                        origin_cell_id.astype(np.int64, copy=False),
+                        cell_offsets.astype(np.int64, copy=False),
+                        cand_cell.astype(np.int64, copy=False),
+                        cand_rad.astype(np.int64, copy=False),
+                        offsets.astype(np.int64, copy=False),
+                        cell_id_all,
+                        rad_all,
+                    )
+
             return _CSR(
                 offsets=offsets,
                 cell_id=cell_id_all,
                 radius=rad_all,
-                dim0=dim0_all,
-                dim1=dim1_all,
             )
 
         # Upper bound (no bounds filtering, no torus de-dupe). When radii vary,
@@ -722,12 +1557,30 @@ class _GridFastPath:
 
         cell_id_all = np.empty(total_upper, dtype=np.int64)
         rad_all = np.empty_like(cell_id_all)
-        dim0_all = np.empty_like(cell_id_all)
-        dim1_all = np.empty_like(cell_id_all)
         offsets = np.zeros(n_agents + 1, dtype=np.int64)
 
         width = int(grid._dimensions[0])
         height = int(grid._dimensions[1])
+
+        dedup_torus = bool(
+            grid._torus
+            and (
+                2
+                * (
+                    int(radius_scalar)
+                    if radius_per_agent is None
+                    else int(np.max(radius_per_agent, initial=0))
+                )
+                >= width
+                or 2
+                * (
+                    int(radius_scalar)
+                    if radius_per_agent is None
+                    else int(np.max(radius_per_agent, initial=0))
+                )
+                >= height
+            )
+        )
 
         out = 0
         for i in range(n_agents):
@@ -750,8 +1603,6 @@ class _GridFastPath:
                     if x0 < 0 or x0 >= width or y0 < 0 or y0 >= height:
                         # centers should be valid already; keep defensive
                         continue
-                dim0_all[out] = x0
-                dim1_all[out] = y0
                 rad_all[out] = 0
                 cell_id_all[out] = x0 * height + y0
                 out += 1
@@ -771,14 +1622,12 @@ class _GridFastPath:
                     else:
                         if x < 0 or x >= width or y < 0 or y >= height:
                             continue
-                    dim0_all[out] = x
-                    dim1_all[out] = y
                     rad_all[out] = r
                     cell_id_all[out] = x * height + y
                     out += 1
 
             # Torus mode de-dupes (agent_id, coords) pairs with keep="first".
-            if grid._torus and out > offsets[i] + 1:
+            if grid._torus and dedup_torus and out > offsets[i] + 1:
                 start = offsets[i]
                 stop = out
                 seen: set[int] = set()
@@ -791,8 +1640,6 @@ class _GridFastPath:
                     if write != k:
                         cell_id_all[write] = cell_id_all[k]
                         rad_all[write] = rad_all[k]
-                        dim0_all[write] = dim0_all[k]
-                        dim1_all[write] = dim1_all[k]
                     write += 1
                 out = write
 
@@ -802,18 +1649,19 @@ class _GridFastPath:
             offsets=offsets,
             cell_id=cell_id_all[:out],
             radius=rad_all[:out],
-            dim0=dim0_all[:out],
-            dim1=dim1_all[:out],
         )
 
     @staticmethod
-    def rank_candidates_array_by_score(csr: _CSR, cand_score: np.ndarray) -> _CSR:
+    def rank_candidates_array_by_score(
+        csr: _CSR,
+        cand_score: np.ndarray,
+        *,
+        height: int,
+    ) -> _CSR:
         """Sort candidates within each agent segment using per-candidate scores."""
         offsets = csr.offsets
         out_cell = csr.cell_id.copy()
         out_rad = csr.radius.copy()
-        out_d0 = csr.dim0.copy()
-        out_d1 = csr.dim1.copy()
         cand_score = np.asarray(cand_score)
         if cand_score.dtype.kind == "f":
             cand_score = np.nan_to_num(cand_score, nan=-np.inf)
@@ -824,8 +1672,6 @@ class _GridFastPath:
                 offsets,
                 out_cell,
                 out_rad,
-                out_d0,
-                out_d1,
                 score_buf,
             )
             # score_buf is updated in-place to preserve stability; not returned.
@@ -838,22 +1684,24 @@ class _GridFastPath:
                     continue
                 seg = slice(start, stop)
                 seg_score = cand_score[seg]
-                order = np.lexsort((out_d1[seg], out_d0[seg], out_rad[seg], -seg_score))
+                seg_cell = out_cell[seg]
+                h = int(height)
+                seg_d0 = seg_cell // h
+                seg_d1 = seg_cell % h
+                order = np.lexsort((seg_d1, seg_d0, out_rad[seg], -seg_score))
                 out_cell[seg] = out_cell[seg][order]
                 out_rad[seg] = out_rad[seg][order]
-                out_d0[seg] = out_d0[seg][order]
-                out_d1[seg] = out_d1[seg][order]
 
         return _CSR(
             offsets=offsets,
             cell_id=out_cell,
             radius=out_rad,
-            dim0=out_d0,
-            dim1=out_d1,
         )
 
     @staticmethod
-    def rank_candidates_array(csr: _CSR, score_flat: np.ndarray) -> _CSR:
+    def rank_candidates_array(
+        csr: _CSR, score_flat: np.ndarray, *, height: int
+    ) -> _CSR:
         """Sort candidates within each agent segment.
 
         Sort key (descending/ascending):
@@ -865,13 +1713,9 @@ class _GridFastPath:
         offsets = csr.offsets
         cell_id = csr.cell_id
         radius = csr.radius
-        dim0 = csr.dim0
-        dim1 = csr.dim1
 
         out_cell = cell_id.copy()
         out_rad = radius.copy()
-        out_d0 = dim0.copy()
-        out_d1 = dim1.copy()
 
         # Normalize NaNs to -inf so they always lose.
         score_flat = np.asarray(score_flat)
@@ -886,8 +1730,6 @@ class _GridFastPath:
                 offsets,
                 out_cell,
                 out_rad,
-                out_d0,
-                out_d1,
                 score_buf,
             )
         else:
@@ -900,19 +1742,18 @@ class _GridFastPath:
                 seg = slice(start, stop)
                 seg_cell = out_cell[seg]
                 seg_score = score[seg_cell]
+                h = int(height)
+                seg_d0 = seg_cell // h
+                seg_d1 = seg_cell % h
                 # lexsort uses last key as primary.
-                order = np.lexsort((out_d1[seg], out_d0[seg], out_rad[seg], -seg_score))
+                order = np.lexsort((seg_d1, seg_d0, out_rad[seg], -seg_score))
                 out_cell[seg] = seg_cell[order]
                 out_rad[seg] = out_rad[seg][order]
-                out_d0[seg] = out_d0[seg][order]
-                out_d1[seg] = out_d1[seg][order]
 
         return _CSR(
             offsets=offsets,
             cell_id=out_cell,
             radius=out_rad,
-            dim0=out_d0,
-            dim1=out_d1,
         )
 
     @staticmethod
