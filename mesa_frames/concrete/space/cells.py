@@ -286,180 +286,12 @@ class GridCells(_MaskedUpdateMixin, AbstractCells):
             else:
                 mask_arg = self._space._get_df_coords(coords)
 
-        # Coordinate-target updates should not force dense row-major storage.
-        # If a DataFrame of coordinates is provided (or derived) and no explicit
-        # boolean mask column is specified, treat it as an upsert by coordinates.
-        pos_cols = self._space._pos_col_names
-        if (
-            isinstance(mask_arg, pl.DataFrame)
-            and mask_col is None
-            and all(c in mask_arg.columns for c in pos_cols)
-        ):
-            coords_df = mask_arg.select(pos_cols)
-            n_sel = int(coords_df.height)
-            if n_sel == 0:
-                return
-
-            coords_np = coords_df.to_numpy().astype(np.int64, copy=False)
-            target_cell_id = self._cell_id_from_coords(coords_np)
-
-            existing_row_idx: list[int] = []
-            sel_existing_idx: list[int] = []
-            sel_new_idx: list[int] = []
-
-            if not self._cells.is_empty():
-                existing_coords = (
-                    self._cells.select(pos_cols).to_numpy().astype(np.int64, copy=False)
-                )
-                existing_cell_id = self._cell_id_from_coords(existing_coords)
-                row_by_cell_id = {int(cid): i for i, cid in enumerate(existing_cell_id)}
-
-                for sel_i, cid in enumerate(target_cell_id):
-                    row_i = row_by_cell_id.get(int(cid))
-                    if row_i is None:
-                        sel_new_idx.append(sel_i)
-                    else:
-                        sel_existing_idx.append(sel_i)
-                        existing_row_idx.append(int(row_i))
-            else:
-                sel_new_idx = list(range(n_sel))
-
-            def _values_for_selection(value: object, n: int) -> object:
-                if isinstance(value, pl.Series):
-                    if int(value.len()) == n:
-                        return value.to_numpy()
-                    if int(value.len()) == 1:
-                        return np.repeat(value.to_numpy()[0], n)
-                    return value
-                if isinstance(value, np.ndarray):
-                    arr = value
-                    if arr.ndim == 0:
-                        return arr.item()
-                    if int(arr.shape[0]) == n:
-                        return arr
-                    if int(arr.shape[0]) == 1:
-                        return np.repeat(arr[0], n)
-                    return value
-                if isinstance(value, (list, tuple)):
-                    if len(value) == n:
-                        return np.asarray(value)
-                    if len(value) == 1:
-                        return np.repeat(value[0], n)
-                    return value
-                return value
-
-            # Update remaining-capacity array BEFORE mutating self._cells, because
-            # _update_capacity_cells derives agents-in-cells from the current capacity.
-            if "capacity" in updates:
-                cap_val = _values_for_selection(updates["capacity"], n_sel)
-                if isinstance(cap_val, (np.ndarray, list, tuple)):
-                    cap_arr = np.asarray(cap_val)
-                    if cap_arr.ndim != 1 or int(cap_arr.shape[0]) != n_sel:
-                        raise ValueError("capacity update length mismatch")
-                    cap_series = pl.Series("capacity", cap_arr)
-                else:
-                    cap_series = pl.repeat(float(cap_val), n_sel, eager=True).alias(
-                        "capacity"
-                    )
-                cap_updates = coords_df.with_columns(
-                    pl.Series("capacity", cap_series).cast(pl.Float64)
-                    if isinstance(cap_series, pl.Series)
-                    else cap_series.cast(pl.Float64)
-                )
-                self._cells_capacity = self._update_capacity_cells(cap_updates)
-
-            # Update existing rows.
-            if existing_row_idx:
-                mask_bool = np.zeros(int(self._cells.height), dtype=bool)
-                row_idx_arr = np.asarray(existing_row_idx, dtype=np.int64)
-                mask_bool[row_idx_arr] = True
-
-                updates_existing: dict[str, object] = {}
-                for col, raw in updates.items():
-                    val = _values_for_selection(raw, n_sel)
-
-                    if isinstance(val, (np.ndarray, list, tuple)):
-                        arr = np.asarray(val)
-                        if arr.ndim == 1 and int(arr.shape[0]) == n_sel:
-                            full = np.empty(int(self._cells.height), dtype=arr.dtype)
-                            fill_val = arr[0] if full.size else 0
-                            full.fill(fill_val)
-                            full[row_idx_arr] = arr[
-                                np.asarray(sel_existing_idx, dtype=np.int64)
-                            ]
-                            updates_existing[col] = pl.Series(col, full)
-                        else:
-                            updates_existing[col] = raw
-                    elif isinstance(val, pl.Series):
-                        if int(val.len()) == n_sel:
-                            arr = val.to_numpy()
-                            full = np.empty(int(self._cells.height), dtype=arr.dtype)
-                            fill_val = arr[0] if full.size else 0
-                            full.fill(fill_val)
-                            full[row_idx_arr] = arr[
-                                np.asarray(sel_existing_idx, dtype=np.int64)
-                            ]
-                            updates_existing[col] = pl.Series(col, full)
-                        else:
-                            updates_existing[col] = raw
-                    else:
-                        updates_existing[col] = raw
-
-                self._cells = self._apply_masked_updates(
-                    self._cells, mask_bool, updates_existing
-                )
-
-            # Append new rows.
-            if sel_new_idx:
-                new_coords_df = coords_df[sel_new_idx]
-                new_rows = new_coords_df
-
-                existing_cols = set(self._cells.columns)
-                copy_updates: list[tuple[str, str]] = []
-
-                for col, raw in updates.items():
-                    val = _values_for_selection(raw, n_sel)
-                    if isinstance(val, str) and (
-                        val in existing_cols or val in updates
-                    ):
-                        copy_updates.append((col, val))
-                        continue
-
-                    if isinstance(val, (np.ndarray, list, tuple)):
-                        arr = np.asarray(val)
-                        if arr.ndim == 1 and int(arr.shape[0]) == n_sel:
-                            arr = arr[np.asarray(sel_new_idx, dtype=np.int64)]
-                            new_rows = new_rows.with_columns(pl.Series(col, arr))
-                        else:
-                            new_rows = new_rows.with_columns(pl.lit(raw).alias(col))
-                    elif isinstance(val, pl.Series):
-                        if int(val.len()) == n_sel:
-                            arr = val.to_numpy()[
-                                np.asarray(sel_new_idx, dtype=np.int64)
-                            ]
-                            new_rows = new_rows.with_columns(pl.Series(col, arr))
-                        else:
-                            new_rows = new_rows.with_columns(raw.alias(col))
-                    else:
-                        new_rows = new_rows.with_columns(pl.lit(raw).alias(col))
-
-                if copy_updates:
-                    new_rows = new_rows.with_columns(
-                        [pl.col(src).alias(dst) for dst, src in copy_updates]
-                    )
-
-                self._cells = pl.concat(
-                    [self._cells, new_rows], how="diagonal_relaxed", rechunk=True
-                )
-
-            return
-
         mask_bool = self._mask_to_bool(mask_arg, mask_col=mask_col)
-        self._cells = self._apply_masked_updates(self._cells, mask_bool, updates)
 
         if "capacity" in updates:
-            # For mask-based updates, update remaining capacity before mutating _cells.
-            # (This path assumes dense row-major cells.)
+            # _update_capacity_cells infers agent counts from the *previous* capacity
+            # and remaining-capacity state, so update remaining capacity BEFORE
+            # mutating the cells table.
             selected_idx = np.flatnonzero(mask_bool)
             if selected_idx.size:
                 coords_np = self._coords_from_cell_id(
@@ -472,15 +304,24 @@ class GridCells(_MaskedUpdateMixin, AbstractCells):
                 )
 
                 cap_val = updates["capacity"]
+                if isinstance(cap_val, (pl.Expr, str)):
+                    raise ValueError(
+                        "capacity updates must be scalar or row-aligned values; pl.Expr/copy-from-column are not supported"
+                    )
+
                 if isinstance(cap_val, pl.Series):
                     if int(cap_val.len()) == int(selected_idx.size):
-                        cap_series = pl.Series("capacity", cap_val.to_numpy())
-                    else:
+                        cap_series: pl.Series | pl.Expr = pl.Series(
+                            "capacity", cap_val.to_numpy()
+                        )
+                    elif int(cap_val.len()) == 1:
                         cap_series = pl.repeat(
                             float(cap_val.to_numpy()[0]),
                             int(selected_idx.size),
                             eager=True,
                         ).alias("capacity")
+                    else:
+                        raise ValueError("capacity update length mismatch")
                 elif isinstance(cap_val, (list, tuple, np.ndarray)):
                     arr = np.asarray(cap_val)
                     if arr.ndim == 0:
@@ -506,6 +347,8 @@ class GridCells(_MaskedUpdateMixin, AbstractCells):
                     else cap_series.cast(pl.Float64)
                 )
                 self._cells_capacity = self._update_capacity_cells(cap_updates)
+
+        self._cells = self._apply_masked_updates(self._cells, mask_bool, updates)
 
     def _mask_to_bool(self, mask: object, *, mask_col: str | None = None) -> np.ndarray:
         self._ensure_dense_row_major_cells()

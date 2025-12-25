@@ -10,13 +10,19 @@ def test_get_cells(grid_moore: Grid):
     # Test with None (all cells)
     result = grid_moore.cells()
     assert isinstance(result, pl.DataFrame)
-    assert result.select(pl.col("dim_0")).to_series().to_list() == [0, 1]
-    assert result.select(pl.col("dim_1")).to_series().to_list() == [0, 1]
-    assert result.select(pl.col("capacity")).to_series().to_list() == [1, 3]
-    assert result.select(pl.col("property_0")).to_series().to_list() == [
-        "value_0",
-        "value_0",
-    ]
+    assert result.height == 9
+    unique_ids = get_unique_ids(grid_moore.model)
+    assert result.filter(pl.col("agent_id").is_not_null()).height == 2
+
+    cell_00 = result.filter((pl.col("dim_0") == 0) & (pl.col("dim_1") == 0))
+    assert int(cell_00["capacity"][0]) == 1
+    assert cell_00["property_0"][0] == "value_0"
+    assert cell_00["agent_id"][0] == unique_ids[0]
+
+    cell_11 = result.filter((pl.col("dim_0") == 1) & (pl.col("dim_1") == 1))
+    assert int(cell_11["capacity"][0]) == 3
+    assert cell_11["property_0"][0] == "value_0"
+    assert cell_11["agent_id"][0] == unique_ids[1]
 
     # Test with GridCoordinate
     single = grid_moore.cells([0, 0])
@@ -103,6 +109,40 @@ def test_cells_update_named_masks_and_column_copy(model: Model):
     grid.cells.update({"sugar": "max_sugar"}, mask="empty")
     assert int(grid.cells([0, 0], include="properties")["sugar"][0]) == 4
     assert int(grid.cells([1, 1], include="properties")["sugar"][0]) == 0
+
+
+def test_cells_lookup_by_coords_and_cell_id(model: Model) -> None:
+    grid = Grid(model, dimensions=[3, 3], capacity=1)
+
+    # Initialize dense properties in row-major coordinate order.
+    dim0 = pl.Series("dim_0", pl.arange(3, eager=True)).to_frame()
+    dim1 = pl.Series("dim_1", pl.arange(3, eager=True)).to_frame()
+    all_coords = dim0.join(dim1, how="cross")
+    sugar = pl.arange(0, all_coords.height, eager=True).cast(pl.Int64)
+    grid.cells.update(all_coords, {"capacity": 1, "sugar": sugar})
+
+    # Shuffle the internal table to ensure lookup enforces row-major alignment.
+    grid.cells._cells = grid.cells._cells.sample(
+        n=grid.cells._cells.height, shuffle=True, seed=42
+    )
+    try:
+        object.__delattr__(grid, "_cells_row_major_ok")
+    except AttributeError:
+        pass
+
+    coords = pl.DataFrame({"dim_0": [0, 2], "dim_1": [1, 2]})
+    out = grid.cells.lookup(coords, columns=["sugar"], as_df=True)
+    assert out["sugar"].to_list() == [1, 8]
+
+    out_arr = grid.cells.lookup(coords, columns=["sugar"], as_df=False)
+    assert out_arr.tolist() == [1, 8]
+
+    cell_id = pl.Series("cell_id", [0, 4, 8])
+    out2 = grid.cells.lookup(cell_id, columns=["sugar"], as_df=False)
+    assert out2.tolist() == [0, 4, 8]
+
+    with pytest.raises(IndexError):
+        grid.cells.lookup(pl.Series("cell_id", [9]), columns=["sugar"], as_df=True)
 
 
 def test_cells_update_expr_fallback(model: Model):
@@ -196,19 +236,18 @@ def test_full_cells(grid_moore: Grid):
 def test_cells(grid_moore: Grid):
     result = grid_moore.cells()
     unique_ids = get_unique_ids(grid_moore.model)
-    assert_frame_equal(
-        result,
-        pl.DataFrame(
-            {
-                "dim_0": [0, 1],
-                "dim_1": [0, 1],
-                "capacity": [1, 3],
-                "property_0": ["value_0", "value_0"],
-                "agent_id": unique_ids[[0, 1]],
-            }
-        ),
-        check_dtypes=False,
-    )
+    assert result.height == 9
+    assert result.filter(pl.col("agent_id").is_not_null()).height == 2
+
+    cell_00 = result.filter((pl.col("dim_0") == 0) & (pl.col("dim_1") == 0))
+    assert int(cell_00["capacity"][0]) == 1
+    assert cell_00["property_0"][0] == "value_0"
+    assert cell_00["agent_id"][0] == unique_ids[0]
+
+    cell_11 = result.filter((pl.col("dim_0") == 1) & (pl.col("dim_1") == 1))
+    assert int(cell_11["capacity"][0]) == 3
+    assert cell_11["property_0"][0] == "value_0"
+    assert cell_11["agent_id"][0] == unique_ids[1]
 
 
 def test_remaining_capacity(grid_moore: Grid):

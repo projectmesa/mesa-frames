@@ -368,18 +368,13 @@ class Sugarscape(Model):
 
         Empty cells (no agent present) are refilled to their ``max_sugar``
         value. Cells that are occupied are set to zero because agents harvest
-        the sugar when they eat. The method uses vectorised DataFrame joins
-        and writes to keep the operation efficient.
+        the sugar when they eat. The method uses mask-based cell updates
+        to keep the operation efficient.
         """
-        # Default path (tutorial semantics)
-        empty_cells = self.space.cells.empty
-        if not empty_cells.is_empty():
-            # Restore sugar to per-cell max_sugar.
-            self.space.cells.update({"sugar": "max_sugar"}, mask="empty")
-        full_cells = self.space.cells.full
-        if not full_cells.is_empty():
-            # Occupied cells have just been harvested; set their sugar to 0.
-            self.space.cells.update({"sugar": 0}, mask="full")
+        # Restore sugar to per-cell max_sugar for empty cells.
+        self.space.cells.update({"sugar": "max_sugar"}, mask="empty")
+        # Occupied cells have just been harvested; set their sugar to 0.
+        self.space.cells.update({"sugar": 0}, mask="full")
 
 
 def simulate(
