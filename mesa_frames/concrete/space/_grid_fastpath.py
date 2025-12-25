@@ -168,6 +168,170 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
 if _NUMBA_AVAILABLE:  # pragma: no cover
 
     @_njit
+    def _neighbors_table_counts_kernel(
+        n_cells: int,
+        height: int,
+        base_dirs: np.ndarray,
+        dirs_scaled: np.ndarray,
+        rmax: int,
+        torus: bool,
+        dedup_torus: bool,
+        include_center: bool,
+    ) -> np.ndarray:
+        """Count candidates per origin cell_id for the precomputed neighbor table."""
+        width = int(n_cells) // int(height)
+        n_dirs = int(base_dirs.shape[0])
+
+        max_per_cell = (1 if include_center else 0) + (n_dirs * int(rmax))
+        counts = np.empty(int(n_cells), dtype=np.int64)
+
+        if torus and not dedup_torus:
+            for i in range(int(n_cells)):
+                counts[i] = max_per_cell
+            return counts
+
+        seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
+
+        for cell in range(int(n_cells)):
+            cx = int(cell) // int(height)
+            cy = int(cell) - cx * int(height)
+
+            if not torus:
+                c = 0
+                if include_center:
+                    c += 1
+                for d in range(n_dirs):
+                    for r in range(1, int(rmax) + 1):
+                        x = cx + int(dirs_scaled[r, d, 0])
+                        y = cy + int(dirs_scaled[r, d, 1])
+                        if x < 0 or x >= width or y < 0 or y >= int(height):
+                            continue
+                        c += 1
+                counts[cell] = c
+                continue
+
+            # torus + possible de-dupe
+            seen_n = 0
+            if include_center:
+                seen[seen_n] = int(cell)
+                seen_n += 1
+
+            for d in range(n_dirs):
+                for r in range(1, int(rmax) + 1):
+                    x = (cx + int(dirs_scaled[r, d, 0])) % width
+                    y = (cy + int(dirs_scaled[r, d, 1])) % int(height)
+                    cid = x * int(height) + y
+                    if dedup_torus:
+                        dup = False
+                        for k in range(seen_n):
+                            if int(seen[k]) == cid:
+                                dup = True
+                                break
+                        if dup:
+                            continue
+                    seen[seen_n] = cid
+                    seen_n += 1
+
+            counts[cell] = seen_n
+
+        return counts
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _neighbors_table_fill_kernel(
+        n_cells: int,
+        height: int,
+        base_dirs: np.ndarray,
+        dirs_scaled: np.ndarray,
+        rmax: int,
+        torus: bool,
+        dedup_torus: bool,
+        include_center: bool,
+        offsets: np.ndarray,
+        cand_cell: np.ndarray,
+        cand_rad: np.ndarray,
+    ) -> None:
+        """Fill cand_cell/cand_rad for the precomputed neighbor table."""
+        width = int(n_cells) // int(height)
+        n_dirs = int(base_dirs.shape[0])
+        max_per_cell = (1 if include_center else 0) + (n_dirs * int(rmax))
+        seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
+
+        if torus and not dedup_torus:
+            for cell in range(int(n_cells)):
+                out = int(offsets[cell])
+                cx = int(cell) // int(height)
+                cy = int(cell) - cx * int(height)
+
+                if include_center:
+                    cand_cell[out] = int(cell)
+                    cand_rad[out] = 0
+                    out += 1
+
+                for d in range(n_dirs):
+                    for r in range(1, int(rmax) + 1):
+                        x = (cx + int(dirs_scaled[r, d, 0])) % width
+                        y = (cy + int(dirs_scaled[r, d, 1])) % int(height)
+                        cand_cell[out] = x * int(height) + y
+                        cand_rad[out] = r
+                        out += 1
+            return
+
+        for cell in range(int(n_cells)):
+            out = int(offsets[cell])
+            cx = int(cell) // int(height)
+            cy = int(cell) - cx * int(height)
+
+            if not torus:
+                if include_center:
+                    cand_cell[out] = int(cell)
+                    cand_rad[out] = 0
+                    out += 1
+                for d in range(n_dirs):
+                    for r in range(1, int(rmax) + 1):
+                        x = cx + int(dirs_scaled[r, d, 0])
+                        y = cy + int(dirs_scaled[r, d, 1])
+                        if x < 0 or x >= width or y < 0 or y >= int(height):
+                            continue
+                        cand_cell[out] = x * int(height) + y
+                        cand_rad[out] = r
+                        out += 1
+                continue
+
+            # torus + de-dupe
+            seen_n = 0
+            if include_center:
+                seen[seen_n] = int(cell)
+                seen_n += 1
+                cand_cell[out] = int(cell)
+                cand_rad[out] = 0
+                out += 1
+
+            for d in range(n_dirs):
+                for r in range(1, int(rmax) + 1):
+                    x = (cx + int(dirs_scaled[r, d, 0])) % width
+                    y = (cy + int(dirs_scaled[r, d, 1])) % int(height)
+                    cid = x * int(height) + y
+                    if dedup_torus:
+                        dup = False
+                        for k in range(seen_n):
+                            if int(seen[k]) == cid:
+                                dup = True
+                                break
+                        if dup:
+                            continue
+                    seen[seen_n] = cid
+                    seen_n += 1
+                    cand_cell[out] = cid
+                    cand_rad[out] = r
+                    out += 1
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
     def _neighbors_fill_kernel_2d(
         centers: np.ndarray,
         radius_per_agent: np.ndarray,
@@ -324,6 +488,58 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
             for j in range(src_start, src_stop):
                 out_cell_id[dst] = cell_cand_cell[j]
                 out_rad[dst] = cell_cand_rad[j]
+                dst += 1
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _gather_precomputed_neighbors_by_radius_counts_kernel(
+        origin_cell_id: np.ndarray,
+        radius_per_agent: np.ndarray,
+        cell_offsets_by_radius: np.ndarray,
+    ) -> np.ndarray:
+        """Count candidates for each agent given per-agent radius and stacked tables.
+
+        cell_offsets_by_radius is shape (max_radius + 1, n_cells + 1).
+        """
+        n_agents = int(origin_cell_id.shape[0])
+        counts = np.empty(n_agents, dtype=np.int64)
+        for i in range(n_agents):
+            cid = int(origin_cell_id[i])
+            r = int(radius_per_agent[i])
+            start = int(cell_offsets_by_radius[r, cid])
+            stop = int(cell_offsets_by_radius[r, cid + 1])
+            counts[i] = stop - start
+        return counts
+
+
+if _NUMBA_AVAILABLE:  # pragma: no cover
+
+    @_njit
+    def _gather_precomputed_neighbors_by_radius_fill_kernel(
+        origin_cell_id: np.ndarray,
+        radius_per_agent: np.ndarray,
+        cell_offsets_by_radius: np.ndarray,
+        cand_starts_by_radius: np.ndarray,
+        cand_cell_all: np.ndarray,
+        cand_rad_all: np.ndarray,
+        out_offsets: np.ndarray,
+        out_cell_id: np.ndarray,
+        out_rad: np.ndarray,
+    ) -> None:
+        """Fill candidates for each agent given per-agent radius and stacked tables."""
+        n_agents = int(origin_cell_id.shape[0])
+        for i in range(n_agents):
+            cid = int(origin_cell_id[i])
+            r = int(radius_per_agent[i])
+            base = int(cand_starts_by_radius[r])
+            src_start = base + int(cell_offsets_by_radius[r, cid])
+            src_stop = base + int(cell_offsets_by_radius[r, cid + 1])
+            dst = int(out_offsets[i])
+            for j in range(src_start, src_stop):
+                out_cell_id[dst] = cand_cell_all[j]
+                out_rad[dst] = cand_rad_all[j]
                 dst += 1
 
 
@@ -1187,6 +1403,87 @@ class _GridFastPath:
         # Value: dict with cell_offsets, cand_cell, cand_rad.
         self._neighbors_by_cell_cache: dict[tuple[Any, ...], dict[str, np.ndarray]] = {}
 
+        # Cache of stacked neighbor tables for per-agent varying radii.
+        # Key: (width, height, torus, include_center, max_radius, base_dirs_hash)
+        # Value: dict with cell_offsets_by_radius, cand_starts_by_radius,
+        #        cand_cell_all, cand_rad_all.
+        self._neighbors_by_cell_stacked_cache: dict[
+            tuple[Any, ...], dict[str, np.ndarray]
+        ] = {}
+
+    def _neighbors_tables_stacked_by_radius(
+        self,
+        *,
+        max_radius: int,
+        include_center: bool,
+    ) -> dict[str, np.ndarray]:
+        grid = self._grid
+        width = int(grid._dimensions[0])
+        height = int(grid._dimensions[1])
+        torus = bool(grid._torus)
+
+        base_dirs = (
+            grid._offsets.select(grid._pos_col_names)
+            .to_numpy()
+            .astype(np.int64, copy=False)
+        )
+        base_dirs_hash = hash(base_dirs.tobytes())
+
+        key = (
+            width,
+            height,
+            torus,
+            bool(include_center),
+            int(max_radius),
+            base_dirs_hash,
+        )
+        cached = self._neighbors_by_cell_stacked_cache.get(key)
+        if cached is not None:
+            return cached
+
+        n_cells = width * height
+        rmax = int(max_radius)
+        n_r = rmax + 1
+
+        cell_offsets_by_radius = np.empty((n_r, n_cells + 1), dtype=np.int64)
+        cand_starts_by_radius = np.zeros(n_r, dtype=np.int64)
+
+        totals = np.empty(n_r, dtype=np.int64)
+        for r in range(n_r):
+            tbl = self._neighbors_table_by_cell_id(
+                radius=r, include_center=include_center
+            )
+            cell_offsets_by_radius[r, :] = tbl["cell_offsets"].astype(
+                np.int64, copy=False
+            )
+            totals[r] = int(cell_offsets_by_radius[r, -1])
+
+        # Prefix sum over per-radius totals to compute global starts.
+        for r in range(1, n_r):
+            cand_starts_by_radius[r] = cand_starts_by_radius[r - 1] + totals[r - 1]
+
+        grand_total = int(cand_starts_by_radius[-1] + totals[-1])
+        cand_cell_all = np.empty(grand_total, dtype=np.int64)
+        cand_rad_all = np.empty(grand_total, dtype=np.int64)
+
+        for r in range(n_r):
+            tbl = self._neighbors_table_by_cell_id(
+                radius=r, include_center=include_center
+            )
+            start = int(cand_starts_by_radius[r])
+            stop = start + int(totals[r])
+            cand_cell_all[start:stop] = tbl["cand_cell"].astype(np.int64, copy=False)
+            cand_rad_all[start:stop] = tbl["cand_rad"].astype(np.int64, copy=False)
+
+        stacked = {
+            "cell_offsets_by_radius": cell_offsets_by_radius,
+            "cand_starts_by_radius": cand_starts_by_radius,
+            "cand_cell_all": cand_cell_all,
+            "cand_rad_all": cand_rad_all,
+        }
+        self._neighbors_by_cell_stacked_cache[key] = stacked
+        return stacked
+
     @property
     def numba_enabled(self) -> bool:
         return _numba_enabled()
@@ -1239,60 +1536,78 @@ class _GridFastPath:
         if cached is not None:
             return cached
 
+        use_numba = _numba_enabled()
+
         n_cells = width * height
         n_dirs = int(base_dirs.shape[0])
         # Upper bound per cell.
         max_per_cell = (1 if include_center else 0) + (n_dirs * rmax)
 
-        # Pass 1: counts per cell.
-        counts = np.empty(n_cells, dtype=np.int64)
-        for cell in range(n_cells):
-            x0 = int(cell // height)
-            y0 = int(cell % height)
-            if torus and not dedup_torus:
-                counts[cell] = max_per_cell
-                continue
+        if use_numba:
+            dirs_scaled = (
+                base_dirs[np.newaxis, :, :]
+                * np.arange(rmax + 1, dtype=np.int64)[:, np.newaxis, np.newaxis]
+            )
+            counts = _neighbors_table_counts_kernel(
+                int(n_cells),
+                int(height),
+                base_dirs,
+                dirs_scaled,
+                int(rmax),
+                bool(torus),
+                bool(dedup_torus),
+                bool(include_center),
+            )
+        else:
+            # Pass 1: counts per cell.
+            counts = np.empty(n_cells, dtype=np.int64)
+            for cell in range(n_cells):
+                x0 = int(cell // height)
+                y0 = int(cell % height)
+                if torus and not dedup_torus:
+                    counts[cell] = max_per_cell
+                    continue
 
-            c = 0
-            if include_center:
-                c += 1
-            if not torus:
+                c = 0
+                if include_center:
+                    c += 1
+                if not torus:
+                    for d in range(n_dirs):
+                        dx0 = int(base_dirs[d, 0])
+                        dy0 = int(base_dirs[d, 1])
+                        for r in range(1, rmax + 1):
+                            x = x0 + dx0 * r
+                            y = y0 + dy0 * r
+                            if x < 0 or x >= width or y < 0 or y >= height:
+                                continue
+                            c += 1
+                    counts[cell] = c
+                    continue
+
+                # torus + possible de-dupe
+                seen_n = 0
+                seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
+                if include_center:
+                    seen[seen_n] = cell
+                    seen_n += 1
                 for d in range(n_dirs):
                     dx0 = int(base_dirs[d, 0])
                     dy0 = int(base_dirs[d, 1])
                     for r in range(1, rmax + 1):
-                        x = x0 + dx0 * r
-                        y = y0 + dy0 * r
-                        if x < 0 or x >= width or y < 0 or y >= height:
-                            continue
-                        c += 1
-                counts[cell] = c
-                continue
-
-            # torus + possible de-dupe
-            seen_n = 0
-            seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
-            if include_center:
-                seen[seen_n] = cell
-                seen_n += 1
-            for d in range(n_dirs):
-                dx0 = int(base_dirs[d, 0])
-                dy0 = int(base_dirs[d, 1])
-                for r in range(1, rmax + 1):
-                    x = (x0 + dx0 * r) % width
-                    y = (y0 + dy0 * r) % height
-                    cid = x * height + y
-                    if dedup_torus:
-                        dup = False
-                        for k in range(seen_n):
-                            if int(seen[k]) == cid:
-                                dup = True
-                                break
-                        if dup:
-                            continue
-                    seen[seen_n] = cid
-                    seen_n += 1
-            counts[cell] = seen_n
+                        x = (x0 + dx0 * r) % width
+                        y = (y0 + dy0 * r) % height
+                        cid = x * height + y
+                        if dedup_torus:
+                            dup = False
+                            for k in range(seen_n):
+                                if int(seen[k]) == cid:
+                                    dup = True
+                                    break
+                            if dup:
+                                continue
+                        seen[seen_n] = cid
+                        seen_n += 1
+                counts[cell] = seen_n
 
         cell_offsets = np.empty(n_cells + 1, dtype=np.int64)
         cell_offsets[0] = 0
@@ -1305,14 +1620,67 @@ class _GridFastPath:
             total, dtype=np.uint8 if rmax <= np.iinfo(np.uint8).max else np.int32
         )
 
-        # Pass 2: fill arrays.
-        out = 0
-        for cell in range(n_cells):
-            x0 = int(cell // height)
-            y0 = int(cell % height)
+        if use_numba:
+            _neighbors_table_fill_kernel(
+                int(n_cells),
+                int(height),
+                base_dirs,
+                dirs_scaled,
+                int(rmax),
+                bool(torus),
+                bool(dedup_torus),
+                bool(include_center),
+                cell_offsets,
+                cand_cell,
+                cand_rad,
+            )
+        else:
+            # Pass 2: fill arrays.
+            out = 0
+            for cell in range(n_cells):
+                x0 = int(cell // height)
+                y0 = int(cell % height)
 
-            if torus and not dedup_torus:
+                if torus and not dedup_torus:
+                    if include_center:
+                        cand_cell[out] = cell
+                        cand_rad[out] = 0
+                        out += 1
+                    for d in range(n_dirs):
+                        dx0 = int(base_dirs[d, 0])
+                        dy0 = int(base_dirs[d, 1])
+                        for r in range(1, rmax + 1):
+                            x = (x0 + dx0 * r) % width
+                            y = (y0 + dy0 * r) % height
+                            cand_cell[out] = x * height + y
+                            cand_rad[out] = r
+                            out += 1
+                    continue
+
+                if not torus:
+                    if include_center:
+                        cand_cell[out] = cell
+                        cand_rad[out] = 0
+                        out += 1
+                    for d in range(n_dirs):
+                        dx0 = int(base_dirs[d, 0])
+                        dy0 = int(base_dirs[d, 1])
+                        for r in range(1, rmax + 1):
+                            x = x0 + dx0 * r
+                            y = y0 + dy0 * r
+                            if x < 0 or x >= width or y < 0 or y >= height:
+                                continue
+                            cand_cell[out] = x * height + y
+                            cand_rad[out] = r
+                            out += 1
+                    continue
+
+                # torus + de-dupe
+                seen_n = 0
+                seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
                 if include_center:
+                    seen[seen_n] = cell
+                    seen_n += 1
                     cand_cell[out] = cell
                     cand_rad[out] = 0
                     out += 1
@@ -1322,58 +1690,20 @@ class _GridFastPath:
                     for r in range(1, rmax + 1):
                         x = (x0 + dx0 * r) % width
                         y = (y0 + dy0 * r) % height
-                        cand_cell[out] = x * height + y
+                        cid = x * height + y
+                        if dedup_torus:
+                            dup = False
+                            for k in range(seen_n):
+                                if int(seen[k]) == cid:
+                                    dup = True
+                                    break
+                            if dup:
+                                continue
+                        seen[seen_n] = cid
+                        seen_n += 1
+                        cand_cell[out] = cid
                         cand_rad[out] = r
                         out += 1
-                continue
-
-            if not torus:
-                if include_center:
-                    cand_cell[out] = cell
-                    cand_rad[out] = 0
-                    out += 1
-                for d in range(n_dirs):
-                    dx0 = int(base_dirs[d, 0])
-                    dy0 = int(base_dirs[d, 1])
-                    for r in range(1, rmax + 1):
-                        x = x0 + dx0 * r
-                        y = y0 + dy0 * r
-                        if x < 0 or x >= width or y < 0 or y >= height:
-                            continue
-                        cand_cell[out] = x * height + y
-                        cand_rad[out] = r
-                        out += 1
-                continue
-
-            # torus + de-dupe
-            seen_n = 0
-            seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
-            if include_center:
-                seen[seen_n] = cell
-                seen_n += 1
-                cand_cell[out] = cell
-                cand_rad[out] = 0
-                out += 1
-            for d in range(n_dirs):
-                dx0 = int(base_dirs[d, 0])
-                dy0 = int(base_dirs[d, 1])
-                for r in range(1, rmax + 1):
-                    x = (x0 + dx0 * r) % width
-                    y = (y0 + dy0 * r) % height
-                    cid = x * height + y
-                    if dedup_torus:
-                        dup = False
-                        for k in range(seen_n):
-                            if int(seen[k]) == cid:
-                                dup = True
-                                break
-                        if dup:
-                            continue
-                    seen[seen_n] = cid
-                    seen_n += 1
-                    cand_cell[out] = cid
-                    cand_rad[out] = r
-                    out += 1
 
         tbl = {
             "cell_offsets": cell_offsets,
@@ -1451,22 +1781,6 @@ class _GridFastPath:
                 else:
                     max_radius = int(np.max(rad_arr))
 
-            # Torus neighborhoods can generate duplicate cell_ids when wrap-around
-            # causes distinct offsets to land on the same cell. When the neighborhood
-            # is strictly contained within the grid extents, duplicates are impossible
-            # and we can skip de-dup entirely.
-            dedup_torus = bool(
-                torus and not ((2 * max_radius) < width and (2 * max_radius) < height)
-            )
-
-            # Fast path: use precomputed neighbor table by origin cell_id.
-            if use_per_agent:
-                # Vision is typically small and discrete; compute per-radius and stitch.
-                radii_unique = np.unique(rad_arr)
-                radii_unique = radii_unique[radii_unique >= 0]
-            else:
-                radii_unique = np.array([max_radius], dtype=np.int64)
-
             # Compute origin cell_id (centers are already within bounds).
             origin_cell_id = centers[:, 0].astype(
                 np.int64, copy=False
@@ -1476,74 +1790,69 @@ class _GridFastPath:
                     centers[:, 0].astype(np.int64, copy=False) % width
                 ) * height + (centers[:, 1].astype(np.int64, copy=False) % height)
 
-            # Precompute per-agent counts by looking up each radius group's table.
-            counts = np.zeros(n_agents, dtype=np.int64)
-            for r in radii_unique.tolist():
-                r_i = int(r)
-                tbl = self._neighbors_table_by_cell_id(
-                    radius=r_i, include_center=include_center
-                )
-                cell_offsets = tbl["cell_offsets"]
-                cell_counts = cell_offsets[1:] - cell_offsets[:-1]
-
-                if use_per_agent:
-                    mask = rad_arr == r_i
-                    idx = np.flatnonzero(mask)
-                    if idx.size:
-                        counts[idx] = cell_counts[origin_cell_id[idx]]
-                else:
-                    counts[:] = cell_counts[origin_cell_id]
-
-            offsets = np.empty(n_agents + 1, dtype=np.int64)
-            offsets[0] = 0
-            np.cumsum(counts, out=offsets[1:])
-            total = int(offsets[-1])
+            # Fast path: use precomputed neighbor tables by origin cell_id.
             n_cells = width * height
             cell_id_dtype = np.int32 if n_cells <= np.iinfo(np.int32).max else np.int64
             radius_dtype = (
                 np.uint8 if max_radius <= np.iinfo(np.uint8).max else np.int32
             )
-            cell_id_all = np.empty(total, dtype=cell_id_dtype)
-            rad_all = np.empty(total, dtype=radius_dtype)
 
-            # Fill output by radius groups.
-            for r in radii_unique.tolist():
-                r_i = int(r)
-                tbl = self._neighbors_table_by_cell_id(
-                    radius=r_i, include_center=include_center
+            if use_per_agent:
+                stacked = self._neighbors_tables_stacked_by_radius(
+                    max_radius=max_radius,
+                    include_center=include_center,
                 )
-                cell_offsets = tbl["cell_offsets"]
-                cand_cell = tbl["cand_cell"]
-                cand_rad = tbl["cand_rad"]
-                if use_per_agent:
-                    idx = np.flatnonzero(rad_arr == r_i)
-                    if idx.size == 0:
-                        continue
-                    _gather_precomputed_neighbors_kernel(
-                        origin_cell_id[idx].astype(np.int64, copy=False),
-                        cell_offsets.astype(np.int64, copy=False),
-                        cand_cell.astype(np.int64, copy=False),
-                        cand_rad.astype(np.int64, copy=False),
-                        offsets[idx].astype(np.int64, copy=False),
-                        cell_id_all,
-                        rad_all,
-                    )
-                else:
-                    _gather_precomputed_neighbors_kernel(
-                        origin_cell_id.astype(np.int64, copy=False),
-                        cell_offsets.astype(np.int64, copy=False),
-                        cand_cell.astype(np.int64, copy=False),
-                        cand_rad.astype(np.int64, copy=False),
-                        offsets.astype(np.int64, copy=False),
-                        cell_id_all,
-                        rad_all,
-                    )
+                cell_offsets_by_radius = stacked["cell_offsets_by_radius"]
+                counts = _gather_precomputed_neighbors_by_radius_counts_kernel(
+                    origin_cell_id.astype(np.int64, copy=False),
+                    rad_arr,
+                    cell_offsets_by_radius,
+                )
 
-            return _CSR(
-                offsets=offsets,
-                cell_id=cell_id_all,
-                radius=rad_all,
-            )
+                offsets = np.empty(n_agents + 1, dtype=np.int64)
+                offsets[0] = 0
+                np.cumsum(counts, out=offsets[1:])
+                total = int(offsets[-1])
+                cell_id_all = np.empty(total, dtype=cell_id_dtype)
+                rad_all = np.empty(total, dtype=radius_dtype)
+
+                _gather_precomputed_neighbors_by_radius_fill_kernel(
+                    origin_cell_id.astype(np.int64, copy=False),
+                    rad_arr,
+                    cell_offsets_by_radius,
+                    stacked["cand_starts_by_radius"],
+                    stacked["cand_cell_all"],
+                    stacked["cand_rad_all"],
+                    offsets.astype(np.int64, copy=False),
+                    cell_id_all,
+                    rad_all,
+                )
+            else:
+                tbl = self._neighbors_table_by_cell_id(
+                    radius=max_radius, include_center=include_center
+                )
+                cell_offsets = tbl["cell_offsets"].astype(np.int64, copy=False)
+                cell_counts = cell_offsets[1:] - cell_offsets[:-1]
+                counts = cell_counts[origin_cell_id]
+
+                offsets = np.empty(n_agents + 1, dtype=np.int64)
+                offsets[0] = 0
+                np.cumsum(counts, out=offsets[1:])
+                total = int(offsets[-1])
+                cell_id_all = np.empty(total, dtype=cell_id_dtype)
+                rad_all = np.empty(total, dtype=radius_dtype)
+
+                _gather_precomputed_neighbors_kernel(
+                    origin_cell_id.astype(np.int64, copy=False),
+                    cell_offsets,
+                    tbl["cand_cell"].astype(np.int64, copy=False),
+                    tbl["cand_rad"].astype(np.int64, copy=False),
+                    offsets.astype(np.int64, copy=False),
+                    cell_id_all,
+                    rad_all,
+                )
+
+            return _CSR(offsets=offsets, cell_id=cell_id_all, radius=rad_all)
 
         # Upper bound (no bounds filtering, no torus de-dupe). When radii vary,
         # allocate using the sum of per-agent bounds instead of n_agents * max_radius.
