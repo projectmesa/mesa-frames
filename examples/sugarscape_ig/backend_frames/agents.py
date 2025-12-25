@@ -7,7 +7,6 @@ docs/general/tutorials/3_advanced_tutorial.py.
 
 from __future__ import annotations
 
-import numpy as np
 import polars as pl
 
 from mesa_frames import AgentSet, Model
@@ -100,9 +99,10 @@ class AntsBase(AgentSet):
         sugar_df = self.space.cells.lookup(positions, columns=["sugar"], as_df=True)
         sugar = sugar_df["sugar"].fill_null(0)
         agent_ids = positions["agent_id"]
-        self[agent_ids, "sugar"] = (
-            self[agent_ids, "sugar"] + sugar - self[agent_ids, "metabolism"]
-        )
+
+        traits = self.lookup(agent_ids, columns=["sugar", "metabolism"], as_df=True)
+        new_sugar = traits["sugar"] + sugar - traits["metabolism"]
+        self.update({"sugar": new_sugar}, mask=agent_ids)
         # After harvesting, occupied cells have zero sugar.
         self.space.cells.update(
             positions.select(["dim_0", "dim_1"]),

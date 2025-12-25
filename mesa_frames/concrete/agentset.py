@@ -426,6 +426,106 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
             )
 
         mask_bool = self._mask_to_bool(selector, mask_col=mask_col)
+
+        # Support passing values aligned to the *selection* (n_selected) instead
+        # of the full AgentSet height (n_total), without requiring joins.
+        #
+        # Important: when the selector is an id-like collection, we align values
+        # by unique_id order, not by boolean-mask df-order.
+        n_total = int(self._df.height)
+        selected_idx_df_order = np.flatnonzero(mask_bool)
+        n_selected = int(selected_idx_df_order.shape[0])
+
+        selector_ids: object | None = None
+        if isinstance(selector, np.ndarray):
+            if selector.dtype != bool:
+                selector_ids = selector
+        elif isinstance(selector, pl.Series):
+            if selector.dtype != pl.Boolean:
+                selector_ids = selector
+        elif isinstance(selector, pl.DataFrame):
+            if "unique_id" in selector.columns:
+                ids = selector["unique_id"]
+                if mask_col is not None:
+                    if mask_col not in selector.columns:
+                        raise KeyError(f"mask_col not found in DataFrame: {mask_col}")
+                    ids = selector.filter(pl.col(mask_col))["unique_id"]
+                selector_ids = ids
+        elif selector is None or (
+            isinstance(selector, str) and selector in {"all", "active"}
+        ):
+            selector_ids = None
+        elif isinstance(selector, Collection) and not isinstance(
+            selector, (str, bytes)
+        ):
+            selector_ids = selector
+        else:
+            selector_ids = [selector]
+
+        row_idx_from_ids: np.ndarray | None = None
+        if selector_ids is not None:
+            ids_arr = np.asarray(selector_ids)
+            if ids_arr.ndim == 0:
+                ids_arr = ids_arr.reshape(1)
+            if int(ids_arr.shape[0]) == n_selected:
+                uids = self._df["unique_id"].to_numpy()
+                sort_idx = np.argsort(uids)
+                sorted_uids = uids[sort_idx]
+                pos = np.searchsorted(sorted_uids, ids_arr)
+                if (pos >= sorted_uids.shape[0]).any():
+                    raise KeyError("One or more unique_id values not present")
+                found = sorted_uids[pos] == ids_arr
+                if not bool(np.all(found)):
+                    raise KeyError("One or more unique_id values not present")
+                row_idx_from_ids = sort_idx[pos]
+
+        def _vector_len(value: object) -> int | None:
+            if isinstance(value, pl.Series):
+                return int(value.len())
+            if isinstance(value, np.ndarray):
+                if value.ndim != 1:
+                    raise ValueError("ndarray update values must be 1-D")
+                return int(value.shape[0])
+            if isinstance(value, (list, tuple)):
+                return len(value)
+            return None
+
+        def _expand_to_full(value: object, *, fill_idx: np.ndarray) -> np.ndarray:
+            if isinstance(value, pl.Series):
+                arr = value.to_numpy()
+            elif isinstance(value, np.ndarray):
+                arr = value
+            elif isinstance(value, (list, tuple)):
+                arr = np.asarray(value)
+            else:  # pragma: no cover
+                raise TypeError("unsupported vector update value")
+
+            if arr.dtype.kind in {"b", "i", "u", "f"}:
+                full = np.zeros(n_total, dtype=arr.dtype)
+            else:
+                full = np.empty(n_total, dtype=arr.dtype)
+                if n_total:
+                    full[:] = "" if arr.dtype.kind in {"U", "S"} else None
+
+            if n_selected:
+                full[fill_idx] = arr
+            return full
+
+        if n_selected and updates:
+            expanded: dict[str, object] = {}
+            for col, value in updates.items():
+                v_len = _vector_len(value)
+                if v_len is not None and v_len == n_selected and v_len != n_total:
+                    fill_idx = (
+                        row_idx_from_ids
+                        if row_idx_from_ids is not None
+                        else selected_idx_df_order
+                    )
+                    expanded[col] = _expand_to_full(value, fill_idx=fill_idx)
+                else:
+                    expanded[col] = value
+            updates = expanded
+
         self._df = self._apply_masked_updates(self._df, mask_bool, updates)
 
     def _mask_to_bool(self, mask: object, *, mask_col: str | None = None) -> np.ndarray:
