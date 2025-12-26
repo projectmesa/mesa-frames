@@ -103,7 +103,32 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
         self._name = name if name is not None else self.__class__.__name__
         # No definition of schema with unique_id, as it becomes hard to add new agents
         self._df = pl.DataFrame()
+        self._uid_cache_df_id: int | None = None
+        self._uid_sorted_cache: np.ndarray | None = None
+        self._uid_sort_idx_cache: np.ndarray | None = None
         self._mask = pl.repeat(True, len(self._df), dtype=pl.Boolean, eager=True)
+
+    def _invalidate_uid_cache(self) -> None:
+        self._uid_cache_df_id = None
+        self._uid_sorted_cache = None
+        self._uid_sort_idx_cache = None
+
+    def _get_sorted_uids(self) -> tuple[np.ndarray, np.ndarray]:
+        df_id = id(self._df)
+        if (
+            self._uid_cache_df_id == df_id
+            and self._uid_sorted_cache is not None
+            and self._uid_sort_idx_cache is not None
+        ):
+            return self._uid_sorted_cache, self._uid_sort_idx_cache
+
+        uids = self._df["unique_id"].to_numpy()
+        sort_idx = np.argsort(uids)
+        sorted_uids = uids[sort_idx]
+        self._uid_cache_df_id = df_id
+        self._uid_sorted_cache = sorted_uids
+        self._uid_sort_idx_cache = sort_idx
+        return sorted_uids, sort_idx
 
     def rename(self, new_name: str, inplace: bool = True) -> Self:
         """Rename this agent set. If attached to AgentSetRegistry, delegate for uniqueness enforcement.
@@ -468,9 +493,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
             if ids_arr.ndim == 0:
                 ids_arr = ids_arr.reshape(1)
             if int(ids_arr.shape[0]) == n_selected:
-                uids = self._df["unique_id"].to_numpy()
-                sort_idx = np.argsort(uids)
-                sorted_uids = uids[sort_idx]
+                sorted_uids, sort_idx = self._get_sorted_uids()
                 pos = np.searchsorted(sorted_uids, ids_arr)
                 if (pos >= sorted_uids.shape[0]).any():
                     raise KeyError("One or more unique_id values not present")
@@ -527,6 +550,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
             updates = expanded
 
         self._df = self._apply_masked_updates(self._df, mask_bool, updates)
+        self._invalidate_uid_cache()
 
     def _mask_to_bool(self, mask: object, *, mask_col: str | None = None) -> np.ndarray:
         n_total = int(len(self._df))
@@ -613,9 +637,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
         if ids_arr.ndim == 0:
             ids_arr = ids_arr.reshape(1)
 
-        uids = self._df["unique_id"].to_numpy()
-        sort_idx = np.argsort(uids)
-        sorted_uids = uids[sort_idx]
+        sorted_uids, sort_idx = self._get_sorted_uids()
         pos = np.searchsorted(sorted_uids, ids_arr)
         if (pos >= sorted_uids.shape[0]).any():
             raise KeyError("One or more unique_id values not present")
@@ -662,6 +684,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
             shuffle=True,
             seed=obj.random.integers(np.iinfo(np.int32).max),
         )
+        obj._invalidate_uid_cache()
         return obj
 
     def sort(
@@ -677,6 +700,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
         else:
             descending = [not a for a in ascending]
         obj._df = obj._df.sort(by=by, descending=descending, **kwargs)
+        obj._invalidate_uid_cache()
         return obj
 
     def _concatenate_agentsets(
@@ -730,6 +754,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
         final_mask = final_df["unique_id"].is_in(final_active_index)
         self._df = final_df
         self._mask = final_mask
+        self._invalidate_uid_cache()
         # If some ids were removed in the do-method, we need to remove them also from final_df
         if not isinstance(original_masked_index, type(None)):
             ids_to_remove = original_masked_index.filter(
@@ -827,6 +852,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
             original_active_indices = self._df.filter(self._mask)["unique_id"]
 
         self._df = self._df.filter(mask.not_())
+        self._invalidate_uid_cache()
 
         if isinstance(self._mask, pl.Series):
             self._update_mask(original_active_indices)
@@ -913,6 +939,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
         if "unique_id" not in agents.columns:
             raise KeyError("DataFrame must have a unique_id column.")
         self._df = agents
+        self._invalidate_uid_cache()
 
     @property
     def active_agents(self) -> pl.DataFrame:
