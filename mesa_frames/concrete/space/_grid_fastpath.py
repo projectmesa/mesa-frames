@@ -35,6 +35,33 @@ def _numba_enabled() -> bool:
     return flag.strip().lower() not in {"1", "true", "yes", "on"}
 
 
+def _numba_cache_enabled() -> bool:
+    """Return True if Numba on-disk caching should be enabled.
+
+    Controlled via the `MESA_FRAMES_NUMBA_CACHE` environment variable.
+
+    - Unset: defaults to enabled ("1").
+    - "0"/"false"/"no"/"off": disabled.
+    - "1"/"true"/"yes"/"on": enabled.
+
+    Notes
+    -----
+    When enabled, Numba will attempt to write cache files into the module's
+    `__pycache__` directory. On read-only installs this may warn and/or fall
+    back to no cache.
+    """
+    raw = os.environ.get("MESA_FRAMES_NUMBA_CACHE")
+    if raw is None:
+        return True
+    value = raw.strip().lower()
+    if value in {"0", "false", "no", "off"}:
+        return False
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    # Defensive default: treat unknown values as enabled.
+    return True
+
+
 # Imported to keep beartype forward-ref resolution happy without introducing a
 # circular import at `grid.py` import time (Grid imports this module only from
 # `Grid.__init__`).
@@ -42,9 +69,7 @@ from mesa_frames.concrete.space.grid import Grid  # noqa: E402
 
 
 if _NUMBA_AVAILABLE:  # pragma: no cover
-    # NOTE: cache=False to avoid "no locator available" errors under wrapped
-    # functions (e.g., runtime type-checking / beartype instrumentation).
-    _njit = _numba.njit(cache=False)
+    _njit = _numba.njit(cache=_numba_cache_enabled())
 
 
 def _splitmix64_next(state: np.uint64) -> tuple[np.uint64, np.uint64]:

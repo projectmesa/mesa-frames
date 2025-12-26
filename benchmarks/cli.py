@@ -13,10 +13,12 @@ import math
 import polars as pl
 import typer
 
-from examples.boltzmann_wealth import backend_frames as boltzmann_frames
-from examples.boltzmann_wealth import backend_mesa as boltzmann_mesa
-from examples.sugarscape_ig.backend_frames import model as sugarscape_frames
-from examples.sugarscape_ig.backend_mesa import model as sugarscape_mesa
+os.environ.setdefault("MESA_FRAMES_NUMBA_CACHE", "0")
+
+from examples.boltzmann_wealth import backend_frames as boltzmann_frames  # noqa: E402
+from examples.boltzmann_wealth import backend_mesa as boltzmann_mesa  # noqa: E402
+from examples.sugarscape_ig.backend_frames import model as sugarscape_frames  # noqa: E402
+from examples.sugarscape_ig.backend_mesa import model as sugarscape_mesa  # noqa: E402
 from examples.plotting import (
     plot_performance as _examples_plot_performance,
 )

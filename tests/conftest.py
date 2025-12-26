@@ -9,3 +9,4 @@ assert beartype failures at import or construct time behave deterministically.
 import os
 
 os.environ.setdefault("MESA_FRAMES_RUNTIME_TYPECHECKING", "1")
+os.environ.setdefault("MESA_FRAMES_NUMBA_CACHE", "0")

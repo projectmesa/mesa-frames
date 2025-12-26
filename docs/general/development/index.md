@@ -105,6 +105,19 @@ pip install beartype
 
 ### Performance Considerations
 
+### Numba Cache
+
+Some fast paths use Numba JIT compilation. By default, mesa-frames enables Numba's
+on-disk cache to speed up subsequent runs by reusing compiled artifacts.
+
+- Enable (default): `MESA_FRAMES_NUMBA_CACHE=1`
+- Disable: `MESA_FRAMES_NUMBA_CACHE=0`
+
+When enabled, Numba writes cache files into the module's `__pycache__` directory.
+On read-only installs this may warn and/or fall back to no cache, which is
+usually acceptable. For CI, tests, and benchmarks, it's recommended to disable
+the cache to avoid unexpected writes.
+
 !!! warning "Development Only"
     Runtime type checking adds significant overhead and should **only be used during development and testing**. Do not enable it in production environments.
 
