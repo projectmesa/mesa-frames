@@ -2066,11 +2066,10 @@ class _GridFastPath:
         out_cell = csr.cell_id.copy()
         out_rad = csr.radius.copy()
         cand_score = np.asarray(cand_score)
-        if cand_score.dtype.kind == "f":
-            cand_score = np.nan_to_num(cand_score, nan=-np.inf)
 
         if _numba_enabled() and out_cell.size:
-            score_buf = cand_score.astype(np.float64, copy=True)
+            # Mutate scores in-place during sorting to avoid extra copies.
+            score_buf = cand_score.astype(np.float64, copy=False)
             _rank_candidates_by_score_kernel(
                 offsets,
                 out_cell,
