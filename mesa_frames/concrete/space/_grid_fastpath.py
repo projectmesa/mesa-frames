@@ -70,6 +70,8 @@ from mesa_frames.concrete.space.grid import Grid  # noqa: E402
 
 if _NUMBA_AVAILABLE:  # pragma: no cover
     _njit = _numba.njit(cache=_numba_cache_enabled())
+    # Avoid parallel=True/prange: for typical grid workloads (small K, memory-bound),
+    # Numba parallel overhead regresses wall time. Keep kernels serial by default.
 
 
 def _splitmix64_next(state: np.uint64) -> tuple[np.uint64, np.uint64]:
@@ -215,13 +217,11 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                 counts[i] = max_per_cell
             return counts
 
-        seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
+        if not torus:
+            for cell in range(int(n_cells)):
+                cx = int(cell) // int(height)
+                cy = int(cell) - cx * int(height)
 
-        for cell in range(int(n_cells)):
-            cx = int(cell) // int(height)
-            cy = int(cell) - cx * int(height)
-
-            if not torus:
                 c = 0
                 if include_center:
                     c += 1
@@ -233,9 +233,14 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                             continue
                         c += 1
                 counts[cell] = c
-                continue
+            return counts
 
-            # torus + possible de-dupe
+        # torus + possible de-dupe (kept serial; requires per-cell scratch).
+        seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
+
+        for cell in range(int(n_cells)):
+            cx = int(cell) // int(height)
+            cy = int(cell) - cx * int(height)
             seen_n = 0
             if include_center:
                 seen[seen_n] = int(cell)
@@ -282,7 +287,6 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
         width = int(n_cells) // int(height)
         n_dirs = int(base_dirs.shape[0])
         max_per_cell = (1 if include_center else 0) + (n_dirs * int(rmax))
-        seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
 
         if torus and not dedup_torus:
             for cell in range(int(n_cells)):
@@ -304,12 +308,12 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                         out += 1
             return
 
-        for cell in range(int(n_cells)):
-            out = int(offsets[cell])
-            cx = int(cell) // int(height)
-            cy = int(cell) - cx * int(height)
+        if not torus:
+            for cell in range(int(n_cells)):
+                out = int(offsets[cell])
+                cx = int(cell) // int(height)
+                cy = int(cell) - cx * int(height)
 
-            if not torus:
                 if include_center:
                     cand_cell[out] = int(cell)
                     cand_rad[out] = 0
@@ -323,7 +327,15 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                         cand_cell[out] = x * int(height) + y
                         cand_rad[out] = r
                         out += 1
-                continue
+            return
+
+        # torus + de-dupe (kept serial; requires scratch).
+        seen = np.empty(max_per_cell if max_per_cell > 0 else 1, dtype=np.int64)
+
+        for cell in range(int(n_cells)):
+            out = int(offsets[cell])
+            cx = int(cell) // int(height)
+            cy = int(cell) - cx * int(height)
 
             # torus + de-dupe
             seen_n = 0
@@ -1467,6 +1479,11 @@ def _coords_from_cell_id_2d(cell_id: np.ndarray, height: int) -> np.ndarray:
 class _GridFastPath:
     def __init__(self, grid: Grid) -> None:
         self._grid = grid
+
+        # Cached base direction offsets extracted from `grid._offsets`.
+        # Offsets are immutable for a Grid instance after init (no public setter).
+        self._base_dirs_cache: np.ndarray | None = None
+        self._base_dirs_hash: int | None = None
         # Cache of precomputed neighbor tables keyed by:
         # (width, height, torus, include_center, radius, base_dirs_hash, dedup_torus)
         # Value: dict with cell_offsets, cand_cell, cand_rad.
@@ -1480,6 +1497,27 @@ class _GridFastPath:
             tuple[Any, ...], dict[str, np.ndarray]
         ] = {}
 
+    def _get_base_dirs(self) -> np.ndarray:
+        cached = self._base_dirs_cache
+        if cached is not None:
+            return cached
+
+        grid = self._grid
+        base_dirs = (
+            grid._offsets.select(grid._pos_col_names)
+            .to_numpy()
+            .astype(np.int64, copy=False)
+        )
+        self._base_dirs_cache = base_dirs
+        self._base_dirs_hash = hash(base_dirs.tobytes())
+        return base_dirs
+
+    def _get_base_dirs_hash(self) -> int:
+        if self._base_dirs_hash is None:
+            _ = self._get_base_dirs()
+        # mypy/pylance: hash is set together with cache.
+        return int(self._base_dirs_hash)
+
     def _neighbors_tables_stacked_by_radius(
         self,
         *,
@@ -1491,12 +1529,7 @@ class _GridFastPath:
         height = int(grid._dimensions[1])
         torus = bool(grid._torus)
 
-        base_dirs = (
-            grid._offsets.select(grid._pos_col_names)
-            .to_numpy()
-            .astype(np.int64, copy=False)
-        )
-        base_dirs_hash = hash(base_dirs.tobytes())
+        base_dirs_hash = self._get_base_dirs_hash()
 
         key = (
             width,
@@ -1582,12 +1615,8 @@ class _GridFastPath:
         torus = bool(grid._torus)
         rmax = int(radius)
 
-        base_dirs = (
-            grid._offsets.select(grid._pos_col_names)
-            .to_numpy()
-            .astype(np.int64, copy=False)
-        )
-        base_dirs_hash = hash(base_dirs.tobytes())
+        base_dirs = self._get_base_dirs()
+        base_dirs_hash = self._get_base_dirs_hash()
 
         # If neighborhood is strictly contained, duplicates are impossible.
         dedup_torus = bool(torus and not ((2 * rmax) < width and (2 * rmax) < height))
@@ -1828,11 +1857,7 @@ class _GridFastPath:
 
         grid = self._grid
 
-        base_dirs = (
-            grid._offsets.select(grid._pos_col_names)
-            .to_numpy()
-            .astype(np.int64, copy=False)
-        )
+        base_dirs = self._get_base_dirs()
         n_dirs = int(base_dirs.shape[0])
 
         if _numba_enabled():
