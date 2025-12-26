@@ -1192,6 +1192,8 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
 
         state = seed
 
+        n_cells = int(cap.shape[0])
+
         # Reusable stamp array for "freeable" cells (avoid allocating/zeroing
         # a full n_cells array each round).
         freeable_stamp = np.zeros(cap.shape[0], dtype=np.int32)
@@ -1201,6 +1203,22 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
         prop_agents = np.empty(n_agents, dtype=np.int64)
         prop_cells = np.empty(n_agents, dtype=np.int64)
         prop_wait = np.empty(n_agents, dtype=np.uint8)
+
+        # Proposal bucketing by cell_id (avoid per-round argsort allocations).
+        # We keep deterministic order by:
+        # - iterating cells in ascending cell_id
+        # - filling each cell bucket in proposal index order
+        bucket_stamp = np.zeros(n_cells, dtype=np.int32)
+        bucket_counts = np.zeros(n_cells, dtype=np.int32)
+        bucket_start = np.empty(n_cells, dtype=np.int64)
+        bucket_next = np.empty(n_cells, dtype=np.int64)
+        bucket_prop = np.empty(n_agents, dtype=np.int64)
+        bucket_gen = np.int32(1)
+
+        # Reusable scratch for winner selection.
+        tmp_agents = np.empty(n_agents, dtype=np.int64)
+        winner_stamp = np.zeros(n_agents, dtype=np.int32)
+        winner_gen = np.int32(1)
 
         # Upper bound similar to Python implementation.
         max_iters = int(n_agents * max_candidates + n_agents + 1)
@@ -1277,93 +1295,119 @@ if _NUMBA_AVAILABLE:  # pragma: no cover
                     break
                 continue
 
-            order = np.argsort(prop_cells[:prop_n])
-            # Walk proposal runs by cell.
-            run_start = 0
-            while run_start < prop_n:
-                idx0 = int(order[run_start])
-                cell = int(prop_cells[idx0])
-                run_end = run_start + 1
-                while run_end < prop_n:
-                    idxn = int(order[run_end])
-                    if int(prop_cells[idxn]) != cell:
-                        break
-                    run_end += 1
+            # Bucket proposals by destination cell (stable by proposal index).
+            bucket_gen = np.int32(bucket_gen + 1)
+            if bucket_gen == np.int32(0):
+                bucket_stamp[:] = 0
+                bucket_gen = np.int32(1)
+
+            for p in range(prop_n):
+                cell = int(prop_cells[p])
+                if bucket_stamp[cell] != bucket_gen:
+                    bucket_stamp[cell] = bucket_gen
+                    bucket_counts[cell] = np.int32(1)
+                else:
+                    bucket_counts[cell] = np.int32(bucket_counts[cell] + 1)
+
+            # Prefix sum over cells to compute bucket slices.
+            pos = np.int64(0)
+            for cell in range(n_cells):
+                if bucket_stamp[cell] == bucket_gen:
+                    bucket_start[cell] = pos
+                    bucket_next[cell] = pos
+                    pos += np.int64(bucket_counts[cell])
+
+            # Fill buckets in proposal index order.
+            for p in range(prop_n):
+                cell = int(prop_cells[p])
+                idx = int(bucket_next[cell])
+                bucket_prop[idx] = p
+                bucket_next[cell] = np.int64(idx + 1)
+
+            # Walk cells in ascending cell_id (matches sorted-by-cell behavior).
+            for cell in range(n_cells):
+                if bucket_stamp[cell] != bucket_gen:
+                    continue
+
+                start = int(bucket_start[cell])
+                end = int(bucket_next[cell])
+                run_len = end - start
+                if run_len <= 0:
+                    continue
 
                 remaining = int(cap[cell])
-                run_len = run_end - run_start
 
                 if remaining <= 0:
                     # Full: non-waiters advance.
-                    for t in range(run_start, run_end):
-                        ii = int(order[t])
+                    for t in range(start, end):
+                        ii = int(bucket_prop[t])
                         a = int(prop_agents[ii])
                         if prop_wait[ii] == 0:
                             ptr[a] += 1
                             made_progress = True
-                else:
-                    # Pick winners without replacement (simple in-place shuffle).
-                    k = remaining
-                    if k > run_len:
-                        k = run_len
+                    continue
 
-                    tmp = np.empty(run_len, dtype=np.int64)
-                    for t in range(run_len):
-                        ii = int(order[run_start + t])
-                        tmp[t] = int(prop_agents[ii])
+                # Pick winners without replacement (simple in-place shuffle).
+                k = remaining
+                if k > run_len:
+                    k = run_len
 
-                    # Partial Fisher-Yates for first k.
-                    for t in range(k):
-                        # Inline splitmix64 + randbelow to avoid calling external
-                        # helpers that may be runtime-wrapped.
-                        n = run_len - t
-                        if n <= 1:
-                            j = t
-                        else:
-                            x = np.uint64(n)
-                            limit = (np.uint64(0xFFFFFFFFFFFFFFFF) // x) * x
-                            while True:
-                                z = state + np.uint64(0x9E3779B97F4A7C15)
-                                z = (z ^ (z >> np.uint64(30))) * np.uint64(
-                                    0xBF58476D1CE4E5B9
-                                )
-                                z = (z ^ (z >> np.uint64(27))) * np.uint64(
-                                    0x94D049BB133111EB
-                                )
-                                z = z ^ (z >> np.uint64(31))
-                                state = state + np.uint64(0x9E3779B97F4A7C15)
-                                if z < limit:
-                                    j = t + int(z % x)
-                                    break
-                        tmp[t], tmp[j] = tmp[j], tmp[t]
+                for t in range(run_len):
+                    ii = int(bucket_prop[start + t])
+                    tmp_agents[t] = int(prop_agents[ii])
 
-                    for t in range(k):
-                        w = int(tmp[t])
-                        dest[w] = cell
-                        unassigned[w] = 0
-                    cap[cell] -= k
-                    made_progress = True
-
-                    # Free origins for winners that moved.
-                    for t in range(k):
-                        w = int(tmp[t])
-                        if int(origin[w]) != cell:
-                            cap[int(origin[w])] += 1
-
-                    # Losers advance.
-                    # Build a small winner marker (linear scan: run_len small).
-                    for t in range(run_start, run_end):
-                        ii = int(order[t])
-                        a = int(prop_agents[ii])
-                        won = False
-                        for u in range(k):
-                            if int(tmp[u]) == a:
-                                won = True
+                # Partial Fisher-Yates for first k.
+                for t in range(k):
+                    # Inline splitmix64 + randbelow to avoid calling external
+                    # helpers that may be runtime-wrapped.
+                    n = run_len - t
+                    if n <= 1:
+                        j = t
+                    else:
+                        x = np.uint64(n)
+                        limit = (np.uint64(0xFFFFFFFFFFFFFFFF) // x) * x
+                        while True:
+                            z = state + np.uint64(0x9E3779B97F4A7C15)
+                            z = (z ^ (z >> np.uint64(30))) * np.uint64(
+                                0xBF58476D1CE4E5B9
+                            )
+                            z = (z ^ (z >> np.uint64(27))) * np.uint64(
+                                0x94D049BB133111EB
+                            )
+                            z = z ^ (z >> np.uint64(31))
+                            state = state + np.uint64(0x9E3779B97F4A7C15)
+                            if z < limit:
+                                j = t + int(z % x)
                                 break
-                        if not won:
-                            ptr[a] += 1
+                    tmp_agents[t], tmp_agents[j] = tmp_agents[j], tmp_agents[t]
 
-                run_start = run_end
+                # Stamp winners for loser detection.
+                winner_gen = np.int32(winner_gen + 1)
+                if winner_gen == np.int32(0):
+                    winner_stamp[:] = 0
+                    winner_gen = np.int32(1)
+
+                for t in range(k):
+                    w = int(tmp_agents[t])
+                    dest[w] = cell
+                    unassigned[w] = 0
+                    winner_stamp[w] = winner_gen
+
+                cap[cell] -= k
+                made_progress = True
+
+                # Free origins for winners that moved.
+                for t in range(k):
+                    w = int(tmp_agents[t])
+                    if int(origin[w]) != cell:
+                        cap[int(origin[w])] += 1
+
+                # Losers advance.
+                for t in range(start, end):
+                    ii = int(bucket_prop[t])
+                    a = int(prop_agents[ii])
+                    if winner_stamp[a] != winner_gen:
+                        ptr[a] += 1
 
             if not made_progress:
                 break
