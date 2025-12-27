@@ -68,7 +68,13 @@ import polars as pl
 from mesa_frames.abstract.agentset import AbstractAgentSet
 from mesa_frames.concrete._update_masked import _MaskedUpdateMixin
 from mesa_frames.concrete.mixin import PolarsMixin
-from mesa_frames.types_ import AgentMask, AgentPolarsMask, IntoExpr, PolarsIdsLike
+from mesa_frames.types_ import (
+    AgentMask,
+    AgentPolarsMask,
+    IntoExpr,
+    PolarsIdsLike,
+    UpdateValue,
+)
 from mesa_frames.utils import copydoc
 import mesa_frames
 
@@ -357,33 +363,27 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
 
     def update(
         self,
-        target: PolarsIdsLike | pl.DataFrame | dict[str, object] | None = None,
-        updates: dict[str, object] | None = None,
+        target: PolarsIdsLike | pl.DataFrame | dict[str, UpdateValue] | None = None,
+        updates: dict[str, UpdateValue] | None = None,
         *,
         mask: AgentMask | np.ndarray | None = None,
         backend: Literal["auto", "polars"] = "auto",
         mask_col: str | None = None,
+        **named_updates: UpdateValue,
     ) -> None:
-        """Update agent attributes.
-
-        Parameters
-        ----------
-        target : PolarsIdsLike | pl.DataFrame | dict[str, object] | None, optional
-            Optional id selector (scalar/sequence/Series) or a DataFrame with a
-            ``unique_id`` column.
-        updates : dict[str, object] | None, optional
-            Mapping of column names to update values.
-        mask : AgentMask | np.ndarray | None, optional
-            Optional selector limiting which agents are updated.
-        backend : Literal["auto", "polars"], optional
-            Accepted for API compatibility; only Polars paths are used.
-        mask_col : str | None, optional
-            When ``mask``/``target`` is a DataFrame, optional name of a boolean
-            column to interpret as per-row selector.
-        """
         if updates is None and isinstance(target, dict):
             updates = target
             target = None
+
+        if named_updates:
+            if updates is None:
+                updates = {}
+            overlap = set(updates).intersection(named_updates)
+            if overlap:
+                raise ValueError(
+                    "Duplicate update keys provided in updates and named arguments"
+                )
+            updates = {**updates, **named_updates}
 
         if updates is None or len(updates) == 0:
             raise ValueError("update() requires a non-empty updates dict")
@@ -396,6 +396,52 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
         selector: object = target if target is not None else mask
         if selector is None:
             selector = "all"
+
+        full_selector = isinstance(selector, str) and selector == "all"
+
+        if not full_selector:
+            selector_ids: object | None
+            if isinstance(selector, np.ndarray):
+                selector_ids = None if selector.dtype == bool else selector
+            elif isinstance(selector, pl.Series):
+                selector_ids = None if selector.dtype == pl.Boolean else selector
+            elif isinstance(selector, pl.DataFrame):
+                if "unique_id" in selector.columns:
+                    ids = selector["unique_id"]
+                    if mask_col is not None:
+                        if mask_col not in selector.columns:
+                            raise KeyError(
+                                f"mask_col not found in DataFrame: {mask_col}"
+                            )
+                        ids = selector.filter(pl.col(mask_col))["unique_id"]
+                    selector_ids = ids
+                else:
+                    selector_ids = None
+            elif selector is None or (
+                isinstance(selector, str) and selector in {"all", "active"}
+            ):
+                selector_ids = None
+            elif isinstance(selector, Collection) and not isinstance(
+                selector, (str, bytes)
+            ):
+                selector_ids = selector
+            else:
+                selector_ids = [selector]
+
+            if selector_ids is not None:
+                ids_arr = np.asarray(selector_ids)
+                if ids_arr.ndim == 0:
+                    ids_arr = ids_arr.reshape(1)
+                n_total = int(self._df.height)
+                if int(ids_arr.shape[0]) == n_total:
+                    uids = self._df["unique_id"].to_numpy()
+                    if np.array_equal(ids_arr, uids):
+                        full_selector = True
+
+        if full_selector:
+            mask_bool = np.ones(int(self._df.height), dtype=bool)
+        else:
+            mask_bool = self._mask_to_bool(selector, mask_col=mask_col)
 
         # Bootstrapping: allow creating rows on an empty AgentSet.
         if self._df.is_empty() and selector == "all":
@@ -450,8 +496,6 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
                 "update(mask=pl.Expr) is not supported; pass ids, a boolean mask, or a string mask"
             )
 
-        mask_bool = self._mask_to_bool(selector, mask_col=mask_col)
-
         # Support passing values aligned to the *selection* (n_selected) instead
         # of the full AgentSet height (n_total), without requiring joins.
         #
@@ -462,30 +506,33 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
         n_selected = int(selected_idx_df_order.shape[0])
 
         selector_ids: object | None = None
-        if isinstance(selector, np.ndarray):
-            if selector.dtype != bool:
+        if not full_selector:
+            if isinstance(selector, np.ndarray):
+                if selector.dtype != bool:
+                    selector_ids = selector
+            elif isinstance(selector, pl.Series):
+                if selector.dtype != pl.Boolean:
+                    selector_ids = selector
+            elif isinstance(selector, pl.DataFrame):
+                if "unique_id" in selector.columns:
+                    ids = selector["unique_id"]
+                    if mask_col is not None:
+                        if mask_col not in selector.columns:
+                            raise KeyError(
+                                f"mask_col not found in DataFrame: {mask_col}"
+                            )
+                        ids = selector.filter(pl.col(mask_col))["unique_id"]
+                    selector_ids = ids
+            elif selector is None or (
+                isinstance(selector, str) and selector in {"all", "active"}
+            ):
+                selector_ids = None
+            elif isinstance(selector, Collection) and not isinstance(
+                selector, (str, bytes)
+            ):
                 selector_ids = selector
-        elif isinstance(selector, pl.Series):
-            if selector.dtype != pl.Boolean:
-                selector_ids = selector
-        elif isinstance(selector, pl.DataFrame):
-            if "unique_id" in selector.columns:
-                ids = selector["unique_id"]
-                if mask_col is not None:
-                    if mask_col not in selector.columns:
-                        raise KeyError(f"mask_col not found in DataFrame: {mask_col}")
-                    ids = selector.filter(pl.col(mask_col))["unique_id"]
-                selector_ids = ids
-        elif selector is None or (
-            isinstance(selector, str) and selector in {"all", "active"}
-        ):
-            selector_ids = None
-        elif isinstance(selector, Collection) and not isinstance(
-            selector, (str, bytes)
-        ):
-            selector_ids = selector
-        else:
-            selector_ids = [selector]
+            else:
+                selector_ids = [selector]
 
         row_idx_from_ids: np.ndarray | None = None
         if selector_ids is not None:
@@ -621,11 +668,15 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
     def lookup(
         self,
         target: PolarsIdsLike | pl.DataFrame,
+        *column_names: str,
         columns: list[str] | None = None,
-        *,
         as_df: bool = True,
     ) -> pl.DataFrame | dict[str, np.ndarray] | np.ndarray:
-        """Fetch rows by unique_id without joins."""
+        if column_names:
+            if columns is not None:
+                raise ValueError("Provide either column_names or columns, not both")
+            columns = list(column_names)
+
         if isinstance(target, pl.DataFrame):
             if "unique_id" not in target.columns:
                 raise KeyError("AgentSet.lookup target DataFrame must have 'unique_id'")
@@ -636,6 +687,19 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
         ids_arr = np.asarray(ids)
         if ids_arr.ndim == 0:
             ids_arr = ids_arr.reshape(1)
+
+        n_total = int(self._df.height)
+        if int(ids_arr.shape[0]) == n_total:
+            uids = self._df["unique_id"].to_numpy()
+            if np.array_equal(ids_arr, uids):
+                out = self._df
+                if columns is not None:
+                    out = out.select(columns)
+                if as_df:
+                    return out
+                if columns is not None and len(columns) == 1:
+                    return out[columns[0]].to_numpy()
+                return {col: out[col].to_numpy() for col in out.columns}
 
         sorted_uids, sort_idx = self._get_sorted_uids()
         pos = np.searchsorted(sorted_uids, ids_arr)

@@ -39,6 +39,7 @@ from mesa_frames.types_ import (
     Index,
     AgentMaskLiteral,
     Series,
+    UpdateValue,
 )
 import mesa_frames
 
@@ -516,23 +517,24 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
     @abstractmethod
     def update(
         self,
-        target: IdsLike | DataFrame | dict[str, object] | None = None,
-        updates: dict[str, object] | None = None,
+        target: IdsLike | DataFrame | dict[str, UpdateValue] | None = None,
+        updates: dict[str, UpdateValue] | None = None,
         *,
         mask: AgentMask | DataFrame | Series | np.ndarray | None = None,
         backend: Literal["auto", "polars"] = "auto",
         mask_col: str | None = None,
+        **named_updates: UpdateValue,
     ) -> None:
         """Update agent attributes.
 
         Parameters
         ----------
-        target : IdsLike | DataFrame | dict[str, object] | None
+        target : IdsLike | DataFrame | dict[str, UpdateValue] | None, optional
             Optional selector indicating which agents to update. For
             convenience, a dict may be passed as the first positional argument
             (in which case it is treated as ``updates``).
 
-        updates : dict[str, object] | None
+        updates : dict[str, UpdateValue] | None, optional
             Mapping of column -> value. Values may be scalars, array-likes,
             Polars expressions, or column-name strings (copy-from-column).
             Callables are not accepted.
@@ -546,6 +548,10 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         mask_col : str | None, optional
             When ``mask``/``target`` is a DataFrame, optional name of a boolean
             column indicating the selected rows.
+
+        **named_updates : UpdateValue
+            Optional shorthand for ``updates`` using keyword arguments
+            (e.g., ``update(mask=..., sugar=1, metabolism=2)``).
         """
         ...
 
@@ -553,8 +559,8 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
     def lookup(
         self,
         target: IdsLike | DataFrame,
+        *column_names: str,
         columns: list[str] | None = None,
-        *,
         as_df: bool = True,
     ) -> DataFrame | dict[str, np.ndarray] | np.ndarray:
         """Fetch rows by key without joins."""

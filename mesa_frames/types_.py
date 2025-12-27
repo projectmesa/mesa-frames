@@ -73,6 +73,19 @@ IntoExpr = (
     | None
 )
 
+UpdateValue = (
+    int
+    | float
+    | bool
+    | str
+    | None
+    | np.ndarray
+    | list[Any]
+    | tuple[Any, ...]
+    | pl.Series
+    | pl.Expr
+)
+
 ###----- Generic -----###
 # GeoDataFrame = gpd.GeoDataFrame | gpl.GeoDataFrame
 DataFrame = pl.DataFrame

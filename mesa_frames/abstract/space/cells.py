@@ -19,6 +19,7 @@ from mesa_frames.types_ import (
     IdsLike,
     Infinity,
     Series,
+    UpdateValue,
 )
 
 
@@ -58,11 +59,12 @@ class AbstractCells(ABC):
         | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
         | None = None,
-        updates: dict[str, object] | None = None,
+        updates: dict[str, UpdateValue] | None = None,
         *,
         mask: str | DataFrame | Series | np.ndarray | None = None,
         backend: Literal["auto", "polars"] = "auto",
         mask_col: str | None = None,
+        **named_updates: UpdateValue,
     ) -> None:
         """Update existing cell properties.
 
@@ -76,7 +78,7 @@ class AbstractCells(ABC):
             a DataFrame, it is interpreted as a coordinate mask or a full cells
             table (when ``updates`` is ``None``).
 
-        updates : dict[str, object] | None, optional
+        updates : dict[str, UpdateValue] | None, optional
             Mapping of property name to update value.
 
             Accepted value types are:
@@ -98,6 +100,9 @@ class AbstractCells(ABC):
         mask_col : str | None, optional
             When ``mask`` is a DataFrame, optional name of a boolean column
             indicating the selected rows.
+
+        **named_updates : UpdateValue
+            Optional shorthand for ``updates`` using keyword arguments.
         """
         ...
 
@@ -105,8 +110,8 @@ class AbstractCells(ABC):
     def lookup(
         self,
         target: DiscreteCoordinates | DataFrame | IdsLike | np.ndarray,
+        *column_names: str,
         columns: list[str] | None = None,
-        *,
         as_df: bool = True,
     ) -> DataFrame | dict[str, np.ndarray] | np.ndarray:
         """Fetch cell rows by key without joins."""

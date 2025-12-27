@@ -21,6 +21,7 @@ from mesa_frames.types_ import (
     DiscreteSpaceCapacity,
     Infinity,
     Series,
+    UpdateValue,
 )
 
 
@@ -225,21 +226,28 @@ class GridCells(_MaskedUpdateMixin, AbstractCells):
         | AbstractAgentSetRegistry
         | Collection[AbstractAgentSet]
         | Collection[AbstractAgentSetRegistry]
-        | dict[str, object]
+        | dict[str, UpdateValue]
         | None = None,
-        updates: dict[str, object] | None = None,
+        updates: dict[str, UpdateValue] | None = None,
         *,
         mask: str | DataFrame | Series | np.ndarray | None = None,
         backend: Literal["auto", "polars"] = "auto",
         mask_col: str | None = None,
+        **named_updates: UpdateValue,
     ) -> None:
-        """Update cell properties.
-
-        See the abstract interface for accepted values and masks.
-        """
         if updates is None and isinstance(target, dict):
             updates = target
             target = None
+
+        if named_updates:
+            if updates is None:
+                updates = {}
+            overlap = set(updates).intersection(named_updates)
+            if overlap:
+                raise ValueError(
+                    "Duplicate update keys provided in updates and named arguments"
+                )
+            updates = {**updates, **named_updates}
 
         if updates is not None:
             self._reject_callables(updates)
@@ -422,11 +430,15 @@ class GridCells(_MaskedUpdateMixin, AbstractCells):
     def lookup(
         self,
         target: DiscreteCoordinates | DataFrame | np.ndarray,
+        *column_names: str,
         columns: list[str] | None = None,
-        *,
         as_df: bool = True,
     ) -> pl.DataFrame | dict[str, np.ndarray] | np.ndarray:
-        """Fetch cell rows by coords or cell_id without joins."""
+        if column_names:
+            if columns is not None:
+                raise ValueError("Provide either column_names or columns, not both")
+            columns = list(column_names)
+
         self._ensure_dense_row_major_cells()
         n_total = int(np.prod(self._space._dimensions))
         if int(self._cells.height) != n_total:
