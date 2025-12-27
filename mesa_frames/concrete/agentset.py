@@ -84,6 +84,8 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
     """Polars-based implementation of AgentSet."""
 
     _df: pl.DataFrame
+    _JOIN_THRESHOLD_MIN = 10_000
+    _JOIN_THRESHOLD_FRAC = 0.2
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_df": ("clone", []),
     }
@@ -399,6 +401,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
 
         full_selector = isinstance(selector, str) and selector == "all"
 
+        ids_arr: np.ndarray | None = None
         if not full_selector:
             selector_ids: object | None
             if isinstance(selector, np.ndarray):
@@ -437,11 +440,6 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
                     uids = self._df["unique_id"].to_numpy()
                     if np.array_equal(ids_arr, uids):
                         full_selector = True
-
-        if full_selector:
-            mask_bool = np.ones(int(self._df.height), dtype=bool)
-        else:
-            mask_bool = self._mask_to_bool(selector, mask_col=mask_col)
 
         # Bootstrapping: allow creating rows on an empty AgentSet.
         if self._df.is_empty() and selector == "all":
@@ -496,58 +494,45 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
                 "update(mask=pl.Expr) is not supported; pass ids, a boolean mask, or a string mask"
             )
 
-        # Support passing values aligned to the *selection* (n_selected) instead
-        # of the full AgentSet height (n_total), without requiring joins.
-        #
-        # Important: when the selector is an id-like collection, we align values
-        # by unique_id order, not by boolean-mask df-order.
-        n_total = int(self._df.height)
-        selected_idx_df_order = np.flatnonzero(mask_bool)
-        n_selected = int(selected_idx_df_order.shape[0])
-
-        selector_ids: object | None = None
-        if not full_selector:
-            if isinstance(selector, np.ndarray):
-                if selector.dtype != bool:
-                    selector_ids = selector
-            elif isinstance(selector, pl.Series):
-                if selector.dtype != pl.Boolean:
-                    selector_ids = selector
-            elif isinstance(selector, pl.DataFrame):
-                if "unique_id" in selector.columns:
-                    ids = selector["unique_id"]
-                    if mask_col is not None:
-                        if mask_col not in selector.columns:
-                            raise KeyError(
-                                f"mask_col not found in DataFrame: {mask_col}"
-                            )
-                        ids = selector.filter(pl.col(mask_col))["unique_id"]
-                    selector_ids = ids
-            elif selector is None or (
-                isinstance(selector, str) and selector in {"all", "active"}
-            ):
-                selector_ids = None
-            elif isinstance(selector, Collection) and not isinstance(
-                selector, (str, bytes)
-            ):
-                selector_ids = selector
-            else:
-                selector_ids = [selector]
-
-        row_idx_from_ids: np.ndarray | None = None
-        if selector_ids is not None:
-            ids_arr = np.asarray(selector_ids)
-            if ids_arr.ndim == 0:
-                ids_arr = ids_arr.reshape(1)
-            if int(ids_arr.shape[0]) == n_selected:
-                sorted_uids, sort_idx = self._get_sorted_uids()
-                pos = np.searchsorted(sorted_uids, ids_arr)
-                if (pos >= sorted_uids.shape[0]).any():
-                    raise KeyError("One or more unique_id values not present")
-                found = sorted_uids[pos] == ids_arr
-                if not bool(np.all(found)):
-                    raise KeyError("One or more unique_id values not present")
-                row_idx_from_ids = sort_idx[pos]
+        def _join_updates_df(
+            ids: np.ndarray, update_map: dict[str, UpdateValue]
+        ) -> pl.DataFrame | None:
+            updates_df = pl.DataFrame({"unique_id": ids})
+            n_sel = int(ids.shape[0])
+            for col, raw in update_map.items():
+                if isinstance(raw, (pl.Expr, str)):
+                    return None
+                if isinstance(raw, pl.Series):
+                    if int(raw.len()) == n_sel:
+                        updates_df = updates_df.with_columns(pl.Series(col, raw))
+                        continue
+                    if int(raw.len()) == 1:
+                        updates_df = updates_df.with_columns(pl.lit(raw[0]).alias(col))
+                        continue
+                    return None
+                if isinstance(raw, np.ndarray):
+                    if raw.ndim == 0:
+                        updates_df = updates_df.with_columns(
+                            pl.lit(raw.item()).alias(col)
+                        )
+                        continue
+                    if int(raw.shape[0]) == n_sel:
+                        updates_df = updates_df.with_columns(pl.Series(col, raw))
+                        continue
+                    if int(raw.shape[0]) == 1:
+                        updates_df = updates_df.with_columns(pl.lit(raw[0]).alias(col))
+                        continue
+                    return None
+                if isinstance(raw, (list, tuple)):
+                    if len(raw) == n_sel:
+                        updates_df = updates_df.with_columns(pl.Series(col, raw))
+                        continue
+                    if len(raw) == 1:
+                        updates_df = updates_df.with_columns(pl.lit(raw[0]).alias(col))
+                        continue
+                    return None
+                updates_df = updates_df.with_columns(pl.lit(raw).alias(col))
+            return updates_df
 
         def _vector_len(value: object) -> int | None:
             if isinstance(value, pl.Series):
@@ -560,41 +545,56 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
                 return len(value)
             return None
 
-        def _expand_to_full(value: object, *, fill_idx: np.ndarray) -> np.ndarray:
-            if isinstance(value, pl.Series):
-                arr = value.to_numpy()
-            elif isinstance(value, np.ndarray):
-                arr = value
-            elif isinstance(value, (list, tuple)):
-                arr = np.asarray(value)
-            else:  # pragma: no cover
-                raise TypeError("unsupported vector update value")
+        n_total = int(self._df.height)
+        n_selected_from_ids: int | None = None
+        if ids_arr is not None and not full_selector:
+            n_selected_from_ids = int(ids_arr.shape[0])
 
-            if arr.dtype.kind in {"b", "i", "u", "f"}:
-                full = np.zeros(n_total, dtype=arr.dtype)
-            else:
-                full = np.empty(n_total, dtype=arr.dtype)
-                if n_total:
-                    full[:] = "" if arr.dtype.kind in {"U", "S"} else None
-
-            if n_selected:
-                full[fill_idx] = arr
-            return full
-
-        if n_selected and updates:
-            expanded: dict[str, object] = {}
-            for col, value in updates.items():
+        has_selection_vectors = False
+        if n_selected_from_ids is not None:
+            for value in updates.values():
                 v_len = _vector_len(value)
-                if v_len is not None and v_len == n_selected and v_len != n_total:
-                    fill_idx = (
-                        row_idx_from_ids
-                        if row_idx_from_ids is not None
-                        else selected_idx_df_order
+                if (
+                    v_len is not None
+                    and v_len == n_selected_from_ids
+                    and v_len != n_total
+                ):
+                    has_selection_vectors = True
+                    break
+
+        if ids_arr is not None and not full_selector and has_selection_vectors:
+            updates_df = _join_updates_df(ids_arr, updates)
+            if updates_df is None:
+                raise ValueError(
+                    "Vector updates aligned to ids require join-compatible values"
+                )
+            merged = self._df.join(
+                updates_df,
+                on="unique_id",
+                how="left",
+                suffix="_new",
+                maintain_order="left",
+            )
+            existing_cols = set(self._df.columns)
+            coalesce_exprs: list[pl.Expr] = []
+            drop_cols: list[str] = []
+            for col in updates.keys():
+                if col in existing_cols:
+                    new_col = f"{col}_new"
+                    coalesce_exprs.append(
+                        pl.coalesce(pl.col(new_col), pl.col(col)).alias(col)
                     )
-                    expanded[col] = _expand_to_full(value, fill_idx=fill_idx)
-                else:
-                    expanded[col] = value
-            updates = expanded
+                    drop_cols.append(new_col)
+            if coalesce_exprs:
+                merged = merged.with_columns(coalesce_exprs).drop(drop_cols)
+            self._df = merged
+            self._invalidate_uid_cache()
+            return
+
+        if full_selector:
+            mask_bool = np.ones(n_total, dtype=bool)
+        else:
+            mask_bool = self._mask_to_bool(selector, mask_col=mask_col)
 
         self._df = self._apply_masked_updates(self._df, mask_bool, updates)
         self._invalidate_uid_cache()
@@ -700,6 +700,30 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
                 if columns is not None and len(columns) == 1:
                     return out[columns[0]].to_numpy()
                 return {col: out[col].to_numpy() for col in out.columns}
+
+        threshold = max(
+            self._JOIN_THRESHOLD_MIN, int(self._JOIN_THRESHOLD_FRAC * n_total)
+        )
+        if int(ids_arr.shape[0]) >= threshold:
+            ids_df = pl.DataFrame({"unique_id": ids_arr})
+            right = (
+                self._df
+                if columns is None
+                else self._df.select(["unique_id", *columns])
+            )
+            out = ids_df.join(
+                right,
+                on="unique_id",
+                how="left",
+                maintain_order="left",
+            )
+            if as_df:
+                return out
+            if columns is not None and len(columns) == 1:
+                return out[columns[0]].to_numpy()
+            return {
+                col: out[col].to_numpy() for col in out.columns if col != "unique_id"
+            }
 
         sorted_uids, sort_idx = self._get_sorted_uids()
         pos = np.searchsorted(sorted_uids, ids_arr)
