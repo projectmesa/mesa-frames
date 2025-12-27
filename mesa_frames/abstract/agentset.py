@@ -552,6 +552,19 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
         **named_updates : UpdateValue
             Optional shorthand for ``updates`` using keyword arguments
             (e.g., ``update(mask=..., sugar=1, metabolism=2)``).
+
+        Notes
+        -----
+        The implementation selects a fast path based on the selector and
+        update value shapes:
+
+        - Full-order ids (``target`` matches the current ``unique_id`` order)
+          are treated as a full-table update.
+        - Id-based vector updates (values aligned to ``target`` length) use a
+          join-based path to preserve order efficiently.
+        - Scalar or expression updates use boolean-mask updates; when ``target``
+          is ids, the mask is derived with ``is_in``.
+        - For best performance, pass a precomputed boolean mask when available.
         """
         ...
 

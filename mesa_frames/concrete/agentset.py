@@ -562,6 +562,8 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
                     has_selection_vectors = True
                     break
 
+        # Vector values aligned to ids are routed through a join to preserve
+        # ordering while staying on the fastest path for large selections.
         if ids_arr is not None and not full_selector and has_selection_vectors:
             updates_df = _join_updates_df(ids_arr, updates)
             if updates_df is None:
