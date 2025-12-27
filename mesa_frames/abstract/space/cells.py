@@ -103,6 +103,16 @@ class AbstractCells(ABC):
 
         **named_updates : UpdateValue
             Optional shorthand for ``updates`` using keyword arguments.
+
+        Notes
+        -----
+        The implementation selects a fast path based on the selector:
+
+        - Boolean masks aligned to the dense row-major cells are applied
+          directly and are the fastest option.
+        - Coordinate targets are converted to cell ids, then to a boolean mask.
+        - String masks (``"all"``, ``"empty"``, ``"full"``, ``"available"``)
+          are resolved from capacity/occupancy state.
         """
         ...
 
