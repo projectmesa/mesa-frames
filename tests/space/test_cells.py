@@ -59,59 +59,68 @@ def test_cells_coords_accessor(grid_moore: Grid):
     )
 
 
-def test_set_cells_dense_grid_delta_update(model: Model):
-    grid = Grid(model, dimensions=[3, 3], capacity=2)
-    # Initialize a dense cells table.
-    dim0 = pl.Series("dim_0", pl.arange(3, eager=True)).to_frame()
-    dim1 = pl.Series("dim_1", pl.arange(3, eager=True)).to_frame()
-    all_coords = dim0.join(dim1, how="cross")
-    grid.cells.update(
-        all_coords,
-        {
-            "capacity": pl.repeat(2, all_coords.height, eager=True).cast(pl.Int64),
-            "sugar": pl.repeat(1, all_coords.height, eager=True).cast(pl.Int64),
-        },
-    )
-    # Small delta update: only touch one cell.
-    grid.cells.update([[1, 2]], {"sugar": 9})
-    cell = grid.cells([1, 2], include="properties")
-    assert int(cell["sugar"][0]) == 9
-    # Unaffected cells retain original values.
-    other = grid.cells([0, 0], include="properties")
-    assert int(other["sugar"][0]) == 1
+def test_update(model: Model):
+    # Exercise multiple update paths:
+    # - coords selection (delta updates)
+    # - named mask strings (full/empty)
+    # - expr fallback
+    # - full-table update via DataFrame target (updates is None)
+    # - capacity update special-casing
 
-
-def test_cells_update_named_masks_and_column_copy(model: Model):
     grid = Grid(model, dimensions=[3, 3], capacity=1)
 
     dim0 = pl.Series("dim_0", pl.arange(3, eager=True)).to_frame()
     dim1 = pl.Series("dim_1", pl.arange(3, eager=True)).to_frame()
     all_coords = dim0.join(dim1, how="cross")
-    max_sugar = pl.repeat(4, all_coords.height, eager=True).cast(pl.Int64)
+
+    # Initialize a dense cells table.
     grid.cells.update(
         all_coords,
         {
             "capacity": pl.repeat(1, all_coords.height, eager=True).cast(pl.Int64),
-            "sugar": pl.repeat(0, all_coords.height, eager=True).cast(pl.Int64),
-            "max_sugar": max_sugar,
+            "sugar": pl.repeat(1, all_coords.height, eager=True).cast(pl.Int64),
+            "max_sugar": pl.repeat(4, all_coords.height, eager=True).cast(pl.Int64),
         },
     )
+
+    # Small delta update: only touch one cell.
+    grid.cells.update([[1, 2]], {"sugar": 9})
+    cell = grid.cells([1, 2], include="properties")
+    assert int(cell["sugar"][0]) == 9
+    other = grid.cells([0, 0], include="properties")
+    assert int(other["sugar"][0]) == 1
+
+    # Expr fallback.
+    grid.cells.update({"sugar": pl.col("sugar") + 1}, mask="all")
+    assert int(grid.cells([1, 2], include="properties")["sugar"][0]) == 10
 
     # Place one agent to create a full cell.
     ids = get_unique_ids(model)
     grid.place_agents(ids[[0]], [[1, 1]])
 
-    # Occupied cells should be set to 0 sugar.
+    # Named masks + copy-from-column.
     grid.cells.update({"sugar": 0}, mask="full")
     assert int(grid.cells([1, 1], include="properties")["sugar"][0]) == 0
 
-    # Empty cells should be refilled to max_sugar.
     grid.cells.update({"sugar": "max_sugar"}, mask="empty")
     assert int(grid.cells([0, 0], include="properties")["sugar"][0]) == 4
     assert int(grid.cells([1, 1], include="properties")["sugar"][0]) == 0
 
+    # Capacity update triggers the capacity accounting path.
+    before_remaining = grid.cells.remaining_capacity
+    grid.cells.update([[0, 0]], {"capacity": 2})
+    after_remaining = grid.cells.remaining_capacity
+    assert after_remaining == before_remaining + 1
 
-def test_cells_lookup_by_coords_and_cell_id(model: Model) -> None:
+    # Full-table update via target DataFrame input (updates is None).
+    dense = grid.cells(include="properties").with_columns(
+        pl.lit(7).cast(pl.Int64).alias("sugar")
+    )
+    grid.cells.update(dense)
+    assert int(grid.cells([2, 2], include="properties")["sugar"][0]) == 7
+
+
+def test_lookup(model: Model) -> None:
     grid = Grid(model, dimensions=[3, 3], capacity=1)
 
     # Initialize dense properties in row-major coordinate order.
@@ -143,23 +152,6 @@ def test_cells_lookup_by_coords_and_cell_id(model: Model) -> None:
 
     with pytest.raises(IndexError):
         grid.cells.lookup(pl.Series("cell_id", [9]), columns=["sugar"], as_df=True)
-
-
-def test_cells_update_expr_fallback(model: Model):
-    grid = Grid(model, dimensions=[2, 2], capacity=1)
-    dim0 = pl.Series("dim_0", pl.arange(2, eager=True)).to_frame()
-    dim1 = pl.Series("dim_1", pl.arange(2, eager=True)).to_frame()
-    all_coords = dim0.join(dim1, how="cross")
-    grid.cells.update(
-        all_coords,
-        {
-            "capacity": pl.repeat(1, all_coords.height, eager=True).cast(pl.Int64),
-            "sugar": pl.Series([1, 2, 3, 4], dtype=pl.Int64),
-        },
-    )
-
-    grid.cells.update({"sugar": pl.col("sugar") + 1}, mask="all")
-    assert grid.cells(include="properties")["sugar"].to_list() == [2, 3, 4, 5]
 
 
 def test_is_available(grid_moore: Grid):
