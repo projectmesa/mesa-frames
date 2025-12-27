@@ -71,6 +71,8 @@ from mesa_frames.concrete.mixin import PolarsMixin
 from mesa_frames.types_ import (
     AgentMask,
     AgentPolarsMask,
+    AgentMaskLiteral,
+    IdsLike,
     IntoExpr,
     PolarsIdsLike,
     UpdateValue,
@@ -669,7 +671,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
 
     def lookup(
         self,
-        target: PolarsIdsLike | pl.DataFrame,
+        target: IdsLike | pl.DataFrame | AgentMaskLiteral,
         *column_names: str,
         columns: list[str] | None = None,
         as_df: bool = True,
@@ -678,6 +680,23 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
             if columns is not None:
                 raise ValueError("Provide either column_names or columns, not both")
             columns = list(column_names)
+
+        if isinstance(target, str):
+            if target not in {"all", "active"}:
+                raise ValueError(
+                    "lookup target must be ids, a DataFrame, or 'all'/'active'"
+                )
+            if target == "all":
+                out = self._df
+            else:
+                out = self._df.filter(self._mask)
+            if columns is not None:
+                out = out.select(columns)
+            if as_df:
+                return out
+            if columns is not None and len(columns) == 1:
+                return out[columns[0]].to_numpy()
+            return {col: out[col].to_numpy() for col in out.columns}
 
         if isinstance(target, pl.DataFrame):
             if "unique_id" not in target.columns:

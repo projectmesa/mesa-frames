@@ -571,12 +571,18 @@ class AbstractAgentSet(CopyMixin, DataFrameMixin):
     @abstractmethod
     def lookup(
         self,
-        target: IdsLike | DataFrame,
+        target: IdsLike | DataFrame | AgentMaskLiteral,
         *column_names: str,
         columns: list[str] | None = None,
         as_df: bool = True,
     ) -> DataFrame | dict[str, np.ndarray] | np.ndarray:
-        """Fetch rows by key without joins."""
+        """Fetch rows by key without joins.
+
+        Notes
+        -----
+        ``target="all"`` returns the full table, while ``target="active"``
+        returns only the currently active agents.
+        """
         ...
 
     @abstractmethod
