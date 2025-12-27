@@ -738,13 +738,13 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
                 how="left",
                 maintain_order="left",
             )
+            if columns is not None:
+                out = out.select(columns)
             if as_df:
                 return out
             if columns is not None and len(columns) == 1:
                 return out[columns[0]].to_numpy()
-            return {
-                col: out[col].to_numpy() for col in out.columns if col != "unique_id"
-            }
+            return {col: out[col].to_numpy() for col in out.columns}
 
         sorted_uids, sort_idx = self._get_sorted_uids()
         pos = np.searchsorted(sorted_uids, ids_arr)

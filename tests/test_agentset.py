@@ -1,5 +1,6 @@
 from copy import copy, deepcopy
 
+import numpy as np
 import polars as pl
 import pytest
 from numpy.random import Generator
@@ -365,6 +366,41 @@ class Test_AgentSet:
             w + 1 for w in agents.df["wealth"].to_list()
         ]
 
+        # Id-based vector updates should take the join-based path and preserve
+        # the input id order for the aligned values.
+        agents6 = copy(agents)
+        ids = agents6["unique_id"]
+        sel_ids = ids[[3, 1]]
+        agents6.update(sel_ids, {"wealth": [333, 111]})
+        assert agents6.lookup(sel_ids, columns=["wealth"], as_df=False).tolist() == [
+            333,
+            111,
+        ]
+        assert agents6.lookup(
+            ids[[0, 2]], columns=["wealth"], as_df=False
+        ).tolist() == [
+            10,
+            10,
+        ]
+
+        # DataFrame target + mask_col selection.
+        agents7 = copy(agents)
+        target_df = pl.DataFrame({"unique_id": ids, "take": [True, False, True, False]})
+        agents7.update(target_df, {"age": 999}, mask_col="take")
+        assert agents7.df["age"].to_list() == [999, 20, 999, 20]
+
+        # Boolean mask ndarray selection.
+        agents8 = copy(agents)
+        mask = np.array([False, True, False, True])
+        agents8.update({"wealth": 7}, mask=mask)
+        assert agents8.df["wealth"].to_list() == [10, 7, 10, 7]
+
+        # Explicitly reject pl.Expr masks.
+        with pytest.raises(
+            TypeError, match=r"update\(mask=pl\.Expr\) is not supported"
+        ):
+            copy(agents).update({"wealth": 1}, mask=pl.col("wealth") > 0)
+
     def test_update_buffer_invalidation_on_shuffle(
         self, fix1_AgentSet: ExampleAgentSet
     ):
@@ -376,6 +412,59 @@ class Test_AgentSet:
         after = agents.df["wealth"].to_list()
         assert all(v == 2 for v in after)
         assert before != after or len(before) == len(after)
+
+    def test_lookup(self, fix1_AgentSet: ExampleAgentSet):
+        agents = fix1_AgentSet
+        ids = agents["unique_id"]
+
+        # Full-table ids in current order should take the full-selector fast path.
+        out_full = agents.lookup(ids, columns=["wealth"], as_df=False)
+        assert out_full.tolist() == [1, 2, 3, 4]
+
+        out_df = agents.lookup(ids[[0, 2]], columns=["wealth", "age"], as_df=True)
+        assert isinstance(out_df, pl.DataFrame)
+        assert out_df["wealth"].to_list() == [1, 3]
+        assert out_df["age"].to_list() == [10, 30]
+
+        out_arr = agents.lookup(ids[[1, 3]], columns=["wealth"], as_df=False)
+        assert out_arr.tolist() == [2, 4]
+
+        out_dict = agents.lookup(ids[[1, 3]], columns=None, as_df=False)
+        assert set(out_dict.keys()) == set(agents.df.columns)
+        assert out_dict["unique_id"].shape[0] == 2
+
+        df_target = pl.DataFrame({"unique_id": ids[[0, 1]]})
+        out_df2 = agents.lookup(df_target, columns=["age"], as_df=True)
+        assert out_df2["age"].to_list() == [10, 20]
+
+        # Named targets.
+        out_all = agents.lookup("all", columns=["wealth"], as_df=False)
+        assert out_all.tolist() == [1, 2, 3, 4]
+
+        active = agents.select(agents.df["wealth"] > 2, inplace=False)
+        out_active = active.lookup("active", columns=["wealth"], as_df=False)
+        assert out_active.tolist() == [3, 4]
+
+        # Join-based lookup path (force threshold low) preserves input order.
+        old_min = agents._JOIN_THRESHOLD_MIN
+        old_frac = agents._JOIN_THRESHOLD_FRAC
+        try:
+            agents._JOIN_THRESHOLD_MIN = 1
+            agents._JOIN_THRESHOLD_FRAC = 0.0
+            out_join = agents.lookup(ids[[2, 0]], columns=["wealth"], as_df=False)
+            assert out_join.tolist() == [3, 1]
+
+            out_join_df = agents.lookup(
+                ids[[2, 0]], columns=["wealth", "age"], as_df=True
+            )
+            assert out_join_df.columns == ["wealth", "age"]
+            assert out_join_df["wealth"].to_list() == [3, 1]
+        finally:
+            agents._JOIN_THRESHOLD_MIN = old_min
+            agents._JOIN_THRESHOLD_FRAC = old_frac
+
+        with pytest.raises(KeyError):
+            agents.lookup([0], columns=["wealth"], as_df=True)
 
     def test_shuffle(self, fix1_AgentSet: ExampleAgentSet):
         agents = fix1_AgentSet
