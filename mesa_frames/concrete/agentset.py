@@ -87,7 +87,7 @@ class AgentSet(_MaskedUpdateMixin, AbstractAgentSet, PolarsMixin):
 
     _df: pl.DataFrame
     _JOIN_THRESHOLD_MIN = 10_000
-    _JOIN_THRESHOLD_FRAC = 0.2
+    _JOIN_THRESHOLD_FRAC = 0.5
     _copy_with_method: dict[str, tuple[str, list[str]]] = {
         "_df": ("clone", []),
     }
