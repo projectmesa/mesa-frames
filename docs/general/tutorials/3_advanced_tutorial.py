@@ -598,28 +598,23 @@ class AntsBase(AgentSet):
         - After agents harvest, set the sugar on those cells to zero (they
           were consumed).
         """
-        # Map of currently occupied agent ids on the grid.
-        occupied_ids = self.index
-        # `occupied_ids` is a Polars Series; calling `is_in` with a Series
-        # of the same datatype is ambiguous in newer Polars. Use `implode`
-        # to collapse the Series into a list-like value for membership checks.
-        occupied_cells = self.space.cells().filter(
-            pl.col("agent_id").is_in(occupied_ids.implode())
+        positions = self.pos.select(
+            [
+                pl.col("unique_id").alias("agent_id"),
+                "dim_0",
+                "dim_1",
+            ]
         )
-        if occupied_cells.is_empty():
-            return
-        # The agent ordering here uses the agent_id values stored in the
-        # occupied cells frame; indexing the agent set with that vector updates
-        # the matching agents' sugar values in one vectorised write.
-        agent_ids = occupied_cells["agent_id"]
-        self[agent_ids, "sugar"] = (
-            self[agent_ids, "sugar"]
-            + occupied_cells["sugar"]
-            - self[agent_ids, "metabolism"]
-        )
+        sugar_df = self.space.cells.lookup(positions, columns=["sugar"], as_df=True)
+        sugar = sugar_df["sugar"].fill_null(0)
+        agent_ids = positions["agent_id"]
+
+        traits = self.lookup(agent_ids, columns=["sugar", "metabolism"], as_df=True)
+        new_sugar = traits["sugar"] + sugar - traits["metabolism"]
+        self.update({"sugar": new_sugar}, mask=agent_ids)
         # After harvesting, occupied cells have zero sugar.
         self.space.cells.update(
-            occupied_cells.select(["dim_0", "dim_1"]),
+            positions.select(["dim_0", "dim_1"]),
             {"sugar": 0},
         )
 
