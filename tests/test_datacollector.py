@@ -1,3 +1,4 @@
+import psycopg2
 from mesa_frames.concrete.datacollector import DataCollector
 from mesa_frames import Model, AgentSet, AgentSetRegistry
 import pytest
@@ -15,6 +16,7 @@ def custom_trigger(model):
 class ExampleAgentSet1(AgentSet):
     def __init__(self, model: Model):
         super().__init__(model)
+        self["unique_id"] = pl.Series("unique_id", [101, 102, 103, 104], dtype=pl.Int64)
         self["wealth"] = pl.Series("wealth", [1, 2, 3, 4])
         self["age"] = pl.Series("age", [10, 20, 30, 40])
 
@@ -28,6 +30,7 @@ class ExampleAgentSet1(AgentSet):
 class ExampleAgentSet2(AgentSet):
     def __init__(self, model: Model):
         super().__init__(model)
+        self["unique_id"] = pl.Series("unique_id", [201, 202, 203, 204], dtype=pl.Int64)
         self["wealth"] = pl.Series("wealth", [10, 20, 30, 40])
         self["age"] = pl.Series("age", [11, 22, 33, 44])
 
@@ -41,6 +44,7 @@ class ExampleAgentSet2(AgentSet):
 class ExampleAgentSet3(AgentSet):
     def __init__(self, model: Model):
         super().__init__(model)
+        self["unique_id"] = pl.Series("unique_id", [301, 302, 303, 304], dtype=pl.Int64)
         self["age"] = pl.Series("age", [1, 2, 3, 4])
         self["wealth"] = pl.Series("wealth", [1, 2, 3, 4])
 
@@ -147,11 +151,18 @@ class TestDataCollector:
         ):
             model.test_dc = DataCollector(model=model, storage="S3-csv")
 
+        try:
+            psycopg2.connect(postgres_uri)
+        except psycopg2.OperationalError:
+            pass
+
         with pytest.raises(
             ValueError,
             match="Please define a storage_uri to if to be stored not in memory",
         ):
-            model.test_dc = DataCollector(model=model, storage="postgresql")
+            model.test_dc = DataCollector(
+                model=model, storage="postgresql", storage_uri=None
+            )
 
     def test_collect(self, fix1_model):
         model = fix1_model
@@ -185,12 +196,15 @@ class TestDataCollector:
         with pytest.raises(pl.exceptions.ColumnNotFoundError, match="max_wealth"):
             collected_data["model"]["max_wealth"]
 
-        assert collected_data["agent"].shape == (4, 7)
+        assert collected_data["agent"].shape == (4, 10)
         assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
             "age_ExampleAgentSet3",
+            "unique_id_ExampleAgentSet1",
+            "unique_id_ExampleAgentSet2",
+            "unique_id_ExampleAgentSet3",
             "step",
             "seed",
             "batch",
@@ -242,12 +256,15 @@ class TestDataCollector:
         assert collected_data["model"]["step"].to_list() == [5]
         assert collected_data["model"]["total_agents"].to_list() == [12]
 
-        assert collected_data["agent"].shape == (4, 7)
+        assert collected_data["agent"].shape == (4, 10)
         assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
             "age_ExampleAgentSet3",
+            "unique_id_ExampleAgentSet1",
+            "unique_id_ExampleAgentSet2",
+            "unique_id_ExampleAgentSet3",
             "step",
             "seed",
             "batch",
@@ -297,25 +314,20 @@ class TestDataCollector:
         assert collected_data["model"]["step"].to_list() == [2, 4]
         assert collected_data["model"]["total_agents"].to_list() == [12, 12]
 
-        assert collected_data["agent"].shape == (8, 7)
+        assert collected_data["agent"].shape == (8, 10)
         assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
             "age_ExampleAgentSet3",
+            "unique_id_ExampleAgentSet1",
+            "unique_id_ExampleAgentSet2",
+            "unique_id_ExampleAgentSet3",
             "step",
             "seed",
             "batch",
         }
-        assert set(collected_data["agent"].columns) == {
-            "wealth",
-            "age_ExampleAgentSet1",
-            "age_ExampleAgentSet2",
-            "age_ExampleAgentSet3",
-            "step",
-            "seed",
-            "batch",
-        }
+
         assert collected_data["agent"]["wealth"].to_list() == [3, 4, 5, 6, 5, 6, 7, 8]
         assert collected_data["agent"]["age_ExampleAgentSet1"].to_list() == [
             10,
@@ -394,15 +406,25 @@ class TestDataCollector:
             assert model_df["step"].to_list() == [2]
             assert model_df["total_agents"].to_list() == [12]
 
+            agent_overrides = {
+                "seed": pl.Utf8,
+                "unique_id_ExampleAgentSet1": pl.Utf8,
+                "unique_id_ExampleAgentSet2": pl.Utf8,
+                "unique_id_ExampleAgentSet3": pl.Utf8,
+            }
+
             agent_df = pl.read_csv(
                 os.path.join(tmpdir, "agent_step2_batch0.csv"),
-                schema_overrides={"seed": pl.Utf8},
+                schema_overrides=agent_overrides,
             )
             assert set(agent_df.columns) == {
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
                 "age_ExampleAgentSet3",
+                "unique_id_ExampleAgentSet1",
+                "unique_id_ExampleAgentSet2",
+                "unique_id_ExampleAgentSet3",
                 "step",
                 "seed",
                 "batch",
@@ -420,7 +442,7 @@ class TestDataCollector:
 
             agent_df = pl.read_csv(
                 os.path.join(tmpdir, "agent_step4_batch0.csv"),
-                schema_overrides={"seed": pl.Utf8},
+                schema_overrides=agent_overrides,
             )
             assert agent_df["step"].to_list() == [4, 4, 4, 4]
             assert agent_df["wealth"].to_list() == [5, 6, 7, 8]
@@ -474,10 +496,13 @@ class TestDataCollector:
         reason="PostgreSQL tests are skipped on Windows runners",
     )
     def test_postgress(self, fix1_model, postgres_uri):
-        model = fix1_model
+        try:
+            conn = psycopg2.connect(postgres_uri)
+            conn.close()
+        except psycopg2.OperationalError:
+            pytest.skip("PostgreSQL not available")
 
-        # Connect directly and validate data
-        import psycopg2
+        model = fix1_model
 
         conn = psycopg2.connect(postgres_uri)
         cur = conn.cursor()
@@ -496,6 +521,9 @@ class TestDataCollector:
                 step INTEGER,
                 seed VARCHAR,
                 batch INTEGER,
+                unique_id_exampleagentset1 INTEGER,
+                unique_id_exampleagentset2 INTEGER,
+                unique_id_exampleagentset3 INTEGER,
                 age_ExampleAgentSet1 INTEGER,
                 age_ExampleAgentSet2 INTEGER,
                 age_ExampleAgentSet3 INTEGER,
@@ -580,12 +608,15 @@ class TestDataCollector:
         assert collected_data["model"]["batch"].to_list() == [0, 1, 0, 1]
         assert collected_data["model"]["total_agents"].to_list() == [12, 12, 12, 12]
 
-        assert collected_data["agent"].shape == (16, 7)
+        assert collected_data["agent"].shape == (16, 10)
         assert set(collected_data["agent"].columns) == {
             "wealth",
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
             "age_ExampleAgentSet3",
+            "unique_id_ExampleAgentSet1",
+            "unique_id_ExampleAgentSet2",
+            "unique_id_ExampleAgentSet3",
             "step",
             "seed",
             "batch",
@@ -596,6 +627,9 @@ class TestDataCollector:
             "age_ExampleAgentSet1",
             "age_ExampleAgentSet2",
             "age_ExampleAgentSet3",
+            "unique_id_ExampleAgentSet1",
+            "unique_id_ExampleAgentSet2",
+            "unique_id_ExampleAgentSet3",
             "step",
             "seed",
             "batch",
@@ -773,16 +807,26 @@ class TestDataCollector:
             assert model_df_step4_batch0["step"].to_list() == [4]
             assert model_df_step4_batch0["total_agents"].to_list() == [12]
 
+            agent_overrides = {
+                "seed": pl.Utf8,
+                "unique_id_ExampleAgentSet1": pl.Utf8,
+                "unique_id_ExampleAgentSet2": pl.Utf8,
+                "unique_id_ExampleAgentSet3": pl.Utf8,
+            }
+
             # test agent batch reset
             agent_df_step2_batch0 = pl.read_csv(
                 os.path.join(tmpdir, "agent_step2_batch0.csv"),
-                schema_overrides={"seed": pl.Utf8},
+                schema_overrides=agent_overrides,
             )
             assert set(agent_df_step2_batch0.columns) == {
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
                 "age_ExampleAgentSet3",
+                "unique_id_ExampleAgentSet1",
+                "unique_id_ExampleAgentSet2",
+                "unique_id_ExampleAgentSet3",
                 "step",
                 "seed",
                 "batch",
@@ -810,13 +854,16 @@ class TestDataCollector:
 
             agent_df_step2_batch1 = pl.read_csv(
                 os.path.join(tmpdir, "agent_step2_batch1.csv"),
-                schema_overrides={"seed": pl.Utf8},
+                schema_overrides=agent_overrides,
             )
             assert set(agent_df_step2_batch1.columns) == {
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
                 "age_ExampleAgentSet3",
+                "unique_id_ExampleAgentSet1",
+                "unique_id_ExampleAgentSet2",
+                "unique_id_ExampleAgentSet3",
                 "step",
                 "seed",
                 "batch",
@@ -844,13 +891,16 @@ class TestDataCollector:
 
             agent_df_step4_batch0 = pl.read_csv(
                 os.path.join(tmpdir, "agent_step4_batch0.csv"),
-                schema_overrides={"seed": pl.Utf8},
+                schema_overrides=agent_overrides,
             )
             assert set(agent_df_step4_batch0.columns) == {
                 "wealth",
                 "age_ExampleAgentSet1",
                 "age_ExampleAgentSet2",
                 "age_ExampleAgentSet3",
+                "unique_id_ExampleAgentSet1",
+                "unique_id_ExampleAgentSet2",
+                "unique_id_ExampleAgentSet3",
                 "step",
                 "seed",
                 "batch",
